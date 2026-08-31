@@ -1,40 +1,44 @@
 # AGP Cockpit Architecture
 
+Normative scope authority: `docs/planning/SCOPE_BOUNDARY.md`.
+
 ## 1. Architectural style
 
-AGP Cockpit uses a pragmatic Hexagonal/Clean Architecture with an explicit finite-state-machine core.
+AGP Cockpit uses a pragmatic Hexagonal/Clean Architecture with an explicit transport-state machine.
 
 Primary design goals:
 
 - deterministic transport rather than local reasoning;
-- strict separation of product logic from operating-system and browser automation;
-- testability without Chrome, Hermes, Ollama, GitHub, or a real repository;
-- observable, recoverable state transitions;
+- strict separation of browser/OS/process integrations;
+- testability without Chrome, Hermes, Ollama, GitHub, Agentic Project Kit, or a real repository;
+- observable/recoverable transport state;
 - replaceable adapters;
 - macOS-first implementation with portable boundaries.
+
+The Cockpit is not a development agent and not a Kit workflow orchestrator.
 
 ## 2. Layers
 
 ```text
 +-----------------------------------------------------------+
 | Presentation                                              |
-| Desktop GUI, view models, user commands                   |
+| Tkinter GUI, view models, user commands                   |
 +-----------------------------------------------------------+
 | Application                                               |
-| Use cases, orchestration, policies for session control    |
+| Transport-session orchestration only                      |
 +-----------------------------------------------------------+
 | Core                                                      |
-| Protocol, IDs, FSM, invariants, result types, events      |
+| Transport protocol, IDs, FSM, invariants, events          |
 +-----------------------------------------------------------+
 | Ports                                                     |
-| Browser, executor, Kit, persistence, platform, clock      |
+| Browser, local executor, persistence, platform, clock     |
 +-----------------------------------------------------------+
 | Adapters / Infrastructure                                 |
-| Chrome, macOS, subprocess, Hermes, Kit CLI, file store    |
+| Chrome, macOS, subprocess/Hermes, local store             |
 +-----------------------------------------------------------+
 ```
 
-Dependency direction is inward. Outer adapters may depend on core/ports; core never depends on adapters.
+There is intentionally no autonomous development-planning layer, no Kit-command-selection service, and no Cockpit-owned GitHub/FILE_TRANSFER workflow layer.
 
 ## 3. Proposed Python package layout
 
@@ -51,13 +55,12 @@ src/agp_cockpit/
   application/
     session_controller.py
     preflight.py
-    execute_action.py
+    dispatch_work_order.py
     submit_result.py
     recover_session.py
   ports/
     browser.py
     executor.py
-    kit.py
     persistence.py
     platform.py
     clock.py
@@ -70,9 +73,6 @@ src/agp_cockpit/
       direct_subprocess.py
       hermes_transport.py
       fake_executor.py
-    kit/
-      cli_adapter.py
-      fake_kit.py
     persistence/
       json_session_store.py
       memory_session_store.py
@@ -89,44 +89,42 @@ src/agp_cockpit/
   main.py
 ```
 
-The exact module names may evolve, but the dependency rules are normative.
+The exact module names may evolve, but the dependency and scope rules are normative.
 
 ## 4. Core domain model
-
-Core objects should be small immutable dataclasses or frozen value objects where practical.
 
 Representative objects:
 
 - `SessionId`
 - `RoundId`
 - `ActionId`
-- `RepositoryIdentity`
+- `TargetIdentity`
 - `CommunicationMode`
 - `ActionEnvelope`
 - `ResultEnvelope`
-- `SessionState`
-- `SessionEvent`
+- `TransportState`
+- `TransportEvent`
 - `TransitionResult`
 
-IDs are opaque values and never inferred from timestamps alone.
+The action payload is opaque to the Cockpit except for protocol metadata required for safe transport.
 
 ## 5. State machine ownership
 
-The state machine belongs to the core. Adapters report events; they do not decide transitions.
+The state machine belongs to the transport core. Adapters report transport events; they do not decide development or Kit workflow semantics.
 
 Example:
 
 ```text
-Browser adapter: assistant response complete
+Browser adapter: completed assistant response available
         |
         v
 Event(ResponseAvailable)
         |
         v
-Core transition: WAITING_FOR_LLM -> VALIDATING_ACTION
+WAITING_FOR_LLM -> VALIDATING_TRANSPORT_ENVELOPE
 ```
 
-A timeout adapter/clock can emit `TimeoutExpired`, but only the FSM decides whether that means `BLOCKED`, `FAIL`, retry/recheck, or no transition.
+A timeout can cause browser/process re-check or a transport-level stop. It must not infer Kit workflow progress.
 
 ## 6. Ports
 
@@ -142,36 +140,37 @@ Responsibilities:
 - submit the composer;
 - return browser/conversation identity evidence.
 
-It must not parse AGP Cockpit protocol semantics.
+It must not interpret development semantics.
 
 ### LocalExecutorPort
 
 Responsibilities:
 
-- execute one already-validated local execution request;
-- stream/capture bounded stdout/stderr metadata;
-- return exit status and evidence references;
+- execute/deliver one already-validated work-order payload unchanged;
+- capture bounded stdout/stderr/return-code information;
+- return evidence references;
 - support cancellation at defined safe points.
 
-It must not choose commands.
+It MUST NOT:
 
-### KitPort
+- choose a command;
+- replace a failed command;
+- diagnose the software problem;
+- choose a Kit wrapper;
+- advance Git/GitHub workflow logic.
 
-Responsibilities:
-
-- discover current Kit capabilities/commands where supported;
-- run canonical preflight/check/doctor/transfer operations;
-- expose machine-readable Kit outcomes to the application layer;
-- avoid reconstructing Kit internals.
+If the browser LLM sends a Kit command, the executor merely executes it and waits for that local process to finish.
 
 ### SessionStore
 
 Responsibilities:
 
-- atomically persist session snapshots/journal records;
-- load the latest valid state;
+- atomically persist transport-session snapshots/journal records;
+- load the latest valid transport state;
 - detect corruption;
-- support migration of persisted state schema.
+- prevent unsafe duplicate dispatch after crash/restart.
+
+It must not persist or reconstruct Kit-internal workflow state.
 
 ### PlatformPort
 
@@ -184,164 +183,147 @@ Responsibilities:
 - browser binary discovery/startup helpers;
 - platform capability reporting.
 
-## 7. Platform strategy
+## 7. Explicit absence of Kit workflow and GitHub ports
+
+AGP Cockpit deliberately has no runtime `KitWorkflowPort`, `GitHubPort`, `TransferOrderPort`, or equivalent service for repository workflow progression.
+
+The Cockpit may execute a browser-supplied local work order that invokes `agentic-kit`, but it must not select or construct that command itself.
+
+In FILE_TRANSFER mode, all generation, validation, GitHub communication, remote synchronization, correlation, waiting, result association, and PASS/BLOCKED/FAIL semantics remain inside the current Agentic Project Kit process/workflow.
+
+From the Cockpit's perspective:
+
+```text
+browser FILE_TRANSFER work order
+ -> local executor starts exact work order
+ -> Cockpit waits for local process
+ -> local process exits/returns output
+ -> Cockpit sends output to browser
+```
+
+Nothing more.
+
+## 8. Platform strategy
 
 ### macOS adapter
 
-Initial concrete adapter may use:
+Initial adapter may use controlled subprocesses, platform-specific process/listener inspection, Homebrew-aware executable discovery, standard macOS user directories, and Chrome application discovery.
 
-- `subprocess` for controlled process execution;
-- `lsof`/native socket inspection behind `PlatformPort` where needed;
-- Homebrew-aware executable discovery without assuming Homebrew is mandatory;
-- standard macOS user directories for config/log/runtime data;
-- Chrome application bundle discovery;
-- CDP launch arguments for dedicated browser automation sessions.
-
-No caller outside `adapters/platform/macos.py` may rely on `/opt/homebrew`, `/Applications/Google Chrome.app`, `pkill`, `lsof`, or macOS bundle paths directly.
+No caller outside the macOS platform adapter may rely directly on `/opt/homebrew`, `/Applications/Google Chrome.app`, `pkill`, `lsof`, or macOS bundle paths.
 
 ### Future Windows/Linux adapters
 
-Future implementations may use different process/listener APIs and browser paths while implementing the same ports. Unsupported features must be surfaced as explicit capability failures.
+Future implementations may use different process/listener APIs and browser paths while implementing the same ports. Unsupported features must be explicit capability failures.
 
-## 8. Browser automation boundary
+## 9. Browser automation boundary
 
-Browser automation is considered an unreliable external system.
+Browser automation is an unreliable external system.
 
 Therefore:
 
 - DOM selectors are adapter configuration, not domain constants;
-- all selectors must have bounded fallback strategies;
 - ambiguous page state fails closed;
-- conversation identity is verified before every submission;
-- browser text is never treated as an executable payload until the protocol parser validates it;
-- completed-response detection uses observable browser state and content stability, not a single fixed delay.
+- conversation identity is verified before submission;
+- browser text becomes a dispatchable payload only after strict transport-envelope validation;
+- completed-response detection uses observable browser state/content stability, not a single fixed delay;
+- a fake browser adapter is mandatory for CI.
 
-A fake browser adapter is mandatory for CI.
-
-## 9. Hermes boundary
+## 10. Hermes boundary
 
 Hermes is optional infrastructure, not a domain dependency.
 
-If retained, the Hermes adapter must operate in a no-reasoning transport contract:
+If retained, its contract is mechanical:
 
-- payload in;
-- deterministic tool/execution request;
-- payload/result out;
-- no semantic rewriting;
-- no autonomous fallback commands;
-- no hidden continuation loop.
+```text
+payload in -> exact delivery/execution -> raw result out
+```
 
-If Hermes cannot provide this guarantee reliably, the direct deterministic adapter becomes the default path.
+No semantic rewriting, autonomous fallback, hidden continuation, development reasoning, or Kit command selection is permitted.
 
-## 10. Persistence and exactly-once semantics
+If this cannot be guaranteed, use a deterministic direct Python adapter.
 
-The cockpit cannot guarantee globally transactional exactly-once execution across browser, local process, Git, and remote systems. It can, however, implement strong practical at-most-once local dispatch with evidence-based recovery.
+## 11. Persistence and duplicate prevention
+
+The Cockpit needs only strong practical at-most-once local dispatch for transport actions.
 
 Required mechanism:
 
-1. persist validated action and `READY_TO_EXECUTE` before dispatch;
-2. persist `EXECUTING` and action ID before invoking executor;
-3. executor returns immutable result/evidence reference;
+1. persist validated action ID before dispatch;
+2. persist local-dispatch state;
+3. capture immutable result/evidence reference when the process completes;
 4. persist result before browser submission;
-5. persist `RESULT_SUBMITTED` only after browser submission evidence;
-6. on restart, inspect persisted state plus local/Kit evidence before deciding whether any action may be replayed.
+5. persist browser-submission evidence;
+6. on ambiguous restart, stop for user/browser-LLM recovery rather than replaying automatically.
 
-Ambiguous recovery must become `BLOCKED_RECOVERY_REQUIRED`, never automatic replay.
+This mechanism must not attempt to infer whether an internal Kit FILE_TRANSFER sub-step completed.
 
-## 11. Configuration
+## 12. Configuration
 
-Configuration is split into:
+Configuration is split into version-controlled defaults/schema, local user settings, runtime/session state, and secrets.
 
-- version-controlled defaults/schema;
-- local user settings;
-- runtime/session state;
-- secrets.
+Maintainer-specific absolute paths are not portable product configuration defaults. Browser cookies, credentials, tokens, and profiles are never version-controlled.
 
-Local settings must not require repository-local absolute user paths. Repository selection is a runtime/user setting.
+## 13. Logging and observability
 
-Secrets, browser cookies, tokens, and Chrome profile data are never stored in version-controlled configuration.
-
-## 12. Logging and observability
-
-Use structured application logs with correlation fields:
+Structured application logs may include:
 
 - session_id;
 - round_id;
 - action_id;
-- state;
+- transport state;
 - adapter;
 - event;
 - duration;
-- status.
+- local process return code;
+- bounded evidence references.
 
-Do not log secrets or full unbounded LLM responses by default.
+The Cockpit should report what it transported and whether transport succeeded. It must not present itself as having adjudicated development correctness.
 
-User-visible audit information should answer:
+## 14. Error model
 
-- what action was received;
-- whether it was validated;
-- what adapter executed it;
-- what result status occurred;
-- what evidence/log location exists;
-- whether the result was submitted;
-- why the system stopped.
-
-## 13. Error model
-
-Distinguish at least:
+Distinguish transport/infrastructure failures such as:
 
 - `ProtocolError`
 - `BrowserStateError`
-- `RepositoryIdentityError`
-- `KitBlocked`
-- `ExecutionFailure`
-- `TimeoutBlocked`
+- `TargetIdentityError`
+- `LocalExecutionFailure`
+- `TransportTimeout`
 - `PersistenceError`
 - `RecoveryAmbiguous`
 - `UserCancelled`
 - `UnsupportedCapability`
 
-Do not collapse all errors into a generic exception string in the UI.
+Kit-reported `BLOCKED` or `FAIL` may be transported as terminal output/result content, but the Cockpit does not diagnose or resolve them.
 
-## 14. Concurrency model
+## 15. Concurrency model
 
-The GUI main thread never performs blocking browser, process, network, or Kit operations.
+The GUI main thread never performs blocking browser or process operations. Application work runs in controlled workers. State changes are serialized through the transport session controller.
 
-Application work runs in controlled worker tasks/threads/processes. State changes are serialized through the session controller/FSM. The first implementation should prefer simple serialized orchestration over broad async concurrency.
+Prefer simple serialized orchestration over broad concurrency.
 
-The design may later adopt `asyncio`, but asynchronous technology is not itself an architectural goal. Deterministic transitions and cancellation are the goal.
+## 16. UI architecture
 
-## 15. UI architecture
+The GUI is a thin presentation layer. Typical commands:
 
-The GUI is a thin presentation layer. It exposes commands such as:
-
-- Select repository
+- Select local repository/context
 - Connect browser
-- Run preflight
-- Start session
+- Start transport session
 - Pause
 - Resume
 - Stop
-- Open log/evidence
+- Open local log/evidence
 
-The GUI binds to a view model or immutable snapshot. It must not directly call `subprocess`, manipulate Chrome, edit Hermes config, or inspect port 11434.
-
-## 16. Dependency policy
-
-Prefer Python standard library for core/application code.
-
-Third-party dependencies are accepted when they materially improve correctness or maintainability. Each runtime dependency must be isolated behind a narrow adapter where possible.
-
-Browser automation technology (CDP client, Playwright, Selenium, Hermes browser tooling) is an implementation decision to be tested, not a domain commitment.
+The GUI must not choose Kit commands, execute GitHub workflow logic, or interpret FILE_TRANSFER progress.
 
 ## 17. Architectural fitness tests
 
-Add automated checks that prevent architectural drift, for example:
+Automated checks must prevent scope drift, including:
 
-- `core` may not import from `adapters`, `presentation`, or platform modules;
-- `application` may not import concrete adapters;
-- platform-specific imports are restricted to platform adapter packages;
-- browser selectors do not appear in core/application packages;
-- Kit-specific command strings are centralized in the Kit adapter/capability layer rather than scattered across GUI code.
-
-These tests are part of the definition of done for structural refactors.
+- `core` cannot import adapters/presentation/platform modules;
+- `application` cannot import concrete adapters;
+- platform-specific calls stay in platform adapters;
+- browser selectors stay out of core/application;
+- no runtime module named or behaving as a Kit command selector/orchestrator;
+- no GitHub API/client dependency in the FILE_TRANSFER runtime path;
+- no Cockpit states representing Kit-internal FILE_TRANSFER progression;
+- no local-LLM semantic transformation in the executor path.
