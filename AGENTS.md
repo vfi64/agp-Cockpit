@@ -16,6 +16,11 @@ These rules apply repository-wide to every LLM, coding agent, maintainer assista
 - A local-operation script must perform explicit preflight checks, use bounded side effects, print useful diagnostics, and return meaningful exit codes.
 - Shell commands may be invoked internally by Python when necessary, but the user-facing execution unit is the Python script.
 - Scripts must fail closed on ambiguous repository identity, branch/HEAD state, missing dependencies, unexpected Kit state, or unsafe preconditions.
+- The maintainer's local script history lives in `<repo-root>/Download/` (currently `/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit/Download/` on the primary Mac).
+- `/Download/` is local-only history and MUST remain ignored by Git. It must never be committed or pushed.
+- Local scripts should use stable sequential names such as `001_phase0_bootstrap.py`, `002_ci_baseline.py`, etc., and should normally preserve prior scripts rather than overwrite them.
+- A bootstrap script initially downloaded elsewhere may create `<repo-root>/Download/` and copy its own exact source into that directory after the repository checkout exists. Subsequent execution should use the archived copy.
+- The absolute maintainer path above is an operations convention only and MUST NOT leak into portable product/application logic.
 
 Detailed policy: `docs/planning/LOCAL_EXECUTION_POLICY.md`.
 
