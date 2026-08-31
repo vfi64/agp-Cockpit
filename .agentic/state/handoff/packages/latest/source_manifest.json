@@ -1,0 +1,50 @@
+{
+  "kind": "successor_source_manifest",
+  "schema_version": 1,
+  "sources": [
+    {
+      "bytes": 370,
+      "exists": true,
+      "path": ".agentic/config.yaml",
+      "yaml_valid": true
+    },
+    {
+      "bytes": 1535,
+      "exists": true,
+      "path": ".agentic/INITIAL_LLM_PROMPT.md"
+    },
+    {
+      "bytes": 210,
+      "exists": true,
+      "path": ".agentic/DOC_LIFECYCLE.md"
+    },
+    {
+      "bytes": 119,
+      "exists": true,
+      "path": ".agentic/state/status.md"
+    },
+    {
+      "bytes": 61,
+      "exists": true,
+      "path": ".agentic/state/handoff/README.md"
+    },
+    {
+      "bytes": 32,
+      "exists": true,
+      "path": ".agentic/registries/documentation.yaml",
+      "yaml_valid": true
+    },
+    {
+      "bytes": 28,
+      "exists": true,
+      "path": ".agentic/registries/rules.yaml",
+      "yaml_valid": true
+    },
+    {
+      "bytes": 60,
+      "exists": true,
+      "path": ".agentic/rules/README.md"
+    }
+  ],
+  "workspace_mode": "external"
+}
