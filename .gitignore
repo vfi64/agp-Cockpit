@@ -1,0 +1,13 @@
+# Local maintainer execution history; never commit.
+/Download/
+
+# Local runtime/bootstrap evidence.
+/.local/
+
+# Python local environments and caches.
+/.venv/
+__pycache__/
+*.py[cod]
+
+# macOS metadata.
+.DS_Store
