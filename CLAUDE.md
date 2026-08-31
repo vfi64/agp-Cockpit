@@ -54,6 +54,8 @@ A local-work script must:
 
 Do not make loose multi-command shell recipes the primary maintainer workflow.
 
+Local maintainer script history belongs in `<repo-root>/Download/`; on the primary Mac this currently resolves to `/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit/Download/`. This directory is local-only, Git-ignored, and must never be committed or pushed. Preserve scripts with sequential names where practical. A first bootstrap script downloaded outside the repository may create this directory and copy its own exact source into it once the checkout exists. This absolute path is an operations convention, never a portable product-code dependency.
+
 ## Agentic Project Kit command selection
 
 Use the current Kit contract, not remembered syntax.
