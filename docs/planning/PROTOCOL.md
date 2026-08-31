@@ -1,6 +1,9 @@
 # AGP Cockpit Transport Protocol v1 — Planning Specification
 
-Status: design baseline, subordinate to `docs/planning/SCOPE_BOUNDARY.md`
+Status: active
+Status-date: 2026-08-31
+Decision status: accepted
+Review policy: on material change
 
 ## 1. Purpose
 

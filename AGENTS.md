@@ -143,3 +143,23 @@ An assisting LLM/agent should be able to answer, from current repository/Kit evi
 6. What evidence proves that slice is complete?
 
 If the answer to question 1 is no, the feature is out of scope. If the remaining questions cannot be answered reliably, stop mutation and perform bounded diagnosis instead of guessing.
+
+## Mandatory terminal completion banner
+
+All maintainer-local Python work scripts MUST print a highly visible final
+completion block before terminating, regardless of PASS, BLOCKED, or FAIL.
+
+The block format is:
+
+```text
+=======================================================================
+=======================================================================
+=== <STEP RESULT TITLE> ===
+=======================================================================
+=======================================================================
+```
+
+The result title must state the actual outcome. A script must not advertise a
+PASS/completion title when its operation was blocked or failed. The banner must
+also be printed from exception/error paths so the maintainer can reliably find
+the start of the final result in long terminal output.

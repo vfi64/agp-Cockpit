@@ -1,6 +1,9 @@
 # AGP Cockpit Master Plan
 
-Status: corrected planning baseline
+Status: active
+Status-date: 2026-08-31
+Decision status: accepted
+Review policy: on material change
 
 Normative scope authority: `docs/planning/SCOPE_BOUNDARY.md`.
 

@@ -1,0 +1,29 @@
+{
+  "contract_id": "DPA-WORKSPACE-INIT-HANDOFF-TEMPLATE-v1",
+  "emits_current_handoff_template": false,
+  "full_probe_pass_claimed": false,
+  "generated_output_class": "external_workspace_initialization_output",
+  "generated_outputs_manually_patched": false,
+  "generated_target_paths": [
+    ".agentic/state/handoff/README.md"
+  ],
+  "generated_target_root_only": true,
+  "kind": "dpa_workspace_init_projection_manifest",
+  "kit_conformance_claimed": false,
+  "kit_live_acceptance_state": false,
+  "production_mutation_claimed": false,
+  "project": {
+    "name": "agp-Cockpit",
+    "profile": "generic",
+    "profiles": [],
+    "type": "generic"
+  },
+  "schema_version": 1,
+  "self_hosting_current_handoff": false,
+  "source_paths": [
+    "src/agentic_project_kit/templates.py",
+    "src/agentic_project_kit/workspace_init.py"
+  ],
+  "target_scope": "EXTERNAL_WORKSPACE_INITIALIZATION_TEMPLATE",
+  "writer_id": "WRT-CH-005"
+}

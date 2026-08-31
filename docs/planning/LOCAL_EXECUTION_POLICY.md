@@ -1,6 +1,9 @@
 # Local Execution Policy
 
-Status: normative project planning rule
+Status: active
+Status-date: 2026-08-31
+Decision status: accepted
+Review policy: on material change
 
 ## Purpose
 
@@ -42,3 +45,21 @@ current Kit orchestrator
 ```
 
 A lower-level mechanism is used only when the higher-level current surface is unavailable or semantically inappropriate, and that choice must be documented when it affects workflow safety or evidence.
+
+## Mandatory terminal completion banner
+
+Every local maintainer script MUST terminate with a clearly delimited result
+banner, including PASS, BLOCKED, and FAIL paths. The required visual form is:
+
+```text
+=======================================================================
+=======================================================================
+=== <STEP RESULT TITLE> ===
+=======================================================================
+=======================================================================
+```
+
+The title must reflect the real outcome. The banner is part of the local
+execution contract and must be emitted even when an exception is raised or a
+Kit command returns BLOCKED/FAIL. This makes long terminal transcripts
+unambiguous and easy to return to the development LLM.

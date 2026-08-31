@@ -1,5 +1,10 @@
 # AGP Cockpit Test Plan
 
+Status: active
+Status-date: 2026-08-31
+Decision status: accepted
+Review policy: on material change
+
 ## 1. Test strategy
 
 Testing follows the architectural boundaries. Most behavior must be testable without Chrome, Hermes, Ollama, GitHub, or a real Agentic Project Kit workspace.

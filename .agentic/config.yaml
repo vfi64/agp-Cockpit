@@ -1,0 +1,23 @@
+kit_schema_version: 2
+project:
+  name: agp-Cockpit
+  type: generic
+profile: generic
+modules:
+  doc_registry: true
+  release_governance: true
+  rule_registry: true
+  transfer: true
+transfer:
+  visibility: repo
+hygiene:
+  doc_lifecycle: warn
+  review_budgets:
+    governance: 180
+    reference: 365
+    workflow: 270
+paths:
+  docs_root: docs
+gates:
+  extra: []
+  skip: []

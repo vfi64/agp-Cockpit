@@ -1,6 +1,9 @@
 # AGP Cockpit — Normative Scope Boundary
 
-Status: NORMATIVE
+Status: active
+Status-date: 2026-08-31
+Decision status: accepted
+Review policy: on material change
 
 This document exists to prevent architectural scope drift. If another planning document, prior chat, proposed implementation, or agent suggestion conflicts with this boundary, this document wins unless the maintainer explicitly changes it through a reviewed planning/ADR change.
 

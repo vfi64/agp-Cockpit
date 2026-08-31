@@ -1,6 +1,9 @@
 # AGP Cockpit Development Gates
 
-Status: normative planning baseline
+Status: active
+Status-date: 2026-08-31
+Decision status: accepted
+Review policy: on material change
 
 ## 1. Governing rule
 
