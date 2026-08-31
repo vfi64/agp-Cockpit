@@ -1,14 +1,16 @@
 # AGP Cockpit Transport Protocol v1 — Planning Specification
 
-Status: design baseline, not yet implementation authority
+Status: design baseline, subordinate to `docs/planning/SCOPE_BOUNDARY.md`
 
 ## 1. Purpose
 
-The protocol creates a deterministic handoff between a browser-based reasoning LLM and the local AGP Cockpit. It deliberately avoids requiring a local LLM to interpret natural language.
+The protocol provides deterministic framing between a browser-based development LLM and the local AGP Cockpit.
+
+AGP Cockpit transports work orders and results. It does not interpret development semantics, choose Kit commands, or implement Agentic Project Kit workflow logic.
 
 ## 2. Envelope framing
 
-Assistant-to-cockpit actions are transported inside exactly one bounded block:
+Assistant-to-cockpit work orders use exactly one bounded block:
 
 ```text
 AGP_COCKPIT_ACTION_BEGIN
@@ -24,21 +26,13 @@ AGP_COCKPIT_RESULT_BEGIN
 AGP_COCKPIT_RESULT_END
 ```
 
-The implementation must reject:
-
-- missing begin/end markers;
-- nested markers;
-- multiple action blocks in one assistant response unless a later protocol version explicitly permits batching;
-- truncated payloads;
-- unsupported protocol versions;
-- duplicate action IDs already executed or in-flight;
-- payloads exceeding configured size limits.
+Reject missing/nested/multiple markers, truncated payloads, unsupported protocol versions, duplicate action IDs, and oversized payloads.
 
 ## 3. Serialization
 
-The first implementation should use JSON for transport envelopes because it is ubiquitous, strict, readily validated, and avoids YAML ambiguity. Human-readable summaries may remain plain text fields.
+Protocol v1 should use JSON.
 
-Representative action shape:
+Representative action:
 
 ```json
 {
@@ -47,23 +41,18 @@ Representative action shape:
   "round_id": "...",
   "action_id": "...",
   "mode": "DIRECT_EXECUTION",
-  "repository": {
-    "path_hint": "/path/on/local-machine",
-    "remote": "vfi64/example",
-    "expected_branch": "...",
-    "expected_head": "..."
+  "target": {
+    "repository_path_hint": "/path/on/local-machine",
+    "remote_hint": "vfi64/example"
   },
-  "payload": {
-    "kind": "kit_command",
-    "command": "..."
-  },
-  "expectation": {
-    "terminal": false
+  "work_order": {
+    "type": "terminal_payload",
+    "content": "<opaque work order from browser LLM>"
   }
 }
 ```
 
-Representative result shape:
+Representative result:
 
 ```json
 {
@@ -71,75 +60,90 @@ Representative result shape:
   "session_id": "...",
   "round_id": "...",
   "action_id": "...",
-  "status": "PASS",
-  "repository_observed": {
-    "remote": "vfi64/example",
-    "branch": "...",
-    "head": "..."
-  },
-  "execution": {
+  "transport_status": "PASS",
+  "local_execution": {
     "return_code": 0,
-    "summary": "...",
+    "bounded_output": "...",
     "log_ref": "..."
   }
 }
 ```
 
-Exact schemas will be versioned in code and machine-readable schema files once implementation begins.
+`work_order.content` is opaque to AGP Cockpit except for transport-size/safety constraints. The Cockpit must not rewrite, improve, repair, summarize, or replace it.
 
 ## 4. Communication modes
 
 ### DIRECT_EXECUTION
 
-The remote LLM provides one complete bounded action. The cockpit validates envelope identity and delegates execution to the configured executor/Kit adapter.
+The browser LLM supplies one complete local work order. The Cockpit validates only transport metadata and dispatches the work order unchanged to the configured local executor.
 
-DIRECT_EXECUTION is not authorization to run arbitrary compensating commands. If an action returns `BLOCKED` or `FAIL`, the cockpit returns that result and waits for the remote LLM.
+The Cockpit does not choose a Kit command or compensating command. If the local work order invokes Agentic Project Kit, the Kit owns the governed work.
 
 ### FILE_TRANSFER
 
-The payload expresses structured intent and references the canonical Kit transfer mechanism. The cockpit delegates generation/validation/transfer to the current Kit interface and tracks the exact correlation/order identity.
+FILE_TRANSFER changes only the semantic intention of the browser-LLM work order; it does not give the Cockpit additional workflow responsibility.
 
-No transfer YAML is synthesized by the cockpit from memory.
+The browser LLM supplies a complete local work order that invokes the current canonical Agentic Project Kit FILE_TRANSFER workflow.
 
-## 5. Status values
+The Cockpit then only:
 
-Protocol v1 recognizes:
+1. dispatches that work order unchanged;
+2. waits for the local process to complete;
+3. captures bounded output/result references;
+4. returns them to the browser LLM.
 
-- `PASS`
-- `BLOCKED`
-- `FAIL`
-- `DONE`
-- `CANCELLED`
+The Cockpit MUST NOT implement or interpret:
 
-`DONE` is a terminal declaration for the user-level task/session and must be explicit. Absence of another action is not sufficient to infer DONE.
+- transfer-order generation/validation;
+- inbox/outbox semantics;
+- GitHub publishing/fetching;
+- remote visibility checks;
+- remote waiting/retry policy;
+- correlation/order tracking inside the Kit transfer workflow;
+- result association;
+- Kit PASS/BLOCKED/FAIL workflow semantics.
 
-## 6. Repository identity
+Those are Agentic Project Kit responsibilities.
 
-Before local execution, the cockpit verifies the selected repository against available expectations. Any mismatch in explicit remote/branch/head preconditions becomes BLOCKED.
+## 5. Transport status values
 
-Head preconditions may intentionally be omitted when the requested action is expected to observe current state rather than mutate from a fixed head. The protocol schema must distinguish `not specified` from wildcard acceptance.
+Protocol-level transport status may include:
+
+- `PASS` — payload/result transport step completed;
+- `BLOCKED` — transport cannot proceed safely;
+- `FAIL` — unexpected transport/infrastructure failure;
+- `DONE` — browser LLM explicitly declares the user-level transport session finished;
+- `CANCELLED` — user stopped the local bridge.
+
+These are Cockpit transport statuses. Kit output may itself contain `PASS`, `BLOCKED`, or `FAIL`; the Cockpit transports that content without diagnosing or resolving it.
+
+## 6. Target identity
+
+Before local dispatch, the Cockpit may verify explicitly supplied local target/repository identity constraints to avoid executing in the wrong location.
+
+Identity verification is transport safety, not development reasoning.
 
 ## 7. Idempotency and replay
 
-`action_id` is globally unique within the persisted cockpit history relevant to recovery.
+`action_id` identifies a transport dispatch.
 
-Rules:
+1. identical duplicate action ID: do not dispatch twice; safely re-surface persisted result when available;
+2. same action ID with different payload: protocol violation;
+3. ambiguous in-flight state after crash: no automatic replay;
+4. recovery stops or requests a new browser-LLM/user decision when safe local evidence is insufficient.
 
-1. a received duplicate action ID with identical payload is not re-executed; the persisted result is re-surfaced if safely available;
-2. a duplicate action ID with different payload is a protocol violation and BLOCKED;
-3. an action left in ambiguous `EXECUTING` state after crash is not replayed automatically;
-4. recovery requires evidence to establish whether execution completed.
+The Cockpit must not inspect Kit-internal transfer state to infer replay safety.
 
 ## 8. Browser response completion
 
-The browser adapter determines message completion using browser-level evidence. The protocol parser runs only after the adapter reports a completed assistant response.
-
-The core must never parse a streaming partial response.
+The browser adapter reports completed assistant responses using browser-level evidence. The protocol parser never consumes a streaming partial response.
 
 ## 9. Bounded output
 
-Result envelopes should contain concise diagnostic material. Large stdout/stderr is stored locally as evidence/log and referenced by path/identifier. The remote LLM may subsequently request a bounded excerpt through a new action.
+Large terminal output is stored locally and referenced. The result envelope contains bounded output or evidence references sufficient for the browser LLM to decide the next work order.
 
-## 10. Forward compatibility
+## 10. Scope rule
 
-Unknown protocol versions are rejected rather than guessed. Optional fields must be explicitly versioned/schema-defined. Semantic changes require a protocol-version increment or a backward-compatible schema change with tests.
+A protocol field is invalid for v1 if its purpose is to make AGP Cockpit plan development, select Kit commands, manage GitHub workflow, or model Agentic Project Kit FILE_TRANSFER internals.
+
+Unknown protocol versions are rejected rather than guessed.
