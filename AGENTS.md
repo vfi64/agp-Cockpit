@@ -2,6 +2,24 @@
 
 These rules apply repository-wide to every LLM, coding agent, maintainer assistant, and automation working on AGP Cockpit.
 
+## 0. Normative product boundary — read first
+
+`docs/planning/SCOPE_BOUNDARY.md` is the normative anti-scope-drift contract for this repository.
+
+AGP Cockpit is ONLY a deterministic local communication bridge between a browser-based development LLM and a local terminal/executor.
+
+AGP Cockpit does not perform development work. It does not plan, diagnose, choose repository workflow steps, choose Agentic Project Kit commands, implement Git/GitHub lifecycle logic, or replicate Kit FILE_TRANSFER behavior.
+
+The role split is non-negotiable unless the maintainer explicitly changes the normative boundary:
+
+```text
+Browser LLM = reasoning, planning, development, diagnosis, next work order
+AGP Cockpit = mechanical local transport only
+Agentic Project Kit = workflow, validation, mutation, Git/GitHub, FILE_TRANSFER, evidence, gates, handoff, PR/merge/release lifecycle
+```
+
+If any older plan, chat, issue, proposed architecture, or agent suggestion conflicts with `docs/planning/SCOPE_BOUNDARY.md`, follow the scope-boundary document and correct the stale source before implementing the conflicting design.
+
 ## 1. Authority and source of truth
 
 - Do not work from chat memory when current repository or Kit evidence is available.
@@ -24,9 +42,9 @@ These rules apply repository-wide to every LLM, coding agent, maintainer assista
 
 Detailed policy: `docs/planning/LOCAL_EXECUTION_POLICY.md`.
 
-## 3. Prefer complex/high-level Agentic Project Kit commands
+## 3. Prefer complex/high-level Agentic Project Kit commands during development of this repo
 
-- As soon as the current Kit provides an orchestrator or higher-level workflow command for the intended operation, use it instead of reproducing the workflow with lower-level Kit primitives, `git`, `gh`, shell, or custom Python logic.
+- As soon as the current Kit provides an orchestrator or higher-level workflow command for repository-development work, use it instead of reproducing the workflow with lower-level Kit primitives, `git`, `gh`, shell, or custom Python logic.
 - Selection order is conceptually:
 
 ```text
@@ -40,6 +58,8 @@ current Kit orchestrator
 - When such a fallback affects safety, evidence, or lifecycle semantics, document the reason.
 - Never bypass a Kit `BLOCKED` or `FAIL` by replacing the blocked Kit action with direct Git/GitHub commands.
 
+This rule governs how contributing LLMs develop AGP Cockpit. It does NOT authorize the AGP Cockpit product itself to select Kit commands. At runtime, the browser LLM formulates the work order; the Cockpit only transports it.
+
 ## 4. Product implementation rules
 
 - AGP Cockpit is a Python desktop application.
@@ -49,6 +69,9 @@ current Kit orchestrator
 - macOS is the first supported runtime platform.
 - macOS-specific behavior must remain behind platform adapters so that Windows/Linux support can later be added without rewriting the core/application layers.
 - Do not hard-code maintainer-specific paths such as `/Users/...`, Homebrew locations, Chrome paths, or repository paths into portable product logic.
+- Runtime application logic may validate transport envelopes, duplicate IDs, browser/conversation identity, and local process state, but must not perform development reasoning.
+- There must be no autonomous Kit command-selection layer in the product.
+- There must be no Cockpit-owned GitHub/FILE_TRANSFER workflow layer in the product.
 
 Architecture decisions: `docs/architecture/ADR-0001-macos-first-portable-core.md` and `docs/architecture/ADR-0002-python-tkinter-and-scripted-local-ops.md`.
 
@@ -68,7 +91,8 @@ Architecture decisions: `docs/architecture/ADR-0001-macos-first-portable-core.md
 - Do not merge, declare DONE, or advance the plan while required checks are red, missing, stale, or running against a different commit.
 - Do not weaken or bypass a failing gate to make a slice appear complete.
 - Add or update tests before or together with behavioral changes.
-- Platform-neutral core/application code must remain testable without Chrome, macOS, Ollama, Hermes, or a live ChatGPT session.
+- Platform-neutral core/application code must remain testable without Chrome, macOS, Ollama, Hermes, GitHub, or a live ChatGPT session.
+- Add scope-boundary tests/fitness checks that prevent introduction of Kit workflow selection or GitHub FILE_TRANSFER logic into the Cockpit.
 
 Detailed gate policy: `docs/planning/DEVELOPMENT_GATES.md` and `docs/planning/TEST_PLAN.md`.
 
@@ -78,13 +102,13 @@ Detailed gate policy: `docs/planning/DEVELOPMENT_GATES.md` and `docs/planning/TE
 - Do not interpret arbitrary unstructured assistant prose as executable work.
 - Execute only validated protocol envelopes defined by the repository protocol.
 - Duplicate action IDs must never execute twice.
-- Fixed sleeps are not evidence of synchronization. Advance remote/file-transfer state only on observable state/evidence; timers may trigger re-checks or bounded timeouts.
+- Fixed sleeps may be used only as bounded implementation detail for browser/process rechecks; they are never semantic evidence of Kit workflow progress.
 
 Protocol authority: `docs/planning/PROTOCOL.md`.
 
 ## 8. Kit authority boundary
 
-AGP Cockpit transports and synchronizes work. It does not replace Agentic Project Kit policy or lifecycle logic.
+AGP Cockpit transports work to the local terminal and transports terminal/Kit output back. It does not replace or partially implement Agentic Project Kit policy or lifecycle logic.
 
 The Kit remains authoritative for, when applicable:
 
@@ -92,26 +116,30 @@ The Kit remains authoritative for, when applicable:
 - approved mutations;
 - Git/PR/merge/release lifecycle;
 - transfer generation and validation;
+- FILE_TRANSFER GitHub/remote communication and synchronization;
 - handoff generation;
 - evidence and gates;
 - PASS/BLOCKED/FAIL semantics.
 
 Never handcraft transfer YAML or internal Kit state when a current generator/validator exists.
+Never add Cockpit code that publishes, polls, fetches, correlates, or advances Kit FILE_TRANSFER state through GitHub.
 
 ## 9. Planning and architectural changes
 
-- `docs/planning/MASTER_PLAN.md` is the product-level development plan, subordinate to current repository evidence and the bootstrapped Kit governance layer.
-- Changes to trust boundaries, protocol semantics, exactly-once guarantees, Kit authority, browser identity rules, adapter architecture, supported-platform boundaries, or GUI framework require an ADR and corresponding tests/gates.
+- `docs/planning/SCOPE_BOUNDARY.md` is the normative product-scope contract.
+- `docs/planning/MASTER_PLAN.md` is the product-level development plan, subordinate to the scope boundary, current repository evidence, and the bootstrapped Kit governance layer.
+- Changes to the scope boundary, trust boundaries, protocol semantics, exactly-once guarantees, browser identity rules, adapter architecture, supported-platform boundaries, or GUI framework require explicit maintainer approval, an ADR, and corresponding tests/gates.
 - Keep planning documents synchronized with implemented behavior; stale documentation is a gate failure, not harmless drift.
 
 ## 10. Definition of acceptable agent behavior
 
 An assisting LLM/agent should be able to answer, from current repository/Kit evidence rather than chat memory:
 
-1. What exact state is the repository in?
-2. Which current Kit orchestrator is appropriate for the intended operation?
-3. Which tests and gates apply to the change?
-4. What is the smallest safe next slice?
-5. What evidence proves that slice is complete?
+1. Is the proposed feature strictly necessary for browser-to-terminal or terminal-to-browser transport, or safe operation of that transport?
+2. What exact state is the repository in?
+3. Which current Kit orchestrator is appropriate for developing this repository?
+4. Which tests and gates apply to the change?
+5. What is the smallest safe next slice?
+6. What evidence proves that slice is complete?
 
-If those questions cannot be answered reliably, stop mutation and perform bounded diagnosis instead of guessing.
+If the answer to question 1 is no, the feature is out of scope. If the remaining questions cannot be answered reliably, stop mutation and perform bounded diagnosis instead of guessing.
