@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agp-cockpit"
+version = "0.1.0.dev0"
+description = "Local macOS-first cockpit for transporting work between browser LLMs and Agentic Project Kit terminals."
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+agp-cockpit = "agp_cockpit.app:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

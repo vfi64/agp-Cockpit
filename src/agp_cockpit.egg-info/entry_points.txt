@@ -1,0 +1,2 @@
+[console_scripts]
+agp-cockpit = agp_cockpit.app:main

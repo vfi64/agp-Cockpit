@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+cd /Users/hof/Dropbox/Privat/GitHub/agp-Cockpit
+exec /usr/bin/env npx playwright test tests/e2e/test_066_actual_contentjs_send_ack.spec.js

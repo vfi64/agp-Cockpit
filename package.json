@@ -1,0 +1,11 @@
+{
+  "name": "agp-cockpit-browser-gates",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test:browser-fixture": "playwright test tests/e2e/test_066_send_ack_false_negative_fixture.spec.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

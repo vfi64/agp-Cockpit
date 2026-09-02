@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+ROOT="/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit"
+cd "$ROOT"
+exec /usr/bin/env npx playwright test tests/e2e/test_066_e6_generation_edge_false_positive.spec.js --workers=1

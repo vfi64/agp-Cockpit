@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+ROOT="/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit"
+cd "$ROOT"
+
+node --check chrome_extension/content.js
+.venv/bin/python -m pytest -q tests/test_followup_send_target_and_decisive_ack_066_d4.py
+scripts/phase066-g4-multisignal-send-acceptance-gate
+scripts/phase066-g3-extension-integration-gate
+scripts/phase066-g2-fixture-gate
+.venv/bin/python -m pytest -q
+.venv/bin/agentic-kit check
+.venv/bin/agentic-kit doctor

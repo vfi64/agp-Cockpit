@@ -1,0 +1,1 @@
+# Platform and external-system adapters.\n

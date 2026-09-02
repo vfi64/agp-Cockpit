@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AGP Cockpit ChatGPT DOM Fixture</title>
+</head>
+<body>
+  <main id="conversation">
+    <div id="messages"></div>
+    <form id="composer-form">
+      <textarea id="prompt-textarea" aria-label="Message ChatGPT"></textarea>
+      <button type="submit" data-testid="send-button" aria-label="Send prompt">Send</button>
+    </form>
+  </main>
+  <script src="./chatgpt_fixture.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+ROOT="/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit"
+cd "$ROOT"
+
+if [ -x "./node_modules/.bin/playwright" ]; then
+  exec ./node_modules/.bin/playwright test tests/e2e/test_066_send_ack_false_negative_fixture.spec.js
+fi
+
+if command -v npx >/dev/null 2>&1; then
+  exec npx playwright test tests/e2e/test_066_send_ack_false_negative_fixture.spec.js
+fi
+
+echo "COCKPIT_G2_FIXTURE_RESULT=BLOCKED"
+echo "BLOCKER=playwright_not_installed"
+exit 2

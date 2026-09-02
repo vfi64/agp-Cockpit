@@ -12,3 +12,8 @@ __pycache__/
 # macOS metadata.
 .DS_Store
 .agentic/tmp/
+
+# Phase 066 local browser-test artifacts
+node_modules/
+test-results/
+playwright-report/
