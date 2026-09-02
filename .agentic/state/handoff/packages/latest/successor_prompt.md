@@ -153,9 +153,9 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
   "repo": {
     "branch": "work/phase0-agentic-workspace-bootstrap",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "4293f7dc2a6ffaf100c3ab3a8f2bc800c13e117d",
+    "head": "31497cc4e64dde852554e6833e60661556ea6425",
     "head_matches_origin_main": false,
-    "head_short": "4293f7dc",
+    "head_short": "31497cc4",
     "local_path": "cd /path/to/",
     "origin_main": "06d1a57ee0d4b509402be777177166f2674e78e9",
     "origin_main_short": "06d1a57e",
