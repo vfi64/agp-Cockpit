@@ -338,7 +338,7 @@
       .trim();
   }
 
-  
+
   // AGP_FOLLOWUP_SEND_TARGET_DECISIVE_ACK_066_D4
   // AGP_MULTI_SIGNAL_SEND_ACCEPTANCE_066_D3
   function observedComposerText() {
