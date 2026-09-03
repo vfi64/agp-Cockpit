@@ -71,3 +71,42 @@ Operational rules for the successor chat:
 - Preserve explicit BEGIN/END result markers.
 - Prefer diagnosis over another short speculative patch.
 <!-- AGP_COCKPIT_PHASE066_CHAT_SWITCH_END -->
+
+<!-- AGP_PHASE066_FINAL_HANDOFF_063_BEGIN -->
+## Phase 066 final chat-switch state — 2026-09-03
+
+This section records the final continuation state before switching ChatGPT chats.
+
+### Product / branch state
+
+- Branch: `work/phase0-agentic-workspace-bootstrap`.
+- Phase 066 browser-integration work remains the active product-development context.
+- The repaired external-workspace GitHub Actions contract is green on the exact published branch HEAD.
+- Six executable regression-test repository roots were made portable; the literal `cwd` regression contract and its production counterpart were deliberately not changed by that portability repair.
+- The next product task after successor bootstrap is to continue Phase 066 from the browser multi-turn failure investigation and current state-machine evidence, not to restart earlier work.
+
+### Greenfield Agentic Project Kit defects that must survive the handoff
+
+- `KIT-HANDOFF-CI-001`: bootstrap-generated external-workspace CI used the Kit self-hosting/internal `standard-gates-audit-suite` rather than a proven external-workspace CI contract.
+- `KIT-HANDOFF-RULEACK-002`: a fresh rule acknowledgement is valid at the pre-commit HEAD, but a successful Kit commit changes HEAD and immediately makes the tracked acknowledgement stale (`repo_head_mismatch`).
+- `KIT-HANDOFF-HEAD-003`: tracked successor projections embed the pre-handoff-commit HEAD; committing those projections creates a new HEAD and makes the package self-stale. Re-rendering changes the same handoff files again.
+
+### Proven bounded chat-switch workaround for KIT-HANDOFF-HEAD-003
+
+The final code/status commit and remote CI must be completed first. Then run `agentic-kit transfer chat-switch-complete --render-prompt` exactly on that fixed final HEAD. Validate the package and keep the final-HEAD successor projections as intentional **volatile uncommitted handoff state**. Do not commit them solely to make the worktree clean, because that recreates the defect and invalidates their HEAD anchor.
+
+The committed local branch HEAD and remote branch HEAD must remain identical. The only tracked local differences allowed at chat-switch sign-off are generated files under `.agentic/state/handoff/` created by the final successor render.
+
+### Evidence anchors
+
+- 054: Rich/Typer-safe external-workspace CI-surface diagnosis.
+- 055-R1: exact-fixture external-workspace CI repair.
+- 056-D1 / 056-D2: rule-ack lifecycle diagnosis and sandbox reproduction.
+- 061: exact-head GitHub Actions success after test-root portability repair.
+- 062-D1: successor-package tracked-HEAD self-staleness reproduction.
+- 062-D2: Candidate A/B workaround adjudication; Candidate A (volatile final-HEAD handoff) is the proven safe pattern.
+
+### Classification boundary
+
+Development-script mistakes and Cockpit product defects are not Agentic Project Kit defects. The Greenfield report must keep these classes separate.
+<!-- AGP_PHASE066_FINAL_HANDOFF_063_END -->
