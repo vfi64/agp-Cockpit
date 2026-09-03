@@ -1,48 +1,61 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "chrome_extension" / "content.js"
+SRC = (
+    Path(__file__).resolve().parents[1]
+    / "chrome_extension"
+    / "content.js"
+).read_text(encoding="utf-8")
 
-def src():
-    return SRC.read_text()
 
-def test_r8_has_user_message_snapshot_helper():
-    s = src()
-    assert "function visibleUserMessages()" in s
-    assert 'data-message-author-role="user"' in s
+def test_r8_only_marks_prompt_sent_after_confirmed_acceptance():
+    wait_call = SRC.index("waitForSentUserMessage(")
+    accepted = SRC.index(
+        "transport.transition(SEND_TRANSPORT.ACCEPTED",
+        wait_call,
+    )
+    prompt_sent = SRC.index(
+        'STATE.lastEvent = "PROMPT_SENT"',
+        accepted,
+    )
 
-def test_r8_waits_for_new_matching_user_message():
-    s = src()
-    start = s.index("async function waitForSentUserMessage(")
-    end = s.index(") {", start)
-    signature = " ".join(s[start:end + 3].split())
-    assert signature.startswith("async function waitForSentUserMessage(")
-    assert "prompt" in signature
-    assert "beforeMessages" in signature
-    assert 'beforeAssistantText=""' in signature
-    assert 'beforeComposerText=""' in signature
-    assert "beforeGenerationActive=false" in signature
-    assert "after.length > beforeCount" in s
-    assert "const expected = normalizeObservedMessageText(prompt);" in s
-    assert "const newest = normalizeObservedMessageText(after[after.length - 1]);" in s
-    assert "if (newest === expected)" in s
+    assert wait_call < accepted < prompt_sent
 
-def test_r8_fails_closed_if_send_is_not_confirmed():
-    s = src()
-    assert 'STATE.lastEvent = "SEND_UNCONFIRMED"' in s
-    assert 'throw new Error("SEND_UNCONFIRMED: expected user message did not appear")' in s
 
-def test_r8_only_marks_prompt_sent_after_confirmation():
-    s = src()
-    confirmed = s.index("const acknowledgement = await waitForSentUserMessage(")
-    prompt_sent = s.index('STATE.lastEvent = "PROMPT_SENT";', confirmed)
-    assert prompt_sent > confirmed
+def test_r8_timeout_is_not_unconditionally_treated_as_send_failure():
+    unconfirmed = SRC.index("if (!acknowledgement.confirmed)")
+    indeterminate = SRC.index(
+        "transport.transition(SEND_TRANSPORT.INDETERMINATE",
+        unconfirmed,
+    )
+    hard_failure_guard = SRC.index(
+        "positiveUnsentEvidence && transport.retryCount > 0",
+        unconfirmed,
+    )
 
-def test_r8_preserves_multiturn_full_auto_contract():
-    s = src()
-    assert 'run_mode:"FULL_AUTO"' in s
-    assert "065 LIVE 3-TURN READ-ONLY PROBE" in s
+    assert unconfirmed < hard_failure_guard < indeterminate
 
-def test_r8_preserves_single_turn_single_step_contract():
-    s = src()
-    assert 'run_mode:"SINGLE_STEP"' in s
+
+def test_r8_hard_failure_requires_positive_unsent_evidence_after_retry():
+    guard = SRC.index(
+        "positiveUnsentEvidence && transport.retryCount > 0"
+    )
+    failure = SRC.index(
+        'throw new Error(',
+        guard,
+    )
+    failure_text = SRC[failure : failure + 220]
+
+    assert "positive evidence shows the prompt is still unsent" in failure_text
+
+
+def test_r8_indeterminate_path_does_not_mark_prompt_sent():
+    indeterminate = SRC.index(
+        "transport.transition(SEND_TRANSPORT.INDETERMINATE"
+    )
+    return_after = SRC.index("return;", indeterminate)
+    prompt_sent = SRC.index(
+        'STATE.lastEvent = "PROMPT_SENT"',
+        return_after,
+    )
+
+    assert indeterminate < return_after < prompt_sent

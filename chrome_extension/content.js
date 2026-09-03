@@ -419,17 +419,55 @@
     };
   }
 
-  async function sendPrompt(prompt) {
+    // AGP_BROWSER_SENDER_TRANSPORT_STATE_MACHINE_092
+  const SEND_TRANSPORT = Object.freeze({
+    IDLE:"IDLE",
+    DRAFT_WRITTEN:"DRAFT_WRITTEN",
+    SUBMIT_ATTEMPTED:"SUBMIT_ATTEMPTED",
+    WAITING_FOR_ACCEPTANCE:"WAITING_FOR_ACCEPTANCE",
+    ACCEPTED:"ACCEPTED",
+    ACCEPTED_LATE:"ACCEPTED_LATE",
+    SAFE_RETRY_ELIGIBLE:"SAFE_RETRY_ELIGIBLE",
+    RETRY_ATTEMPTED:"RETRY_ATTEMPTED",
+    INDETERMINATE:"INDETERMINATE",
+    FAILED_CONFIRMATION:"FAILED_CONFIRMATION"
+  });
+
+  let PENDING_SEND_TRANSPORT = null;
+
+  function createSendTransport(prompt) {
+    return {
+      state:SEND_TRANSPORT.IDLE,
+      prompt,
+      beforeAssistantText:"",
+      retryCount:0,
+      acknowledgement:null,
+      transition(next, details={}) {
+        this.state = next;
+        STATE.lastEvent = `SEND_TRANSPORT_${next}`;
+        clientEvent("SEND_TRANSPORT_STATE", {
+          state:next,
+          retry_count:this.retryCount,
+          ...details
+        }).catch(() => {});
+      }
+    };
+  }
+
+async function sendPrompt(prompt) {
+    const transport = createSendTransport(prompt);
     if (prompt === STATE.lastPrompt) {
       throw new Error("identical prompt loop detected");
     }
 
     const beforeMessages = visibleUserMessages();
     const beforeAssistantText = lastAssistantText();
+    transport.beforeAssistantText = beforeAssistantText;
     const composerEl = composer();
     if (!composerEl) throw new Error("ChatGPT composer not found");
     STATE.lastPrompt = prompt;
     setComposerText(composerEl, prompt);
+    transport.transition(SEND_TRANSPORT.DRAFT_WRITTEN, {chars:prompt.length});
     const beforeComposerText = observedComposerText();
     const beforeGenerationActive = chatgptGenerationActive();
 
@@ -482,18 +520,103 @@
       throw new Error("send path unavailable");
     }
 
-    const acknowledgement = await waitForSentUserMessage(
+    PENDING_SEND_TRANSPORT = transport;
+    transport.transition(SEND_TRANSPORT.SUBMIT_ATTEMPTED, {attempt:1});
+    transport.transition(SEND_TRANSPORT.WAITING_FOR_ACCEPTANCE, {attempt:1});
+    let acknowledgement = await waitForSentUserMessage(
       prompt,
       beforeMessages,
       beforeAssistantText,
       beforeComposerText,
       beforeGenerationActive
     );
+
+    // AGP_LATE_ACCEPTANCE_BOUNDARY_097
+    // Timeout is epistemic uncertainty, not proof that ChatGPT rejected the send.
+    // Retry remains bounded and requires positive evidence that the exact prompt
+    // is still present and no generation has begun.
     if (!acknowledgement.confirmed) {
-      STATE.lastEvent = "SEND_UNCONFIRMED";
-      throw new Error("SEND_UNCONFIRMED: expected user message did not appear");
+      const pendingComposer = observedComposerText();
+      const expectedPrompt = normalizeObservedMessageText(prompt);
+      const safeToRetry = (
+        pendingComposer === expectedPrompt &&
+        !chatgptGenerationActive()
+      );
+
+      if (safeToRetry) {
+        transport.transition(SEND_TRANSPORT.SAFE_RETRY_ELIGIBLE, {
+          via:acknowledgement.via || "unknown"
+        });
+        await clientEvent("SEND_RETRY_SAFE_PENDING_COMPOSER", {
+          chars:prompt.length,
+          first_via:acknowledgement.via || "",
+          provisional:acknowledgement.provisional || ""
+        });
+
+        const retryComposer = composer();
+        const retryButton = sendButton(retryComposer);
+        if (retryButton && !retryButton.disabled) {
+          retryButton.click();
+
+          transport.retryCount += 1;
+          transport.transition(SEND_TRANSPORT.RETRY_ATTEMPTED, {attempt:2});
+          transport.transition(SEND_TRANSPORT.WAITING_FOR_ACCEPTANCE, {attempt:2});
+          acknowledgement = await waitForSentUserMessage(
+            prompt,
+            beforeMessages,
+            beforeAssistantText,
+            expectedPrompt,
+            false
+          );
+
+          await clientEvent(
+            acknowledgement.confirmed
+              ? "SEND_RETRY_CONFIRMED"
+              : "SEND_RETRY_UNCONFIRMED",
+            {
+              via:acknowledgement.via || "",
+              provisional:acknowledgement.provisional || ""
+            }
+          );
+        }
+      }
     }
 
+    if (!acknowledgement.confirmed) {
+      const expectedPrompt = normalizeObservedMessageText(prompt);
+      const positiveUnsentEvidence = (
+        observedComposerText() === expectedPrompt &&
+        !chatgptGenerationActive()
+      );
+
+      if (positiveUnsentEvidence && transport.retryCount > 0) {
+        transport.transition(SEND_TRANSPORT.FAILED_CONFIRMATION, {
+          via:acknowledgement.via || "timeout",
+          positive_unsent_evidence:true
+        });
+        PENDING_SEND_TRANSPORT = null;
+        STATE.lastEvent = "SEND_UNCONFIRMED";
+        throw new Error(
+          "SEND_UNCONFIRMED: positive evidence shows the prompt is still unsent"
+        );
+      }
+
+      transport.acknowledgement = acknowledgement;
+      transport.transition(SEND_TRANSPORT.INDETERMINATE, {
+        via:acknowledgement.via || "timeout",
+        attempts:transport.retryCount + 1
+      });
+      STATE.lastEvent = "SEND_INDETERMINATE";
+      STATE.note = "Prompt gesendet; Bestätigung noch unbestimmt";
+      return;
+    }
+
+    transport.acknowledgement = acknowledgement;
+    transport.transition(SEND_TRANSPORT.ACCEPTED, {
+      via:acknowledgement.via || "unknown",
+      attempts:transport.retryCount + 1
+    });
+    PENDING_SEND_TRANSPORT = null;
     STATE.lastEvent = "PROMPT_SENT";
     STATE.note = `Prompt bestätigt via ${acknowledgement.via}`;
   }
@@ -563,8 +686,20 @@
   }
 
   async function submitAssistant(text) {
-    assertExactLiveProbeWorkOrder(text);
-    assertBoundedMultiTurnLiveProbeWorkOrder(text);
+    // AGP_LIVE_PROBE_TERMINAL_SIGNAL_074
+    // A terminal mission signal is not a work order. Let the server/runtime
+    // validate and finalize DONE / NEEDS_HUMAN before applying probe-specific
+    // argv assertions that are only meaningful for executable work orders.
+    const terminalSignal = parsePureJsonObject(text);
+    const terminalState = (
+      terminalSignal &&
+      typeof terminalSignal.mission_state === "string"
+    ) ? terminalSignal.mission_state : "";
+
+    if (!["DONE", "NEEDS_HUMAN"].includes(terminalState)) {
+      assertExactLiveProbeWorkOrder(text);
+      assertBoundedMultiTurnLiveProbeWorkOrder(text);
+    }
 
     STATE.lastEvent = "TURN_SUBMIT_STARTED";
     await clientEvent("TURN_SUBMIT_STARTED_CLIENT", {
@@ -702,6 +837,33 @@
         chars:completed.length,
         stable_polls:STATE.candidateStablePolls
       });
+
+      // AGP_LATE_ACCEPTANCE_BOUNDARY_097
+      // A genuinely new completed assistant response is decisive late evidence
+      // that an indeterminate send was accepted by ChatGPT.
+      if (
+        PENDING_SEND_TRANSPORT &&
+        PENDING_SEND_TRANSPORT.state === SEND_TRANSPORT.INDETERMINATE &&
+        normalizeObservedMessageText(completed) !==
+          normalizeObservedMessageText(
+            PENDING_SEND_TRANSPORT.beforeAssistantText || ""
+          )
+      ) {
+        PENDING_SEND_TRANSPORT.acknowledgement = {
+          confirmed:true,
+          via:"late_assistant_response"
+        };
+        PENDING_SEND_TRANSPORT.transition(SEND_TRANSPORT.ACCEPTED_LATE, {
+          via:"assistant_response_complete",
+          chars:completed.length
+        });
+        await clientEvent("SEND_LATE_ACCEPTED", {
+          chars:completed.length,
+          prompt_chars:PENDING_SEND_TRANSPORT.prompt.length
+        });
+        PENDING_SEND_TRANSPORT = null;
+      }
+
       render();
 
       resetCandidate();
@@ -978,13 +1140,24 @@
   }
 
   async function startAuto() {
-    if (STATE.running) return;
+    if (STATE.running) {
+      await clientEvent("AUTO_START_IGNORED_ALREADY_RUNNING", {});
+      return;
+    }
 
     STATE.lastEvent = "AUTO_START_REQUESTED";
     STATE.errorId = "";
     render();
+    await clientEvent("AUTO_START_REQUESTED", {
+      page_url:location.href
+    });
 
     const status = await refreshStatus();
+    await clientEvent("AUTO_STATUS_REFRESHED", {
+      state:status.state || "",
+      mission_state:status.mission ? status.mission.state : "",
+      mission_id:status.mission ? status.mission.mission_id : ""
+    });
     if (!status.mission) {
       throw new Error("no active mission");
     }
@@ -1033,22 +1206,38 @@
     STATE.timer = setInterval(tick, LIMITS.pollMs);
   }
 
+  // AGP_START_AUTO_CLICK_PATH_077
   function btn(label, cls, handler) {
     const b = document.createElement("button");
+    b.type = "button";
     b.className = cls;
     b.textContent = label;
-    b.onclick = async () => {
+    b.addEventListener("mousedown", event => event.stopPropagation());
+    b.addEventListener("click", async event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      STATE.lastEvent = "UI_BUTTON_CLICKED";
+      STATE.note = `Button: ${label}`;
+      render();
+      await clientEvent("UI_BUTTON_CLICKED", {
+        label,
+        class_name:cls
+      });
+
       try {
         await handler();
       } catch (err) {
         STATE.note = String(err);
         STATE.lastEvent = "UI_ACTION_ERROR";
         await clientEvent("UI_ACTION_ERROR", {
+          label,
+          class_name:cls,
           message:String(err)
         });
         render();
       }
-    };
+    });
     return b;
   }
 

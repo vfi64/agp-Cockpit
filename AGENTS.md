@@ -174,3 +174,22 @@ The result title must state the actual outcome. A script must not advertise a
 PASS/completion title when its operation was blocked or failed. The banner must
 also be printed from exception/error paths so the maintainer can reliably find
 the start of the final result in long terminal output.
+
+## 3b. Systemic failure escalation
+
+Repeated repair in the same failure domain must not degrade into an unbounded
+patch spiral.
+
+- After the second substantive repair attempt in the same failure domain, any
+  proposed third product mutation requires a `SYSTEMIC_FAILURE_REVIEW` first.
+- The review must classify whether the next action is `PATCH_LOCAL`,
+  `REFACTOR_SUBSYSTEM`, `REDESIGN_BOUNDARY`, `TEST_MODEL_REPAIR`, or
+  `NEEDS_HUMAN`.
+- A failing test after a repair must first be classified as a behavior
+  regression or an implementation-coupled/source-coupled test regression.
+- A local patch must not be used to satisfy a brittle implementation-detail
+  assertion when the intended behavior contract remains valid.
+- The escalation rule applies to Cockpit development even when the installed
+  Agentic Project Kit does not yet enforce it.
+
+Canonical contract: `docs/planning/SYSTEMIC_FAILURE_ESCALATION.md`.

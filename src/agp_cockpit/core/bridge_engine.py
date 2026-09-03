@@ -42,6 +42,9 @@ class BridgeEngine:
         self.runtime = BridgeRuntime(self.repository_root)
         self.guard = AutomationGuard(self.limits)
 
+    def reset_automation_guard(self) -> None:
+        self.guard.reset()
+
     def _require_runnable(self):
         state = self.runtime.require_state()
 

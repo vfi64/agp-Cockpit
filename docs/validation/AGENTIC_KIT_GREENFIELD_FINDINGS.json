@@ -1,0 +1,408 @@
+{
+  "schema_version": 1,
+  "repository": "vfi64/agp-Cockpit",
+  "purpose": "canonical Agentic Project Kit Greenfield defect ledger",
+  "observations": [
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E001",
+      "historical_id": "GW-01",
+      "canonical_family": "KIT-GF-001",
+      "summary": "workspace init/check PASS followed by doctor lifecycle failure"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E002",
+      "historical_id": "GW-02",
+      "canonical_family": "KIT-GF-002",
+      "summary": "planning-doc slice gate invoked Kit self-hosting tests/docs"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E003",
+      "historical_id": "GW-03",
+      "canonical_family": "KIT-GF-003",
+      "summary": "handoff state path/bootstrap inconsistency and missing fresh state"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E004",
+      "historical_id": "GW-04",
+      "canonical_family": "KIT-GF-004",
+      "summary": "governance check disagreed with doctor on external-workspace mode"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E005",
+      "historical_id": "GW-05",
+      "canonical_family": "KIT-GF-005",
+      "summary": "fresh work start falsely blocked by post-merge successor state"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E006",
+      "historical_id": "GW-06",
+      "canonical_family": "KIT-GF-006",
+      "summary": "transfer status raised Errno for legitimate empty inbox"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E007",
+      "historical_id": "GW-07",
+      "canonical_family": "KIT-GF-007",
+      "summary": "workspace adopt inflated manual/adjudication surfaces after init"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E008",
+      "historical_id": "GW-08",
+      "canonical_family": "KIT-GF-008",
+      "summary": "bootstrap-generated CI suspected of using self-hosting gate; later confirmed"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E009",
+      "historical_id": "GW-09",
+      "canonical_family": "KIT-GF-009",
+      "summary": "work finish execute generated dirty state and blocked first push"
+    },
+    {
+      "date": "2026-08-31",
+      "event_id": "GF-E010",
+      "historical_id": "GW-09e",
+      "canonical_family": "KIT-GF-010",
+      "summary": "rule acknowledgement self-invalidating cycle isolated as root cause"
+    },
+    {
+      "date": "2026-09-03",
+      "event_id": "GF-E011",
+      "historical_id": "KIT-HANDOFF-CI-001",
+      "canonical_family": "KIT-GF-008",
+      "summary": "external-workspace CI defect confirmed and workaround validated remotely"
+    },
+    {
+      "date": "2026-09-03",
+      "event_id": "GF-E012",
+      "historical_id": "KIT-HANDOFF-RULEACK-002",
+      "canonical_family": "KIT-GF-010",
+      "summary": "rule-ack self-invalidation reproduced deterministically in disposable sandbox"
+    },
+    {
+      "date": "2026-09-03",
+      "event_id": "GF-E013",
+      "historical_id": "KIT-HANDOFF-HEAD-003",
+      "canonical_family": "KIT-GF-011",
+      "summary": "tracked successor package proved self-stale after own commit"
+    },
+    {
+      "date": "2026-09-03",
+      "event_id": "GF-E014",
+      "historical_id": "Step 071",
+      "canonical_family": "KIT-GF-012",
+      "summary": "work finish dry-run PASS but execute BLOCKED"
+    },
+    {
+      "date": "2026-09-03",
+      "event_id": "GF-E015",
+      "historical_id": "Steps 065-086",
+      "canonical_family": "KIT-GF-013",
+      "summary": "patch spiral exposed missing automatic systemic-failure escalation"
+    }
+  ],
+  "families": [
+    {
+      "id": "KIT-GF-001",
+      "title": "Workspace lifecycle bootstrap is not closed after successful external workspace init",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-01"
+      ],
+      "expected": "dpa-intake/workspace init must either preflight lifecycle metadata, normalize it canonically, or return a deterministic remediation path before doctor is expected to pass.",
+      "observed": "workspace init reported PASS and agentic-kit check passed, but doctor failed iteratively on missing/invalid Status, Decision status, and Review policy metadata.",
+      "impact": "Fresh external-workspace bootstrap reports success before the lifecycle contract is actually closed; the operator must reverse-engineer document metadata iteratively.",
+      "workaround": "Add the lifecycle headers manually according to the installed Kit contract.",
+      "repair": "Integrate lifecycle preflight/remediation into dpa-intake/workspace init, or provide a canonical lifecycle-normalization command.",
+      "regression": "Fresh external repo with planning docs lacking lifecycle metadata must either block before init, pass doctor after init, or emit one deterministic remediation command.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-002",
+      "title": "Planning-document slice gate leaks Kit self-hosting assumptions into external workspaces",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-02"
+      ],
+      "expected": "External-manifest workspace slice gates must resolve only workspace-applicable gates, project-native tests, and explicitly registered extra gates.",
+      "observed": "slice gate --kind planning-doc attempted Kit self-hosting test paths and Kit documentation-mesh requirements absent from the external repository.",
+      "impact": "Healthy external workspaces are classified as broken because they do not contain the Kit repository's own source/tests/docs structure.",
+      "workaround": "Use external-workspace-safe project tests plus agentic-kit check/doctor instead of the affected higher-level gate.",
+      "repair": "Centralize workspace-mode/capability resolution and make slice gates profile-aware.",
+      "regression": "A minimal external manifest workspace without Kit source files must not fail planning-doc gate because Kit self-hosting paths are absent.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-003",
+      "title": "Handoff-state paths and fresh bootstrap state are inconsistent",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-03"
+      ],
+      "expected": "Exactly one authoritative handoff-state resolver/path per workspace mode, with an explicit legitimate fresh/no-previous-handoff state.",
+      "observed": "Commands referenced .agentic/handoff_state.yaml, .agentic/state/handoff/handoff_state.yaml, and directory-level state differently; fresh workspace checks could raise FileNotFoundError.",
+      "impact": "A newly initialized workspace cannot rely on a single deterministic handoff authority and read-only handoff checks may fail on a legitimate empty state.",
+      "workaround": "Use the specific currently functioning transfer/handoff surfaces and avoid inventing missing state files.",
+      "repair": "Centralize handoff path resolution and model NO_PREVIOUS_HANDOFF explicitly.",
+      "regression": "Immediately after workspace init, handoff check, post-merge-check and work recover must classify deterministically without traceback.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-004",
+      "title": "governance check is not external-workspace aware",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-04"
+      ],
+      "expected": "governance check must resolve the same external-manifest workspace mode as doctor.",
+      "observed": "doctor correctly skipped .agentic/project.yaml/full-contract policy checks while governance check demanded Kit/full-constitution files and legacy handoff state.",
+      "impact": "Two governance surfaces disagree about the same repository and configuration.",
+      "workaround": "Treat doctor/check as authoritative external-workspace baseline until governance check is corrected.",
+      "repair": "Use a shared workspace-mode/capability resolver for doctor, governance, slice, handoff and workflow orchestrators.",
+      "regression": "If doctor recognizes external_manifest_workspace, governance check must not fail solely because full-contract/self-hosting constitution files are absent.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-005",
+      "title": "Fresh external workspace work start is blocked by predecessor/post-merge state",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-05"
+      ],
+      "expected": "A freshly initialized external workspace with no previous merge has a legitimate VIRGIN_WORKSPACE / POST_MERGE_NOT_APPLICABLE state and may start its first work branch.",
+      "observed": "work start was BLOCKED by post-merge-check even though refresh_required=false, result=NOOP and no previous merge existed.",
+      "impact": "The intended high-level Greenfield workflow cannot start immediately after successful initialization.",
+      "workaround": "Use bounded lower-level recovery/workflow steps while preserving evidence; do not fabricate predecessor state.",
+      "repair": "Model virgin/fresh workspace explicitly in the post-merge/work-start state machine.",
+      "regression": "Immediately after fresh workspace init, work start --branch feature/x --from-ref main must proceed when repository safety conditions are satisfied.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md",
+        "AGP_Cockpit_Greenfield_Kit_Defect_Report_2026-09-03.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-006",
+      "title": "transfer status treats an empty inbox as a file error",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-06"
+      ],
+      "expected": "Empty transfer inbox is a valid NO_COMMAND state.",
+      "observed": "transfer status raised Errno 2 for .agentic/transfer/inbox/current.yaml while transfer state correctly classified the same workspace as NO_COMMAND.",
+      "impact": "A legitimate empty state leaks an operating-system file error through a public workflow surface.",
+      "workaround": "Use transfer state for empty-state inspection.",
+      "repair": "Make transfer status use the same state-layer logic as transfer state and treat missing current.yaml as expected.",
+      "regression": "Fresh transfer workspace: transfer state and transfer status must report semantically equivalent NO_COMMAND state.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-007",
+      "title": "workspace adopt reclassifies Kit-generated init files as new manual/adjudication surfaces",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "medium-high",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-07"
+      ],
+      "expected": "Unmodified files generated/owned by workspace init retain provenance and do not immediately return as unknown maintainer/manual surfaces.",
+      "observed": "Surface count increased from 13 to 28 after init and many Kit-generated files were reintroduced as manual-preservation/adjudication surfaces.",
+      "impact": "Adoption can enter a self-amplifying adjudication loop and obscure ownership/provenance.",
+      "workaround": "Manually distinguish generated Kit projections from true maintainer authority during subsequent adoption assessment.",
+      "repair": "Carry writer/generated provenance from workspace-init projection into adoption classification.",
+      "regression": "workspace adopt before/after init must classify unchanged init-generated files as Kit-generated/command-owned or already adjudicated.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-008",
+      "title": "Bootstrap-generated external-workspace CI uses a self-hosting/internal gate",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-08",
+        "KIT-HANDOFF-CI-001"
+      ],
+      "expected": "workspace init --inject-ci must generate CI appropriate to an external manifest workspace.",
+      "observed": "Generated canonical and managed workflows invoked agentic-kit standard-gates-audit-suite, while doctor explicitly skips standard audit suite outside the Kit development checkout. Later diagnosis and repaired remote CI confirmed the external-workspace contract.",
+      "impact": "A fresh external workspace can receive a CI definition aimed at the Kit's own/self-hosting project model.",
+      "workaround": "Validated agp-Cockpit CI contract: python -m pytest -q; agentic-kit check --root .; agentic-kit doctor --root .",
+      "repair": "Generate an explicit external-workspace CI profile/surface selected from workspace mode.",
+      "regression": "Bootstrap an external workspace, push a minimal PR, and require generated Agentic Gate CI to pass without Kit self-hosting paths.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31.md",
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md",
+        "AGENTIC_PROJECT_KIT_GREENFIELD_HANDOFF_DEFECTS_2026-09-03.md",
+        "AGP_Cockpit_Greenfield_Kit_Defect_Report_2026-09-03.md",
+        "AGP_Cockpit_Greenfield_Kit_Handoff_Defects_latest.md",
+        "053_external_workspace_ci_surface_diagnosis_latest.json",
+        "054_external_workspace_ci_surface_diagnosis_rich_help_latest.json",
+        "055R1_external_workspace_ci_contract_repair_latest.json",
+        "remote GitHub Actions run 33768245355 (success after repaired external contract)"
+      ]
+    },
+    {
+      "id": "KIT-GF-009",
+      "title": "work finish first-push lifecycle can generate its own blocking dirty state",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-09"
+      ],
+      "expected": "work finish --execute on a never-pushed work branch must settle all Kit-owned generated state before clean-worktree/first-push preconditions and then establish upstream safely.",
+      "observed": "work finish dry-run passed; execute created commits/handoff refresh, rewrote tracked rule acknowledgement for the new HEAD, left the worktree dirty, then push-current blocked before first upstream/remote branch creation.",
+      "impact": "The high-level first closeout can block itself before the first push/PR.",
+      "workaround": "Use only bounded documented recovery while retaining the self-generated dirty-state evidence; do not globally weaken clean-worktree safety.",
+      "repair": "Correct the transaction/order boundary among commit, handoff refresh, rule acknowledgement settlement, clean-worktree verification and first push.",
+      "regression": "Fresh external work branch with no upstream: work finish --execute must create remote/upstream and must not be blocked by Kit-owned state it generated itself.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-010",
+      "title": "Rule acknowledgement is self-invalidating across the Kit-owned commit it authorizes",
+      "first_observed": "2026-08-31",
+      "status": "OPEN",
+      "severity": "critical",
+      "classification": "agentic-kit",
+      "aliases": [
+        "GW-09e",
+        "KIT-HANDOFF-RULEACK-002"
+      ],
+      "expected": "A valid acknowledgement must survive the authorized Kit mutation, or the owning transaction must settle/re-anchor it without entering a self-referential loop.",
+      "observed": "rules acknowledge binds current.json to HEAD H1; transfer commit succeeds and creates H2; the tracked acknowledgement still points to H1 and immediately becomes invalid/dirty again. Disposable sandbox reproduction proved the cycle.",
+      "impact": "acknowledge -> Kit commit -> next transfer action cannot remain continuously valid; committing the acknowledgement itself can recreate the mismatch indefinitely.",
+      "workaround": "Acknowledge immediately before intended Kit commit, confirm self-invalidation, restore tracked acknowledgement from the new HEAD, then continue only through narrowly justified workflow paths.",
+      "repair": "Redesign acknowledgement identity/transaction semantics: content/snapshot authority, volatile command-owned state, stable rules-source identity, or an explicit transaction that does not self-invalidate.",
+      "regression": "Fresh external workspace must support acknowledge -> required persistence/commit -> acknowledgement remains valid -> clean worktree -> push-current; actual rule-source changes must still invalidate acknowledgement.",
+      "evidence": [
+        "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md",
+        "AGENTIC_PROJECT_KIT_GREENFIELD_HANDOFF_DEFECTS_2026-09-03.md",
+        "AGP_Cockpit_Greenfield_Kit_Defect_Report_2026-09-03.md",
+        "AGP_Cockpit_Greenfield_Kit_Handoff_Defects_latest.md",
+        "056D2_rule_ack_self_invalidation_latest.json"
+      ]
+    },
+    {
+      "id": "KIT-GF-011",
+      "title": "Tracked successor handoff projections are self-stale after their own commit",
+      "first_observed": "2026-09-03",
+      "status": "OPEN",
+      "severity": "critical",
+      "classification": "agentic-kit",
+      "aliases": [
+        "KIT-HANDOFF-HEAD-003"
+      ],
+      "expected": "A deterministic successor handoff must converge on a trustworthy final repository identity without requiring perpetual re-render/commit cycles.",
+      "observed": "chat-switch-complete generated tracked files containing current HEAD; committing those files created a new HEAD that none of them referenced; rerendering dirtied the same files again.",
+      "impact": "The Kit cannot simultaneously guarantee committed successor package, exact final-HEAD identity, and clean tracked worktree with the current projection model.",
+      "workaround": "Render final-HEAD successor projections after the final code/remote HEAD is fixed and keep those exact-final-HEAD projections volatile/uncommitted.",
+      "repair": "Decouple durable committed handoff source from volatile exact-final-HEAD projection, or introduce a transaction/identity model that explicitly understands the handoff commit boundary.",
+      "regression": "A disposable clone must prove that final successor authority remains exact and validation-clean without a self-staling render->commit->rerender loop.",
+      "evidence": [
+        "AGP_Cockpit_Greenfield_Kit_Defect_Report_2026-09-03.md",
+        "AGP_Cockpit_Greenfield_Kit_Handoff_Defects_latest.md",
+        "062-D1",
+        "062-D2"
+      ]
+    },
+    {
+      "id": "KIT-GF-012",
+      "title": "work finish dry-run may pass while execute blocks in the same bounded closeout",
+      "first_observed": "2026-09-03",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [
+        "former local ledger KIT-GF-001"
+      ],
+      "expected": "A successful work finish dry-run should describe an executable valid plan, or clearly surface execution-only preconditions before claiming PASS.",
+      "observed": "For the four-file Greenfield-governance slice, dry-run returned STATE=PASS; --execute returned STATE=BLOCKED with blockers pr-create-complete, sync-main and post-merge-check.",
+      "impact": "Operator cannot trust dry-run PASS as evidence that the advertised closeout route is executable.",
+      "workaround": "Collect evidence and continue Cockpit development safely without repairing Kit internals in this repository.",
+      "repair": "Align planning/execution precondition evaluation and report execution-only blockers during dry-run.",
+      "regression": "Equivalent bounded work finish dry-run and execute must agree on route validity unless an externally changed condition is explicitly evidenced.",
+      "evidence": [
+        "Step 071 terminal evidence"
+      ]
+    },
+    {
+      "id": "KIT-GF-013",
+      "title": "No automatic escalation from repeated local repair to systemic/root-cause review",
+      "first_observed": "2026-09-03",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [
+        "former local ledger KIT-GF-002"
+      ],
+      "expected": "Repeated failures in the same subsystem/failure domain should trigger a deterministic systemic review before another local patch is accepted.",
+      "observed": "Multiple locally reasonable Browser/ChatGPT transport repair cycles accumulated before a system-wide review. Inventory 086 found 18 relevant tests, 15 source-coupled tests, 5 active historical repair markers and repeated LIVE-vs-simulated disagreement.",
+      "impact": "An agent can rationally continue symptom patches while the repository-level history already indicates a patch spiral or missing abstraction/state machine.",
+      "workaround": "AGP Cockpit locally enforces SYSTEMIC_FAILURE_REVIEW before a third substantive mutation in the same failure domain.",
+      "repair": "Add recurrence/failure-domain detection to workflow-guard / patch-failure discipline and block patch spirals until systemic review classifies PATCH_LOCAL, REFACTOR_SUBSYSTEM, REDESIGN_BOUNDARY, TEST_MODEL_REPAIR or NEEDS_HUMAN.",
+      "regression": "Repeated repairs in one failure domain must escalate at a deterministic threshold and prevent a third unreviewed product mutation.",
+      "evidence": [
+        "docs/validation/BROWSER_TRANSPORT_STABILIZATION_086.md",
+        "docs/validation/BROWSER_TRANSPORT_STABILIZATION_086.json",
+        "docs/planning/SYSTEMIC_FAILURE_ESCALATION.md"
+      ]
+    }
+  ],
+  "explicit_exclusions": [
+    "Development-script syntax/regex/harness mistakes are not Kit defects.",
+    "GitHub OAuth workflow-scope failure was an authentication issue, not a Kit defect.",
+    "Cockpit browser/send-acknowledgement implementation defects are Cockpit defects, not Kit defects.",
+    "Cockpit hard-coded executable test roots are Cockpit portability/test defects.",
+    "Cockpit planning-document Review-policy mistakes are Cockpit/document-authoring defects."
+  ]
+}

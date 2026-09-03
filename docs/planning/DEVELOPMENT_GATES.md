@@ -268,3 +268,25 @@ required manual workarounds must be recorded in
 A slice is not complete if a qualifying Kit finding was knowingly encountered
 but silently bypassed or discarded.
 
+## 14. Systemic failure escalation gate
+
+A third substantive repair in the same failure domain is blocked until a
+`SYSTEMIC_FAILURE_REVIEW` has been produced.
+
+The review must include:
+
+1. failure history,
+2. failure-domain clustering,
+3. architecture/state-transition map,
+4. test-model audit,
+5. patch-history audit,
+6. root-cause hypothesis,
+7. one explicit decision:
+   `PATCH_LOCAL`, `REFACTOR_SUBSYSTEM`, `REDESIGN_BOUNDARY`,
+   `TEST_MODEL_REPAIR`, or `NEEDS_HUMAN`.
+
+Before accepting a new repair, newly failing tests must be classified as either
+behavior regressions or implementation-/source-coupled test regressions.
+
+A slice is not complete if recurrence in the same failure domain is known but
+another local repair is applied without the required systemic review.

@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "step": "095",
+  "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+  "classification": "FALSE_NEGATIVE_CONFIRMATION",
+  "mission_state": "DONE",
+  "turn_count": 2,
+  "step_count": 1,
+  "last_summary": "093 live browser transport state-machine confirmation completed",
+  "last_error": "",
+  "failed_confirmation_findings": [
+    {
+      "failed_confirmation_index": 27,
+      "failed_confirmation_details": {
+        "retry_count": 0,
+        "state": "FAILED_CONFIRMATION",
+        "via": "timeout"
+      },
+      "assistant_response_complete_index": 35,
+      "turn_submit_started_index": 37,
+      "turn_submit_ok_index": 38,
+      "done_index": 39,
+      "late_success_after_failed_confirmation": true
+    }
+  ],
+  "retry_attempted": false,
+  "retry_event_names": [],
+  "checks": [
+    {
+      "label": "mission ended DONE",
+      "pass": true,
+      "evidence": "DONE"
+    },
+    {
+      "label": "last_error is empty",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "label": "FAILED_CONFIRMATION occurred",
+      "pass": true,
+      "evidence": [
+        27
+      ]
+    },
+    {
+      "label": "assistant completed after FAILED_CONFIRMATION",
+      "pass": true,
+      "evidence": [
+        {
+          "failed_confirmation_index": 27,
+          "failed_confirmation_details": {
+            "retry_count": 0,
+            "state": "FAILED_CONFIRMATION",
+            "via": "timeout"
+          },
+          "assistant_response_complete_index": 35,
+          "turn_submit_started_index": 37,
+          "turn_submit_ok_index": 38,
+          "done_index": 39,
+          "late_success_after_failed_confirmation": true
+        }
+      ]
+    },
+    {
+      "label": "server accepted terminal follow-up after FAILED_CONFIRMATION",
+      "pass": true,
+      "evidence": [
+        38
+      ]
+    },
+    {
+      "label": "no retry attempt was needed for recovery",
+      "pass": true,
+      "evidence": {
+        "retry_attempted": false,
+        "retry_events": []
+      }
+    },
+    {
+      "label": "agentic-kit check passes",
+      "pass": true,
+      "evidence": 0
+    },
+    {
+      "label": "agentic-kit doctor passes",
+      "pass": true,
+      "evidence": 0
+    }
+  ],
+  "recommended_transport_model": {
+    "timeout_semantics": "INDETERMINATE",
+    "not": "FAILED_CONFIRMATION",
+    "late_evidence_transition": "INDETERMINATE -> ACCEPTED_LATE",
+    "retry_gate": "Retry only when positive evidence shows the prompt is still unsent and the composer still contains the exact pending prompt.",
+    "design_consequence": "Assistant activity after an indeterminate send must be allowed to retrospectively confirm that send; timeout alone must not assert failure."
+  },
+  "decision": "REDESIGN_BOUNDARY",
+  "product_mutation_allowed_in_step_095": false
+}

@@ -1,0 +1,336 @@
+{
+  "schema_version": 1,
+  "source": "chrome_extension/content.js",
+  "branch": "work/phase0-agentic-workspace-bootstrap",
+  "functions": {
+    "visibleUserMessages": "function visibleUserMessages() {\n    return Array.from(\n      document.querySelectorAll('[data-message-author-role=\"user\"]')\n    )\n      .filter(el => {\n        const r = el.getBoundingClientRect();\n        return r.width > 0 && r.height > 0;\n      })\n      .map(el => (el.innerText || el.textContent || \"\").trim())\n      .filter(Boolean);\n  }",
+    "normalizeObservedMessageText": "function normalizeObservedMessageText(text) {\n    return String(text || \"\")\n      .replace(/\\u00a0/g, \" \")\n      .replace(/\\s+/g, \" \")\n      .trim();\n  }",
+    "observedComposerText": "function observedComposerText() {\n    const el = composer();\n    if (!el) return \"\";\n    if (el instanceof HTMLTextAreaElement) {\n      return normalizeObservedMessageText(el.value || \"\");\n    }\n    return normalizeObservedMessageText(\n      el.innerText || el.textContent || el.getAttribute(\"data-lexical-text\") || \"\"\n    );\n  }",
+    "chatgptGenerationActive": "function chatgptGenerationActive() {\n    const selectors = [\n      'button[data-testid=\"stop-button\"]',\n      'button[aria-label*=\"Stop generating\"]',\n      'button[aria-label*=\"Stop response\"]',\n      'button[aria-label*=\"Generierung stoppen\"]',\n      'button[aria-label*=\"Antwort stoppen\"]',\n      '[data-is-streaming=\"true\"]',\n      '[data-testid=\"stop-generating-button\"]'\n    ];\n    return selectors.some(selector => {\n      const el = document.querySelector(selector);\n      return Boolean(el && !el.disabled);\n    });\n  }",
+    "waitForSentUserMessage": "async function waitForSentUserMessage(\n    prompt,\n    beforeMessages,\n    beforeAssistantText=\"\",\n    beforeComposerText=\"\",\n    beforeGenerationActive=false\n  ) {\n    const beforeCount = beforeMessages.length;\n    const expected = normalizeObservedMessageText(prompt);\n    const assistantBefore = normalizeObservedMessageText(beforeAssistantText);\n    const composerBefore = normalizeObservedMessageText(beforeComposerText);\n    let provisionalComposerEvidence = \"\";\n\n    for (let i = 0; i < 60; i += 1) {\n      await new Promise(resolve => setTimeout(resolve, 250));\n\n      const after = visibleUserMessages();\n      if (after.length > beforeCount) {\n        const newest = normalizeObservedMessageText(after[after.length - 1]);\n        if (newest === expected) {\n          return {confirmed:true, via:\"user_message\"};\n        }\n      }\n\n      // Composer mutation alone is not decisive. React/editor re-renders can clear\n      // or replace the draft even when no user message was actually submitted.\n      const composerNow = observedComposerText();\n      if (composerBefore && composerNow !== composerBefore) {\n        provisionalComposerEvidence = !composerNow\n          ? \"composer_cleared\"\n          : \"composer_changed\";\n      }\n\n      const generationNow = chatgptGenerationActive();\n      if (generationNow && !beforeGenerationActive) {\n        return {confirmed:true, via:\"generation_started\"};\n      }\n\n      const assistantNow = normalizeObservedMessageText(lastAssistantText());\n      if (assistantNow && assistantNow !== assistantBefore) {\n        return {confirmed:true, via:\"assistant_activity\"};\n      }\n    }\n\n    return {\n      confirmed:false,\n      via:\"timeout\",\n      provisional:provisionalComposerEvidence\n    };\n  }",
+    "sendPrompt": "async function sendPrompt(prompt) {\n    if (prompt === STATE.lastPrompt) {\n      throw new Error(\"identical prompt loop detected\");\n    }\n\n    const beforeMessages = visibleUserMessages();\n    const beforeAssistantText = lastAssistantText();\n    const composerEl = composer();\n    if (!composerEl) throw new Error(\"ChatGPT composer not found\");\n    STATE.lastPrompt = prompt;\n    setComposerText(composerEl, prompt);\n    const beforeComposerText = observedComposerText();\n    const beforeGenerationActive = chatgptGenerationActive();\n\n    let sentAttempt = false;\n    for (let attempt = 0; attempt < 20; attempt += 1) {\n      const button = sendButton(composerEl);\n      if (button && !button.disabled) {\n        button.click();\n        sentAttempt = true;\n        break;\n      }\n      await new Promise(resolve => setTimeout(resolve, 150));\n    }\n\n    if (!sentAttempt) {\n      const el = composer();\n      const form = el && el.closest ? el.closest(\"form\") : null;\n      if (form && typeof form.requestSubmit === \"function\") {\n        form.requestSubmit();\n        sentAttempt = true;\n      }\n    }\n\n    if (!sentAttempt) {\n      const el = composer();\n      if (!el) throw new Error(\"ChatGPT composer not found\");\n      el.focus();\n      const down = new KeyboardEvent(\"keydown\", {\n          key:\"Enter\",\n          code:\"Enter\",\n          keyCode:13,\n          which:13,\n          bubbles:true,\n          cancelable:true\n        });\n      const up = new KeyboardEvent(\"keyup\", {\n          key:\"Enter\",\n          code:\"Enter\",\n          keyCode:13,\n          which:13,\n          bubbles:true,\n          cancelable:true\n        });\n      el.dispatchEvent(down);\n      el.dispatchEvent(up);\n      sentAttempt = true;\n    }\n\n    if (!sentAttempt) {\n      throw new Error(\"send path unavailable\");\n    }\n\n    let acknowledgement = await waitForSentUserMessage(\n      prompt,\n      beforeMessages,\n      beforeAssistantText,\n      beforeComposerText,\n      beforeGenerationActive\n    );\n\n    // AGP_SAFE_RETRY_UNSENT_CONTINUATION_085\n    if (!acknowledgement.confirmed) {\n      const pendingComposer = observedComposerText();\n      const expectedPrompt = normalizeObservedMessageText(prompt);\n      const safeToRetry = (\n        pendingComposer === expectedPrompt &&\n        !chatgptGenerationActive()\n      );\n\n      if (safeToRetry) {\n        await clientEvent(\"SEND_RETRY_SAFE_PENDING_COMPOSER\", {\n          chars:prompt.length,\n          first_via:acknowledgement.via || \"\",\n          provisional:acknowledgement.provisional || \"\"\n        });\n\n        const retryComposer = composer();\n        const retryButton = sendButton(retryComposer);\n        if (retryButton && !retryButton.disabled) {\n          retryButton.click();\n\n          acknowledgement = await waitForSentUserMessage(\n            prompt,\n            beforeMessages,\n            beforeAssistantText,\n            expectedPrompt,\n            false\n          );\n\n          await clientEvent(\n            acknowledgement.confirmed\n              ? \"SEND_RETRY_CONFIRMED\"\n              : \"SEND_RETRY_UNCONFIRMED\",\n            {\n              via:acknowledgement.via || \"\",\n              provisional:acknowledgement.provisional || \"\"\n            }\n          );\n        }\n      }\n    }\n\n    if (!acknowledgement.confirmed) {\n      STATE.lastEvent = \"SEND_UNCONFIRMED\";\n      throw new Error(\"SEND_UNCONFIRMED: expected user message did not appear\");\n    }\n\n    STATE.lastEvent = \"PROMPT_SENT\";\n    STATE.note = `Prompt bestätigt via ${acknowledgement.via}`;\n  }"
+  },
+  "markers": [
+    {
+      "line": 49,
+      "marker": "AGP_OVERLAY_DRAG_MINIMIZE_063S2",
+      "text": "/* AGP_OVERLAY_DRAG_MINIMIZE_063S2 */"
+    },
+    {
+      "line": 72,
+      "marker": "AGP_BROWSER_BUSY_INDICATOR_064_R2",
+      "text": "/* AGP_BROWSER_BUSY_INDICATOR_064_R2 */"
+    },
+    {
+      "line": 276,
+      "marker": "AGP_REFRESH_INTEGRATION",
+      "text": "type:\"AGP_REFRESH_INTEGRATION\","
+    },
+    {
+      "line": 333,
+      "marker": "AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11",
+      "text": "// AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11"
+    },
+    {
+      "line": 342,
+      "marker": "AGP_FOLLOWUP_SEND_TARGET_DECISIVE_ACK_066_D4",
+      "text": "// AGP_FOLLOWUP_SEND_TARGET_DECISIVE_ACK_066_D4"
+    },
+    {
+      "line": 343,
+      "marker": "AGP_MULTI_SIGNAL_SEND_ACCEPTANCE_066_D3",
+      "text": "// AGP_MULTI_SIGNAL_SEND_ACCEPTANCE_066_D3"
+    },
+    {
+      "line": 493,
+      "marker": "AGP_SAFE_RETRY_UNSENT_CONTINUATION_085",
+      "text": "// AGP_SAFE_RETRY_UNSENT_CONTINUATION_085"
+    },
+    {
+      "line": 550,
+      "marker": "AGP_STRUCTURED_RESPONSE_COMPLETION_064_R1",
+      "text": "// AGP_STRUCTURED_RESPONSE_COMPLETION_064_R1"
+    },
+    {
+      "line": 609,
+      "marker": "AGP_LIVE_PROBE_TERMINAL_SIGNAL_074",
+      "text": "// AGP_LIVE_PROBE_TERMINAL_SIGNAL_074"
+    },
+    {
+      "line": 651,
+      "marker": "AGP_TURN_ACCOUNTING_064_R1",
+      "text": "// AGP_TURN_ACCOUNTING_064_R1"
+    },
+    {
+      "line": 797,
+      "marker": "AGP_MULTITURN_LIVE_PROBE_065",
+      "text": "// AGP_MULTITURN_LIVE_PROBE_065"
+    },
+    {
+      "line": 1102,
+      "marker": "AGP_START_AUTO_CLICK_PATH_077",
+      "text": "// AGP_START_AUTO_CLICK_PATH_077"
+    },
+    {
+      "line": 1144,
+      "marker": "AGP_OVERLAY_DRAG_MINIMIZE_063S2",
+      "text": "// AGP_OVERLAY_DRAG_MINIMIZE_063S2"
+    },
+    {
+      "line": 1145,
+      "marker": "AGP_OVERLAY_UI_KEY",
+      "text": "const AGP_OVERLAY_UI_KEY = \"agpOverlayUi063S2\";"
+    },
+    {
+      "line": 1146,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "let AGP_OVERLAY_UI = {left:null, top:null, minimized:false};"
+    },
+    {
+      "line": 1147,
+      "marker": "AGP_OVERLAY_UI_LOADED",
+      "text": "let AGP_OVERLAY_UI_LOADED = false;"
+    },
+    {
+      "line": 1148,
+      "marker": "AGP_DRAG",
+      "text": "let AGP_DRAG = null;"
+    },
+    {
+      "line": 1151,
+      "marker": "AGP_OVERLAY_UI_LOADED",
+      "text": "if (AGP_OVERLAY_UI_LOADED) return;"
+    },
+    {
+      "line": 1152,
+      "marker": "AGP_OVERLAY_UI_LOADED",
+      "text": "AGP_OVERLAY_UI_LOADED = true;"
+    },
+    {
+      "line": 1154,
+      "marker": "AGP_OVERLAY_UI_KEY",
+      "text": "const stored = await chrome.storage.local.get([AGP_OVERLAY_UI_KEY]);"
+    },
+    {
+      "line": 1155,
+      "marker": "AGP_OVERLAY_UI_KEY",
+      "text": "const value = stored && stored[AGP_OVERLAY_UI_KEY];"
+    },
+    {
+      "line": 1157,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "AGP_OVERLAY_UI = {"
+    },
+    {
+      "line": 1168,
+      "marker": "AGP_OVERLAY_UI_KEY",
+      "text": "chrome.storage.local.set({[AGP_OVERLAY_UI_KEY]:AGP_OVERLAY_UI});"
+    },
+    {
+      "line": 1168,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "chrome.storage.local.set({[AGP_OVERLAY_UI_KEY]:AGP_OVERLAY_UI});"
+    },
+    {
+      "line": 1183,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "root.classList.toggle(\"agp-minimized\", Boolean(AGP_OVERLAY_UI.minimized));"
+    },
+    {
+      "line": 1184,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "if (Number.isFinite(AGP_OVERLAY_UI.left) && Number.isFinite(AGP_OVERLAY_UI.top)) {"
+    },
+    {
+      "line": 1184,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "if (Number.isFinite(AGP_OVERLAY_UI.left) && Number.isFinite(AGP_OVERLAY_UI.top)) {"
+    },
+    {
+      "line": 1185,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "const pos = clampOverlayPosition(root, AGP_OVERLAY_UI.left, AGP_OVERLAY_UI.top);"
+    },
+    {
+      "line": 1185,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "const pos = clampOverlayPosition(root, AGP_OVERLAY_UI.left, AGP_OVERLAY_UI.top);"
+    },
+    {
+      "line": 1197,
+      "marker": "AGP_DRAG",
+      "text": "AGP_DRAG = {"
+    },
+    {
+      "line": 1206,
+      "marker": "AGP_DRAG",
+      "text": "if (!AGP_DRAG) return;"
+    },
+    {
+      "line": 1208,
+      "marker": "AGP_DRAG",
+      "text": "AGP_DRAG.root,"
+    },
+    {
+      "line": 1209,
+      "marker": "AGP_DRAG",
+      "text": "event.clientX - AGP_DRAG.dx,"
+    },
+    {
+      "line": 1210,
+      "marker": "AGP_DRAG",
+      "text": "event.clientY - AGP_DRAG.dy"
+    },
+    {
+      "line": 1212,
+      "marker": "AGP_DRAG",
+      "text": "AGP_DRAG.root.style.left = `${pos.left}px`;"
+    },
+    {
+      "line": 1213,
+      "marker": "AGP_DRAG",
+      "text": "AGP_DRAG.root.style.top = `${pos.top}px`;"
+    },
+    {
+      "line": 1214,
+      "marker": "AGP_DRAG",
+      "text": "AGP_DRAG.root.style.right = \"auto\";"
+    },
+    {
+      "line": 1215,
+      "marker": "AGP_DRAG",
+      "text": "AGP_DRAG.root.style.bottom = \"auto\";"
+    },
+    {
+      "line": 1216,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "AGP_OVERLAY_UI.left = pos.left;"
+    },
+    {
+      "line": 1217,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "AGP_OVERLAY_UI.top = pos.top;"
+    },
+    {
+      "line": 1221,
+      "marker": "AGP_DRAG",
+      "text": "if (!AGP_DRAG) return;"
+    },
+    {
+      "line": 1222,
+      "marker": "AGP_DRAG",
+      "text": "AGP_DRAG = null;"
+    },
+    {
+      "line": 1231,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "if (!Number.isFinite(AGP_OVERLAY_UI.left) || !Number.isFinite(AGP_OVERLAY_UI.top)) return;"
+    },
+    {
+      "line": 1231,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "if (!Number.isFinite(AGP_OVERLAY_UI.left) || !Number.isFinite(AGP_OVERLAY_UI.top)) return;"
+    },
+    {
+      "line": 1232,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "const pos = clampOverlayPosition(root, AGP_OVERLAY_UI.left, AGP_OVERLAY_UI.top);"
+    },
+    {
+      "line": 1232,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "const pos = clampOverlayPosition(root, AGP_OVERLAY_UI.left, AGP_OVERLAY_UI.top);"
+    },
+    {
+      "line": 1233,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "AGP_OVERLAY_UI.left = pos.left;"
+    },
+    {
+      "line": 1234,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "AGP_OVERLAY_UI.top = pos.top;"
+    },
+    {
+      "line": 1308,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "minimize.title = AGP_OVERLAY_UI.minimized ? \"Cockpit einblenden\" : \"Cockpit minimieren\";"
+    },
+    {
+      "line": 1309,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "minimize.textContent = AGP_OVERLAY_UI.minimized ? \"▣\" : \"—\";"
+    },
+    {
+      "line": 1314,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "AGP_OVERLAY_UI.minimized = !AGP_OVERLAY_UI.minimized;"
+    },
+    {
+      "line": 1314,
+      "marker": "AGP_OVERLAY_UI",
+      "text": "AGP_OVERLAY_UI.minimized = !AGP_OVERLAY_UI.minimized;"
+    }
+  ],
+  "call_sites": {
+    "visibleUserMessages": [
+      321,
+      387,
+      427
+    ],
+    "normalizeObservedMessageText": [
+      334,
+      348,
+      350,
+      379,
+      380,
+      381,
+      389,
+      409,
+      496
+    ],
+    "observedComposerText": [
+      344,
+      397,
+      433,
+      495
+    ],
+    "chatgptGenerationActive": [
+      355,
+      404,
+      434,
+      499
+    ],
+    "waitForSentUserMessage": [
+      371,
+      485,
+      514
+    ],
+    "sendPrompt": [
+      422,
+      664,
+      1021,
+      1084
+    ]
+  },
+  "contract": {
+    "wait_signals": {
+      "user_message": true,
+      "composer_cleared": true,
+      "composer_changed": true,
+      "generation_started": true,
+      "assistant_activity": true,
+      "timeout": true
+    },
+    "send_contract": {
+      "populates_composer": true,
+      "snapshots_composer": true,
+      "snapshots_generation": true,
+      "waits_for_ack": true,
+      "has_unconfirmed_branch": true,
+      "has_safe_retry_marker": true,
+      "marks_prompt_sent": true,
+      "throws_send_unconfirmed": true
+    }
+  }
+}

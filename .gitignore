@@ -17,3 +17,6 @@ __pycache__/
 node_modules/
 test-results/
 playwright-report/
+
+# Local recovery files created by bounded repair steps
+*.bak

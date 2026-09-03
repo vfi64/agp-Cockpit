@@ -1,0 +1,818 @@
+{
+  "schema_version": 1,
+  "step": "094",
+  "subject": "real browser transport state-machine confirmation",
+  "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+  "mission_title": "093 LIVE BROWSER TRANSPORT STATE-MACHINE CONFIRMATION",
+  "mission_state": "DONE",
+  "turn_count": 2,
+  "step_count": 1,
+  "last_summary": "093 live browser transport state-machine confirmation completed",
+  "last_error": "",
+  "expected_command": [
+    "/usr/bin/git",
+    "branch",
+    "--show-current"
+  ],
+  "transport_states": [
+    "DRAFT_WRITTEN",
+    "SUBMIT_ATTEMPTED",
+    "WAITING_FOR_ACCEPTANCE",
+    "SAFE_RETRY_ELIGIBLE",
+    "ACCEPTED",
+    "DRAFT_WRITTEN",
+    "SUBMIT_ATTEMPTED",
+    "WAITING_FOR_ACCEPTANCE",
+    "SAFE_RETRY_ELIGIBLE",
+    "FAILED_CONFIRMATION"
+  ],
+  "retry_observed": false,
+  "retry_events": [],
+  "event_counts": {
+    "ASSISTANT_CANDIDATE_CHANGED": 5,
+    "ASSISTANT_CANDIDATE_STABLE": 5,
+    "ASSISTANT_RESPONSE_COMPLETE": 2,
+    "AUTO_START_REQUESTED": 1,
+    "AUTO_STATUS_REFRESHED": 1,
+    "DONE": 1,
+    "EXTENSION_HANDSHAKE": 6,
+    "MISSION_BOOTSTRAP_PREPARED": 1,
+    "MISSION_BOOTSTRAP_SENT": 1,
+    "MISSION_CREATED": 1,
+    "SEND_TRANSPORT_STATE": 10,
+    "STATUS_REQUEST": 3,
+    "TICK_ERROR": 1,
+    "TURN_SUBMIT_OK": 2,
+    "TURN_SUBMIT_STARTED": 2,
+    "TURN_SUBMIT_STARTED_CLIENT": 2,
+    "UI_BUTTON_CLICKED": 1
+  },
+  "events": [
+    {
+      "component": "mission",
+      "details": {
+        "execution_mode": "LIVE",
+        "mission": {
+          "chars": 515,
+          "preview": "Execute exactly one bounded read-only repository observation: /usr/bin/git branch --show-current with cwd /Users/hof/Dropbox/Privat/GitHub/agp-Cockpit. For the ",
+          "sha256": "6a12df23a90437c09c81130efb5c571046464d278bc35f1acec9e87248383764"
+        },
+        "run_mode": "FULL_AUTO"
+      },
+      "error_id": null,
+      "event": "MISSION_CREATED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "handled_refresh_generation": 1788288611692417000,
+        "page_url": "https://chatgpt.com/c/6a99881f-3ca4-83eb-a087-0846c29ca950",
+        "version": "0.3.0"
+      },
+      "error_id": null,
+      "event": "EXTENSION_HANDSHAKE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "http",
+      "details": {},
+      "error_id": null,
+      "event": "STATUS_REQUEST",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": null,
+      "turn": null
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "handled_refresh_generation": 1788288611692417000,
+        "page_url": "https://chatgpt.com/c/6a99881f-3ca4-83eb-a087-0846c29ca950",
+        "version": "0.3.0"
+      },
+      "error_id": null,
+      "event": "EXTENSION_HANDSHAKE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "class_name": "start",
+        "label": "▶ Start Auto"
+      },
+      "error_id": null,
+      "event": "UI_BUTTON_CLICKED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "page_url": "https://chatgpt.com/c/6a99881f-3ca4-83eb-a087-0846c29ca950"
+      },
+      "error_id": null,
+      "event": "AUTO_START_REQUESTED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "http",
+      "details": {},
+      "error_id": null,
+      "event": "STATUS_REQUEST",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": null,
+      "turn": null
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+        "mission_state": "READY",
+        "state": "READY"
+      },
+      "error_id": null,
+      "event": "AUTO_STATUS_REFRESHED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "bootstrap_chars": 912,
+        "mission_chars": 515
+      },
+      "error_id": null,
+      "event": "MISSION_BOOTSTRAP_PREPARED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 912,
+        "retry_count": 0,
+        "state": "DRAFT_WRITTEN"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "attempt": 1,
+        "retry_count": 0,
+        "state": "SUBMIT_ATTEMPTED"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "attempt": 1,
+        "retry_count": 0,
+        "state": "WAITING_FOR_ACCEPTANCE"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "retry_count": 0,
+        "state": "SAFE_RETRY_ELIGIBLE",
+        "via": "generation_started"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "attempts": 1,
+        "retry_count": 0,
+        "state": "ACCEPTED",
+        "via": "generation_started"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 912
+      },
+      "error_id": null,
+      "event": "MISSION_BOOTSTRAP_SENT",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 176,
+        "stable_polls": 1
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_CHANGED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 176,
+        "stable_polls": 2
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_STABLE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 176,
+        "stable_polls": 3
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_STABLE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 176,
+        "stable_polls": 3
+      },
+      "error_id": null,
+      "event": "ASSISTANT_RESPONSE_COMPLETE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 176
+      },
+      "error_id": null,
+      "event": "TURN_SUBMIT_STARTED_CLIENT",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "READY",
+      "state_before": null,
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "http",
+      "details": {
+        "assistant": {
+          "chars": 176,
+          "preview": "{\"kind\":\"generic\",\"cwd\":\"/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit\",\"argv\":[\"/usr/bin/git\",\"branch\",\"--show-current\"],\"timeout_seconds\":30,\"label\":\"093 live ",
+          "sha256": "d2e3c53523a9a6b7e56cf84aa48af52c4bcaf1dbcdc3c1b8e1c734af9a8a8fdf"
+        }
+      },
+      "error_id": null,
+      "event": "TURN_SUBMIT_STARTED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": null,
+      "state_before": "READY",
+      "step": 0,
+      "turn": 0
+    },
+    {
+      "component": "http",
+      "details": {
+        "action": "continue",
+        "note": "turn=1"
+      },
+      "error_id": null,
+      "event": "TURN_SUBMIT_OK",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "STEP_PASS",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 1212,
+        "retry_count": 0,
+        "state": "DRAFT_WRITTEN"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "attempt": 1,
+        "retry_count": 0,
+        "state": "SUBMIT_ATTEMPTED"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "attempt": 1,
+        "retry_count": 0,
+        "state": "WAITING_FOR_ACCEPTANCE"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "retry_count": 0,
+        "state": "SAFE_RETRY_ELIGIBLE",
+        "via": "timeout"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "message": "Error: SEND_UNCONFIRMED: expected user message did not appear"
+      },
+      "error_id": null,
+      "event": "TICK_ERROR",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "retry_count": 0,
+        "state": "FAILED_CONFIRMATION",
+        "via": "timeout"
+      },
+      "error_id": null,
+      "event": "SEND_TRANSPORT_STATE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 76,
+        "stable_polls": 1
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_CHANGED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 98,
+        "stable_polls": 1
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_CHANGED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 101,
+        "stable_polls": 1
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_CHANGED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 101,
+        "stable_polls": 2
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_STABLE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 100,
+        "stable_polls": 1
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_CHANGED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 100,
+        "stable_polls": 2
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_STABLE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 100,
+        "stable_polls": 3
+      },
+      "error_id": null,
+      "event": "ASSISTANT_CANDIDATE_STABLE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 100,
+        "stable_polls": 3
+      },
+      "error_id": null,
+      "event": "ASSISTANT_RESPONSE_COMPLETE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "chars": 100
+      },
+      "error_id": null,
+      "event": "TURN_SUBMIT_STARTED_CLIENT",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "RUNNING",
+      "state_before": null,
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "http",
+      "details": {
+        "assistant": {
+          "chars": 100,
+          "preview": "{\"mission_state\":\"DONE\",\"summary\":\"093 live browser transport state-machine confirmation completed\"}",
+          "sha256": "af98edbe26fbf6867af1661042c01dc8ffa9e164feb2a318d0e81713e7ad1747"
+        }
+      },
+      "error_id": null,
+      "event": "TURN_SUBMIT_STARTED",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": null,
+      "state_before": "RUNNING",
+      "step": 1,
+      "turn": 1
+    },
+    {
+      "component": "http",
+      "details": {
+        "action": "stop",
+        "note": "093 live browser transport state-machine confirmation completed"
+      },
+      "error_id": null,
+      "event": "TURN_SUBMIT_OK",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "DONE",
+      "state_before": null,
+      "step": 1,
+      "turn": 2
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "reason": "DONE: 093 live browser transport state-machine confirmation completed"
+      },
+      "error_id": null,
+      "event": "DONE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "DONE",
+      "state_before": null,
+      "step": 1,
+      "turn": 2
+    },
+    {
+      "component": "http",
+      "details": {},
+      "error_id": null,
+      "event": "STATUS_REQUEST",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "DONE",
+      "state_before": null,
+      "step": null,
+      "turn": null
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "handled_refresh_generation": 1788288611692417000,
+        "page_url": "https://chatgpt.com/c/6a99881f-3ca4-83eb-a087-0846c29ca950",
+        "version": "0.3.0"
+      },
+      "error_id": null,
+      "event": "EXTENSION_HANDSHAKE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "DONE",
+      "state_before": null,
+      "step": 1,
+      "turn": 2
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "handled_refresh_generation": 1788288611692417000,
+        "page_url": "https://chatgpt.com/c/6a99881f-3ca4-83eb-a087-0846c29ca950",
+        "version": "0.3.0"
+      },
+      "error_id": null,
+      "event": "EXTENSION_HANDSHAKE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "DONE",
+      "state_before": null,
+      "step": 1,
+      "turn": 2
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "handled_refresh_generation": 1788288611692417000,
+        "page_url": "https://chatgpt.com/c/6a99881f-3ca4-83eb-a087-0846c29ca950",
+        "version": "0.3.0"
+      },
+      "error_id": null,
+      "event": "EXTENSION_HANDSHAKE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "DONE",
+      "state_before": null,
+      "step": 1,
+      "turn": 2
+    },
+    {
+      "component": "chrome",
+      "details": {
+        "handled_refresh_generation": 1788288611692417000,
+        "page_url": "https://chatgpt.com/c/6a99881f-3ca4-83eb-a087-0846c29ca950",
+        "version": "0.3.0"
+      },
+      "error_id": null,
+      "event": "EXTENSION_HANDSHAKE",
+      "mission_id": "42fbe68e-45db-4799-8696-95c94f14cea7",
+      "state_after": "DONE",
+      "state_before": null,
+      "step": 1,
+      "turn": 2
+    }
+  ],
+  "checks": [
+    {
+      "name": "mission id matches 093 target",
+      "pass": true,
+      "evidence": "42fbe68e-45db-4799-8696-95c94f14cea7"
+    },
+    {
+      "name": "mission title matches",
+      "pass": true,
+      "evidence": "093 LIVE BROWSER TRANSPORT STATE-MACHINE CONFIRMATION"
+    },
+    {
+      "name": "mission state is DONE",
+      "pass": true,
+      "evidence": "DONE"
+    },
+    {
+      "name": "turn_count == 2",
+      "pass": true,
+      "evidence": 2
+    },
+    {
+      "name": "step_count == 1",
+      "pass": true,
+      "evidence": 1
+    },
+    {
+      "name": "last_error is empty",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "name": "last_summary contains 093 completion summary",
+      "pass": true,
+      "evidence": "093 live browser transport state-machine confirmation completed"
+    },
+    {
+      "name": "transport state telemetry exists",
+      "pass": true,
+      "evidence": [
+        "DRAFT_WRITTEN",
+        "SUBMIT_ATTEMPTED",
+        "WAITING_FOR_ACCEPTANCE",
+        "SAFE_RETRY_ELIGIBLE",
+        "ACCEPTED",
+        "DRAFT_WRITTEN",
+        "SUBMIT_ATTEMPTED",
+        "WAITING_FOR_ACCEPTANCE",
+        "SAFE_RETRY_ELIGIBLE",
+        "FAILED_CONFIRMATION"
+      ]
+    },
+    {
+      "name": "core transport states observed",
+      "pass": true,
+      "evidence": [
+        "ACCEPTED",
+        "DRAFT_WRITTEN",
+        "FAILED_CONFIRMATION",
+        "SAFE_RETRY_ELIGIBLE",
+        "SUBMIT_ATTEMPTED",
+        "WAITING_FOR_ACCEPTANCE"
+      ]
+    },
+    {
+      "name": "first-send transport order is valid",
+      "pass": true,
+      "evidence": [
+        0,
+        1,
+        2,
+        4
+      ]
+    },
+    {
+      "name": "bootstrap prompt was sent",
+      "pass": true,
+      "evidence": 1
+    },
+    {
+      "name": "two assistant responses completed",
+      "pass": true,
+      "evidence": 2
+    },
+    {
+      "name": "server accepted two turns",
+      "pass": true,
+      "evidence": 2
+    },
+    {
+      "name": "terminal DONE event observed",
+      "pass": true,
+      "evidence": 1
+    },
+    {
+      "name": "exact bounded git branch command has durable evidence",
+      "pass": true,
+      "evidence": [
+        "/usr/bin/git",
+        "branch",
+        "--show-current"
+      ]
+    },
+    {
+      "name": "bounded command returned RC=0",
+      "pass": true,
+      "evidence": "RC=0"
+    },
+    {
+      "name": "agentic-kit check passes",
+      "pass": true,
+      "evidence": 0
+    },
+    {
+      "name": "agentic-kit doctor passes",
+      "pass": true,
+      "evidence": 0
+    }
+  ],
+  "passed": 18,
+  "failed": 0,
+  "overall": "PASS"
+}

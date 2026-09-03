@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "step": "096",
+  "source": "chrome_extension/content.js",
+  "marker_lines": {
+    "SEND_TRANSPORT": [
+      423,
+      437,
+      443,
+      444,
+      465,
+      518,
+      519,
+      529,
+      553,
+      554,
+      577,
+      585
+    ],
+    "createSendTransport": [
+      435,
+      454
+    ],
+    "async function sendPrompt": [
+      453
+    ],
+    "FAILED_CONFIRMATION": [
+      432,
+      432,
+      577
+    ],
+    "SEND_UNCONFIRMED": [
+      580,
+      581
+    ],
+    "ASSISTANT_RESPONSE_COMPLETE": [
+      802,
+      805
+    ],
+    "submitAssistant": [
+      657,
+      698
+    ],
+    "async function tick": [
+      724
+    ]
+  },
+  "functions": {
+    "function createSendTransport": {
+      "start_line": 435,
+      "end_line": 451,
+      "chars": 437
+    },
+    "async function sendPrompt": {
+      "start_line": 453,
+      "end_line": 591,
+      "chars": 4423
+    },
+    "async function submitAssistant": {
+      "start_line": 657,
+      "end_line": 695,
+      "chars": 1237
+    },
+    "async function tick": {
+      "start_line": 724,
+      "end_line": 830,
+      "chars": 3213
+    }
+  },
+  "design_contract": {
+    "classification_source": "Step 095 FALSE_NEGATIVE_CONFIRMATION",
+    "decision": "REDESIGN_BOUNDARY",
+    "required_semantics": {
+      "ack_timeout": "INDETERMINATE",
+      "late_assistant_evidence": "ACCEPTED_LATE",
+      "hard_failure": "FAILED_CONFIRMATION only when positive evidence demonstrates that the send was not accepted",
+      "retry": "SAFE_RETRY_ELIGIBLE only with positive unsent evidence; timeout alone is insufficient"
+    },
+    "required_invariants": [
+      "No timeout-only transition to FAILED_CONFIRMATION.",
+      "No timeout-only exception that aborts the logical send path.",
+      "Late assistant evidence may resolve a pending indeterminate send.",
+      "A late acceptance must be correlated to the exact pending prompt/turn.",
+      "Retry remains bounded to at most one attempt.",
+      "Existing successful first-send acceptance behavior remains unchanged.",
+      "Terminal mission progression must remain independent from acknowledgement latency."
+    ]
+  },
+  "mutation_performed": false
+}

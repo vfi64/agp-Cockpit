@@ -92,7 +92,15 @@ class BridgeRuntime:
     def final(self, state_name: str, note: str = "") -> MissionState:
         state = self.require_state()
         state.state = state_name
-        state.last_error = note
+
+        # AGP_TERMINAL_SUMMARY_SEMANTICS_082R1
+        if state_name in {"DONE", "NEEDS_HUMAN"}:
+            state.last_summary = note
+            state.last_error = ""
+        else:
+            state.last_summary = ""
+            state.last_error = note
+
         self.store.save(state)
         return state
 

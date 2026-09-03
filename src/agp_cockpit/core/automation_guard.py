@@ -17,7 +17,10 @@ class AutomationLimits:
 @dataclass
 class AutomationGuard:
     limits: AutomationLimits = field(default_factory=AutomationLimits)
-    started_at: float = field(default_factory=monotonic)
+    # AGP_MISSION_SCOPED_AUTOMATION_GUARD_080
+    # Runtime budget belongs to an active automation session, not to the
+    # lifetime of the persistent BridgeEngine process.
+    started_at: float | None = None
     turns: int = 0
     consecutive_errors: int = 0
     _assistant_counts: dict[str, int] = field(default_factory=dict)
@@ -27,8 +30,22 @@ class AutomationGuard:
     def _digest(text: str) -> str:
         return sha256(text.encode("utf-8")).hexdigest()
 
+    def reset(self) -> None:
+        self.started_at = None
+        self.turns = 0
+        self.consecutive_errors = 0
+        self._assistant_counts.clear()
+        self._prompt_counts.clear()
+
     def _check_runtime(self) -> None:
-        runtime = monotonic() - self.started_at
+        # AGP_SINGLE_CLOCK_SAMPLE_PER_GUARD_CHECK_080B_R1
+        now = monotonic()
+        if self.started_at is None:
+            self.started_at = now
+            runtime = 0.0
+        else:
+            runtime = now - self.started_at
+
         if runtime > self.limits.max_runtime_seconds:
             raise RuntimeError(
                 f"automation runtime budget exceeded: {runtime:.1f}s"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import tkinter as tk
 
 from agp_cockpit.ui.main_window import MainWindow
@@ -14,9 +15,15 @@ def build_root() -> tk.Tk:
     return root
 
 
-def main() -> None:
+def run_gui_only() -> None:
     root = build_root()
     root.mainloop()
+
+
+def main() -> None:
+    from agp_cockpit.app_bootstrap import run
+
+    raise SystemExit(run(Path.cwd()))
 
 
 if __name__ == "__main__":

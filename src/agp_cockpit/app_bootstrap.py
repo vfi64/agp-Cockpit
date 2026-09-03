@@ -4,7 +4,6 @@ from agp_cockpit.core.browser_readiness import start_browser_readiness_watch
 from dataclasses import asdict, dataclass
 from pathlib import Path
 import json
-import runpy
 import subprocess
 import time
 import urllib.request
@@ -240,10 +239,9 @@ def probe_existing_bridge(
 
 
 def run_legacy_gui() -> None:
-    runpy.run_module(
-        "agp_cockpit._legacy_main",
-        run_name="__main__",
-    )
+    from agp_cockpit.app import run_gui_only
+
+    run_gui_only()
 
 
 # AGP_DETERMINISTIC_STARTUP_WAKE_063V

@@ -1,0 +1,305 @@
+{
+  "branch": "work/phase0-agentic-workspace-bootstrap",
+  "content_js": "chrome_extension/content.js",
+  "send_section_markers": [
+    "AGP_FOLLOWUP_SEND_TARGET_DECISIVE_ACK_066_D4",
+    "AGP_MULTI_SIGNAL_SEND_ACCEPTANCE_066_D3",
+    "AGP_SAFE_RETRY_UNSENT_CONTINUATION_085",
+    "AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11",
+    "AGP_STRUCTURED_RESPONSE_COMPLETION_064_R1"
+  ],
+  "send_section_functions": [
+    "chatgptGenerationActive",
+    "missionBootstrapPrompt",
+    "normalizeObservedMessageText",
+    "observedComposerText",
+    "parsePureJsonObject",
+    "refreshStatus",
+    "resetCandidate",
+    "sendPrompt",
+    "stop",
+    "visibleUserMessages",
+    "waitForSentUserMessage"
+  ],
+  "relevant_tests": [
+    {
+      "path": "tests/browser_fixtures/chatgpt_fixture.js",
+      "source_coupled": false,
+      "source_coupled_hits": [],
+      "exact_literals": [],
+      "behavior_signals": [
+        "dispatchEvent",
+        "fixture"
+      ]
+    },
+    {
+      "path": "tests/e2e/test_066_actual_contentjs_send_ack.spec.js",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        "toContain("
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "page.",
+        "click(",
+        "fetch",
+        "expect("
+      ]
+    },
+    {
+      "path": "tests/e2e/test_066_e6_generation_edge_false_positive.spec.js",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        "toContain("
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "expect(",
+        "generation_started",
+        "assistant_activity",
+        "user_message"
+      ]
+    },
+    {
+      "path": "tests/e2e/test_066_g4_multisignal_send_acceptance.spec.js",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        "toContain("
+      ],
+      "exact_literals": [
+        "STATE.lastEvent = \"PROMPT_SENT\"",
+        "button.click()"
+      ],
+      "behavior_signals": [
+        "click(",
+        "dispatchEvent",
+        "expect(",
+        "requestSubmit",
+        "user_message"
+      ]
+    },
+    {
+      "path": "tests/e2e/test_066_send_ack_false_negative_fixture.spec.js",
+      "source_coupled": false,
+      "source_coupled_hits": [],
+      "exact_literals": [],
+      "behavior_signals": [
+        "page.",
+        "click(",
+        "expect(",
+        "fixture"
+      ]
+    },
+    {
+      "path": "tests/e2e/test_085_safe_retry_unsent_continuation_prompt.spec.js",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        "toContain("
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "expect("
+      ]
+    },
+    {
+      "path": "tests/test_assistant_response_completion_064_r1.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        ".index("
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "assert "
+      ]
+    },
+    {
+      "path": "tests/test_async_browser_readiness.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        ".index(",
+        "in source"
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "assert "
+      ]
+    },
+    {
+      "path": "tests/test_browser_integration_lifecycle.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        "in source"
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "assert "
+      ]
+    },
+    {
+      "path": "tests/test_followup_send_path_065l_r7.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        ".find("
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "dispatchEvent",
+        "assert "
+      ]
+    },
+    {
+      "path": "tests/test_followup_send_target_and_decisive_ack_066_d4.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        "in SRC"
+      ],
+      "exact_literals": [
+        "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+      ],
+      "behavior_signals": [
+        "assert ",
+        "generation_started",
+        "assistant_activity",
+        "user_message"
+      ]
+    },
+    {
+      "path": "tests/test_generation_edge_ack_066_e7.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        ".find("
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "assert ",
+        "generation_started",
+        "assistant_activity",
+        "user_message"
+      ]
+    },
+    {
+      "path": "tests/test_multisignal_send_acceptance_066_d3.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        ".index(",
+        "in SRC"
+      ],
+      "exact_literals": [
+        "const acknowledgement = await waitForSentUserMessage(",
+        "STATE.lastEvent = \"PROMPT_SENT\"",
+        "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+      ],
+      "behavior_signals": [
+        "assert ",
+        "generation_started",
+        "assistant_activity",
+        "user_message"
+      ]
+    },
+    {
+      "path": "tests/test_send_ack_false_negative_065l_r11.py",
+      "source_coupled": false,
+      "source_coupled_hits": [],
+      "exact_literals": [],
+      "behavior_signals": [
+        "dispatchEvent",
+        "assert ",
+        "assistant_activity"
+      ]
+    },
+    {
+      "path": "tests/test_startup_handshake_polish.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        "in source"
+      ],
+      "exact_literals": [],
+      "behavior_signals": [
+        "assert "
+      ]
+    },
+    {
+      "path": "tests/test_verified_followup_send_065l_r10.py",
+      "source_coupled": true,
+      "source_coupled_hits": [],
+      "exact_literals": [
+        "STATE.lastEvent = \"PROMPT_SENT\"",
+        "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+      ],
+      "behavior_signals": [
+        "dispatchEvent",
+        "assert "
+      ]
+    },
+    {
+      "path": "tests/test_verified_followup_send_065l_r8.py",
+      "source_coupled": true,
+      "source_coupled_hits": [
+        ".index("
+      ],
+      "exact_literals": [
+        "const acknowledgement = await waitForSentUserMessage(",
+        "STATE.lastEvent = \"PROMPT_SENT\"",
+        "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+      ],
+      "behavior_signals": [
+        "assert ",
+        "user_message"
+      ]
+    },
+    {
+      "path": "tests/test_verified_followup_send_065l_r9.py",
+      "source_coupled": true,
+      "source_coupled_hits": [],
+      "exact_literals": [
+        "STATE.lastEvent = \"PROMPT_SENT\"",
+        "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+      ],
+      "behavior_signals": [
+        "assert "
+      ]
+    }
+  ],
+  "counts": {
+    "relevant_tests": 18,
+    "source_coupled_tests": 15,
+    "non_source_coupled_tests": 3,
+    "markers": 5,
+    "functions": 11
+  },
+  "proposed_canonical_contract": {
+    "states": [
+      "IDLE",
+      "DRAFT_WRITTEN",
+      "SUBMIT_ATTEMPTED",
+      "WAITING_FOR_ACCEPTANCE",
+      "ACCEPTED",
+      "SAFE_RETRY_ELIGIBLE",
+      "RETRY_ATTEMPTED",
+      "INDETERMINATE",
+      "FAILED_CONFIRMATION"
+    ],
+    "decisive_acceptance_signals": [
+      "new exact visible user message",
+      "new ChatGPT generation edge",
+      "new assistant activity after submit"
+    ],
+    "non_decisive_signals": [
+      "composer cleared",
+      "composer changed",
+      "button click attempted"
+    ],
+    "safe_retry_contract": {
+      "max_retries": 1,
+      "requires_exact_prompt_still_in_composer": true,
+      "requires_generation_inactive": true,
+      "must_not_retry_on_missing_user_bubble_alone": true,
+      "must_not_retry_on_composer_mutation_alone": true
+    },
+    "terminal_outcomes": [
+      "accepted",
+      "indeterminate_no_retry",
+      "failed_confirmation_after_bounded_retry"
+    ]
+  }
+}

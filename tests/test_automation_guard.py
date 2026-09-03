@@ -37,3 +37,19 @@ def test_consecutive_error_budget():
 
     with pytest.raises(RuntimeError):
         guard.error()
+
+def test_runtime_budget_starts_on_first_guarded_action(monkeypatch):
+    from agp_cockpit.core import automation_guard as module
+
+    clock = iter([10000.0, 10000.5])
+    monkeypatch.setattr(module, "monotonic", lambda: next(clock))
+
+    guard = AutomationGuard(
+        AutomationLimits(max_runtime_seconds=2.0)
+    )
+
+    assert guard.started_at is None
+    guard.before_turn()
+    assert guard.started_at == 10000.0
+
+    guard.record_assistant("first")

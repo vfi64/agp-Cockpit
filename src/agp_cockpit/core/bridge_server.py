@@ -436,6 +436,7 @@ class CockpitBridgeServer:
                             execution_mode=execution_mode,
                             run_mode=run_mode,
                         )
+                        engine.reset_automation_guard()
 
                         diag.event(
                             "MISSION_CREATED",

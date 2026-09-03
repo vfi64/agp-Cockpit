@@ -42,6 +42,8 @@ class MissionState:
     turn_count: int = 0
     step_count: int = 0
     last_result: str = ""
+    # AGP_TERMINAL_SUMMARY_SEMANTICS_082R1
+    last_summary: str = ""
     last_error: str = ""
     last_prompt: str = ""
     last_assistant_text: str = ""

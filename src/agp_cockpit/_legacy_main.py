@@ -1,4 +1,4 @@
-from agp_cockpit.app import main
+from agp_cockpit.app import run_gui_only
 
 if __name__ == "__main__":
-    main()
+    run_gui_only()

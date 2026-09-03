@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "review_id": "SFR-089-BROWSER-TRANSPORT",
+  "status": "accepted",
+  "failure_domain": "browser transport / ChatGPT send acknowledgement",
+  "escalation_level": "R2",
+  "failure_history": [
+    {
+      "step": "065-066",
+      "summary": "send acknowledgement false negatives and multi-signal heuristics accumulated around follow-up sends",
+      "classification": "browser transport"
+    },
+    {
+      "step": "074",
+      "summary": "terminal DONE/NEEDS_HUMAN incorrectly passed through work-order assertions",
+      "classification": "browser transport / response classification"
+    },
+    {
+      "step": "075-079R1",
+      "summary": "real browser first-turn path proven; assistant pickup reached server; runtime-budget defect then exposed",
+      "classification": "cross-boundary diagnostic"
+    },
+    {
+      "step": "080B-080B_R1",
+      "summary": "automation runtime budget corrected to mission scope",
+      "classification": "runtime lifecycle, separate from browser transport"
+    },
+    {
+      "step": "081-082R1",
+      "summary": "single-step LIVE round trip reached DONE; terminal summary/error semantics repaired",
+      "classification": "runtime semantics, separate from browser transport"
+    },
+    {
+      "step": "083-084",
+      "summary": "continuation prompt generated but remained unsent; failure localized to continuation send/ack path",
+      "classification": "browser transport"
+    },
+    {
+      "step": "085-086",
+      "summary": "safe retry added; Playwright green, Python suite exposed brittle source-coupled tests; systemic inventory found 15/18 source-coupled tests",
+      "classification": "browser transport + test model"
+    }
+  ],
+  "architecture": {
+    "components": [
+      {
+        "name": "Mission/Runtime",
+        "responsibility": "mission state, turn/step counts, execution result, terminal state",
+        "status": "proven functional for single-step LIVE"
+      },
+      {
+        "name": "Browser Sender",
+        "responsibility": "populate composer, submit prompt, determine send acceptance",
+        "status": "recurring failure domain"
+      },
+      {
+        "name": "Assistant Observer",
+        "responsibility": "detect complete assistant response and structured JSON",
+        "status": "proven functional in real browser"
+      },
+      {
+        "name": "Bridge/Executor",
+        "responsibility": "validate work order, execute bounded command, return result",
+        "status": "proven functional in real LIVE run"
+      },
+      {
+        "name": "Continuation Controller",
+        "responsibility": "turn result into next prompt or terminal state",
+        "status": "prompt generation proven; transport of prompt remains unstable"
+      }
+    ],
+    "canonical_transport_states": [
+      "IDLE",
+      "DRAFT_WRITTEN",
+      "SUBMIT_ATTEMPTED",
+      "WAITING_FOR_ACCEPTANCE",
+      "ACCEPTED",
+      "SAFE_RETRY_ELIGIBLE",
+      "RETRY_ATTEMPTED",
+      "INDETERMINATE",
+      "FAILED_CONFIRMATION"
+    ]
+  },
+  "behavior_facts": [
+    "Real browser bootstrap send path reaches ChatGPT.",
+    "Assistant JSON work order is detected and submitted to /v1/turn.",
+    "Bridge validates and executes a real bounded local command.",
+    "Execution result returns through the Cockpit/ChatGPT round trip.",
+    "A single-step LIVE mission has reached DONE.",
+    "Continuation prompt generation works.",
+    "The remaining recurring failure is continuation prompt send/acknowledgement.",
+    "Playwright/browser fixture tests can pass while real ChatGPT continuation sending still fails."
+  ],
+  "inventory": {
+    "relevant_tests": 18,
+    "source_coupled_tests": 15,
+    "behavior_oriented_tests": 3,
+    "historical_markers": [
+      "AGP_FOLLOWUP_SEND_TARGET_DECISIVE_ACK_066_D4",
+      "AGP_MULTI_SIGNAL_SEND_ACCEPTANCE_066_D3",
+      "AGP_SAFE_RETRY_UNSENT_CONTINUATION_085",
+      "AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11",
+      "AGP_STRUCTURED_RESPONSE_COMPLETION_064_R1"
+    ],
+    "functions": [
+      "chatgptGenerationActive",
+      "missionBootstrapPrompt",
+      "normalizeObservedMessageText",
+      "observedComposerText",
+      "parsePureJsonObject",
+      "refreshStatus",
+      "resetCandidate",
+      "sendPrompt",
+      "stop",
+      "visibleUserMessages",
+      "waitForSentUserMessage"
+    ]
+  },
+  "test_model_audit": {
+    "source_coupled": [
+      {
+        "path": "tests/e2e/test_066_actual_contentjs_send_ack.spec.js",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/e2e/test_066_e6_generation_edge_false_positive.spec.js",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/e2e/test_066_g4_multisignal_send_acceptance.spec.js",
+        "reason": "exact source literals, source-string/index assertions",
+        "exact_literals": [
+          "STATE.lastEvent = \"PROMPT_SENT\"",
+          "button.click()"
+        ]
+      },
+      {
+        "path": "tests/e2e/test_085_safe_retry_unsent_continuation_prompt.spec.js",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/test_assistant_response_completion_064_r1.py",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/test_async_browser_readiness.py",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/test_browser_integration_lifecycle.py",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/test_followup_send_path_065l_r7.py",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/test_followup_send_target_and_decisive_ack_066_d4.py",
+        "reason": "exact source literals, source-string/index assertions",
+        "exact_literals": [
+          "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+        ]
+      },
+      {
+        "path": "tests/test_generation_edge_ack_066_e7.py",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/test_multisignal_send_acceptance_066_d3.py",
+        "reason": "exact source literals, source-string/index assertions",
+        "exact_literals": [
+          "const acknowledgement = await waitForSentUserMessage(",
+          "STATE.lastEvent = \"PROMPT_SENT\"",
+          "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+        ]
+      },
+      {
+        "path": "tests/test_startup_handshake_polish.py",
+        "reason": "source-string/index assertions",
+        "exact_literals": []
+      },
+      {
+        "path": "tests/test_verified_followup_send_065l_r10.py",
+        "reason": "exact source literals",
+        "exact_literals": [
+          "STATE.lastEvent = \"PROMPT_SENT\"",
+          "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+        ]
+      },
+      {
+        "path": "tests/test_verified_followup_send_065l_r8.py",
+        "reason": "exact source literals, source-string/index assertions",
+        "exact_literals": [
+          "const acknowledgement = await waitForSentUserMessage(",
+          "STATE.lastEvent = \"PROMPT_SENT\"",
+          "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+        ]
+      },
+      {
+        "path": "tests/test_verified_followup_send_065l_r9.py",
+        "reason": "exact source literals",
+        "exact_literals": [
+          "STATE.lastEvent = \"PROMPT_SENT\"",
+          "STATE.lastEvent = \"SEND_UNCONFIRMED\""
+        ]
+      }
+    ],
+    "behavior_oriented": [
+      "tests/browser_fixtures/chatgpt_fixture.js",
+      "tests/e2e/test_066_send_ack_false_negative_fixture.spec.js",
+      "tests/test_send_ack_false_negative_065l_r11.py"
+    ],
+    "classification": "TEST_MODEL_REPAIR_REQUIRED"
+  },
+  "patch_history_audit": {
+    "known_steps": [
+      "065",
+      "066",
+      "074",
+      "075",
+      "076",
+      "077",
+      "078",
+      "079R1",
+      "080B",
+      "080B_R1",
+      "081",
+      "082",
+      "082R1",
+      "083",
+      "084",
+      "085",
+      "086"
+    ],
+    "active_historical_markers": [
+      "AGP_FOLLOWUP_SEND_TARGET_DECISIVE_ACK_066_D4",
+      "AGP_MULTI_SIGNAL_SEND_ACCEPTANCE_066_D3",
+      "AGP_SAFE_RETRY_UNSENT_CONTINUATION_085",
+      "AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11",
+      "AGP_STRUCTURED_RESPONSE_COMPLETION_064_R1"
+    ],
+    "conclusion": "historically layered heuristics exceed the threshold for another local symptom patch"
+  },
+  "root_cause_hypotheses": [
+    {
+      "hypothesis": "implicit state machine",
+      "confidence": "high",
+      "evidence": "multiple historical marker layers and heuristics accumulated in sendPrompt/waitForSentUserMessage without one explicit transport state authority"
+    },
+    {
+      "hypothesis": "test architecture defect",
+      "confidence": "high",
+      "evidence": "15/18 relevant tests classified source-coupled; known failures depend on exact `const` source spelling"
+    },
+    {
+      "hypothesis": "fixture/live model mismatch",
+      "confidence": "high",
+      "evidence": "full Playwright suite passes while real ChatGPT continuation send remains unsent"
+    },
+    {
+      "hypothesis": "local single-line bug",
+      "confidence": "low",
+      "evidence": "repeated symptom changes after local patches indicate systemic rather than isolated failure"
+    }
+  ],
+  "decision": "REFACTOR_SUBSYSTEM",
+  "secondary_required_action": "TEST_MODEL_REPAIR",
+  "decision_rationale": "The recurring failure is concentrated in Browser Sender state/acknowledgement semantics, while Mission Runtime, Assistant Observer, Bridge/Executor and single-step LIVE execution are already proven. The current sender contains layered heuristics and the regression model is dominated by source-coupled tests. Another local patch is not justified.",
+  "next_work_contract": [
+    "Do not make another symptom patch to sendPrompt.",
+    "Replace brittle source-coupled send-path tests with behavioral state-transition contracts.",
+    "Extract/consolidate browser sending into one explicit transport state machine with one bounded retry policy.",
+    "Preserve decisive vs provisional acknowledgement semantics.",
+    "Run unit/fixture behavioral contracts first.",
+    "Run full Playwright suite second.",
+    "Run full Python suite third.",
+    "Only then run one fresh single-step LIVE confirmation.",
+    "After single-step PASS, run one fresh 3-turn LIVE confirmation."
+  ]
+}
