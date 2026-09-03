@@ -14,4 +14,8 @@ jobs:
           cache: "pip"
       - run: python -m pip install --upgrade pip
       - run: python -m pip install agentic-project-kit
-      - run: agentic-kit standard-gates-audit-suite
+      - run: |
+          python -m pip install -e . pytest
+          python -m pytest -q
+          agentic-kit check --root .
+          agentic-kit doctor --root .
