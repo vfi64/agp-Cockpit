@@ -252,3 +252,19 @@ correct behavior
 ```
 
 Anything less remains provisional.
+
+## 13. Greenfield Agentic Project Kit validation gate
+
+AGP Cockpit development is also a Greenfield validation of the Agentic Project
+Kit external-workspace workflow.
+
+Before a slice is accepted, any credible problem encountered in Kit-governed
+development must be classified. Qualifying Kit or Kit-integration defects,
+regressions, misleading diagnostics, material documentation defects, and
+required manual workarounds must be recorded in
+`docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md` according to
+`docs/planning/KIT_GREENFIELD_VALIDATION.md`.
+
+A slice is not complete if a qualifying Kit finding was knowingly encountered
+but silently bypassed or discarded.
+

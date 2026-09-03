@@ -60,6 +60,17 @@ current Kit orchestrator
 
 This rule governs how contributing LLMs develop AGP Cockpit. It does NOT authorize the AGP Cockpit product itself to select Kit commands. At runtime, the browser LLM formulates the work order; the Cockpit only transports it.
 
+## 3a. AGP Cockpit is a Greenfield validation workspace for the Kit
+
+- Normal development of AGP Cockpit is also a real-world Greenfield validation of `agentic-project-kit` in an external workspace.
+- Every credible Kit defect, regression, misleading diagnostic, material Kit-documentation defect, external-workspace integration defect, or required manual workaround discovered during Cockpit development must be classified and, when attributable to the Kit/integration, recorded as durable evidence.
+- A Kit problem must not be silently worked around and forgotten.
+- Before changing Cockpit product code to compensate for a surprising workflow failure, classify the problem as `cockpit-product`, `agentic-kit`, `kit-integration`, `environment`, `test-model`, or temporarily `unclassified`.
+- This development obligation does not expand Cockpit runtime scope and must not introduce Kit issue-tracking or Kit workflow intelligence into the application.
+
+Canonical contract: `docs/planning/KIT_GREENFIELD_VALIDATION.md`.
+Canonical findings ledger: `docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md`.
+
 ## 4. Product implementation rules
 
 - AGP Cockpit is a Python desktop application.
