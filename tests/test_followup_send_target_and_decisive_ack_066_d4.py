@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ROOT = Path("/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit")
+ROOT = Path(__file__).resolve().parents[1]
 SRC = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
 
 def test_066_d4_scopes_send_control_to_active_composer_form():

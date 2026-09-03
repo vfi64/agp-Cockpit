@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 
-ROOT = Path("/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit")
+ROOT = Path(__file__).resolve().parents[1]
 SRC = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
 
 def extract_function(text: str, name: str) -> str:
