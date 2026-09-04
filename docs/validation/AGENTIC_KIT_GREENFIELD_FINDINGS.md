@@ -648,6 +648,48 @@ findings first-class evidence.
 - `KIT-GF-013`
 
 
+
+### E. Preserve Kit-owned multi-stage lifecycle and prefer high-level wrappers
+
+The first real Phase-3 PR lifecycle exposed a validation-process lesson. After
+`work finish --execute --no-merge` had correctly created and validated PR #2, the
+Greenfield operator path initially composed lower-level transfer commands manually
+instead of continuing through the Kit's high-level multi-stage closeout wrapper.
+
+This is itself Greenfield evidence: validation must not silently replace a Kit-owned
+lifecycle with an operator-owned approximation and then classify the resulting
+low-level blocker as a product defect.
+
+The reusable rule is:
+
+```text
+highest-level supported lifecycle wrapper first
+-> observe its result
+-> preserve partial state on failure
+-> inspect lower-level commands only for diagnosis
+-> no manual fallback unless explicitly required for recovery
+```
+
+`KIT-GF-010` also received a concrete Kit 1.0.8 lifecycle extension. The Kit-owned
+`work finish --execute --no-merge` path left only
+`.agentic/rule_ack/current.json` modified. The subsequent high-level
+`transfer pr-closeout-complete` therefore blocked with `DIRTY_WORKTREE`. Using the
+official `transfer restore-known-volatile` recovery cleaned that generated state;
+the same high-level closeout then completed successfully, merged substantive PR #2,
+created and merged successor-package refresh PR #3, synchronized `main`, and left
+the worktree clean.
+
+This does not require a new defect family: it strengthens `KIT-GF-010` by showing
+that its volatile Rule-ACK behavior crosses a real multi-stage PR closeout boundary.
+
+**Evidence**
+
+- Steps 170--175-R1
+- PR #2: Phase 3 terminal-executor extraction
+- PR #3: successor-package refresh
+- final `main`: `3de6b9f2080f57bd6aafa3e4d046f38bb66d0e15`
+
+
 ## Greenfield end-to-end acceptance target
 
 A future repaired Kit should pass this external-repository lifecycle without manual

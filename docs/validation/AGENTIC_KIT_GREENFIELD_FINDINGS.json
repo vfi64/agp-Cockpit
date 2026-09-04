@@ -330,6 +330,22 @@
         "AGP_Cockpit_Greenfield_Kit_Defect_Report_2026-09-03.md",
         "AGP_Cockpit_Greenfield_Kit_Handoff_Defects_latest.md",
         "056D2_rule_ack_self_invalidation_latest.json"
+      ],
+      "extensions": [
+        {
+          "date": "2026-09-04",
+          "title": "1.0.8 multi-stage pr-closeout lifecycle",
+          "status": "CONFIRMED",
+          "observed": "`work finish --execute --no-merge` left only `.agentic/rule_ack/current.json` dirty; the subsequent high-level `transfer pr-closeout-complete` returned DIRTY_WORKTREE until the official `transfer restore-known-volatile` command restored the known volatile file.",
+          "impact": "Two consecutive Kit-owned high-level lifecycle stages do not currently normalize the known volatile rule acknowledgement automatically.",
+          "recovery": "Use the Kit-owned `transfer restore-known-volatile` recovery; after that, `pr-closeout-complete` completed PR #2, created/merged successor refresh PR #3, synchronized main, and left the worktree clean.",
+          "evidence": [
+            "Steps 174",
+            "175-R1",
+            "PR #2",
+            "PR #3"
+          ]
+        }
       ]
     },
     {
@@ -434,6 +450,28 @@
         "Step 131",
         "Step 132",
         "KIT-GF-013"
+      ]
+    },
+    {
+      "id": "KIT-GF-LESSON-002",
+      "date": "2026-09-04",
+      "classification": "greenfield-validation-workflow-improvement",
+      "title": "Preserve Kit-owned multi-stage lifecycle and prefer high-level closeout wrappers",
+      "status": "ACCEPTED_GREENFIELD_LESSON",
+      "finding": "During PR #2 validation, low-level transfer commands were manually composed after `work finish --execute --no-merge`, bypassing the Kit's higher-level multi-stage closeout abstraction.",
+      "lesson": "Exercise the highest-level supported Kit wrapper for the intended lifecycle before treating failures of internal/low-level subcommands as Kit defects; use low-level commands only for diagnosis after the wrapper path is observed or shown unavailable.",
+      "required_validation_sequence": [
+        "discover the documented high-level wrapper",
+        "inspect/dry-run its contract where supported",
+        "execute the high-level wrapper under observation",
+        "only then inspect an internal low-level step if the wrapper fails",
+        "preserve partial state as evidence and avoid manual fallback",
+        "classify a Kit defect against the intended wrapper contract"
+      ],
+      "evidence": [
+        "Steps 170-175-R1",
+        "PR #2",
+        "PR #3"
       ]
     }
   ]
