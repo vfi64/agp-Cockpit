@@ -7,6 +7,7 @@ from agp_cockpit.core.mission_state import (
     MissionState,
     MissionStore,
 )
+from .mission_state import TERMINAL_STATES, validate_state_transition
 
 
 @dataclass
@@ -58,7 +59,8 @@ class BridgeRuntime:
 
     def mark_running(self) -> MissionState:
         state = self.require_state()
-        state.state = "RUNNING"
+        validate_state_transition(state.state, 'RUNNING')
+        state.state = 'RUNNING'
         self.store.save(state)
         return state
 
@@ -81,16 +83,20 @@ class BridgeRuntime:
         state.last_prompt = prompt
         state.step_count += 1
 
-        if state.run_mode == "SINGLE_STEP":
-            state.state = "WAITING_NEXT_STEP"
-        else:
-            state.state = "RUNNING" if passed else "RUNNING"
+        next_state = 'WAITING_NEXT_STEP' if state.run_mode == 'SINGLE_STEP' else 'RUNNING'
+
+        validate_state_transition(state.state, next_state)
+
+        state.state = next_state
 
         self.store.save(state)
         return state
 
     def final(self, state_name: str, note: str = "") -> MissionState:
         state = self.require_state()
+        if state_name not in TERMINAL_STATES:
+            raise ValueError(f'final state must be terminal: {state_name}')
+        validate_state_transition(state.state, state_name)
         state.state = state_name
 
         # AGP_TERMINAL_SUMMARY_SEMANTICS_082R1
@@ -114,6 +120,7 @@ class BridgeRuntime:
             raise RuntimeError(
                 f"mission is not waiting for next step: {state.state}"
             )
-        state.state = "RUNNING"
+        validate_state_transition(state.state, 'RUNNING')
+        state.state = 'RUNNING'
         self.store.save(state)
         return state

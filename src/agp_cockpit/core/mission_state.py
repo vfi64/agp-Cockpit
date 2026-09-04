@@ -27,6 +27,24 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+
+TERMINAL_STATES = frozenset({'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'})
+ALLOWED_STATE_TRANSITIONS = {
+    'READY': frozenset({'RUNNING', 'DONE', 'FAILED', 'NEEDS_HUMAN'}),
+    'RUNNING': frozenset({'RUNNING', 'WAITING_NEXT_STEP', 'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'}),
+    'WAITING_NEXT_STEP': frozenset({'RUNNING'}),
+}
+
+
+def validate_state_transition(previous_state: str, next_state: str) -> None:
+    if previous_state not in VALID_STATES:
+        raise ValueError(f'invalid previous state: {previous_state}')
+    if next_state not in VALID_STATES:
+        raise ValueError(f'invalid next state: {next_state}')
+    if next_state not in ALLOWED_STATE_TRANSITIONS.get(previous_state, frozenset()):
+        raise ValueError(f'illegal mission state transition: {previous_state} -> {next_state}')
+
+
 @dataclass
 class MissionState:
     schema_version: int = 1
