@@ -36,7 +36,7 @@ Critical rule IDs:
 
 ## Current continuation state
 
-- branch: `work/phase0-agentic-workspace-bootstrap`
+- branch: `work/phase3-terminal-executor-port`
 - head_matches_origin_main: `False`
 - worktree_clean: `False`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
@@ -151,14 +151,14 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
     "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
   ],
   "repo": {
-    "branch": "work/phase0-agentic-workspace-bootstrap",
+    "branch": "work/phase3-terminal-executor-port",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "9d798b998c8c97e3172fdb840a191de6e64ab376",
+    "head": "f1088ff6d3b41d01a5958a770bdbde74fb1ba53a",
     "head_matches_origin_main": false,
-    "head_short": "9d798b99",
+    "head_short": "f1088ff6",
     "local_path": "cd /path/to/",
-    "origin_main": "06d1a57ee0d4b509402be777177166f2674e78e9",
-    "origin_main_short": "06d1a57e",
+    "origin_main": "45d79dc7db9f25c1bdb24e8c7e935fa9b2b060b5",
+    "origin_main_short": "45d79dc7",
     "worktree_clean": false
   }
 }

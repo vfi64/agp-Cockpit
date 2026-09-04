@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import subprocess
-import time
+from typing import Protocol
 
 
 @dataclass(frozen=True)
@@ -34,68 +33,25 @@ class TerminalResult:
     duration_seconds: float
 
 
-class RunningTerminalProcess:
-    def __init__(self, process: subprocess.Popen[str], command: TerminalCommand) -> None:
-        self._process = process
-        self.command = command
-
+class RunningTerminalProcess(Protocol):
     @property
-    def pid(self) -> int:
-        return self._process.pid
+    def pid(self) -> int: ...
 
-    def cancel(self) -> None:
-        if self._process.poll() is None:
-            self._process.terminate()
+    def cancel(self) -> None: ...
 
-    def wait(self) -> TerminalResult:
-        start = time.monotonic()
-        try:
-            stdout, stderr = self._process.communicate(
-                timeout=self.command.timeout_seconds
-            )
-            return TerminalResult(
-                argv=self.command.argv,
-                cwd=self.command.cwd,
-                returncode=self._process.returncode,
-                stdout=stdout,
-                stderr=stderr,
-                timed_out=False,
-                duration_seconds=time.monotonic() - start,
-            )
-        except subprocess.TimeoutExpired:
-            self._process.terminate()
-            try:
-                stdout, stderr = self._process.communicate(timeout=2.0)
-            except subprocess.TimeoutExpired:
-                self._process.kill()
-                stdout, stderr = self._process.communicate()
-
-            return TerminalResult(
-                argv=self.command.argv,
-                cwd=self.command.cwd,
-                returncode=self._process.returncode,
-                stdout=stdout,
-                stderr=stderr,
-                timed_out=True,
-                duration_seconds=time.monotonic() - start,
-            )
+    def wait(self) -> TerminalResult: ...
 
 
 def start_command(command: TerminalCommand) -> RunningTerminalProcess:
-    command.validate()
-    process = subprocess.Popen(
-        list(command.argv),
-        cwd=str(command.cwd),
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=False,
-    )
-    return RunningTerminalProcess(process, command)
+    """Compatibility wrapper; concrete subprocess ownership lives in the adapter."""
+    from agp_cockpit.adapters.local_terminal import start_subprocess_command
+    return start_subprocess_command(command)
 
 
 def run_command(command: TerminalCommand) -> TerminalResult:
-    return start_command(command).wait()
+    """Compatibility wrapper around the adapter-level local executor."""
+    from agp_cockpit.adapters.local_terminal import SubprocessTerminalAdapter
+    return SubprocessTerminalAdapter().execute(command)
 
 
 def preview_command(command: TerminalCommand) -> str:

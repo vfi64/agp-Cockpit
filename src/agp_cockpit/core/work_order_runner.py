@@ -7,11 +7,8 @@ from agp_cockpit.core.kit_carrier import (
     KitAuthorityResult,
     require_kit_authority,
 )
-from agp_cockpit.core.terminal_exec import (
-    TerminalResult,
-    preview_command,
-    run_command,
-)
+from agp_cockpit.core.ports import TerminalPort
+from agp_cockpit.core.terminal_exec import TerminalResult
 from agp_cockpit.core.terminal_policy import ExecutionPolicy
 from agp_cockpit.core.work_order import (
     LocalWorkOrder,
@@ -38,6 +35,7 @@ def preview_work_order(
     *,
     policy: ExecutionPolicy,
     kit_binary: Path | None = None,
+    terminal: TerminalPort | None = None,
 ) -> WorkOrderPreview:
     command = order.to_terminal_command()
     policy.validate(command)
@@ -51,7 +49,11 @@ def preview_work_order(
             kit_binary=kit_binary,
         )
 
-    text = preview_command(command)
+    if terminal is None:
+        from agp_cockpit.adapters.local_terminal import SubprocessTerminalAdapter
+        terminal = SubprocessTerminalAdapter()
+
+    text = terminal.preview(command)
 
     if authority is not None:
         text += (
@@ -72,6 +74,7 @@ def execute_work_order(
     *,
     policy: ExecutionPolicy,
     kit_binary: Path | None = None,
+    terminal: TerminalPort | None = None,
 ) -> WorkOrderRun:
     command = order.to_terminal_command()
     policy.validate(command)
@@ -85,7 +88,11 @@ def execute_work_order(
             kit_binary=kit_binary,
         )
 
-    result = run_command(command)
+    if terminal is None:
+        from agp_cockpit.adapters.local_terminal import SubprocessTerminalAdapter
+        terminal = SubprocessTerminalAdapter()
+
+    result = terminal.execute(command)
 
     return WorkOrderRun(
         result=result,
