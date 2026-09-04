@@ -585,6 +585,69 @@ handoff state, first push, and closeout planning/execution consistency.
 `KIT-GF-013` is a meta-governance defect exposed by the Cockpit Browser transport
 patch spiral. It should become a Kit-level workflow mechanism, not remain a Cockpit-only rule.
 
+### D. Evidence-first convergence workflow reduces patch instability and false-positive repairs
+
+Later Phase-1 integration work exposed a positive workflow finding complementary to
+`KIT-GF-013`. After the Browser transport patch spiral, Cockpit work became materially
+more stable when mutation was delayed until architecture evidence had been collected
+and adjudicated.
+
+The effective sequence was:
+
+```text
+exact baseline preflight
+-> bounded inventory
+-> ownership/call-path seam mapping
+-> contextual adjudication
+-> explicit NO_DEFECT / LAYERED_AUTHORITY result when appropriate
+-> smallest justified mutation only if a concrete seam remains
+-> focused regression
+-> broader integration/governance gates at controlled boundaries
+```
+
+This produced useful negative findings without unnecessary product changes: operator
+UI transport authority delegates through `OperatorAPI`; BridgeRuntimeServer and
+CockpitBridgeServer start/stop ownership is layered; and BridgeEngine/BridgeRuntime
+authority is one-way/layered rather than duplicated.
+
+**Greenfield lesson for the Kit**
+
+The Kit should not treat high fan-in, overlapping vocabulary, repeated method names,
+or architectural suspicion alone as a repair candidate. Workflow guidance should
+require evidence that distinguishes competing mutation/execution authority from a
+legitimate layered dependency before authorizing code mutation.
+
+A reusable Kit-level convergence discipline should:
+
+1. pin and verify the exact repository baseline and tolerated dirty state;
+2. inventory the bounded implementation and regression surface before editing;
+3. map ownership, imports and call paths for the suspected seam;
+4. adjudicate explicitly, including durable negative outcomes such as `NO_DEFECT`
+   or `LAYERED_AUTHORITY_CONFIRMED`;
+5. preserve negative adjudications so later agents do not reopen the same candidate
+   without new evidence;
+6. permit mutation only after a concrete competing authority, invariant violation,
+   or failing behavior is demonstrated;
+7. use focused regression after a bounded step and broader gates at integration
+   boundaries;
+8. combine this discipline with `KIT-GF-013`: repeated repair in one failure domain
+   escalates to systemic review rather than another symptom patch.
+
+**Expected Kit benefit**
+
+Reduced patch spirals, speculative refactors, accidental regressions, duplicate
+investigation, and agent-to-agent architectural drift, while making no-change
+findings first-class evidence.
+
+**Evidence sources / IDs**
+
+- Steps 106-108
+- Steps 129-130
+- Step 131
+- Step 132
+- `KIT-GF-013`
+
+
 ## Greenfield end-to-end acceptance target
 
 A future repaired Kit should pass this external-repository lifecycle without manual

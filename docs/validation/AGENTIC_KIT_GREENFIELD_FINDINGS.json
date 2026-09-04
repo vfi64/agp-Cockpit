@@ -404,5 +404,37 @@
     "Cockpit browser/send-acknowledgement implementation defects are Cockpit defects, not Kit defects.",
     "Cockpit hard-coded executable test roots are Cockpit portability/test defects.",
     "Cockpit planning-document Review-policy mistakes are Cockpit/document-authoring defects."
+  ],
+  "workflow_lessons": [
+    {
+      "id": "KIT-GF-LESSON-001",
+      "date": "2026-09-04",
+      "classification": "agentic-kit-workflow-improvement",
+      "title": "Evidence-first convergence workflow reduces patch instability and false-positive repairs",
+      "status": "ACCEPTED_GREENFIELD_LESSON",
+      "related_defect_family": "KIT-GF-013",
+      "finding": "Delay product mutation until bounded inventory, ownership/call-path seam mapping, and contextual adjudication demonstrate a concrete competing authority, invariant violation, or failing behavior.",
+      "recommended_sequence": [
+        "exact baseline preflight",
+        "bounded inventory",
+        "ownership/call-path seam mapping",
+        "contextual adjudication",
+        "record negative adjudication when appropriate",
+        "smallest justified mutation only when evidence requires it",
+        "focused regression",
+        "broader integration/governance gates at controlled boundaries"
+      ],
+      "negative_outcomes_are_evidence": [
+        "NO_DEFECT",
+        "LAYERED_AUTHORITY_CONFIRMED"
+      ],
+      "evidence": [
+        "Steps 106-108",
+        "Steps 129-130",
+        "Step 131",
+        "Step 132",
+        "KIT-GF-013"
+      ]
+    }
   ]
 }
