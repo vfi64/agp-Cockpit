@@ -15,8 +15,14 @@ class TerminalPort(Protocol):
 
 
 class BrowserPort(Protocol):
-    def submit_prompt(self, text: str) -> None:
-        """Transport a prompt to the configured browser LLM UI."""
+    def installed(self) -> bool:
+        """Report whether the configured browser is installed."""
+
+    def focus(self) -> None:
+        """Focus or start the configured browser."""
+
+    def open_url(self, url: str) -> None:
+        """Open one authorized HTTP(S) URL in the configured browser."""
 
 
 class KitPort(Protocol):

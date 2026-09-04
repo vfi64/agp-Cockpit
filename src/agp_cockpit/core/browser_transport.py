@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import subprocess
+
+from agp_cockpit.core.ports import BrowserPort
 
 
 @dataclass(frozen=True)
@@ -26,42 +27,21 @@ def discover_chrome() -> BrowserInfo:
     return BrowserInfo("Google Chrome", None)
 
 
-def focus_chrome() -> None:
-    info = discover_chrome()
-    if not info.installed:
+
+def focus_chrome(port: BrowserPort | None = None) -> None:
+    browser = port or _default_browser_port()
+    if not browser.installed():
         raise RuntimeError("Google Chrome wurde nicht gefunden")
+    browser.focus()
 
-    completed = subprocess.run(
-        ["/usr/bin/open", "-a", "Google Chrome"],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(
-            completed.stderr.strip()
-            or "Google Chrome konnte nicht fokussiert werden"
-        )
-
-
-def open_url_in_chrome(url: str) -> None:
+def open_url_in_chrome(url: str, port: BrowserPort | None = None) -> None:
     if not url.startswith(("https://", "http://")):
         raise ValueError("Nur http/https URLs sind zulässig")
-
-    info = discover_chrome()
-    if not info.installed:
+    browser = port or _default_browser_port()
+    if not browser.installed():
         raise RuntimeError("Google Chrome wurde nicht gefunden")
+    browser.open_url(url)
 
-    completed = subprocess.run(
-        ["/usr/bin/open", "-a", "Google Chrome", url],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(
-            completed.stderr.strip()
-            or "URL konnte nicht in Chrome geöffnet werden"
-        )
+def _default_browser_port() -> BrowserPort:
+    from agp_cockpit.adapters.macos_browser import MacOSChromeBrowserPort
+    return MacOSChromeBrowserPort()

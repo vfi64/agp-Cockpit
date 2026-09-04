@@ -32,14 +32,14 @@
       "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
     ],
     "repo": {
-      "branch": "docs/post-pr4-successor-package-refresh",
+      "branch": "work/phase3-browser-discovery-port",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "a22b514ae6f62d21843b3b24f62138f7e8dc3d97",
-      "head_matches_origin_main": true,
+      "head": "7650190dcee8db06bb7870b1b0dc018454f15430",
+      "head_matches_origin_main": false,
       "local_path": "cd /path/to/",
-      "origin_main": "a22b514ae6f62d21843b3b24f62138f7e8dc3d97",
-      "worktree_clean": true
+      "origin_main": "cccf7892ab2761153107542f0d5294c038dec441",
+      "worktree_clean": false
     },
     "scope": "current-continuation-state"
   },
@@ -182,14 +182,14 @@
   },
   "kind": "successor_execution_contract",
   "repo": {
-    "branch": "docs/post-pr4-successor-package-refresh",
+    "branch": "work/phase3-browser-discovery-port",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "a22b514ae6f62d21843b3b24f62138f7e8dc3d97",
-    "head_matches_origin_main": true,
+    "head": "7650190dcee8db06bb7870b1b0dc018454f15430",
+    "head_matches_origin_main": false,
     "local_path": "cd /path/to/",
-    "origin_main": "a22b514ae6f62d21843b3b24f62138f7e8dc3d97",
-    "worktree_clean": true
+    "origin_main": "cccf7892ab2761153107542f0d5294c038dec441",
+    "worktree_clean": false
   },
   "rules": [
     {

@@ -16,28 +16,19 @@ def test_open_url_rejects_non_http():
         browser.open_url_in_chrome("file:///tmp/test")
 
 
-def test_focus_chrome_uses_open(monkeypatch):
-    monkeypatch.setattr(
-        browser,
-        "discover_chrome",
-        lambda: browser.BrowserInfo(
-            "Google Chrome",
-            Path("/Applications/Google Chrome.app"),
-        ),
-    )
-
+def test_focus_chrome_uses_browser_port():
     calls = []
 
-    class Result:
-        returncode = 0
-        stderr = ""
+    class FakeBrowserPort:
+        def installed(self):
+            return True
 
-    monkeypatch.setattr(
-        browser.subprocess,
-        "run",
-        lambda argv, **kwargs: calls.append(argv) or Result(),
-    )
+        def focus(self):
+            calls.append("focus")
 
-    browser.focus_chrome()
+        def open_url(self, url):
+            raise AssertionError(f"unexpected URL open: {url}")
 
-    assert calls == [["/usr/bin/open", "-a", "Google Chrome"]]
+    browser.focus_chrome(FakeBrowserPort())
+
+    assert calls == ["focus"]
