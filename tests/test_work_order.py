@@ -72,3 +72,45 @@ def test_external_cwd_is_blocked(tmp_path):
 
     with pytest.raises(PermissionError):
         preview_work_order(order, policy=policy)
+
+
+def test_work_order_uses_injected_terminal_port_without_subprocess(tmp_path):
+    order = parse_work_order_json(json.dumps({
+        "label": "portable",
+        "cwd": str(tmp_path),
+        "argv": ["fake-tool", "arg"],
+        "timeout_seconds": 5,
+    }))
+    policy = ExecutionPolicy(repository_root=tmp_path)
+
+    class FakeTerminal:
+        def __init__(self):
+            self.previewed = []
+            self.executed = []
+
+        def preview(self, command):
+            self.previewed.append(command)
+            return "FAKE PREVIEW"
+
+        def execute(self, command):
+            from agp_cockpit.core.terminal_exec import TerminalResult
+            self.executed.append(command)
+            return TerminalResult(
+                argv=command.argv,
+                cwd=command.cwd,
+                returncode=0,
+                stdout="portable-ok\n",
+                stderr="",
+                timed_out=False,
+                duration_seconds=0.0,
+            )
+
+    terminal = FakeTerminal()
+    preview = preview_work_order(order, policy=policy, terminal=terminal)
+    run = execute_work_order(order, policy=policy, terminal=terminal)
+
+    assert preview.preview_text == "FAKE PREVIEW"
+    assert len(terminal.previewed) == 1
+    assert len(terminal.executed) == 1
+    assert run.result.returncode == 0
+    assert "portable-ok" in run.result_block
