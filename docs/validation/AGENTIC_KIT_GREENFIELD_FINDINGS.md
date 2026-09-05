@@ -37,6 +37,7 @@ service behavior are explicitly excluded.
 | 2026-09-03 | `GF-E015` | `Steps 065-086` | `KIT-GF-013` | patch spiral exposed missing automatic systemic-failure escalation |
 
 | 2026-09-05 | `GF-E019` | `Step 207 / PR #22` | `KIT-GF-017` | green HEAD-verified external-workspace PR merge blocked by missing Kit-owned fresh LLM context artifacts |
+| 2026-09-05 | `GF-E020` | `Steps 215-218` | `KIT-GF-011` | Kit-generated tracked successor projections block next work start; normalize-session and post-merge-settle both reject the Kit-owned dirty state |
 
 ## Canonical defect families
 
@@ -456,13 +457,15 @@ A deterministic successor handoff must converge on a trustworthy final repositor
 
 chat-switch-complete generated tracked files containing current HEAD; committing those files created a new HEAD that none of them referenced; rerendering dirtied the same files again.
 
+A later full lifecycle reproduction after Phase 5 strengthened the defect: five Kit-generated tracked successor projections remained dirty after successful post-merge closeout. `restore-known-volatile` did not recognize them, `sync-main -> normalize-session` blocked the next `work start` with `dirty_worktree`, and the dedicated `post-merge-settle --after-pr 22` also blocked because it classified those same generated projections as `dirty_product_paths_before_post_merge_complete`.
+
 **Impact**
 
-The Kit cannot simultaneously guarantee committed successor package, exact final-HEAD identity, and clean tracked worktree with the current projection model.
+The Kit cannot simultaneously guarantee committed successor package, exact final-HEAD identity, and clean tracked worktree with the current projection model. The defect can also make the next ordinary high-level work cycle unreachable through supported settlement commands, because Kit-generated continuation projections are reclassified as user/product dirtiness.
 
 **Validated/temporary workaround**
 
-Render final-HEAD successor projections after the final code/remote HEAD is fixed and keep those exact-final-HEAD projections volatile/uncommitted.
+Render final-HEAD successor projections after the final code/remote HEAD is fixed and keep those exact-final-HEAD projections volatile/uncommitted. If an already affected external workspace is blocked after the supported `restore-known-volatile`, `normalize-session`, and `post-merge-settle` paths have been evidenced, preserve the generated diff and restore only the exact known successor-projection paths to the committed state as a bounded recovery exception before resuming the normal Kit workflow.
 
 **Required Kit repair direction**
 
@@ -478,6 +481,9 @@ A disposable clone must prove that final successor authority remains exact and v
 - `AGP_Cockpit_Greenfield_Kit_Handoff_Defects_latest.md`
 - `062-D1`
 - `062-D2`
+- `Steps 215-218`
+- `217_SYSTEMIC_FAILURE_REVIEW.json`
+- `219_recovery_evidence/kit_gf011_successor_projection_diff.patch` (local diagnostic evidence)
 
 ---
 

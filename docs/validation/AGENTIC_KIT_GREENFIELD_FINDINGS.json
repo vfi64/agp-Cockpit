@@ -135,6 +135,13 @@
       "historical_id": "Step 207 / PR #22",
       "canonical_family": "KIT-GF-017",
       "summary": "green HEAD-verified external-workspace PR merge blocked by missing Kit-owned fresh LLM context artifacts"
+    },
+    {
+      "date": "2026-09-05",
+      "event_id": "GF-E020",
+      "historical_id": "Steps 215-218",
+      "canonical_family": "KIT-GF-011",
+      "summary": "Kit-generated tracked successor projections block next work start; normalize-session and post-merge-settle both reject the Kit-owned dirty state"
     }
   ],
   "families": [
@@ -387,16 +394,18 @@
         "KIT-HANDOFF-HEAD-003"
       ],
       "expected": "A deterministic successor handoff must converge on a trustworthy final repository identity without requiring perpetual re-render/commit cycles.",
-      "observed": "chat-switch-complete generated tracked files containing current HEAD; committing those files created a new HEAD that none of them referenced; rerendering dirtied the same files again.",
-      "impact": "The Kit cannot simultaneously guarantee committed successor package, exact final-HEAD identity, and clean tracked worktree with the current projection model.",
-      "workaround": "Render final-HEAD successor projections after the final code/remote HEAD is fixed and keep those exact-final-HEAD projections volatile/uncommitted.",
+      "observed": "chat-switch-complete generated tracked files containing current HEAD; committing those files created a new HEAD that none of them referenced; rerendering dirtied the same files again. Later Phase-5 closeout reproduction showed five Kit-generated tracked successor projections surviving post-merge closeout: restore-known-volatile did not recognize them, normalize-session blocked the next work start as dirty_worktree, and post-merge-settle --after-pr 22 rejected the same files as dirty_product_paths_before_post_merge_complete.",
+      "impact": "The Kit cannot simultaneously guarantee committed successor package, exact final-HEAD identity, and clean tracked worktree with the current projection model. The defect can make the next high-level work cycle unreachable through supported settlement commands.",
+      "workaround": "Render final-HEAD successor projections after the final code/remote HEAD is fixed and keep those exact-final-HEAD projections volatile/uncommitted. For already affected workspaces, after preserving evidence and exhausting supported settlement paths, restore only the exact known generated successor-projection paths to the committed state as a bounded recovery exception.",
       "repair": "Decouple durable committed handoff source from volatile exact-final-HEAD projection, or introduce a transaction/identity model that explicitly understands the handoff commit boundary.",
       "regression": "A disposable clone must prove that final successor authority remains exact and validation-clean without a self-staling render->commit->rerender loop.",
       "evidence": [
         "AGP_Cockpit_Greenfield_Kit_Defect_Report_2026-09-03.md",
         "AGP_Cockpit_Greenfield_Kit_Handoff_Defects_latest.md",
         "062-D1",
-        "062-D2"
+        "062-D2",
+        "Steps 215-218",
+        "217_SYSTEMIC_FAILURE_REVIEW.json"
       ]
     },
     {
