@@ -1,13 +1,16 @@
 async function load() {
   const cfg = await chrome.storage.local.get({
     token: "",
-    baseUrl: "http://127.0.0.1:8765"
+    baseUrl: "http://127.0.0.1:8765",
+    conversationUrl: ""
   });
 
   document.getElementById("token").value =
     cfg.token;
   document.getElementById("baseUrl").value =
     cfg.baseUrl;
+  document.getElementById("conversationUrl").value =
+    cfg.conversationUrl;
 }
 
 document
@@ -17,7 +20,9 @@ document
       token:
         document.getElementById("token").value.trim(),
       baseUrl:
-        document.getElementById("baseUrl").value.trim()
+        document.getElementById("baseUrl").value.trim(),
+      conversationUrl:
+        document.getElementById("conversationUrl").value.trim()
     });
     document.getElementById("status").textContent =
       "Saved.";

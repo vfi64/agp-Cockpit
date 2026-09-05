@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "test:browser-fixture": "playwright test tests/e2e/test_066_send_ack_false_negative_fixture.spec.js"
+    "test:browser-fixture": "playwright test tests/e2e/test_066_send_ack_false_negative_fixture.spec.js",
+    "test:phase5-contract": "playwright test tests/e2e/test_203_phase5_conversation_contract.spec.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1"

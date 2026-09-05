@@ -1071,6 +1071,94 @@ async function sendPrompt(prompt) {
     await clientEvent("MULTITURN_LIVE_PROBE_MISSION_CREATED", {steps:3});
   }
 
+
+  // AGP_PHASE5_CONVERSATION_UI_203
+  let PHASE5_LAST_DRAFT = null;
+  let PHASE5_BASELINE_FINGERPRINT = "";
+
+  function phase5Contract() {
+    const contract = globalThis.AGPCockpitConversationContract;
+    if (!contract || contract.marker !== "AGP_PHASE5_CONVERSATION_CONTRACT_204") {
+      throw new Error("Phase-5 conversation contract is not loaded");
+    }
+    return contract;
+  }
+
+  async function phase5Bind() {
+    const contract = phase5Contract();
+    const binding = await contract.bindConfiguredConversation();
+    STATE.note = `Phase 5 gebunden: ${binding.conversationUrl}`;
+    STATE.lastEvent = "PHASE5_BOUND";
+    render();
+  }
+
+  async function phase5StageDraft() {
+    const contract = phase5Contract();
+    const binding = await contract.bindConfiguredConversation();
+    let baseline = "";
+    try {
+      baseline = (await contract.currentAssistantSnapshot()).fingerprint;
+    } catch (err) {
+      if (!String(err).includes("PHASE5_ASSISTANT_NOT_FOUND")) throw err;
+    }
+
+    const text = window.prompt(
+      "Phase 5: Text nur in den ChatGPT-Composer einsetzen (noch NICHT senden):"
+    );
+    if (text === null) {
+      STATE.note = "Phase-5-Draft abgebrochen";
+      STATE.lastEvent = "PHASE5_DRAFT_CANCELLED";
+      render();
+      return;
+    }
+
+    PHASE5_LAST_DRAFT = await contract.stageDraft(text);
+    PHASE5_BASELINE_FINGERPRINT = baseline;
+    STATE.note =
+      `Phase-5-Draft eingesetzt (${PHASE5_LAST_DRAFT.chars} Zeichen), nicht gesendet · ${binding.conversationUrl}`;
+    STATE.lastEvent = "PHASE5_DRAFT_STAGED_NOT_SENT";
+    render();
+  }
+
+  async function phase5ConfirmAndSend() {
+    const contract = phase5Contract();
+    if (!PHASE5_LAST_DRAFT) {
+      throw new Error("Kein Phase-5-Draft zum Senden vorgemerkt");
+    }
+
+    const confirmed = window.confirm(
+      "Phase 5: Den aktuell sichtbaren Draft jetzt an die konfigurierte ChatGPT-Konversation senden?"
+    );
+    if (!confirmed) {
+      contract.invalidateApproval();
+      STATE.note = "Phase-5-Senden nicht bestätigt; Draft bleibt stehen";
+      STATE.lastEvent = "PHASE5_SEND_NOT_CONFIRMED";
+      render();
+      return;
+    }
+
+    const approval = await contract.approveCurrentDraft();
+    await contract.sendApprovedDraft(approval);
+    STATE.note = "Phase-5-Draft explizit bestätigt und gesendet; warte auf nächste abgeschlossene Antwort";
+    STATE.lastEvent = "PHASE5_SEND_CONFIRMED";
+    render();
+
+    const next = await contract.waitForCompletedAssistant({
+      afterFingerprint: PHASE5_BASELINE_FINGERPRINT,
+      timeoutMs: 120000,
+      pollMs: 500,
+      stablePolls: 3
+    });
+
+    PHASE5_LAST_DRAFT = null;
+    PHASE5_BASELINE_FINGERPRINT = next.fingerprint;
+    STATE.note =
+      `Nächste abgeschlossene Phase-5-Antwort erkannt (${next.text.length} Zeichen)`;
+    STATE.lastEvent = "PHASE5_NEXT_RESPONSE_COMPLETE";
+    render();
+  }
+
+
   async function newDryMission() {
     const text = window.prompt(
       "Mission für AGP Cockpit (DRY_RUN + SINGLE_STEP):"
@@ -1454,6 +1542,17 @@ async function sendPrompt(prompt) {
     );
     actions.appendChild(
       btn("↻ Status", "status", refreshStatus)
+    );
+
+
+    actions.appendChild(
+      btn("P5 Bind", "status", phase5Bind)
+    );
+    actions.appendChild(
+      btn("P5 Draft", "mission", phase5StageDraft)
+    );
+    actions.appendChild(
+      btn("P5 Send", "stop", phase5ConfirmAndSend)
     );
 
     root.appendChild(actions);
