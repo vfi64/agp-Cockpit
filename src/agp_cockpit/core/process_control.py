@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import os
 from pathlib import Path
-import signal
-import subprocess
 import time
 from typing import Callable, Iterable
 
@@ -56,18 +53,10 @@ def parse_ps_lines(lines: Iterable[str]) -> tuple[ProcessInfo, ...]:
     return tuple(result)
 
 
-def list_processes() -> tuple[ProcessInfo, ...]:
-    completed = subprocess.run(
-        ["ps", "-axo", "pid=,command="],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if completed.returncode != 0:
-        return ()
-    return parse_ps_lines(completed.stdout.splitlines())
 
+def list_processes() -> tuple[ProcessInfo, ...]:
+    from agp_cockpit.adapters.macos_process_control import list_processes as impl
+    return impl()
 
 def ollama_processes(*, processes: Iterable[ProcessInfo] | None = None) -> tuple[ProcessInfo, ...]:
     current = tuple(processes) if processes is not None else list_processes()
@@ -82,24 +71,10 @@ def ollama_processes(*, processes: Iterable[ProcessInfo] | None = None) -> tuple
     return tuple(matches)
 
 
-def pids_listening_on_port(port: int) -> tuple[int, ...]:
-    completed = subprocess.run(
-        ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if completed.returncode not in (0, 1):
-        return ()
-    pids: list[int] = []
-    for line in completed.stdout.splitlines():
-        try:
-            pids.append(int(line.strip()))
-        except ValueError:
-            continue
-    return tuple(dict.fromkeys(pids))
 
+def pids_listening_on_port(port: int) -> tuple[int, ...]:
+    from agp_cockpit.adapters.macos_process_control import pids_listening_on_port as impl
+    return impl(port)
 
 def port_owner(
     port: int,
@@ -133,7 +108,7 @@ def stop_ollama_processes(
     timeout: float = 5.0,
     kill_timeout: float = 2.0,
     process_supplier: Callable[[], tuple[ProcessInfo, ...]] = list_processes,
-    signal_sender: Callable[[int, int], None] = os.kill,
+    signal_sender: Callable[[int, int], None] | None = None,
     sleep: Callable[[float], None] = time.sleep,
     monotonic: Callable[[], float] = time.monotonic,
     port_probe: Callable[..., object] = probe_tcp_port,
@@ -142,7 +117,11 @@ def stop_ollama_processes(
     target_pids = tuple(p.pid for p in targets)
 
     for pid in target_pids:
-        signal_sender(pid, signal.SIGTERM)
+        if signal_sender is None:
+            from agp_cockpit.adapters.macos_process_control import send_sigterm
+            send_sigterm(pid)
+        else:
+            signal_sender(pid, 15)
 
     deadline = monotonic() + timeout
     remaining = set(target_pids)
@@ -154,7 +133,11 @@ def stop_ollama_processes(
 
     if remaining:
         for pid in tuple(sorted(remaining)):
-            signal_sender(pid, signal.SIGKILL)
+            if signal_sender is None:
+                from agp_cockpit.adapters.macos_process_control import send_sigkill
+                send_sigkill(pid)
+            else:
+                signal_sender(pid, 9)
         kill_deadline = monotonic() + kill_timeout
         while remaining and monotonic() < kill_deadline:
             current = {p.pid for p in process_supplier()}
@@ -175,7 +158,7 @@ def start_ollama(
     executable: Path,
     *,
     timeout: float = 10.0,
-    popen_factory: Callable[..., subprocess.Popen] = subprocess.Popen,
+    popen_factory: Callable[..., object] | None = None,
     sleep: Callable[[float], None] = time.sleep,
     monotonic: Callable[[], float] = time.monotonic,
     port_probe: Callable[..., object] = probe_tcp_port,
@@ -184,12 +167,11 @@ def start_ollama(
     if bool(getattr(before, "accepting_connections")):
         raise RuntimeError(f"refusing to start Ollama: port {OLLAMA_DEFAULT_PORT} is already in use")
 
-    process = popen_factory(
-        [str(executable), "serve"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
+    if popen_factory is None:
+        from agp_cockpit.adapters.macos_process_control import spawn_detached
+        process = spawn_detached([str(executable), "serve"])
+    else:
+        process = popen_factory([str(executable), "serve"], start_new_session=True)
 
     deadline = monotonic() + timeout
     ready = False
