@@ -1,2 +1,22 @@
-schema_version: 1
-documents: []
+documents:
+  - path: docs/planning/DOCUMENT_AUTHORITY.md
+    lifecycle: active
+    owner: project
+  - path: docs/planning/MASTER_PLAN.md
+    lifecycle: active
+    owner: project
+  - path: docs/planning/PROTOCOL.md
+    lifecycle: active
+    owner: project
+  - path: docs/planning/TEST_PLAN.md
+    lifecycle: active
+    owner: project
+  - path: docs/planning/DEVELOPMENT_GATES.md
+    lifecycle: active
+    owner: project
+  - path: .agentic/state/status.md
+    lifecycle: active
+    owner: operating-layer
+  - path: docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md
+    lifecycle: active
+    owner: validation

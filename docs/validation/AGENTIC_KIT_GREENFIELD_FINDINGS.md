@@ -713,3 +713,58 @@ workspace dpa-intake
 -> post-merge closeout
 -> trustworthy successor handoff
 ```
+
+## KIT-GF-014 — External-workspace governance does not detect stale or ambiguous continuation authority
+
+**Status:** OPEN
+**Severity:** high
+**Classification:** agentic-kit
+
+**Expected:** External-workspace governance should validate freshness and consistency of active continuation authority and clearly distinguish product-owned canonical sources, Kit operating state, registries, and generated projections.
+
+**Observed:** .agentic/state/status.md still declared obsolete Phase 066 active, documentation.yaml was empty, and generated successor material mixed PROJECT_DIRECTION.yaml with the external-workspace no-project-direction model while Kit documentation gates/lifecycle audit were green.
+
+**Impact:** A successor LLM can receive obsolete or ambiguous direction despite a formally green lifecycle.
+
+**Workaround:** Define explicit Cockpit-side document authority and canonical values until the Kit provides this governance.
+
+**Repair:** Add external-workspace authority checks for stale active phase/status, registry coverage/intent, and contradictions between open_tasks_source and the selected workspace/project-direction model.
+
+**Regression:** An external workspace with stale active status, empty/unclassified registry, or contradictory successor authority must warn or fail deterministically.
+
+
+## KIT-GF-015 — Canonical document facts are not propagated across registered documents
+
+**Status:** OPEN
+**Severity:** medium-high
+**Classification:** agentic-kit
+
+**Expected:** A project should be able to declare a canonical fact once and have Kit-managed/generated documents reference or refresh it deterministically; project-owned prose should be audited for stale/conflicting values and only rewritten when explicitly opted in.
+
+**Observed:** The Kit can register and lifecycle-check documents, but there is no declared single-source mechanism for shared project facts such as one desired DOI link, concept DOI, project URL, or release version, nor deterministic detection/refresh of stale occurrences across documents.
+
+**Impact:** Shared metadata can drift across otherwise valid documents, leaving contradictory DOI links, versions, URLs, or other facts while document lifecycle checks remain green.
+
+**Workaround:** Define explicit Cockpit-side document authority and canonical values until the Kit provides this governance.
+
+**Repair:** Extend the documentation registry with canonical facts/metadata and reference declarations; add drift audit plus safe normalization for explicitly managed/generated surfaces, and review-required findings for project-owned prose.
+
+**Regression:** Declare one canonical DOI link, place an old conflicting DOI in registered managed/generated and project-owned documents, then require deterministic managed refresh plus a review finding for non-opted-in project prose.
+
+## KIT-GF-016 — High-level external-workspace workflows should support contract-first guided execution
+
+**Status:** OPEN
+**Severity:** medium
+**Classification:** agentic-kit-ux-contract
+
+**Expected:** Mutating high-level workflows expose a machine-readable contract-first plan that detects context, proposes changed paths, reports required decisions/blockers, and becomes execution-ready before mutation.
+
+**Observed:** During Cockpit foreign-repository closeout, `work finish` behaved correctly once branch, title, message, and all six explicit `--path` selections were supplied. The explicit-path JSON dry-run then returned no blockers and a coherent merge/post-merge plan, but the calling agent had discovered parts of that invocation contract incrementally.
+
+**Impact:** Agents can waste iterations guessing or reimplementing orchestration contracts even when the underlying Kit workflow is sound.
+
+**Workaround:** Inspect `--help` and require a non-mutating JSON dry-run before `--execute`.
+
+**Repair:** Standardize **Inspect -> Plan -> Validate -> Execute -> Verify** for mutating high-level commands. Dry-run JSON should surface detected context, proposed paths, required inputs, blockers, and an execution-ready structured plan.
+
+**Regression:** In an external workspace with multiple dirty paths, the first planning call deterministically identifies or proposes all required inputs and paths without mutation; execution of the accepted plan requires no undocumented agent-side inference.
