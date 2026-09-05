@@ -5,8 +5,7 @@
 - Repository: `vfi64/agp-Cockpit`.
 - Phases 0–3 are complete; Phase 3 was architecture-certified on clean `main`.
 - Active phase: Phase 4 — product integration / complete Cockpit workflow.
-- Next objective: validate and close the end-to-end Cockpit product workflow on the real macOS
-  environment while preserving the ports/adapters boundaries completed in Phase 3.
+- Next objective: close Phase 4 macOS platform-adapter acceptance as one bounded vertical slice: executable/process/browser discovery, exact PID/listener handling, safe platform mutation primitives, and E2E-0 startup evidence before moving to Phase 5 browser proof-of-concept.
 - Product behavior and correctness remain project-owned; canonical durable planning lives under
   `docs/planning/`.
 - This external workspace does not require `docs/planning/PROJECT_DIRECTION.yaml`.
