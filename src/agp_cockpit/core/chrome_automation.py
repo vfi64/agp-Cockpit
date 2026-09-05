@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import subprocess
 from urllib.parse import urlparse
 
 
@@ -19,15 +18,10 @@ class ChromeTarget:
     allowed: bool
 
 
-def _run_osascript(script: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["/usr/bin/osascript", "-e", script],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
 
+def _run_osascript(script: str):
+    from agp_cockpit.adapters.macos_chatgpt import run_osascript
+    return run_osascript(script)
 
 def active_chrome_url() -> str:
     script = (

@@ -31,6 +31,6 @@ def discover_macos_runtime() -> MacOSRuntimeSnapshot:
     runtime = discover_local_runtime()
     return MacOSRuntimeSnapshot(
         runtime=runtime,
-        ollama_process_present=process_name_present("ollama"),
-        hermes_process_present=process_name_present("hermes"),
+        ollama_process_present=process_name_present("ollama", process_port=MacOSProcessPort()),
+        hermes_process_present=process_name_present("hermes", process_port=MacOSProcessPort()),
     )
