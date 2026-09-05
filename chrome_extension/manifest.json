@@ -18,6 +18,7 @@
         "https://chatgpt.com/*"
       ],
       "js": [
+        "transport_protocol_v1.js",
         "conversation_contract.js",
         "content.js"
       ],

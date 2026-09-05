@@ -8,7 +8,9 @@ def test_phase5_contract_is_loaded_before_legacy_content_script():
         (ROOT / "chrome_extension" / "manifest.json").read_text(encoding="utf-8")
     )
     scripts = manifest["content_scripts"][0]["js"]
-    assert scripts[:2] == ["conversation_contract.js", "content.js"]
+    assert "conversation_contract.js" in scripts
+    assert "content.js" in scripts
+    assert scripts.index("conversation_contract.js") < scripts.index("content.js")
 
 def test_phase5_options_expose_configured_conversation_url():
     html = (ROOT / "chrome_extension" / "options.html").read_text(encoding="utf-8")
