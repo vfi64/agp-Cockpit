@@ -14,6 +14,7 @@ from agp_cockpit.core.bridge_protocol import (
     parse_turn_request,
 )
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
+from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame
 
 
 @dataclass(frozen=True)
@@ -43,6 +44,7 @@ class CockpitBridgeServer:
         self.config = cfg
         self.engine = BridgeEngine(self.repository_root)
         self.diag = DiagnosticLogger(self.repository_root)
+        self.protocol_v1_actions = ActionRegistry()
 
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
@@ -55,6 +57,7 @@ class CockpitBridgeServer:
         token = self.config.token
         diag = self.diag
         repo_root = self.repository_root
+        protocol_v1_actions = self.protocol_v1_actions
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -179,6 +182,22 @@ class CockpitBridgeServer:
                     return
 
                 try:
+                    if path == "/v1/protocol/action":
+                        length = int(self.headers.get("Content-Length", "0"))
+                        if length <= 0 or length > 2_000_000:
+                            raise ValueError("invalid Content-Length")
+                        raw = self.rfile.read(length).decode("utf-8")
+                        action = parse_action_frame(raw)
+                        registration = protocol_v1_actions.register(action)
+                        self._json(200, {
+                            "protocol_version": action.protocol_version,
+                            "session_id": action.session_id,
+                            "round_id": action.round_id,
+                            "action_id": action.action_id,
+                            "decision": registration.decision,
+                        })
+                        return
+
                     if path == "/v1/turn":
                         length = int(
                             self.headers.get(
