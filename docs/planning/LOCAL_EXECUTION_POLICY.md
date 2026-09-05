@@ -63,3 +63,40 @@ The title must reflect the real outcome. The banner is part of the local
 execution contract and must be emitted even when an exception is raised or a
 Kit command returns BLOCKED/FAIL. This makes long terminal transcripts
 unambiguous and easy to return to the development LLM.
+
+## Cockpit development execution discipline
+
+These rules are project-owned execution conventions. They supplement the Agentic Project Kit
+control plane and MUST NOT duplicate, weaken, replace, or reinterpret Kit-owned lifecycle,
+repository, Git/GitHub, transfer, gate, or handoff rules. Where a Kit command contract or rule
+conflicts with this section, the Kit-owned contract wins.
+
+1. Work in coherent vertical slices of useful size. Avoid both unnecessary micro-steps and
+   uncontrolled multi-subsystem mutations.
+2. User-facing maintenance/development actions are delivered as uniquely numbered Python scripts
+   under `Download/` and are executed through `python3 Download/run_next.py <step>`.
+3. Never reuse a generated script filename. Every new script must have a unique name and should
+   support `py_compile` plus a bounded `--self-test` where practical.
+4. `run_next.py` is the execution harness. Its captured output is treated as bounded evidence and
+   the latest run output is overwritten intentionally.
+5. For a new or not-yet-proven Kit command/data contract, use:
+   `INSPECT CONTRACT -> DRY-RUN -> VALIDATE MACHINE-READABLE PLAN -> EXECUTE -> VERIFY`.
+6. Dry-run and execute must describe the same intended operation, including merge/review mode,
+   selected paths, branch, title/message, and other safety-relevant options.
+7. Prefer the highest-level current Kit wrapper that preserves the required lifecycle semantics.
+   Do not manually rebuild Git/GitHub/FILE_TRANSFER lifecycle logic that the Kit already owns.
+8. After two unexpected failures in the same family, stop mutation and perform bounded diagnosis
+   before another repair attempt.
+9. Classify failures explicitly as `VALIDATION/ASSISTANT ERROR`, `KIT UX/CONTRACT IMPROVEMENT`, or
+   `KIT DEFECT`. An assistant-script defect is never recorded as a Kit defect.
+10. Qualifying Kit findings discovered during Cockpit development belong in the canonical
+    Greenfield findings ledger, but Kit-side improvement work must not unnecessarily derail the
+    Cockpit product slice.
+11. Restore known volatile Kit state only through the supported
+    `agentic-kit transfer restore-known-volatile` path.
+12. Substantive PR closeout and post-merge successor/handoff refresh are distinct lifecycle
+    stages. Use the current high-level Kit closeout wrapper rather than composing them manually.
+13. Generated handoff prompts are projections. Machine-readable successor-package files and
+    durable project-owned planning sources take precedence.
+14. Prefer deliberate chat switches at stable phase/slice boundaries. Before switching chats,
+    create and validate a Kit successor handoff package and provide a detailed copy/paste prompt.
