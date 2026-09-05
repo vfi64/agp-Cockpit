@@ -1,8 +1,20 @@
 from __future__ import annotations
 
 import platform
+import subprocess
 from dataclasses import dataclass
 from agp_cockpit.core.runtime import RuntimeStatus, discover_local_runtime, process_name_present
+
+
+@dataclass(frozen=True)
+class MacOSProcessPort:
+    """macOS process inspection adapter."""
+    def is_running(self, process_name: str) -> bool:
+        completed = subprocess.run(["ps", "-axo", "pid=,command="], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        if completed.returncode != 0:
+            return False
+        needle = process_name.casefold()
+        return any(needle in line.casefold() for line in completed.stdout.splitlines() if line.strip())
 
 @dataclass(frozen=True)
 class MacOSRuntimeSnapshot:

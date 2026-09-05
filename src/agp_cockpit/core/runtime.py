@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import socket
-import subprocess
 from typing import Iterable
 
 OLLAMA_DEFAULT_HOST = "127.0.0.1"
@@ -51,22 +50,15 @@ def probe_tcp_port(host: str, port: int, *, timeout: float = 0.20) -> PortStatus
         accepting = False
     return PortStatus(host=host, port=port, accepting_connections=accepting)
 
-def list_process_lines() -> tuple[str, ...]:
-    completed = subprocess.run(
-        ["ps", "-axo", "pid=,command="],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if completed.returncode != 0:
-        return ()
-    return tuple(line.strip() for line in completed.stdout.splitlines() if line.strip())
 
-def process_name_present(process_name: str, *, process_lines: Iterable[str] | None = None) -> bool:
-    lines = tuple(process_lines) if process_lines is not None else list_process_lines()
-    needle = process_name.casefold()
-    return any(needle in line.casefold() for line in lines)
+def process_name_present(process_name: str, *, process_lines: Iterable[str] | None = None, process_port: object | None = None) -> bool:
+    if process_port is not None:
+        return bool(process_port.is_running(process_name))
+    if process_lines is not None:
+        needle = process_name.casefold()
+        return any(needle in line.casefold() for line in process_lines)
+    from agp_cockpit.adapters.macos_runtime import MacOSProcessPort
+    return MacOSProcessPort().is_running(process_name)
 
 def discover_local_runtime() -> RuntimeStatus:
     ollama = find_executable(
