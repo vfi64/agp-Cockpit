@@ -1,11 +1,11 @@
 # Workspace Status
 
-## Current continuation — Phase 4 product integration
+## Current continuation — Phase 5 browser bridge proof of concept
 
 - Repository: `vfi64/agp-Cockpit`.
-- Phases 0–3 are complete; Phase 3 was architecture-certified on clean `main`.
-- Active phase: Phase 4 — product integration / complete Cockpit workflow.
-- Next objective: close Phase 4 macOS platform-adapter acceptance as one bounded vertical slice: executable/process/browser discovery, exact PID/listener handling, safe platform mutation primitives, and E2E-0 startup evidence before moving to Phase 5 browser proof-of-concept.
+- Phases 0–4 are complete; Phase 4 macOS platform-adapter acceptance is certified.
+- Active phase: Phase 5 — browser bridge proof of concept.
+- Next objective: prove one configured Chrome conversation can be identified, one completed assistant response read, one result inserted without send, one explicitly confirmed send performed, and the next completed response detected.
 - Product behavior and correctness remain project-owned; canonical durable planning lives under
   `docs/planning/`.
 - This external workspace does not require `docs/planning/PROJECT_DIRECTION.yaml`.
