@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-05T10:20:45.619097+00:00",
+  "generated_at_utc": "2026-09-05T10:22:17.648555+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.0.8"
   },
   "repo": {
-    "branch": "work/phase3-ollama-process-primitives",
+    "branch": "docs/post-pr10-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "62696643e1af4953f09951c35b1015d7e1e818af",
-    "head_matches_origin_main": false,
-    "head_short": "62696643",
+    "head": "c447c2bac44e97f2dde567738b01cc0125a3fe29",
+    "head_matches_origin_main": true,
+    "head_short": "c447c2ba",
     "local_path": "cd /path/to/",
-    "origin_main": "6d8aa7f070a4cf3178d75928008596adf89c007c",
-    "origin_main_short": "6d8aa7f0",
-    "worktree_clean": false
+    "origin_main": "c447c2bac44e97f2dde567738b01cc0125a3fe29",
+    "origin_main_short": "c447c2ba",
+    "worktree_clean": true
   },
   "schema_version": 1,
   "short_term_memory": {
