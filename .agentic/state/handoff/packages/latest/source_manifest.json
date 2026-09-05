@@ -19,7 +19,7 @@
       "path": ".agentic/DOC_LIFECYCLE.md"
     },
     {
-      "bytes": 7893,
+      "bytes": 1000,
       "exists": true,
       "path": ".agentic/state/status.md"
     },
@@ -29,7 +29,7 @@
       "path": ".agentic/state/handoff/README.md"
     },
     {
-      "bytes": 32,
+      "bytes": 608,
       "exists": true,
       "path": ".agentic/registries/documentation.yaml",
       "yaml_valid": true
