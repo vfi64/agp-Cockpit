@@ -107,6 +107,27 @@
       "historical_id": "Steps 065-086",
       "canonical_family": "KIT-GF-013",
       "summary": "patch spiral exposed missing automatic systemic-failure escalation"
+    },
+    {
+      "date": "2026-09-05",
+      "event_id": "GF-E016",
+      "historical_id": "Steps 193-194",
+      "canonical_family": "KIT-GF-014",
+      "summary": "external-workspace governance remained formally green with stale and ambiguous continuation authority"
+    },
+    {
+      "date": "2026-09-05",
+      "event_id": "GF-E017",
+      "historical_id": "Step 194D1 / DOI example",
+      "canonical_family": "KIT-GF-015",
+      "summary": "document-management OS lacks canonical fact propagation and cross-document drift control"
+    },
+    {
+      "date": "2026-09-05",
+      "event_id": "GF-E018",
+      "historical_id": "Steps 195-195D2",
+      "canonical_family": "KIT-GF-016",
+      "summary": "External-workspace high-level workflows expose avoidable agent friction when required invocation contracts and explicit path selection are discovered incrementally instead of through a guided contract-first plan."
     }
   ],
   "families": [
@@ -411,6 +432,63 @@
         "docs/validation/BROWSER_TRANSPORT_STABILIZATION_086.md",
         "docs/validation/BROWSER_TRANSPORT_STABILIZATION_086.json",
         "docs/planning/SYSTEMIC_FAILURE_ESCALATION.md"
+      ]
+    },
+    {
+      "id": "KIT-GF-014",
+      "title": "External-workspace governance does not detect stale or ambiguous continuation authority",
+      "first_observed": "2026-09-05",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "expected": "External-workspace governance should validate freshness and consistency of active continuation authority and clearly distinguish product-owned canonical sources, Kit operating state, registries, and generated projections.",
+      "observed": ".agentic/state/status.md still declared obsolete Phase 066 active, documentation.yaml was empty, and generated successor material mixed PROJECT_DIRECTION.yaml with the external-workspace no-project-direction model while Kit documentation gates/lifecycle audit were green.",
+      "impact": "A successor LLM can receive obsolete or ambiguous direction despite a formally green lifecycle.",
+      "workaround": "Define explicit Cockpit-side document authority and canonical values until the Kit provides this governance.",
+      "repair": "Add external-workspace authority checks for stale active phase/status, registry coverage/intent, and contradictions between open_tasks_source and the selected workspace/project-direction model.",
+      "regression": "An external workspace with stale active status, empty/unclassified registry, or contradictory successor authority must warn or fail deterministically.",
+      "evidence": [
+        "AGENTIC_KIT_GREENFIELD_FINDINGS.md",
+        "Cockpit Steps 193, 194, 194D1"
+      ]
+    },
+    {
+      "id": "KIT-GF-015",
+      "title": "Canonical document facts are not propagated across registered documents",
+      "first_observed": "2026-09-05",
+      "status": "OPEN",
+      "severity": "medium-high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "expected": "A project should be able to declare a canonical fact once and have Kit-managed/generated documents reference or refresh it deterministically; project-owned prose should be audited for stale/conflicting values and only rewritten when explicitly opted in.",
+      "observed": "The Kit can register and lifecycle-check documents, but there is no declared single-source mechanism for shared project facts such as one desired DOI link, concept DOI, project URL, or release version, nor deterministic detection/refresh of stale occurrences across documents.",
+      "impact": "Shared metadata can drift across otherwise valid documents, leaving contradictory DOI links, versions, URLs, or other facts while document lifecycle checks remain green.",
+      "workaround": "Define explicit Cockpit-side document authority and canonical values until the Kit provides this governance.",
+      "repair": "Extend the documentation registry with canonical facts/metadata and reference declarations; add drift audit plus safe normalization for explicitly managed/generated surfaces, and review-required findings for project-owned prose.",
+      "regression": "Declare one canonical DOI link, place an old conflicting DOI in registered managed/generated and project-owned documents, then require deterministic managed refresh plus a review finding for non-opted-in project prose.",
+      "evidence": [
+        "AGENTIC_KIT_GREENFIELD_FINDINGS.md",
+        "Cockpit Steps 193, 194, 194D1"
+      ]
+    },
+    {
+      "id": "KIT-GF-016",
+      "title": "High-level external-workspace workflows should support contract-first guided execution",
+      "first_observed": "2026-09-05",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-ux-contract",
+      "aliases": [],
+      "expected": "A mutating high-level workflow should expose a machine-readable contract-first plan that detects repository context, proposes explicit changed paths, reports missing decisions and blockers, and yields an execution-ready plan before mutation.",
+      "observed": "During Cockpit foreign-repository closeout, work finish required branch, title, message and explicit repeated path selection. The Kit behaved correctly once fully specified, but the calling agent discovered parts of the invocation contract incrementally. An explicit-path dry-run then returned blockers=[], result_status=PASS and a coherent merge/post-merge plan.",
+      "impact": "Agents can waste iterations reimplementing or guessing Kit orchestration contracts even when the underlying high-level workflow is sound.",
+      "workaround": "Inspect --help and run a non-mutating JSON dry-run with explicit paths before --execute.",
+      "repair": "Standardize Inspect -> Plan -> Validate -> Execute -> Verify for mutating high-level commands; make dry-run JSON surface detected context, proposed paths, required inputs, blockers and an execution-ready invocation or equivalent structured contract.",
+      "regression": "In an external workspace with multiple dirty paths, a first contract/planning call should deterministically identify or propose all required inputs and paths without mutation, and a subsequent execute using that plan should not require undocumented agent-side inference.",
+      "evidence": [
+        "docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md",
+        "Cockpit Steps 195, 195D1, 195R1, 195R2, 195D2"
       ]
     }
   ],
