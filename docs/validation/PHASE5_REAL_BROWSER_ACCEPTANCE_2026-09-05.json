@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-05",
+  "status": "PASS",
+  "phase": 5,
+  "environment": "normal operator Google Chrome profile",
+  "host": "chatgpt.com",
+  "conversation_url_sha256": "4538f54f907680db2eed30582dc0b62af9efc096334296683774c2817536e567",
+  "full_conversation_url_persisted": false,
+  "implementation_pr": 22,
+  "implementation_merge_commit": "8996dd9e0db378950f10cff60d255cf673405ecb",
+  "successor_refresh_pr": 23,
+  "certification_base_head": "d392d76157a05b65985d51972973b5f4d95732bc",
+  "observations": {
+    "exact_conversation_binding": "PASS",
+    "completed_response_read": "PASS",
+    "draft_inserted_without_send": "PASS",
+    "explicit_confirmation_accepted": "PASS",
+    "confirmation_dialog_screenshot_captured": false,
+    "visible_user_message_count": 1,
+    "next_completed_response_detected": "PASS"
+  },
+  "test_payload": "AGP-PHASE5-ACCEPTED",
+  "test_payload_length": 19,
+  "automated_premerge": {
+    "playwright": "9/9 PASS",
+    "python": "21/21 PASS",
+    "architecture_audit": "PASS",
+    "remote_ci": "PASS"
+  },
+  "excluded_evidence": "212-series isolated Chrome/CDP harness attempts"
+}
