@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import subprocess
 from urllib.parse import urlparse
 
 from agp_cockpit.core.browser_transport import discover_chrome
@@ -39,15 +38,10 @@ class ChatGPTResolution:
     note: str
 
 
-def _osascript(script: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["/usr/bin/osascript", "-e", script],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
 
+def _osascript(script: str):
+    from agp_cockpit.adapters.macos_chatgpt import run_osascript
+    return run_osascript(script)
 
 def chrome_running() -> bool:
     completed = _osascript(
@@ -124,13 +118,8 @@ def open_chatgpt() -> None:
     if not chrome.installed:
         raise RuntimeError("Google Chrome wurde nicht gefunden")
 
-    completed = subprocess.run(
-        ["/usr/bin/open", "-a", "Google Chrome", "https://chatgpt.com/"],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
+    from agp_cockpit.adapters.macos_chatgpt import open_chatgpt_in_chrome
+    completed = open_chatgpt_in_chrome()
     if completed.returncode != 0:
         raise RuntimeError(
             completed.stderr.strip()

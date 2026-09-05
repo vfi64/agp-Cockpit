@@ -57,8 +57,7 @@ def process_name_present(process_name: str, *, process_lines: Iterable[str] | No
     if process_lines is not None:
         needle = process_name.casefold()
         return any(needle in line.casefold() for line in process_lines)
-    from agp_cockpit.adapters.macos_runtime import MacOSProcessPort
-    return MacOSProcessPort().is_running(process_name)
+    raise ValueError("process_lines or process_port is required")
 
 def discover_local_runtime() -> RuntimeStatus:
     ollama = find_executable(
