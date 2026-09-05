@@ -128,6 +128,13 @@
       "historical_id": "Steps 195-195D2",
       "canonical_family": "KIT-GF-016",
       "summary": "External-workspace high-level workflows expose avoidable agent friction when required invocation contracts and explicit path selection are discovered incrementally instead of through a guided contract-first plan."
+    },
+    {
+      "date": "2026-09-05",
+      "event_id": "GF-E019",
+      "historical_id": "Step 207 / PR #22",
+      "canonical_family": "KIT-GF-017",
+      "summary": "green HEAD-verified external-workspace PR merge blocked by missing Kit-owned fresh LLM context artifacts"
     }
   ],
   "families": [
@@ -489,6 +496,29 @@
       "evidence": [
         "docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md",
         "Cockpit Steps 195, 195D1, 195R1, 195R2, 195D2"
+      ]
+    },
+    {
+      "id": "KIT-GF-017",
+      "title": "pr-merge-safe requires Kit-owned fresh LLM context artifacts that may not exist in a valid external workspace",
+      "first_observed": "2026-09-05",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "expected": "A green, merge-clean, exact-HEAD-verified external-workspace PR must continue through regular pr-merge-safe, or the wrapper must return one exact supported predecessor that creates mandatory fresh-context artifacts.",
+      "observed": "PR #22 was green, CLEAN and exact-HEAD-verified, but pr-merge-safe blocked before merge in require-fresh-llm-context with outbox_missing and latest_handoff_report_missing.",
+      "impact": "A product-complete CI-green external workspace can be unable to complete the regular high-level merge lifecycle because Kit-generated communication/context artifacts do not exist.",
+      "workaround": "Do not use recovery-only --skip-llm-context-gate in normal operation; inspect and use the supported fresh-context predecessor.",
+      "repair": "Close the external-workspace merge lifecycle by generating or refreshing mandatory context inside the wrapper, classifying it not applicable when appropriate, or returning an execution-ready machine-readable predecessor command.",
+      "regression": "Fresh external workspace with exact-head green CLEAN PR must merge via the regular safe route or deterministically expose the exact supported fresh-context predecessor, without fabricated files or recovery-only skip flags.",
+      "evidence": [
+        "Step 207 terminal evidence",
+        "PR #22 head 4edace6738a34a0fee98aca9daf85c4d25063f29",
+        "outbox_missing",
+        "latest_handoff_report_missing",
+        ".agentic/transfer/outbox/last_result.txt",
+        ".agentic/state/handoff/transfer_handoff_reports/latest-transfer-handoff-report.json"
       ]
     }
   ],

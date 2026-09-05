@@ -36,6 +36,8 @@ service behavior are explicitly excluded.
 | 2026-09-03 | `GF-E014` | `Step 071` | `KIT-GF-012` | work finish dry-run PASS but execute BLOCKED |
 | 2026-09-03 | `GF-E015` | `Steps 065-086` | `KIT-GF-013` | patch spiral exposed missing automatic systemic-failure escalation |
 
+| 2026-09-05 | `GF-E019` | `Step 207 / PR #22` | `KIT-GF-017` | green HEAD-verified external-workspace PR merge blocked by missing Kit-owned fresh LLM context artifacts |
+
 ## Canonical defect families
 
 ### KIT-GF-001 — Workspace lifecycle bootstrap is not closed after successful external workspace init
@@ -768,3 +770,63 @@ workspace dpa-intake
 **Repair:** Standardize **Inspect -> Plan -> Validate -> Execute -> Verify** for mutating high-level commands. Dry-run JSON should surface detected context, proposed paths, required inputs, blockers, and an execution-ready structured plan.
 
 **Regression:** In an external workspace with multiple dirty paths, the first planning call deterministically identifies or proposes all required inputs and paths without mutation; execution of the accepted plan requires no undocumented agent-side inference.
+
+## KIT-GF-017 — pr-merge-safe requires Kit-owned fresh LLM context artifacts that may not exist in a valid external workspace
+
+**Status:** OPEN
+**Severity:** high
+**Classification:** agentic-kit
+**First observed:** 2026-09-05
+**Evidence event:** `GF-E019` / Step 207 / PR #22
+
+**Expected:** A green, merge-clean, exact-HEAD-verified external-workspace PR
+should be able to continue through the regular high-level `pr-merge-safe`
+lifecycle. If fresh LLM context is a mandatory safety precondition, the wrapper
+must either create/refresh the required Kit-owned artifacts itself or return one
+specific supported predecessor command that does so.
+
+**Observed:** PR #22 was OPEN, `merge_state_status=CLEAN`, `decision=green`, and
+its `head_ref_oid` exactly matched the expected
+`4edace6738a34a0fee98aca9daf85c4d25063f29`. The regular
+`agentic-kit transfer pr-merge-safe 22 --expected-head-sha ... --json` path
+nevertheless blocked before merge in `require-fresh-llm-context` with
+`outbox_missing` and `latest_handoff_report_missing`. The missing paths were
+`.agentic/transfer/outbox/last_result.txt` and
+`.agentic/state/handoff/transfer_handoff_reports/latest-transfer-handoff-report.json`.
+
+**Impact:** A product-complete, CI-green external workspace can be unable to
+complete the documented high-level merge lifecycle because optional or
+Kit-generated communication/context artifacts do not exist. The reported
+remediation is descriptive ("Regenerate and publish fresh LLM context") rather
+than an execution-ready supported command, forcing the agent to discover or
+guess the predecessor lifecycle.
+
+**Validated/temporary workaround:** Do not bypass with
+`--skip-llm-context-gate` during normal operation; that option is documented as
+recovery-only. Preserve the blocked state, inspect the installed Kit contract,
+and use only the supported fresh-context predecessor once identified.
+
+**Required Kit repair direction:** Make external-workspace merge lifecycle
+context-aware and closed. Either (a) generate/refresh required fresh-context
+artifacts inside the high-level merge wrapper, (b) classify them as not
+applicable when the external-workspace safety evidence is already sufficient, or
+(c) return a machine-readable exact predecessor command/plan that creates the
+required artifacts without operator inference.
+
+**Required regression/acceptance evidence:** In a fresh external workspace,
+create a PR, pin its exact head SHA, obtain green required CI and CLEAN merge
+state, then invoke the regular high-level safe-merge route. The route must either
+merge successfully or deterministically expose and execute/identify the exact
+supported fresh-context predecessor. It must not require fabricated outbox or
+handoff-report files and must not require the recovery-only skip flag.
+
+**Evidence sources / IDs:**
+
+- Step 207 terminal evidence
+- PR #22, head `4edace6738a34a0fee98aca9daf85c4d25063f29`
+- blocker `outbox_missing`
+- blocker `latest_handoff_report_missing`
+- `.agentic/transfer/outbox/last_result.txt`
+- `.agentic/state/handoff/transfer_handoff_reports/latest-transfer-handoff-report.json`
+
+---
