@@ -41,6 +41,7 @@ are evidence; they do not supersede product planning.
 
 ## Current phase boundary
 
-Phases 0, 1, 2, and 3 are complete. Phase 3 closed the intended architecture seams and was
-certified on clean `main`. Phase 4 is active and concerns product integration / complete Cockpit
-workflow. Phase 5 remains product maturity and release readiness.
+Phases 0, 1, 2, 3, and 4 are complete. Phase 4 closed the macOS platform-adapter boundary with
+process/listener/browser acceptance tests and a local E2E-0 Tk startup gate outside repository/IDE
+environment assumptions. Phase 5 is active: one configured Chrome conversation must complete the
+browser-bridge proof of concept without introducing Kit workflow intelligence.
