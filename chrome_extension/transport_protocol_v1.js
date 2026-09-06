@@ -20,7 +20,7 @@ function frame(text,begin,end){
 function keys(d,e){if(JSON.stringify(Object.keys(d).sort())!==JSON.stringify([...e].sort()))fail("invalid fields");}
 function id(d,k){if(typeof d[k]!=="string"||!d[k].trim())fail(k+" required");}
 function version(d){if(d.protocol_version!==VERSION)fail("unsupported protocol_version");}
-function parseAction(text){const d=frame(text,ACTION_BEGIN,ACTION_END);keys(d,["protocol_version","session_id","round_id","action_id","mode","target","work_order"]);version(d);id(d,"session_id");id(d,"round_id");id(d,"action_id");id(d,"target");if(!MODES.has(d.mode))fail("unsupported mode");return Object.freeze(d);}
-function parseResult(text){const d=frame(text,RESULT_BEGIN,RESULT_END);keys(d,["protocol_version","session_id","round_id","action_id","status","result"]);version(d);id(d,"session_id");id(d,"round_id");id(d,"action_id");if(!STATUSES.has(d.status))fail("unsupported status");return Object.freeze(d);}
+function parseAction(text){const d=frame(text,ACTION_BEGIN,ACTION_END);keys(d,["protocol_version","session_id","round_id","action_id","mode","target","work_order"]);version(d);id(d,"session_id");id(d,"round_id");id(d,"action_id");if(!d.target||Array.isArray(d.target)||typeof d.target!=="object")fail("target must be object");if(!MODES.has(d.mode))fail("unsupported mode");return Object.freeze(d);}
+function parseResult(text){const d=frame(text,RESULT_BEGIN,RESULT_END);keys(d,["protocol_version","session_id","round_id","action_id","transport_status","local_execution"]);version(d);id(d,"session_id");id(d,"round_id");id(d,"action_id");if(!STATUSES.has(d.transport_status))fail("unsupported transport_status");return Object.freeze(d);}
 window.AGPCockpitTransportProtocolV1=Object.freeze({VERSION,ACTION_BEGIN,ACTION_END,RESULT_BEGIN,RESULT_END,parseAction,parseResult});
 })();

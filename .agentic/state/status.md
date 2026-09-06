@@ -14,3 +14,11 @@
   `docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md` and its JSON companion.
 - Use the supported high-level Kit lifecycle for work finish, PR closeout, successor refresh,
   and handoff generation.
+
+## Phase 7 closeout (2026-09-06)
+
+- Status: COMPLETE / ACCEPTED.
+- P7-01..P7-11: PASS.
+- Real-browser E2E-4: PASS; exactly one DIRECT_EXECUTION round completed and stopped.
+- Duplicate completed-result replay: PASS; no re-execution.
+- Crash-persistent replay remains later E2E-6 scope.

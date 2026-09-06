@@ -15,6 +15,7 @@ from agp_cockpit.core.bridge_protocol import (
 )
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
 from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame
+from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class CockpitBridgeServer:
         self.engine = BridgeEngine(self.repository_root)
         self.diag = DiagnosticLogger(self.repository_root)
         self.protocol_v1_actions = ActionRegistry()
+        self.protocol_v1_results: dict[str, str] = {}
 
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
@@ -58,6 +60,7 @@ class CockpitBridgeServer:
         diag = self.diag
         repo_root = self.repository_root
         protocol_v1_actions = self.protocol_v1_actions
+        protocol_v1_results = self.protocol_v1_results
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -196,6 +199,34 @@ class CockpitBridgeServer:
                             "action_id": action.action_id,
                             "decision": registration.decision,
                         })
+                        return
+
+                    if path == "/v1/protocol/execute":
+                        length = int(self.headers.get("Content-Length", "0"))
+                        if length <= 0 or length > 2_000_000:
+                            raise ValueError("invalid Content-Length")
+                        raw = self.rfile.read(length).decode("utf-8")
+                        action = parse_action_frame(raw)
+                        registration = protocol_v1_actions.register(action)
+                        if registration.decision == "DUPLICATE":
+                            cached = protocol_v1_results.get(action.action_id)
+                            if cached is None:
+                                raise ValueError(
+                                    "duplicate action has no completed result; automatic replay forbidden"
+                                )
+                            self._json(200, {
+                                "decision": "REPLAYED",
+                                "action_id": action.action_id,
+                                "result_frame": cached,
+                            })
+                            return
+                        frame = execute_direct_action(
+                            action,
+                            repository_root=engine.repository_root,
+                            kit_binary=engine.kit_binary,
+                        )
+                        protocol_v1_results[action.action_id] = frame
+                        self._json(200, {"decision": "EXECUTED", "action_id": action.action_id, "result_frame": frame})
                         return
 
                     if path == "/v1/turn":

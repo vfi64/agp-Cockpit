@@ -20,7 +20,7 @@ def server(tmp_path):
     finally: s.stop()
 
 def frame(**kw):
-    d=dict(protocol_version=1,session_id="s",round_id="r",action_id="a",mode="DIRECT_EXECUTION",target="/repo",work_order={"opaque":True})
+    d=dict(protocol_version=1,session_id="s",round_id="r",action_id="a",mode="DIRECT_EXECUTION",target={"repository_path_hint":"/repo"},work_order={"opaque":True})
     d.update(kw); return encode_action_frame(ActionEnvelope(**d))
 
 def test_http_boundary_accepts_first_action_without_interpreting_payload(server):

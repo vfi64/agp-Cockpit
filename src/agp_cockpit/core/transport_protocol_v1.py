@@ -14,11 +14,11 @@ class ProtocolViolation(ValueError): pass
 @dataclass(frozen=True)
 class ActionEnvelope:
     protocol_version:int; session_id:str; round_id:str; action_id:str
-    mode:Literal["DIRECT_EXECUTION","FILE_TRANSFER"]; target:str; work_order:Any
+    mode:Literal["DIRECT_EXECUTION","FILE_TRANSFER"]; target:dict[str,Any]; work_order:Any
 @dataclass(frozen=True)
 class ResultEnvelope:
     protocol_version:int; session_id:str; round_id:str; action_id:str
-    status:Literal["PASS","BLOCKED","FAIL","DONE","CANCELLED"]; result:Any
+    transport_status:Literal["PASS","BLOCKED","FAIL","DONE","CANCELLED"]; local_execution:Any
 @dataclass(frozen=True)
 class ActionRegistration:
     decision:Literal["DISPATCH","DUPLICATE"]; action:ActionEnvelope
@@ -58,19 +58,20 @@ def parse_action_frame(text):
     _keys(d,{"protocol_version","session_id","round_id","action_id","mode","target","work_order"})
     v=_version(d); s=_id(d,"session_id"); r=_id(d,"round_id"); a=_id(d,"action_id")
     if d["mode"] not in VALID_MODES: raise ProtocolViolation(f"unsupported mode: {d['mode']!r}")
-    t=_id(d,"target")
+    t=d["target"]
+    if not isinstance(t,dict): raise ProtocolViolation("target must be object")
     return ActionEnvelope(v,s,r,a,d["mode"],t,d["work_order"])
 def parse_result_frame(text):
     d=_object(_frame(text,RESULT_BEGIN,RESULT_END))
-    _keys(d,{"protocol_version","session_id","round_id","action_id","status","result"})
+    _keys(d,{"protocol_version","session_id","round_id","action_id","transport_status","local_execution"})
     v=_version(d); s=_id(d,"session_id"); r=_id(d,"round_id"); a=_id(d,"action_id")
-    if d["status"] not in VALID_STATUSES: raise ProtocolViolation(f"unsupported status: {d['status']!r}")
-    return ResultEnvelope(v,s,r,a,d["status"],d["result"])
+    if d["transport_status"] not in VALID_STATUSES: raise ProtocolViolation(f"unsupported transport_status: {d['transport_status']!r}")
+    return ResultEnvelope(v,s,r,a,d["transport_status"],d["local_execution"])
 def encode_action_frame(a):
     d={"protocol_version":a.protocol_version,"session_id":a.session_id,"round_id":a.round_id,"action_id":a.action_id,"mode":a.mode,"target":a.target,"work_order":a.work_order}
     p=_json_bytes(d).decode(); f=f"{ACTION_BEGIN}\n{p}\n{ACTION_END}"; parse_action_frame(f); return f
 def encode_result_frame(r):
-    d={"protocol_version":r.protocol_version,"session_id":r.session_id,"round_id":r.round_id,"action_id":r.action_id,"status":r.status,"result":r.result}
+    d={"protocol_version":r.protocol_version,"session_id":r.session_id,"round_id":r.round_id,"action_id":r.action_id,"transport_status":r.transport_status,"local_execution":r.local_execution}
     p=_json_bytes(d).decode(); f=f"{RESULT_BEGIN}\n{p}\n{RESULT_END}"; parse_result_frame(f); return f
 def action_digest(a):
     return hashlib.sha256(_json_bytes({"protocol_version":a.protocol_version,"session_id":a.session_id,"round_id":a.round_id,"action_id":a.action_id,"mode":a.mode,"target":a.target,"work_order":a.work_order})).hexdigest()
