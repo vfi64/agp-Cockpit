@@ -1072,7 +1072,25 @@ async function sendPrompt(prompt) {
   }
 
 
-  // AGP_PHASE5_CONVERSATION_UI_203
+  // AGP_PHASE7_SINGLE_ROUND_UI_254
+  async function phase7RunOneRound() {
+    const ctl = globalThis.AGPCockpitPhase7SingleRound;
+    if (!ctl || typeof ctl.runOneRound !== "function") throw new Error("Phase-7 controller is not loaded");
+    STATE.note = "Phase 7: ein DIRECT_EXECUTION-Round läuft …";
+    render();
+    try {
+      const result = await ctl.runOneRound();
+      STATE.note = `Phase 7: ${result.state} · ${result.action_id}`;
+      render();
+      return result;
+    } catch (error) {
+      STATE.note = `Phase 7 BLOCK: ${error instanceof Error ? error.message : String(error)}`;
+      render();
+      throw error;
+    }
+  }
+
+// AGP_PHASE5_CONVERSATION_UI_203
   let PHASE5_LAST_DRAFT = null;
   let PHASE5_BASELINE_FINGERPRINT = "";
 
@@ -1553,6 +1571,9 @@ async function sendPrompt(prompt) {
     );
     actions.appendChild(
       btn("P5 Send", "stop", phase5ConfirmAndSend)
+    );
+    actions.appendChild(
+      btn("P7 One Round", "start", phase7RunOneRound)
     );
 
     root.appendChild(actions);

@@ -1,0 +1,37 @@
+{
+  "phase": 7,
+  "title": "Single DIRECT_EXECUTION round",
+  "status": "ACCEPTED",
+  "acceptance": {
+    "P7-01": "PASS",
+    "P7-02": "PASS",
+    "P7-03": "PASS",
+    "P7-04": "PASS",
+    "P7-05": "PASS",
+    "P7-06": "PASS",
+    "P7-07": "PASS",
+    "P7-08": "PASS",
+    "P7-09": "PASS",
+    "P7-10": "PASS",
+    "P7-11": "PASS"
+  },
+  "real_browser_e2e4": {
+    "status": "PASS",
+    "action_id": "action-e2e4-20260906-0845-01",
+    "return_code": 0,
+    "stdout": "AGP_PHASE7_E2E4_OK",
+    "transport_status": "PASS",
+    "single_round_stopped": true
+  },
+  "duplicate_semantics": {
+    "completed_duplicate": "REPLAYED without re-execution",
+    "registered_without_completed_result": "fail closed",
+    "cache_scope": "current bridge process",
+    "crash_persistence": "deferred to E2E-6"
+  },
+  "notes": [
+    "Cockpit product logic remains separate from Agentic Project Kit lifecycle.",
+    "Transport payload remains opaque except transport metadata.",
+    "Real-browser stale-runtime incident resolved by controlled bridge restart before successful E2E-4."
+  ]
+}

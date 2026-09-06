@@ -116,6 +116,29 @@
     });
   }
 
+  // AGP_PHASE7_PROTOCOL_TEXT_EXTRACTION_259
+  function extractSingleProtocolFrame(text) {
+    const value = String(text || "").trim();
+    const pairs = [
+      ["AGP_COCKPIT_ACTION_BEGIN", "AGP_COCKPIT_ACTION_END"],
+      ["AGP_COCKPIT_RESULT_BEGIN", "AGP_COCKPIT_RESULT_END"]
+    ];
+    const matches = [];
+    for (const [begin, end] of pairs) {
+      const start = value.indexOf(begin);
+      if (start < 0) continue;
+      const secondStart = value.indexOf(begin, start + begin.length);
+      const finish = value.indexOf(end, start + begin.length);
+      if (secondStart >= 0 || finish < 0 || value.indexOf(end, finish + end.length) >= 0) {
+        throw new Error("PHASE7_PROTOCOL_FRAME_AMBIGUOUS");
+      }
+      matches.push(value.slice(start, finish + end.length).trim());
+    }
+    if (matches.length === 0) return value;
+    if (matches.length !== 1) throw new Error("PHASE7_PROTOCOL_FRAME_AMBIGUOUS");
+    return matches[0];
+  }
+
   async function currentAssistantSnapshot() {
     const binding = await bindConfiguredConversation();
     if (generationActive()) {
@@ -125,11 +148,12 @@
     if (!nodes.length) {
       throw new Error("PHASE5_ASSISTANT_NOT_FOUND");
     }
-    const text = String(
+    const observedText = String(
       nodes[nodes.length - 1].innerText ||
       nodes[nodes.length - 1].textContent ||
       ""
     ).trim();
+    const text = extractSingleProtocolFrame(observedText);
     if (!text) throw new Error("PHASE5_ASSISTANT_EMPTY");
     const fingerprint = await sha256(`${binding.conversationUrl}\n${text}`);
     return Object.freeze({
@@ -293,12 +317,69 @@
     pendingApproval = null;
   }
 
+  // AGP_PHASE7_VERBATIM_PROTOCOL_BLOCK_260
+
+async function currentAssistantProtocolSnapshot() {
+  // AGP_PHASE7_PROTOCOL_PRE_DEDUP_261
+  //
+  // ChatGPT can render one logical code block through multiple <pre> nodes.
+  // De-duplicate only byte-for-byte identical protocol-bearing blocks.
+  // Different protocol frames remain ambiguous and fail closed.
+  const binding = await bindConfiguredConversation();
+  if (generationActive()) {
+    throw new Error("PHASE7_PROTOCOL_STREAMING");
+  }
+
+  const assistants = visibleAssistantNodes();
+  if (!assistants.length) {
+    throw new Error("PHASE7_PROTOCOL_ASSISTANT_NOT_FOUND");
+  }
+  const assistant = assistants[assistants.length - 1];
+
+  const rawCandidates = Array.from(assistant.querySelectorAll("pre"))
+    .map((node) => String(node.textContent || "").trim())
+    .filter((text) =>
+      text.includes("AGP_COCKPIT_ACTION_BEGIN") ||
+      text.includes("AGP_COCKPIT_RESULT_BEGIN")
+    );
+
+  const uniqueCandidates = [...new Set(rawCandidates)];
+
+  if (uniqueCandidates.length !== 1) {
+    throw new Error(
+      `PHASE7_PROTOCOL_BLOCK_COUNT expected=1 actual=${uniqueCandidates.length} raw=${rawCandidates.length}`
+    );
+  }
+
+  const text = uniqueCandidates[0];
+  const frame = extractSingleProtocolFrame(text);
+  if (frame !== text) {
+    throw new Error("PHASE7_PROTOCOL_BLOCK_NOT_PURE_FRAME");
+  }
+
+  const conversationUrl = binding.conversationUrl;
+  const fingerprintBytes = new TextEncoder().encode(`${conversationUrl}\n${frame}`);
+  const fingerprintDigest = await crypto.subtle.digest("SHA-256", fingerprintBytes);
+  const fingerprint = Array.from(new Uint8Array(fingerprintDigest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  return {
+    conversationUrl,
+    text: frame,
+    fingerprint,
+    source: "pre",
+    rawProtocolBlockCount: rawCandidates.length,
+    uniqueProtocolBlockCount: uniqueCandidates.length,
+  };
+}
+
   globalThis.AGPCockpitConversationContract = Object.freeze({
     marker: "AGP_PHASE5_CONVERSATION_CONTRACT_204",
     normalizeConversationUrl,
     configuredConversationUrl,
     bindConfiguredConversation,
     currentAssistantSnapshot,
+    currentAssistantProtocolSnapshot,
     waitForCompletedAssistant,
     stageDraft,
     approveCurrentDraft,

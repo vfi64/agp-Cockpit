@@ -20,6 +20,7 @@
       "js": [
         "transport_protocol_v1.js",
         "conversation_contract.js",
+        "phase7_single_round.js",
         "content.js"
       ],
       "run_at": "document_idle"
