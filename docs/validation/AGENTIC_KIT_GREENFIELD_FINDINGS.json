@@ -142,6 +142,13 @@
       "historical_id": "Steps 215-218",
       "canonical_family": "KIT-GF-011",
       "summary": "Kit-generated tracked successor projections block next work start; normalize-session and post-merge-settle both reject the Kit-owned dirty state"
+    },
+    {
+      "date": "2026-09-07",
+      "event_id": "GF-E021",
+      "historical_id": "Phase-8 Steps 335 / 335R1",
+      "canonical_family": "KIT-GF-018",
+      "summary": "merged-work-branch cleanup returned BLOCKED/remote_delete_failed when the authoritative remote ref was already absent and only stale remote-tracking state remained"
     }
   ],
   "families": [
@@ -529,6 +536,28 @@
         ".agentic/transfer/outbox/last_result.txt",
         ".agentic/state/handoff/transfer_handoff_reports/latest-transfer-handoff-report.json"
       ]
+    },
+    {
+      "id": "KIT-GF-018",
+      "title": "Merged-work-branch cleanup is not idempotent when the authoritative remote ref is already absent",
+      "first_observed": "2026-09-07",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-ux-contract",
+      "aliases": [],
+      "expected": "After verified merge, delete-merged-work-branch must adjudicate the desired cleanup postcondition. If the authoritative remote branch is already absent, remote cleanup is already satisfied and the wrapper must return deterministic PASS/NOOP or an equivalent successful idempotent state.",
+      "observed": "During Phase-8 final housekeeping, delete-merged-work-branch successfully verified the PR as MERGED, then attempted `git push origin --delete feature/phase8-automated-multi-round-bridge`. Git reported `remote ref does not exist`; the wrapper returned BLOCKED with blocker `remote_delete_failed`. Step 335R1 independently proved that the authoritative remote ref was already absent and only stale local remote-tracking state had made cleanup appear necessary.",
+      "impact": "Automated lifecycle/housekeeping can block despite the desired end state already being achieved, forcing agents to diagnose a false mutation failure when no repair mutation is required.",
+      "workaround": "Adjudicate authoritative remote state read-only before retrying cleanup; when authoritative absence is proven, do not repeat the delete mutation. Prune stale local tracking state only when separately justified.",
+      "repair": "Before and/or after remote deletion, distinguish an existing ref with successful deletion, an already-absent authoritative ref, stale local remote-tracking state, and a genuine transport/permission/delete failure. Already absent must be successful idempotent cleanup; a genuine failure deleting an existing ref must remain fail-closed.",
+      "regression": "Cover: merged PR + remote branch present -> delete -> PASS; merged PR + remote branch already absent -> PASS/NOOP; stale local origin/<branch> tracking ref + authoritative ref absent -> PASS/NOOP; PR not merged -> BLOCKED; remote ref exists and actual delete fails -> BLOCKED.",
+      "evidence": [
+        "Phase-8 Step 335 final housekeeping",
+        "Phase-8 Step 335R1 remote-branch absence adjudication",
+        "Step 347 Greenfield ledger reconciliation",
+        "Kit 1.0.9 source: cli_commands/transfer_repo_pre_pr.py direct remote delete and remote_delete_failed path"
+      ],
+      "current_repair_status": "Kit 1.0.9 NOT_PROVEN_FIXED: Step 347 found the direct `git push origin --delete <branch>` plus `remote_delete_failed` path and no proven already-absent success path."
     }
   ],
   "explicit_exclusions": [
