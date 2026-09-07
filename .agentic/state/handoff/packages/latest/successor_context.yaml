@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-06T14:55:37.541707+00:00",
+  "generated_at_utc": "2026-09-07T05:20:45.559168+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.0.8"
   },
   "repo": {
-    "branch": "docs/post-pr28-successor-package-refresh",
+    "branch": "feature/phase8-automated-multi-round-bridge",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "b65f82fccc5384bc85b342161a9eca1c73257ab8",
-    "head_matches_origin_main": true,
-    "head_short": "b65f82fc",
+    "head": "8d902556db3b76d27321d33fd84aca0092ab5c35",
+    "head_matches_origin_main": false,
+    "head_short": "8d902556",
     "local_path": "cd /path/to/",
-    "origin_main": "b65f82fccc5384bc85b342161a9eca1c73257ab8",
-    "origin_main_short": "b65f82fc",
-    "worktree_clean": true
+    "origin_main": "4bc1ad62b3aa7a1b79873f7cc8012f45c195d351",
+    "origin_main_short": "4bc1ad62",
+    "worktree_clean": false
   },
   "schema_version": 1,
   "short_term_memory": {
