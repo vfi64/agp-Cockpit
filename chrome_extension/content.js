@@ -1575,6 +1575,11 @@ async function sendPrompt(prompt) {
     actions.appendChild(
       btn("P7 One Round", "start", phase7RunOneRound)
     );
+    // AGP_PHASE8_CANONICAL_OVERLAY_UI_296
+    actions.appendChild(btn("P8 Run", "start", phase8RunMultiRound));
+    actions.appendChild(btn("P8 Pause", "status", phase8Pause));
+    actions.appendChild(btn("P8 Resume", "mission", phase8Resume));
+    actions.appendChild(btn("P8 Stop", "stop", phase8Stop));
 
     root.appendChild(actions);
 
@@ -1671,4 +1676,49 @@ async function sendPrompt(prompt) {
     STATE.lastEvent = "INITIAL_STATUS_ERROR";
     render();
   });
+
+  // AGP_PHASE8_OPERATOR_UI_286
+  async function phase8RunMultiRound() {
+    const P8 = window.AGPCockpitPhase8MultiRound;
+    if (!P8) throw new Error("Phase8 controller unavailable");
+    const raw = window.prompt("Phase 8: maximale Rundenzahl", "5");
+    if (raw === null) return;
+    STATE.turns = 0;
+    STATE.note = "Phase 8: RUNNING (0 rounds)";
+    STATE.lastEvent = "PHASE8_RUNNING";
+    render();
+    // AGP_PHASE8_UI_LIVE_ROUND_PROGRESS_328
+  const out = await P8.run({
+    maxRounds:Number(raw),
+    onRoundCompleted: ({rounds}) => {
+      STATE.turns = Number(rounds || 0);
+      STATE.note = `Phase 8: RUNNING (${STATE.turns} rounds)`;
+      STATE.lastEvent = "PHASE8_ROUND_COMPLETED";
+      render();
+    }
+  });
+    // AGP_PHASE8_UI_STATE_REPAIR_316
+    STATE.turns = Number(out.rounds || 0);
+    STATE.note = `Phase 8: ${out.state} (${out.rounds} rounds)`;
+    STATE.lastEvent = `PHASE8_${out.state}`;
+    render();
+  }
+  function phase8Pause(){
+    window.AGPCockpitPhase8MultiRound.pause();
+    STATE.note = "Phase 8: PAUSED";
+    STATE.lastEvent = "PHASE8_PAUSED";
+    render();
+  }
+  function phase8Resume(){
+    window.AGPCockpitPhase8MultiRound.resume();
+    STATE.note = "Phase 8: RUNNING";
+    STATE.lastEvent = "PHASE8_RUNNING";
+    render();
+  }
+  function phase8Stop(){
+    window.AGPCockpitPhase8MultiRound.stop();
+    STATE.note = "Phase 8: STOP REQUESTED";
+    STATE.lastEvent = "PHASE8_STOP_REQUESTED";
+    render();
+  }
 })();

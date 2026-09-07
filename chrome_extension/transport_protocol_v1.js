@@ -2,9 +2,11 @@
 "use strict";
 const ACTION_BEGIN="AGP_COCKPIT_ACTION_BEGIN", ACTION_END="AGP_COCKPIT_ACTION_END";
 const RESULT_BEGIN="AGP_COCKPIT_RESULT_BEGIN", RESULT_END="AGP_COCKPIT_RESULT_END";
+const CONTROL_BEGIN="AGP_COCKPIT_CONTROL_BEGIN", CONTROL_END="AGP_COCKPIT_CONTROL_END";
 const VERSION=1, MAX_BYTES=2000000;
 const MODES=new Set(["DIRECT_EXECUTION","FILE_TRANSFER"]);
 const STATUSES=new Set(["PASS","BLOCKED","FAIL","DONE","CANCELLED"]);
+const CONTROLS=new Set(["DONE"]);
 function fail(m){throw new Error("AGP protocol v1: "+m);}
 function bytes(s){return new TextEncoder().encode(s).length;}
 function frame(text,begin,end){
@@ -21,6 +23,7 @@ function keys(d,e){if(JSON.stringify(Object.keys(d).sort())!==JSON.stringify([..
 function id(d,k){if(typeof d[k]!=="string"||!d[k].trim())fail(k+" required");}
 function version(d){if(d.protocol_version!==VERSION)fail("unsupported protocol_version");}
 function parseAction(text){const d=frame(text,ACTION_BEGIN,ACTION_END);keys(d,["protocol_version","session_id","round_id","action_id","mode","target","work_order"]);version(d);id(d,"session_id");id(d,"round_id");id(d,"action_id");if(!d.target||Array.isArray(d.target)||typeof d.target!=="object")fail("target must be object");if(!MODES.has(d.mode))fail("unsupported mode");return Object.freeze(d);}
+function parseControl(text){const d=frame(text,CONTROL_BEGIN,CONTROL_END);keys(d,["protocol_version","session_id","round_id","control"]);version(d);id(d,"session_id");id(d,"round_id");if(!CONTROLS.has(d.control))fail("unsupported control");return Object.freeze(d);}
 function parseResult(text){const d=frame(text,RESULT_BEGIN,RESULT_END);keys(d,["protocol_version","session_id","round_id","action_id","transport_status","local_execution"]);version(d);id(d,"session_id");id(d,"round_id");id(d,"action_id");if(!STATUSES.has(d.transport_status))fail("unsupported transport_status");return Object.freeze(d);}
-window.AGPCockpitTransportProtocolV1=Object.freeze({VERSION,ACTION_BEGIN,ACTION_END,RESULT_BEGIN,RESULT_END,parseAction,parseResult});
+window.AGPCockpitTransportProtocolV1=Object.freeze({VERSION,ACTION_BEGIN,ACTION_END,RESULT_BEGIN,RESULT_END,parseAction,parseResult,parseControl,CONTROL_BEGIN,CONTROL_END});
 })();

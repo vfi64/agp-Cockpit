@@ -9,8 +9,9 @@
     if (!v.token) throw new Error("AGP bridge token missing");
     return {baseUrl:String(v.baseUrl).replace(/\/$/,""), token:String(v.token)};
   }
-  async function runOneRound() {
-    const snap = await C.currentAssistantProtocolSnapshot();
+  async function runOneRound({protocolSnapshot = null, browserTimeoutMs = 120000} = {}) {
+    // AGP_PHASE7_STABLE_PROTOCOL_ENTRY_326
+    const snap = protocolSnapshot || await C.waitForCompletedProtocolAssistant({afterFingerprint:"", timeoutMs:browserTimeoutMs});
     const action = P.parseAction(snap.text);
     if (action.mode !== "DIRECT_EXECUTION") throw new Error("Phase7 requires DIRECT_EXECUTION");
     const cfg = await config();
@@ -26,7 +27,7 @@
     await C.stageDraft(data.result_frame);
     const approval = await C.approveCurrentDraft();
     await C.sendApprovedDraft(approval);
-    return {state:"DONE", action_id:action.action_id, transport_status:result.transport_status};
+    return {state:"DONE", session_id:action.session_id, round_id:action.round_id, action_id:action.action_id, assistant_fingerprint:snap.fingerprint, transport_status:result.transport_status};
   }
   window.AGPCockpitPhase7SingleRound = Object.freeze({runOneRound});
 })();
