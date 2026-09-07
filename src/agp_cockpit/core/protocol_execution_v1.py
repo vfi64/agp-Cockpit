@@ -4,8 +4,8 @@ from agp_cockpit.core.bridge_execution import execute_structured_work_order
 from agp_cockpit.core.transport_protocol_v1 import ActionEnvelope, ResultEnvelope, encode_result_frame
 
 def execute_direct_action(action: ActionEnvelope, *, repository_root: Path, kit_binary: Path) -> str:
-    if action.mode != "DIRECT_EXECUTION":
-        raise ValueError("DIRECT_EXECUTION required")
+    if action.mode not in {"DIRECT_EXECUTION", "FILE_TRANSFER"}:
+        raise ValueError("supported execution mode required")
     work_order = action.work_order
     if not isinstance(work_order, dict) or set(work_order) != {"type","content"}:
         raise ValueError("canonical work_order object required")
