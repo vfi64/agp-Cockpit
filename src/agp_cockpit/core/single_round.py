@@ -42,7 +42,7 @@ class SingleDirectExecutionRound:
             self.state=RoundState.BLOCKED_TRANSPORT
             return SingleRoundOutcome(self.state)
         aid=getattr(action,"action_id",None)
-        if getattr(action,"mode",None)!="DIRECT_EXECUTION":
+        if getattr(action,"mode",None) not in {"DIRECT_EXECUTION","FILE_TRANSFER"}:
             self.state=RoundState.BLOCKED_TRANSPORT
             return SingleRoundOutcome(self.state,aid)
         if self._stop(): return SingleRoundOutcome(self.state,aid)
