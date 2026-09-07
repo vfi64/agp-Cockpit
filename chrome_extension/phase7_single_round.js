@@ -13,7 +13,7 @@
     // AGP_PHASE7_STABLE_PROTOCOL_ENTRY_326
     const snap = protocolSnapshot || await C.waitForCompletedProtocolAssistant({afterFingerprint:"", timeoutMs:browserTimeoutMs});
     const action = P.parseAction(snap.text);
-    if (action.mode !== "DIRECT_EXECUTION") throw new Error("Phase7 requires DIRECT_EXECUTION");
+    if (!["DIRECT_EXECUTION", "FILE_TRANSFER"].includes(action.mode)) throw new Error("Phase7 requires DIRECT_EXECUTION or FILE_TRANSFER");
     const cfg = await config();
     const r = await fetch(cfg.baseUrl + "/v1/protocol/execute", {
       method:"POST", headers:{"Content-Type":"text/plain","X-AGP-Token":cfg.token}, body:snap.text
