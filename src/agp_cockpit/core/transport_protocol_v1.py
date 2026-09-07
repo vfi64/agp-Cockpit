@@ -8,8 +8,11 @@ ACTION_BEGIN="AGP_COCKPIT_ACTION_BEGIN"
 ACTION_END="AGP_COCKPIT_ACTION_END"
 RESULT_BEGIN="AGP_COCKPIT_RESULT_BEGIN"
 RESULT_END="AGP_COCKPIT_RESULT_END"
+CONTROL_BEGIN="AGP_COCKPIT_CONTROL_BEGIN"
+CONTROL_END="AGP_COCKPIT_CONTROL_END"
 VALID_MODES=frozenset({"DIRECT_EXECUTION","FILE_TRANSFER"})
 VALID_STATUSES=frozenset({"PASS","BLOCKED","FAIL","DONE","CANCELLED"})
+VALID_CONTROLS=frozenset({"DONE"})
 class ProtocolViolation(ValueError): pass
 @dataclass(frozen=True)
 class ActionEnvelope:
@@ -86,3 +89,18 @@ class ActionRegistry:
     def mark_ambiguous(self,action_id):
         if not isinstance(action_id,str) or not action_id.strip(): raise ProtocolViolation("action_id must be a non-empty string")
         self._ambiguous.add(action_id)
+
+@dataclass(frozen=True)
+class ControlEnvelope:
+    protocol_version:int; session_id:str; round_id:str; control:Literal["DONE"]
+
+def parse_control_frame(text):
+    d=_object(_frame(text,CONTROL_BEGIN,CONTROL_END))
+    _keys(d,{"protocol_version","session_id","round_id","control"})
+    v=_version(d); s=_id(d,"session_id"); r=_id(d,"round_id")
+    if d["control"] not in VALID_CONTROLS: raise ProtocolViolation(f"unsupported control: {d[chr(39)+chr(99)+chr(111)+chr(110)+chr(116)+chr(114)+chr(111)+chr(108)+chr(39)]!r}")
+    return ControlEnvelope(v,s,r,d["control"])
+
+def encode_control_frame(c):
+    d={"protocol_version":c.protocol_version,"session_id":c.session_id,"round_id":c.round_id,"control":c.control}
+    p=_json_bytes(d).decode(); f=f"{CONTROL_BEGIN}\n{p}\n{CONTROL_END}"; parse_control_frame(f); return f

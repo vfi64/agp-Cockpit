@@ -74,6 +74,18 @@ Representative result:
 
 `work_order.content` is opaque to AGP Cockpit except for transport-size/safety constraints. The Cockpit must not rewrite, improve, repair, summarize, or replace it.
 
+### Session-control frame
+
+Assistant-to-cockpit session control is distinct from the two communication modes. Protocol v1 uses exactly one bounded control block:
+
+```text
+AGP_COCKPIT_CONTROL_BEGIN
+{"protocol_version":1,"session_id":"...","round_id":"...","control":"DONE"}
+AGP_COCKPIT_CONTROL_END
+```
+
+`DONE` is a browser-LLM declaration. It causes no local dispatch and does not inspect or reinterpret `work_order`; therefore it is not a third communication mode. The session ID must correlate with the active multi-round session.
+
 ## 4. Communication modes
 
 ### DIRECT_EXECUTION

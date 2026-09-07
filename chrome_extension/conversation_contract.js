@@ -117,11 +117,12 @@
   }
 
   // AGP_PHASE7_PROTOCOL_TEXT_EXTRACTION_259
-  function extractSingleProtocolFrame(text) {
+  function extractSingleProtocolFrame(text, { includeControl = false } = {}) {
     const value = String(text || "").trim();
     const pairs = [
       ["AGP_COCKPIT_ACTION_BEGIN", "AGP_COCKPIT_ACTION_END"],
-      ["AGP_COCKPIT_RESULT_BEGIN", "AGP_COCKPIT_RESULT_END"]
+      ["AGP_COCKPIT_RESULT_BEGIN", "AGP_COCKPIT_RESULT_END"],
+      ...(includeControl ? [["AGP_COCKPIT_CONTROL_BEGIN", "AGP_COCKPIT_CONTROL_END"]] : [])
     ];
     const matches = [];
     for (const [begin, end] of pairs) {
@@ -340,21 +341,44 @@ async function currentAssistantProtocolSnapshot() {
     .map((node) => String(node.textContent || "").trim())
     .filter((text) =>
       text.includes("AGP_COCKPIT_ACTION_BEGIN") ||
-      text.includes("AGP_COCKPIT_RESULT_BEGIN")
+      text.includes("AGP_COCKPIT_RESULT_BEGIN") ||
+      text.includes("AGP_COCKPIT_CONTROL_BEGIN")
     );
 
   const uniqueCandidates = [...new Set(rawCandidates)];
 
-  if (uniqueCandidates.length !== 1) {
+  // AGP_PHASE8_PROTOCOL_RENDERING_FALLBACK_298
+  // Prefer exact <pre> extraction. Real ChatGPT may render a protocol response
+  // as ordinary assistant text; only when no protocol-bearing <pre> exists,
+  // extract one strict framed payload from that same assistant message.
+  let frame = "";
+  let source = "";
+  if (uniqueCandidates.length === 1) {
+    const text = uniqueCandidates[0];
+    frame = extractSingleProtocolFrame(text, { includeControl: true });
+    if (frame !== text) {
+      throw new Error("PHASE7_PROTOCOL_BLOCK_NOT_PURE_FRAME");
+    }
+    source = "pre";
+  } else if (uniqueCandidates.length === 0) {
+    const observedText = String(
+      assistant.innerText || assistant.textContent || ""
+    ).trim();
+    frame = extractSingleProtocolFrame(observedText, { includeControl: true });
+    const isProtocolFrame =
+      frame.startsWith("AGP_COCKPIT_ACTION_BEGIN") ||
+      frame.startsWith("AGP_COCKPIT_RESULT_BEGIN") ||
+      frame.startsWith("AGP_COCKPIT_CONTROL_BEGIN");
+    if (!isProtocolFrame) {
+      throw new Error(
+        `PHASE7_PROTOCOL_BLOCK_COUNT expected=1 actual=0 raw=${rawCandidates.length}`
+      );
+    }
+    source = "assistant-text";
+  } else {
     throw new Error(
       `PHASE7_PROTOCOL_BLOCK_COUNT expected=1 actual=${uniqueCandidates.length} raw=${rawCandidates.length}`
     );
-  }
-
-  const text = uniqueCandidates[0];
-  const frame = extractSingleProtocolFrame(text);
-  if (frame !== text) {
-    throw new Error("PHASE7_PROTOCOL_BLOCK_NOT_PURE_FRAME");
   }
 
   const conversationUrl = binding.conversationUrl;
@@ -367,11 +391,60 @@ async function currentAssistantProtocolSnapshot() {
     conversationUrl,
     text: frame,
     fingerprint,
-    source: "pre",
+    source,
     rawProtocolBlockCount: rawCandidates.length,
     uniqueProtocolBlockCount: uniqueCandidates.length,
   };
 }
+
+  // AGP_PHASE8_PROTOCOL_WAIT_CONSOLIDATION_308
+  async function waitForCompletedProtocolAssistant({
+    afterFingerprint = "",
+    timeoutMs = 30000,
+    pollMs = 250,
+    stablePolls = 3
+  } = {}) {
+    const deadline = Date.now() + timeoutMs;
+    let candidate = "";
+    let candidateText = "";
+    let candidateSnapshot = null;
+    let stable = 0;
+    while (Date.now() < deadline) {
+      await bindConfiguredConversation();
+      if (generationActive()) {
+        candidate = ""; candidateText = ""; candidateSnapshot = null; stable = 0;
+        await new Promise(resolve => setTimeout(resolve, pollMs));
+        continue;
+      }
+      try {
+        const snapshot = await currentAssistantProtocolSnapshot();
+        if (snapshot.fingerprint === afterFingerprint) {
+          candidate = ""; candidateText = ""; candidateSnapshot = null; stable = 0;
+        } else if (snapshot.fingerprint !== candidate) {
+          candidate = snapshot.fingerprint; candidateText = snapshot.text;
+          candidateSnapshot = snapshot; stable = 1;
+        } else {
+          stable += 1;
+        }
+        if (candidate && stable >= stablePolls) {
+          return Object.freeze({
+            conversationUrl: candidateSnapshot.conversationUrl,
+            text: candidateText, fingerprint: candidate,
+            stablePolls: stable, source: candidateSnapshot.source
+          });
+        }
+      } catch (err) {
+        const message = String(err && err.message || err);
+        const transient =
+          message.includes("PHASE7_PROTOCOL_STREAMING") ||
+          message.includes("PHASE7_PROTOCOL_ASSISTANT_NOT_FOUND") ||
+          message.includes("PHASE7_PROTOCOL_BLOCK_COUNT expected=1 actual=0");
+        if (!transient) throw err;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollMs));
+    }
+    throw new Error("PHASE8_COMPLETED_PROTOCOL_ASSISTANT_TIMEOUT");
+  }
 
   globalThis.AGPCockpitConversationContract = Object.freeze({
     marker: "AGP_PHASE5_CONVERSATION_CONTRACT_204",
@@ -381,6 +454,7 @@ async function currentAssistantProtocolSnapshot() {
     currentAssistantSnapshot,
     currentAssistantProtocolSnapshot,
     waitForCompletedAssistant,
+    waitForCompletedProtocolAssistant,
     stageDraft,
     approveCurrentDraft,
     sendApprovedDraft,

@@ -290,3 +290,9 @@ behavior regressions or implementation-/source-coupled test regressions.
 
 A slice is not complete if recurrence in the same failure domain is known but
 another local repair is applied without the required systemic review.
+
+<!-- AGP_PHASE8_GATE_329_BEGIN -->
+### Phase 8 — Automated multi-round bridge — PASS
+
+Acceptance date: 2026-09-07. Criteria P8-01 through P8-08 are satisfied. See `docs/validation/PHASE8_AUTOMATED_MULTI_ROUND_ACCEPTANCE_2026-09-07.md`.
+<!-- AGP_PHASE8_GATE_329_END -->

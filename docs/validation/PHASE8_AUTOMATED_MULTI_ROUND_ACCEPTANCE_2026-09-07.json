@@ -1,0 +1,115 @@
+{
+  "phase": 8,
+  "title": "Automated multi-round bridge",
+  "status": "PASS",
+  "date": "2026-09-07",
+  "acceptance_criteria": {
+    "P8-01": {
+      "name": "bounded maximum rounds",
+      "status": "PASS",
+      "evidence": [
+        "tests/test_phase8_deterministic_stress_327.py",
+        "real-browser session phase8-counter-e2e-20260907-14: maxRounds=1 -> 1/40 -> MAX_ROUNDS_REACHED"
+      ]
+    },
+    "P8-02": {
+      "name": "pause",
+      "status": "PASS",
+      "evidence": [
+        "tests/test_phase8_deterministic_stress_327.py"
+      ]
+    },
+    "P8-03": {
+      "name": "stop",
+      "status": "PASS",
+      "evidence": [
+        "tests/test_phase8_deterministic_stress_327.py"
+      ]
+    },
+    "P8-04": {
+      "name": "duplicate protection",
+      "status": "PASS",
+      "evidence": [
+        "transport Protocol-v1 replay/idempotency regression tests",
+        "tests/test_transport_protocol_v1.py",
+        "tests/test_transport_protocol_v1_http.py"
+      ]
+    },
+    "P8-05": {
+      "name": "browser timeout",
+      "status": "PASS",
+      "evidence": [
+        "tests/test_phase8_browser_timeout_contract_300.py",
+        "tests/test_phase8_deterministic_stress_327.py"
+      ]
+    },
+    "P8-06": {
+      "name": "process timeout",
+      "status": "PASS",
+      "evidence": [
+        "tests/test_phase8_operator_timeout_acceptance_286.py",
+        "local structured-work-order timeout path included in closeout regression"
+      ]
+    },
+    "P8-07": {
+      "name": "explicit browser-LLM DONE",
+      "status": "PASS",
+      "evidence": [
+        "tests/test_phase8_done_control_290.py",
+        "tests/test_phase8_behavioral_multiround_done_293.py",
+        "real-browser session phase8-e2e5-20260907-13: explicit CONTROL DONE after R2"
+      ]
+    },
+    "P8-08": {
+      "name": "same mechanical round trip",
+      "status": "PASS",
+      "evidence": [
+        "tests/test_phase8_systemic_state_machine_326.py",
+        "tests/test_phase8_deterministic_stress_327.py",
+        "real-browser session phase8-e2e5-20260907-13: ACTION R1 -> RESULT PASS -> ACTION R2 -> RESULT PASS -> DONE"
+      ]
+    }
+  },
+  "real_browser_evidence": {
+    "e2e5": {
+      "session_id": "phase8-e2e5-20260907-13",
+      "rounds": 2,
+      "round1": {
+        "transport_status": "PASS",
+        "stdout_marker": "AGP_PHASE8_E2E5_ROUND1_OK"
+      },
+      "round2": {
+        "transport_status": "PASS",
+        "stdout_marker": "AGP_PHASE8_E2E5_ROUND2_OK"
+      },
+      "terminal_control": "DONE",
+      "final_overlay": {
+        "turns": "2 / 40",
+        "mission": "Phase 8: DONE (2 rounds)",
+        "last_event": "PHASE8_DONE",
+        "ui_action_error": false,
+        "third_dispatch_observed": false
+      }
+    },
+    "live_counter": {
+      "session_id": "phase8-counter-e2e-20260907-14",
+      "max_rounds": 1,
+      "round1": {
+        "transport_status": "PASS",
+        "stdout_marker": "AGP_PHASE8_COUNTER_ROUND1_OK"
+      },
+      "final_overlay": {
+        "turns": "1 / 40",
+        "mission": "Phase 8: MAX_ROUNDS_REACHED (1 rounds)",
+        "last_event": "PHASE8_MAX_ROUNDS_REACHED",
+        "ui_action_error": false
+      }
+    }
+  },
+  "architecture": {
+    "stable_protocol_entry": "Phase 7 accepts a stable protocol snapshot or obtains one via waitForCompletedProtocolAssistant",
+    "state_machine": "STABLE FRAME -> ACTION EXECUTE -> RESULT SEND -> STABLE FRAME -> ACTION|DONE",
+    "transport_ownership": "Phase 8 delegates local execution transport to Phase 7; no duplicate fetch/execute implementation",
+    "live_progress": "optional onRoundCompleted callback updates UI only; callback failures are isolated from transport state machine"
+  }
+}

@@ -22,7 +22,7 @@ global.window=global;
 let sent=0, staged=0, fetched=0;
 global.chrome={storage:{local:{get:async()=>({baseUrl:"http://127.0.0.1:8765",token:"t"})}}};
 window.AGPCockpitConversationContract={
- currentAssistantProtocolSnapshot:async()=>({text:"FRAME",source:"pre"}),
+ waitForCompletedProtocolAssistant:async()=>({text:"FRAME",fingerprint:"f",source:"pre"}),
  stageDraft:async x=>{staged++; if(x!=="RESULT") throw Error("bad frame")},
  approveCurrentDraft:async()=>({ok:true}),
  sendApprovedDraft:async()=>{sent++}
@@ -57,7 +57,7 @@ def test_phase7_uses_verbatim_protocol_block_snapshot_260():
     assert 'assistant.querySelectorAll("pre")' in contract
     assert "PHASE7_PROTOCOL_BLOCK_COUNT" in contract
     assert "PHASE7_PROTOCOL_BLOCK_NOT_PURE_FRAME" in contract
-    assert 'source: "pre"' in contract
+    assert 'source = "pre"' in contract
     assert "currentAssistantProtocolSnapshot," in contract
-    assert "C.currentAssistantProtocolSnapshot()" in controller
+    assert "C.waitForCompletedProtocolAssistant(" in controller
     assert "C.currentAssistantSnapshot()" not in controller
