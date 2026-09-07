@@ -25,8 +25,26 @@ def test_nonzero_maps_transport_execution_failure_without_interpreting_output(mo
     assert r.transport_status=="FAIL"
     assert r.local_execution["bounded_output"]=="KIT PASS text is opaque"
 
-def test_rejects_file_transfer(tmp_path):
-    a=action()
+def test_file_transfer_forwards_exact_opaque_content_through_same_local_executor(monkeypatch,tmp_path):
+    seen={}
+    def fake(text,**kw):
+        seen["text"]=text
+        seen["repository_root"]=kw["repository_root"]
+        seen["kit_binary"]=kw["kit_binary"]
+        return SimpleNamespace(returncode=0,timed_out=False,result_block="kit-file-transfer-output")
+    monkeypatch.setattr(m,"execute_structured_work_order",fake)
+    a=action(' { "kind" : "kit-file-transfer" } ')
     a=ActionEnvelope(a.protocol_version,a.session_id,a.round_id,a.action_id,"FILE_TRANSFER",a.target,a.work_order)
+    kit=tmp_path/"kit"
+    r=parse_result_frame(m.execute_direct_action(a,repository_root=tmp_path,kit_binary=kit))
+    assert seen["text"]==' { "kind" : "kit-file-transfer" } '
+    assert seen["repository_root"]==tmp_path
+    assert seen["kit_binary"]==kit
+    assert r.transport_status=="PASS"
+    assert r.local_execution=={"return_code":0,"bounded_output":"kit-file-transfer-output","log_ref":None}
+
+def test_rejects_unknown_execution_mode(tmp_path):
+    a=action()
+    a=ActionEnvelope(a.protocol_version,a.session_id,a.round_id,a.action_id,"UNKNOWN",a.target,a.work_order)
     with pytest.raises(ValueError):
         m.execute_direct_action(a,repository_root=tmp_path,kit_binary=tmp_path/"kit")
