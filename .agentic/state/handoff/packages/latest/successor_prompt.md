@@ -36,9 +36,9 @@ Critical rule IDs:
 
 ## Current continuation state
 
-- branch: `docs/post-pr30-successor-package-refresh`
-- head_matches_origin_main: `True`
-- worktree_clean: `True`
+- branch: `chore/kit-1.0.9-workflow-authority`
+- head_matches_origin_main: `False`
+- worktree_clean: `False`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
 - document_registry_source: `.agentic/registries/documentation.yaml`
 - Current state is volatile continuation data, not a durable rule source.
@@ -151,15 +151,15 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
     "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
   ],
   "repo": {
-    "branch": "docs/post-pr30-successor-package-refresh",
+    "branch": "chore/kit-1.0.9-workflow-authority",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "aa9c7a5bf6cd2b2b8a5312fc57b5d2facc6f07c3",
-    "head_matches_origin_main": true,
-    "head_short": "aa9c7a5b",
+    "head": "1406323342ea3a6f570fa0aecc25ad9e4a25996f",
+    "head_matches_origin_main": false,
+    "head_short": "14063233",
     "local_path": "cd /path/to/",
-    "origin_main": "aa9c7a5bf6cd2b2b8a5312fc57b5d2facc6f07c3",
-    "origin_main_short": "aa9c7a5b",
-    "worktree_clean": true
+    "origin_main": "87db232c6a07906408f969a32bbe35629f80ba36",
+    "origin_main_short": "87db232c",
+    "worktree_clean": false
   }
 }
 ```

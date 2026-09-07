@@ -193,3 +193,7 @@ patch spiral.
   Agentic Project Kit does not yet enforce it.
 
 Canonical contract: `docs/planning/SYSTEMIC_FAILURE_ESCALATION.md`.
+
+## Chat continuity and progress reporting
+
+- Keep formal gate status distinct from any overall progress estimate; do not invent changing denominators or unsupported percentages.
