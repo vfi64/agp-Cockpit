@@ -32,14 +32,14 @@
       "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
     ],
     "repo": {
-      "branch": "docs/post-pr32-successor-package-refresh",
+      "branch": "docs/greenfield-gf018-branch-cleanup-idempotency",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "4f41fa191a92e76dda30759ab0d4d3b1ec3d2cf6",
-      "head_matches_origin_main": true,
+      "head": "9fc8b4ef0d189949ed77e5c41860388b0bef7422",
+      "head_matches_origin_main": false,
       "local_path": "cd /path/to/",
-      "origin_main": "4f41fa191a92e76dda30759ab0d4d3b1ec3d2cf6",
-      "worktree_clean": true
+      "origin_main": "23472645c219e006059d59f79fe562358e2d5439",
+      "worktree_clean": false
     },
     "scope": "current-continuation-state"
   },
@@ -182,14 +182,14 @@
   },
   "kind": "successor_execution_contract",
   "repo": {
-    "branch": "docs/post-pr32-successor-package-refresh",
+    "branch": "docs/greenfield-gf018-branch-cleanup-idempotency",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "4f41fa191a92e76dda30759ab0d4d3b1ec3d2cf6",
-    "head_matches_origin_main": true,
+    "head": "9fc8b4ef0d189949ed77e5c41860388b0bef7422",
+    "head_matches_origin_main": false,
     "local_path": "cd /path/to/",
-    "origin_main": "4f41fa191a92e76dda30759ab0d4d3b1ec3d2cf6",
-    "worktree_clean": true
+    "origin_main": "23472645c219e006059d59f79fe562358e2d5439",
+    "worktree_clean": false
   },
   "rules": [
     {
