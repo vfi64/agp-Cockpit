@@ -17,14 +17,20 @@ from agp_cockpit.ui.browser_transport_panel import BrowserTransportPanel
 
 
 class MainWindow(ttk.Frame):
-    def __init__(self, master: tk.Misc) -> None:
-        super().__init__(master, padding=10)
+    def __init__(
+        self,
+        master: tk.Misc,
+        *,
+        repository_root: Path | None = None,
+    ) -> None:
+        super().__init__(master, padding=12)
+        self.repository_root = (repository_root or Path.cwd()).expanduser().resolve()
         self.grid(sticky="nsew")
 
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(2, weight=1)
+        self.rowconfigure(3, weight=1)
 
         self.status_var = tk.StringVar(
             value="Lokale Laufzeit wird geprüft …"
@@ -32,6 +38,7 @@ class MainWindow(ttk.Frame):
         self.ollama_var = tk.StringVar(value="")
         self.hermes_var = tk.StringVar(value="")
         self.model_var = tk.StringVar(value="")
+        self.context_var = tk.StringVar(value=f"Repository: {self.repository_root}")
 
         self._build()
         self.after(80, self.refresh_runtime_status)
@@ -65,14 +72,23 @@ class MainWindow(ttk.Frame):
             sticky="e",
         )
 
+        context = ttk.Frame(self)
+        context.grid(row=1, column=0, sticky="ew", pady=(2, 8))
+        context.columnconfigure(0, weight=1)
+        ttk.Label(context, textvariable=self.context_var).grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            context,
+            text="Desktop hardening · deterministic transport",
+        ).grid(row=0, column=1, sticky="e")
+
         ttk.Separator(
             self,
             orient="horizontal",
         ).grid(
-            row=1,
+            row=2,
             column=0,
             sticky="ew",
-            pady=(0, 6),
+            pady=(0, 8),
         )
 
         self.tabs = ttk.Notebook(self)
@@ -84,7 +100,7 @@ class MainWindow(ttk.Frame):
                 _agp_refresh_parent,
                 text="Browser-Verbindung neu laden",
                 command=lambda: request_browser_refresh(
-                    Path.cwd(),
+                    self.repository_root,
                     reason="cockpit-button",
                 ),
             )
@@ -92,7 +108,7 @@ class MainWindow(ttk.Frame):
         except Exception:
             pass
         self.tabs.grid(
-            row=2,
+            row=3,
             column=0,
             sticky="nsew",
         )
@@ -125,7 +141,7 @@ class MainWindow(ttk.Frame):
 
         self.work_order_panel = WorkOrderPanel(
             order_tab,
-            repository_root=Path.cwd(),
+            repository_root=self.repository_root,
         )
         self.work_order_panel.grid(
             row=0,
@@ -137,6 +153,7 @@ class MainWindow(ttk.Frame):
             order_tab,
             get_result_text=self.work_order_panel.get_result_for_copy,
             set_work_order_text=self.work_order_panel.set_work_order_text,
+            repository_root=self.repository_root,
         )
         self.browser_transport_panel.grid(
             row=1,

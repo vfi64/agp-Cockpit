@@ -24,6 +24,7 @@ class BrowserTransportPanel(ttk.LabelFrame):
         *,
         get_result_text,
         set_work_order_text,
+        repository_root: Path | None = None,
     ) -> None:
         super().__init__(
             master,
@@ -32,6 +33,7 @@ class BrowserTransportPanel(ttk.LabelFrame):
         )
         self.get_result_text = get_result_text
         self.set_work_order_text = set_work_order_text
+        self.repository_root = (repository_root or Path.cwd()).expanduser().resolve()
 
         self.columnconfigure(0, weight=1)
 
@@ -74,8 +76,7 @@ class BrowserTransportPanel(ttk.LabelFrame):
         )
 
     def open_operator(self) -> None:
-        root = Path.cwd().resolve()
         MissionOperatorWindow(
             self.winfo_toplevel(),
-            repository_root=root,
+            repository_root=self.repository_root,
         )

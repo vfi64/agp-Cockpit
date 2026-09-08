@@ -238,10 +238,10 @@ def probe_existing_bridge(
         return False
 
 
-def run_legacy_gui() -> None:
+def run_legacy_gui(repository_root: Path | None = None) -> None:
     from agp_cockpit.app import run_gui_only
 
-    run_gui_only()
+    run_gui_only(repository_root)
 
 
 # AGP_DETERMINISTIC_STARTUP_WAKE_063V
@@ -316,7 +316,7 @@ def run(
         )
         write_startup_status(root, status)
         show_startup_guidance(status.message)
-        run_legacy_gui()
+        run_legacy_gui(root)
         return 0
 
     runtime: BridgeRuntimeServer | None = None
@@ -348,7 +348,7 @@ def run(
             )
             write_startup_status(root, status)
             show_startup_guidance(status.message)
-            run_legacy_gui()
+            run_legacy_gui(root)
             return 0
 
     # AGP_INITIAL_HANDSHAKE_ASYNC_063R2
@@ -513,7 +513,7 @@ def run(
         ).start()
 
     try:
-        run_legacy_gui()
+        run_legacy_gui(root)
     finally:
         if owns_runtime and runtime is not None:
             runtime.stop()
