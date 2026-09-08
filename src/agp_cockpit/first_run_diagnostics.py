@@ -79,6 +79,32 @@ def run_first_run_diagnostics(repository_root: Path) -> dict[str, Any]:
         path=str(state_root),
     ))
 
+    try:
+        if platform.system() == 'Darwin':
+            from agp_cockpit.adapters.macos_settings import settings_path
+            from agp_cockpit.settings import load_settings
+
+            user_settings, migration_needed = load_settings(settings_path())
+            checks.append(_check(
+                'settings', 'PASS',
+                'User settings are readable and schema-compatible.',
+                schema_version=user_settings.schema_version,
+                migration_needed=migration_needed,
+                path=str(settings_path()),
+            ))
+        else:
+            checks.append(_check(
+                'settings', 'WARN',
+                'macOS user-settings location is not authoritative on this host.',
+                path=None,
+            ))
+    except Exception as exc:
+        checks.append(_check(
+            'settings', 'FAIL',
+            'User settings are unreadable or incompatible.',
+            error=str(exc),
+        ))
+
     extension_dir = root / 'chrome_extension'
     checks.append(_check(
         'browser-extension-assets', 'PASS' if extension_dir.is_dir() else 'WARN',

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Sequence
 
@@ -56,7 +57,35 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True))
         return 0 if report['overall'] != 'FAIL' else 1
 
+    from agp_cockpit.adapters.macos_settings import settings_path
+    from agp_cockpit.core.diagnostic_log import DiagnosticLogger
+    from agp_cockpit.settings import SettingsError, load_and_migrate_settings
+
+    log = DiagnosticLogger(root)
+    try:
+        settings, migrated = load_and_migrate_settings(settings_path())
+    except SettingsError as exc:
+        log.event(
+            "SETTINGS_LOAD_FAILED",
+            component="desktop",
+            details={"error": str(exc)},
+        )
+        print(f"AGP Cockpit settings error: {exc}", file=sys.stderr)
+        return 2
+
+    log.event(
+        "DESKTOP_START",
+        component="desktop",
+        details={
+            "settings_schema_version": settings.schema_version,
+            "settings_migrated": migrated,
+            "bridge_host": settings.bridge_host,
+            "bridge_port": settings.bridge_port,
+        },
+    )
+
     from agp_cockpit.app_bootstrap import run
+
     return int(run(root))
 
 
