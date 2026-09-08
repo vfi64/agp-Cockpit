@@ -32,14 +32,14 @@
       "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
     ],
     "repo": {
-      "branch": "docs/post-pr43-successor-package-refresh",
+      "branch": "docs/greenfield-gf019-transfer-archive-volatile",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "bf239843be337b06b7e3357fc54ad5385f5fa640",
-      "head_matches_origin_main": true,
+      "head": "796211ad14c31c9b3f769610a1cb56cebcc62bf4",
+      "head_matches_origin_main": false,
       "local_path": "cd /path/to/",
-      "origin_main": "bf239843be337b06b7e3357fc54ad5385f5fa640",
-      "worktree_clean": true
+      "origin_main": "379983f3988cbb5340b3d8a1eda9a501954032ab",
+      "worktree_clean": false
     },
     "scope": "current-continuation-state"
   },
@@ -182,14 +182,14 @@
   },
   "kind": "successor_execution_contract",
   "repo": {
-    "branch": "docs/post-pr43-successor-package-refresh",
+    "branch": "docs/greenfield-gf019-transfer-archive-volatile",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "bf239843be337b06b7e3357fc54ad5385f5fa640",
-    "head_matches_origin_main": true,
+    "head": "796211ad14c31c9b3f769610a1cb56cebcc62bf4",
+    "head_matches_origin_main": false,
     "local_path": "cd /path/to/",
-    "origin_main": "bf239843be337b06b7e3357fc54ad5385f5fa640",
-    "worktree_clean": true
+    "origin_main": "379983f3988cbb5340b3d8a1eda9a501954032ab",
+    "worktree_clean": false
   },
   "rules": [
     {

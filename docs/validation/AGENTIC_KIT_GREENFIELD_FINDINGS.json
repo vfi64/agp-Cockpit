@@ -149,6 +149,13 @@
       "historical_id": "Phase-8 Steps 335 / 335R1",
       "canonical_family": "KIT-GF-018",
       "summary": "merged-work-branch cleanup returned BLOCKED/remote_delete_failed when the authoritative remote ref was already absent and only stale remote-tracking state remained"
+    },
+    {
+      "date": "2026-09-08",
+      "event_id": "GF-E022",
+      "historical_id": "Phase-10 Steps 504-509",
+      "canonical_family": "KIT-GF-019",
+      "summary": "restore-known-volatile missed archived transfer outbox residue and external pr-merge-safe blocked despite green CI"
     }
   ],
   "families": [

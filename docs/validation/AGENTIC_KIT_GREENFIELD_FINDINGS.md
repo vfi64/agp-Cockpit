@@ -40,6 +40,8 @@ service behavior are explicitly excluded.
 | 2026-09-05 | `GF-E020` | `Steps 215-218` | `KIT-GF-011` | Kit-generated tracked successor projections block next work start; normalize-session and post-merge-settle both reject the Kit-owned dirty state |
 | 2026-09-07 | `GF-E021` | `Phase-8 Steps 335 / 335R1` | `KIT-GF-018` | merged-work-branch cleanup returned BLOCKED/remote_delete_failed although authoritative remote ref was already absent; stale remote-tracking state remained |
 
+| 2026-09-08 | `GF-E022` | `Phase-10 Steps 504-509` | `KIT-GF-019` | restore-known-volatile missed archived transfer outbox residue and external pr-merge-safe blocked despite green CI |
+
 ## Canonical defect families
 
 ### KIT-GF-001 — Workspace lifecycle bootstrap is not closed after successful external workspace init
@@ -615,6 +617,48 @@ Kit 1.0.9: **NOT_PROVEN_FIXED**. Step 347 source inspection still found the dire
 - Step 347 Greenfield ledger reconciliation
 - Kit 1.0.9 `cli_commands/transfer_repo_pre_pr.py`
 
+
+### KIT-GF-019 — restore-known-volatile does not cover archived transfer operational residue
+
+First observed: 2026-09-08
+Status: OPEN
+Severity: high
+Classification: agentic-kit
+Historical aliases: none
+
+**Expected**
+
+Kit-owned volatile transfer cleanup must cover operational residue wherever the Kit itself relocates it, or merge preflight must exclude semantically archived operational artifacts from target-repository product dirtiness.
+
+**Observed**
+
+During Phase-10 closeout, the supported `transfer restore-known-volatile` path knew the active `.agentic/transfer/outbox/last_result.txt` path but did not remove an archived copy at `.agentic/transfer/archive/.../.agentic/transfer/outbox/last_result.txt`. That untracked Kit-owned operational residue caused `external_pr_merge_preflight` / `pr-merge-safe` to block although PR #43 had green required CI and was otherwise ready to merge. The supported transfer closeout path later removed the archive residue, after which the existing PR lifecycle completed and Phase 10 merged successfully.
+
+**Impact**
+
+A high-level external-workspace lifecycle can deadlock at safe merge because Kit-generated archival residue is classified as target-repository dirtiness while the advertised known-volatile restoration surface cannot clean it.
+
+**Validated/temporary workaround**
+
+Preserve the evidence, use supported Kit transfer closeout/cleanup rather than raw Git deletion, then re-run the existing high-level PR lifecycle. Do not recreate the PR or bypass merge safety.
+
+**Required Kit repair direction**
+
+Make volatile ownership recursive/location-aware across Kit-created transfer archives, or make archive creation/closeout transactional so no merge-blocking operational residue remains. `restore-known-volatile` and external merge preflight must share the same ownership classification.
+
+**Required regression/acceptance evidence**
+
+Create Kit transfer outbox state, archive it through the supported lifecycle, and verify that the supported cleanup/restore path leaves no Kit-owned archived operational residue that blocks `pr-merge-safe`. Genuine product dirtiness must remain fail-closed.
+
+**Evidence sources / IDs**
+
+- Phase-10 Steps 504-509
+- PR #43
+- `.agentic/transfer/archive/.../.agentic/transfer/outbox/last_result.txt`
+- `transfer restore-known-volatile`
+- `external_pr_merge_preflight`
+
+---
 
 ## Explicit exclusions
 
