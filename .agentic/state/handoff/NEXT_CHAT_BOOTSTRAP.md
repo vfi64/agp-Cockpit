@@ -6,10 +6,10 @@ Do not start from chat memory. Read the Successor Handoff Package first.
 ## Current verified repository state
 
 - Repo: `vfi64/agp-Cockpit`
-- HEAD: `8008fcf562a9a7d1b3ca099b7135b1bb752c1c49` (`8008fcf5`)
-- Handoff freshness marker: `8008fcf5`
-- Branch at generation: `feature/phase11-tkinter-product-polish`
-- Worktree clean at generation: `False`
+- HEAD: `6801a0b9db7ddb7e3597f2553ede91a0a28b7e6f` (`6801a0b9`)
+- Handoff freshness marker: `6801a0b9`
+- Branch at generation: `docs/post-pr53-successor-package-refresh`
+- Worktree clean at generation: `True`
 
 ## Successor handoff package
 
