@@ -36,6 +36,8 @@ def test_desktop_start_loads_settings_and_emits_structured_event(tmp_path, monke
         lambda root: 0,
     )
 
+    (tmp_path / "chrome_extension").mkdir()
+    (tmp_path / ".agentic").mkdir()
     rc = app.main(["--repository-root", str(tmp_path)])
 
     assert rc == 0
@@ -44,8 +46,9 @@ def test_desktop_start_loads_settings_and_emits_structured_event(tmp_path, monke
             "DESKTOP_START",
             "desktop",
             {
-                "settings_schema_version": 1,
+                "settings_schema_version": 2,
                 "settings_migrated": True,
+                "repository_root_source": "explicit",
                 "bridge_host": "127.0.0.1",
                 "bridge_port": 9876,
             },
