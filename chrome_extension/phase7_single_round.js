@@ -12,11 +12,13 @@
   async function runOneRound({protocolSnapshot = null, browserTimeoutMs = 120000} = {}) {
     // AGP_PHASE7_STABLE_PROTOCOL_ENTRY_326
     const snap = protocolSnapshot || await C.waitForCompletedProtocolAssistant({afterFingerprint:"", timeoutMs:browserTimeoutMs});
-    const action = P.parseAction(snap.text);
+    const K = globalThis.AGPCockpitProtocolCanonicalizerV1;
+    const canonicalText = K && typeof K.canonicalizeProtocolFrame === "function" ? K.canonicalizeProtocolFrame(snap.text) : snap.text;
+    const action = P.parseAction(canonicalText);
     if (!["DIRECT_EXECUTION", "FILE_TRANSFER"].includes(action.mode)) throw new Error("Phase7 requires DIRECT_EXECUTION or FILE_TRANSFER");
     const cfg = await config();
     const r = await fetch(cfg.baseUrl + "/v1/protocol/execute", {
-      method:"POST", headers:{"Content-Type":"text/plain","X-AGP-Token":cfg.token}, body:snap.text
+      method:"POST", headers:{"Content-Type":"text/plain","X-AGP-Token":cfg.token}, body:canonicalText
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || "bridge execute failed");
