@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-08T18:37:21.954941+00:00",
+  "generated_at_utc": "2026-09-08T18:38:58.235684+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.0.9"
   },
   "repo": {
-    "branch": "docs/greenfield-gf019-transfer-archive-volatile",
+    "branch": "docs/post-pr45-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "796211ad14c31c9b3f769610a1cb56cebcc62bf4",
-    "head_matches_origin_main": false,
-    "head_short": "796211ad",
+    "head": "f29c7ab847c228d9234b5848786a51363a2e4d97",
+    "head_matches_origin_main": true,
+    "head_short": "f29c7ab8",
     "local_path": "cd /path/to/",
-    "origin_main": "379983f3988cbb5340b3d8a1eda9a501954032ab",
-    "origin_main_short": "379983f3",
-    "worktree_clean": false
+    "origin_main": "f29c7ab847c228d9234b5848786a51363a2e4d97",
+    "origin_main_short": "f29c7ab8",
+    "worktree_clean": true
   },
   "schema_version": 1,
   "short_term_memory": {
