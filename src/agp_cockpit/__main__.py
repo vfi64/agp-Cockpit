@@ -1,8 +1,7 @@
-from pathlib import Path
-from agp_cockpit.app_bootstrap import run
+from __future__ import annotations
 
-def main() -> int:
-    return run(Path.cwd())
+from agp_cockpit.app import main
+
 
 if __name__ == '__main__':
     raise SystemExit(main())
