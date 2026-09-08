@@ -1,0 +1,57 @@
+{
+  "phase": 9,
+  "title": "FILE_TRANSFER pass-through",
+  "date": "2026-09-08",
+  "status": "PASS",
+  "authority": {
+    "browser_llm": "reasoning, planning, and production of the next Protocol-v1 work order",
+    "cockpit": "mechanical local transport only; deterministic presentation canonicalization before strict Protocol-v1 validation",
+    "kit": "FILE_TRANSFER workflow semantics, validation, mutation, Git/GitHub lifecycle, evidence and gates"
+  },
+  "acceptance_facts": {
+    "direct_and_file_transfer_share_transport": true,
+    "cockpit_file_transfer_subsystem_added": false,
+    "handcrafted_transfer_yaml_used": false,
+    "real_browser_roundtrip_proven": true,
+    "real_browser_action_id": "phase9-file-transfer-e2e-460-01",
+    "real_browser_mode": "FILE_TRANSFER",
+    "browser_llm_malformed_nested_json_observed": true,
+    "deterministic_canonicalizer_repaired_presentation": true,
+    "strict_protocol_parser_accepted_canonical_action": true,
+    "actual_local_command": [
+      "agentic-kit",
+      "transfer",
+      "remote-next",
+      "--json"
+    ],
+    "actual_kit_process_invoked": true,
+    "kit_terminal_result": "BLOCKED/missing_transfer_order (RC=2)",
+    "kit_terminal_result_is_phase9_failure": false,
+    "result_returned_to_same_browser_conversation": true,
+    "step460_acceptance_predicates": "8/8 true"
+  },
+  "turn_counter_adjudication": {
+    "observed": "Turns 0 / 40 after direct Phase7 runOneRound E2E",
+    "classification": "EXPECTED SEPARATION / NO DEFECT EVIDENCE",
+    "reason": "Source review found no explicit coupling requiring direct Phase7 runOneRound to increment the P8/mission counter. Phase8 owns multi-round progress through onRoundCompleted/out.rounds.",
+    "phase8_prior_evidence": "Dedicated P8 runs previously showed 1/40 after one round and 2/40 after two rounds."
+  },
+  "external_kit_findings": [
+    "GF010 rule acknowledgement self-invalidation family",
+    "GF019 Kit-generated remote-next order validation/parser mismatch",
+    "KIT-GF-011 generated successor/handoff/transfer state conflicts",
+    "PR preflight rejecting Kit-generated transfer archive/runtime state",
+    "guarded lifecycle lacks supported adoption of legitimate pre-existing product diff"
+  ],
+  "external_kit_findings_policy": "record only in Phase9; repair later only in agentic-project-kit",
+  "browser_runtime": {
+    "accepted_runtime": "Playwright Chrome for Testing via CDP 9230",
+    "branded_chrome_cli_extension_loading": "unsupported in current branded Chrome; environment limitation, not Cockpit defect"
+  },
+  "final_gates": {
+    "phase9_closeout_tests": 0,
+    "full_pytest": 0,
+    "agentic_kit_check": 0,
+    "git_diff_check_before_docs": 0
+  }
+}
