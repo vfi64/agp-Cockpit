@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-08T19:26:50.245915+00:00",
+  "generated_at_utc": "2026-09-08T19:42:34.705507+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.0.9"
   },
   "repo": {
-    "branch": "docs/post-pr49-successor-package-refresh",
+    "branch": "feature/phase11-macos-packaging-context",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "fa4dc6b7b5037785c95a75e4f5e03f5bf12602f0",
-    "head_matches_origin_main": true,
-    "head_short": "fa4dc6b7",
+    "head": "94fd669a446e13ebb07eecd72e387399cf15f71b",
+    "head_matches_origin_main": false,
+    "head_short": "94fd669a",
     "local_path": "cd /path/to/",
-    "origin_main": "fa4dc6b7b5037785c95a75e4f5e03f5bf12602f0",
-    "origin_main_short": "fa4dc6b7",
-    "worktree_clean": true
+    "origin_main": "8eb9aa60d0c0c614db96964b8736f970a4d01a0e",
+    "origin_main_short": "8eb9aa60",
+    "worktree_clean": false
   },
   "schema_version": 1,
   "short_term_memory": {

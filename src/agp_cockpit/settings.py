@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 
-SETTINGS_SCHEMA_VERSION = 1
+SETTINGS_SCHEMA_VERSION = 2
 
 
 class SettingsError(RuntimeError):
@@ -20,6 +20,7 @@ class AppSettings:
     bridge_port: int = 8765
     max_rounds: int = 8
     diagnostics_enabled: bool = True
+    repository_root: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -27,7 +28,7 @@ class AppSettings:
 
 def _coerce_v0(data: dict[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": SETTINGS_SCHEMA_VERSION,
+        "schema_version": 1,
         "bridge_host": data.get("bridge_host", data.get("host", "127.0.0.1")),
         "bridge_port": data.get("bridge_port", data.get("port", 8765)),
         "max_rounds": data.get("max_rounds", 8),
@@ -44,11 +45,21 @@ def migrate_settings_dict(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
             f"settings schema {raw_version} is newer than supported "
             f"schema {SETTINGS_SCHEMA_VERSION}"
         )
+
+    current = dict(data)
+    changed = False
     if raw_version == 0:
-        return _coerce_v0(data), True
-    if raw_version == SETTINGS_SCHEMA_VERSION:
-        return dict(data), False
-    raise SettingsError(f"unsupported settings schema {raw_version}")
+        current = _coerce_v0(current)
+        raw_version = 1
+        changed = True
+    if raw_version == 1:
+        current["schema_version"] = 2
+        current.setdefault("repository_root", None)
+        raw_version = 2
+        changed = True
+    if raw_version != SETTINGS_SCHEMA_VERSION:
+        raise SettingsError(f"unsupported settings schema {raw_version}")
+    return current, changed
 
 
 def _validated(data: dict[str, Any]) -> AppSettings:
@@ -56,6 +67,7 @@ def _validated(data: dict[str, Any]) -> AppSettings:
     port = data.get("bridge_port", 8765)
     max_rounds = data.get("max_rounds", 8)
     diagnostics_enabled = data.get("diagnostics_enabled", True)
+    repository_root = data.get("repository_root")
 
     if not isinstance(host, str) or not host.strip():
         raise SettingsError("bridge_host must be a non-empty string")
@@ -65,6 +77,10 @@ def _validated(data: dict[str, Any]) -> AppSettings:
         raise SettingsError("max_rounds must be a positive integer")
     if not isinstance(diagnostics_enabled, bool):
         raise SettingsError("diagnostics_enabled must be boolean")
+    if repository_root is not None and (
+        not isinstance(repository_root, str) or not repository_root.strip()
+    ):
+        raise SettingsError("repository_root must be null or a non-empty string")
 
     return AppSettings(
         schema_version=SETTINGS_SCHEMA_VERSION,
@@ -72,6 +88,7 @@ def _validated(data: dict[str, Any]) -> AppSettings:
         bridge_port=port,
         max_rounds=max_rounds,
         diagnostics_enabled=diagnostics_enabled,
+        repository_root=repository_root.strip() if isinstance(repository_root, str) else None,
     )
 
 
