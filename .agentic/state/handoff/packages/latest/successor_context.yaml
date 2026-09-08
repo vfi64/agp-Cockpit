@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-08T20:02:05.900096+00:00",
+  "generated_at_utc": "2026-09-08T20:03:38.771725+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.0.9"
   },
   "repo": {
-    "branch": "feature/phase11-tkinter-product-polish",
+    "branch": "docs/post-pr53-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "8008fcf562a9a7d1b3ca099b7135b1bb752c1c49",
-    "head_matches_origin_main": false,
-    "head_short": "8008fcf5",
+    "head": "6801a0b9db7ddb7e3597f2553ede91a0a28b7e6f",
+    "head_matches_origin_main": true,
+    "head_short": "6801a0b9",
     "local_path": "cd /path/to/",
-    "origin_main": "db239a6baf02a8ecb15b71d392a19b9214a8f279",
-    "origin_main_short": "db239a6b",
-    "worktree_clean": false
+    "origin_main": "6801a0b9db7ddb7e3597f2553ede91a0a28b7e6f",
+    "origin_main_short": "6801a0b9",
+    "worktree_clean": true
   },
   "schema_version": 1,
   "short_term_memory": {

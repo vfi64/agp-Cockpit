@@ -32,14 +32,14 @@
       "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
     ],
     "repo": {
-      "branch": "feature/phase11-tkinter-product-polish",
+      "branch": "docs/post-pr53-successor-package-refresh",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "8008fcf562a9a7d1b3ca099b7135b1bb752c1c49",
-      "head_matches_origin_main": false,
+      "head": "6801a0b9db7ddb7e3597f2553ede91a0a28b7e6f",
+      "head_matches_origin_main": true,
       "local_path": "cd /path/to/",
-      "origin_main": "db239a6baf02a8ecb15b71d392a19b9214a8f279",
-      "worktree_clean": false
+      "origin_main": "6801a0b9db7ddb7e3597f2553ede91a0a28b7e6f",
+      "worktree_clean": true
     },
     "scope": "current-continuation-state"
   },
@@ -182,14 +182,14 @@
   },
   "kind": "successor_execution_contract",
   "repo": {
-    "branch": "feature/phase11-tkinter-product-polish",
+    "branch": "docs/post-pr53-successor-package-refresh",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "8008fcf562a9a7d1b3ca099b7135b1bb752c1c49",
-    "head_matches_origin_main": false,
+    "head": "6801a0b9db7ddb7e3597f2553ede91a0a28b7e6f",
+    "head_matches_origin_main": true,
     "local_path": "cd /path/to/",
-    "origin_main": "db239a6baf02a8ecb15b71d392a19b9214a8f279",
-    "worktree_clean": false
+    "origin_main": "6801a0b9db7ddb7e3597f2553ede91a0a28b7e6f",
+    "worktree_clean": true
   },
   "rules": [
     {
