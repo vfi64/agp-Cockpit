@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-09T15:28:22.877096+00:00",
+  "generated_at_utc": "2026-09-09T15:30:06.706115+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.0.9"
   },
   "repo": {
-    "branch": "feature/phase19-s9-human-checkpoint-e2e",
+    "branch": "docs/post-pr81-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "6c13406bdc7a71d007b3a14c194ca3f717d7c55f",
-    "head_matches_origin_main": false,
-    "head_short": "6c13406b",
+    "head": "352af71abcd6c18432617b527c961eb5b8d67f82",
+    "head_matches_origin_main": true,
+    "head_short": "352af71a",
     "local_path": "cd /path/to/",
-    "origin_main": "6b8044eba9887f67ff9dd046eafaab9643a87ef8",
-    "origin_main_short": "6b8044eb",
-    "worktree_clean": false
+    "origin_main": "352af71abcd6c18432617b527c961eb5b8d67f82",
+    "origin_main_short": "352af71a",
+    "worktree_clean": true
   },
   "schema_version": 1,
   "short_term_memory": {
