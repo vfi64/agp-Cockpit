@@ -56,7 +56,7 @@ parallel runtime is introduced.
 Status: COMPLETE / CERTIFIED.
 
 ### Phase 12 / S1 — Architecture contract and migration decision
-Status: ACTIVE.
+Status: COMPLETE.
 
 Deliverables:
 - authority/state ownership inventory;
@@ -137,3 +137,12 @@ the still-active S2 capability limits.
 The macOS product is functionally accepted for the target architecture only
 after S0-S11 applicable gates are satisfied. The optional local-LLM slice does
 not block acceptance.
+
+## 7. Final acceptance status
+
+Status-date: 2026-09-09
+
+S0-S11 applicable gates are COMPLETE and the macOS target architecture is
+FUNCTIONALLY ACCEPTED under the criterion above. S12 is additionally COMPLETE
+as PORTABLE_CORE_READY. This does not claim native Windows or Linux product
+readiness. S10 remains optional and is not admitted to the critical path.
