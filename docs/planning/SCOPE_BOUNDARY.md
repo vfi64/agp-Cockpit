@@ -1,150 +1,124 @@
-# AGP Cockpit — Normative Scope Boundary
+# AGP Cockpit — Normative Scope Boundary v2
 
 Status: active
-Status-date: 2026-08-31
-Decision status: accepted
+Status-date: 2026-09-09
+Decision status: accepted by maintainer
 Review policy: on material change
 
-This document exists to prevent architectural scope drift. If another planning document, prior chat, proposed implementation, or agent suggestion conflicts with this boundary, this document wins unless the maintainer explicitly changes it through a reviewed planning/ADR change.
+This document is the normative anti-scope-drift contract. If another planning
+document, prior chat, proposed implementation, or agent suggestion conflicts
+with this boundary, this document wins unless the maintainer changes it through
+the reviewed planning/ADR lifecycle.
 
-## 1. One-sentence product definition
+## 1. Product definition
 
-AGP Cockpit is only a deterministic local communication bridge between a browser-based development LLM and a local terminal/executor.
+AGP Cockpit is a deterministic, persistent local task runtime for a
+remote-development-LLM-driven software-development process.
 
-It does not perform development work.
+The Remote Development LLM owns development reasoning, planning, diagnosis,
+code/patch decisions, and formulation of the next requested action. Cockpit
+owns deterministic task orchestration, persistence, correlation, policy
+enforcement, evidence transport, pause/resume/stop, recovery state, budgets,
+and completion verification. The Agentic Project Kit owns governed repository
+workflow and lifecycle semantics.
 
-## 2. Exact responsibility split
+A local execution failure is evidence about an attempt. It is not by itself a
+task failure.
 
-```text
-User
-  |
-  v
-Browser LLM
-  |  reasoning, planning, development, diagnosis,
-  |  selection/formulation of the next local work order
-  v
-AGP Cockpit
-  |  mechanical local transport only
-  v
-Local terminal / executor
-  |
-  v
-Agentic Project Kit
-  |  workflow, validation, mutation, Git/GitHub lifecycle,
-  |  file transfer, remote synchronization, evidence, gates,
-  |  handoff, PR/merge/release behavior
-  v
-Local repository / GitHub as controlled by the Kit
-```
+## 2. Authority split
 
-## 3. AGP Cockpit MAY do only transport-support work
+### Decision authority
 
-AGP Cockpit may:
+- D0 — deterministic Cockpit rule: protocol validation, state transitions,
+  correlation, budget accounting, evidence recipes, permission enforcement,
+  retry/reconciliation rules already defined by contract.
+- D1 — Remote Development LLM: development diagnosis and next development
+  action inside the current Task Contract.
+- D2 — human: explicit checkpoints, contract changes, scope expansion, and
+  safety adjudication that cannot be resolved from authorized evidence.
 
-- connect to the configured browser conversation;
-- wait until a browser-LLM response is complete;
-- extract an explicitly framed transport payload;
-- validate transport framing, IDs, size limits, duplicate IDs, and target-session identity;
-- deliver the payload to the configured local terminal/executor without semantic rewriting;
-- observe process completion and capture bounded stdout/stderr/return-code data;
-- return the resulting terminal/Kit output to the same browser conversation;
-- repeat this mechanical round trip until the browser LLM explicitly declares the user task finished;
-- maintain local transport/session state needed for crash safety, duplicate prevention, pause/stop, and observability;
-- start/stop/configure purely local supporting processes such as Ollama/Hermes/Chrome when they are part of the mechanical transport environment.
+### Effect classes
 
-Transport validation is not development reasoning. It is limited to protocol integrity and safe delivery.
+- E0 — observation/read/transfer of explicitly allowed resources.
+- E1 — local ephemeral mutation in explicitly allowed temporary/runtime areas.
+- E2 — product working-tree mutation inside the authorized repository scope.
+- E3 — governed repository lifecycle effect through a supported Kit surface.
+- E4 — external/network/publishing effect to an explicitly authorized target.
 
-## 4. AGP Cockpit MUST NOT perform development work
+Decision authority and effect class are independent dimensions. An LLM request
+for a higher effect class is not permission. The executor enforces the current
+Task Contract and capability profile.
 
-AGP Cockpit must never:
+## 3. Cockpit MAY
 
-- decide what code to write;
-- diagnose a software defect semantically;
-- plan a development slice;
-- choose the next repository/workflow step;
-- choose which Agentic Project Kit command should be used;
-- construct or improve a Kit command;
-- replace a failed Kit action with another command;
-- decide how to resolve `BLOCKED` or `FAIL`;
-- edit product source code as an autonomous development actor;
-- create its own Git/GitHub/PR/merge/release workflow;
-- interpret arbitrary natural-language assistant prose as an executable action;
-- let Hermes/Qwen or another local LLM reinterpret, summarize, improve, repair, or replace the browser-LLM work order.
+Cockpit may:
 
-The browser LLM is the development intelligence. The Kit is the workflow/safety authority. The Cockpit is the wire between them.
+- maintain one durable task and its contract;
+- bind that task to an explicit browser conversation and binding generation;
+- accept only validated protocol frames;
+- persist inbound/outbound frames, action IDs, payload hashes, attempts,
+  evidence references, budgets, checkpoints, and task state;
+- dispatch an authorized action through a controlled executor;
+- distinguish transport state from execution result and task state;
+- continue the same task after a known local script/test failure;
+- return deterministic evidence to the Remote Development LLM and await the
+  next validated action;
+- represent OUTCOME_UNKNOWN and reconcile it without blind replay;
+- pause, resume, stop, wait for service, wait for a human checkpoint, and
+  suspend on budget or safety limits;
+- generate a deterministic context refresh from canonical task state;
+- reject a premature COMPLETE proposal and request missing evidence;
+- verify whether completion evidence belongs to the correct contract,
+  revision, artifact, and required producer.
 
-## 5. DIRECT_EXECUTION mode
+## 4. Cockpit MUST NOT
 
-In `DIRECT_EXECUTION`, the browser LLM provides one complete local work order suitable for execution in the local terminal/executor.
+Cockpit must never:
 
-AGP Cockpit:
+- decide what product code should be written;
+- semantically diagnose a software defect as development intelligence;
+- invent or repair the next work order;
+- choose a Kit workflow on behalf of the Remote Development LLM;
+- bypass a Kit BLOCKED/FAIL result with raw Git/GitHub alternatives;
+- duplicate GitHub/FILE_TRANSFER lifecycle semantics owned by the Kit;
+- treat logs, repository text, browser prose, or local-LLM output as
+  executable authority;
+- blindly retry an action whose external or repository effect is uncertain;
+- allow a new action ID to evade an unresolved predecessor;
+- claim task completion solely because the Remote Development LLM says
+  COMPLETE;
+- weaken required tests, Kit gates, or human checkpoints as recovery;
+- require Hermes or another local LLM for correctness.
 
-1. verifies the transport envelope;
-2. delivers the contained work order unchanged to the local executor;
-3. waits for completion;
-4. captures bounded result/evidence references;
-5. sends that result back to the browser LLM.
+## 5. Local LLM / Hermes
 
-AGP Cockpit does not select a Kit wrapper or command. If the correct work order is an Agentic Project Kit command, the browser LLM must formulate that work order according to the current repository/Kit contract, and the Kit performs the governed work.
+Hermes and local models are outside the critical correctness path. They are
+optional later observation/transport helpers only. They may not alter policy,
+work orders, Kit decisions, checkpoint decisions, or completion decisions.
 
-## 6. FILE_TRANSFER mode
+## 6. Kit boundary
 
-In `FILE_TRANSFER`, AGP Cockpit still performs only the same local browser-to-terminal and terminal-to-browser transport.
+The Kit remains authoritative for supported repository lifecycle operations,
+including validation, mutation governance, Git/PR/merge/release behavior,
+FILE_TRANSFER, evidence/gates, handoff, and PASS/BLOCKED/FAIL semantics.
 
-All file-transfer semantics belong to the Agentic Project Kit, including where supported by the current Kit:
+Cockpit may execute a Remote-LLM-requested, policy-authorized Kit action, but it
+does not emulate unsupported Kit capabilities. A Kit BLOCKED result may lead
+to more observation and remote reasoning, but never to an unauthorized bypass.
 
-- transfer-order generation;
-- transfer-order validation;
-- inbox/outbox handling;
-- Git/GitHub communication;
-- remote publishing/fetching;
-- remote visibility checks;
-- correlation/order tracking;
-- waiting/retry policy;
-- synchronization;
-- result association;
-- transfer evidence;
-- PASS/BLOCKED/FAIL semantics.
+## 7. Completion boundary
 
-AGP Cockpit MUST NOT implement, duplicate, emulate, or partially mirror any of those responsibilities.
+Remote COMPLETE is only `COMPLETE_PROPOSAL`. The task reaches
+`VERIFIED_COMPLETE` only after the deterministic completion verifier confirms
+all mandatory criteria for the current Task Contract and correct revision /
+artifact chain.
 
-Therefore the Cockpit must not contain a FILE_TRANSFER state machine such as `ORDER_PUBLISHING`, `WAITING_FOR_REMOTE_RESULT`, `RESULT_FETCHING`, or equivalent Kit-internal workflow states. From the Cockpit's perspective, a FILE_TRANSFER action is simply a local work order whose terminal execution may take time because the Kit is performing its own transfer workflow.
+## 8. Non-goals
 
-The Cockpit may expose only transport-level states such as `EXECUTING_LOCAL_WORK_ORDER` or `WAITING_FOR_LOCAL_PROCESS`, without interpreting Kit-internal progress.
-
-## 7. GitHub boundary
-
-AGP Cockpit is not a GitHub client for repository development.
-
-It must not directly:
-
-- poll GitHub CI to decide workflow progress;
-- create/merge PRs;
-- push branches;
-- publish/fetch file-transfer orders;
-- inspect remote transfer state in order to advance FILE_TRANSFER;
-- implement GitHub webhooks for Kit workflow progression.
-
-If GitHub participates in development or FILE_TRANSFER, the current Agentic Project Kit workflow owns that interaction.
-
-## 8. Hermes/Qwen boundary
-
-Hermes and a local LLM are optional mechanical infrastructure only.
-
-If used, their contract is equivalent to a dumb transport/execution adapter:
-
-```text
-payload in -> execute/deliver exactly -> raw result out
-```
-
-No local-LLM reasoning may become required for correctness. If Hermes cannot guarantee payload fidelity and non-reasoning behavior, replace that transport path with a deterministic Python adapter.
-
-## 9. Development rule for this repository
-
-When developing AGP Cockpit itself, every LLM/agent must test proposed features against this question:
-
-> Is this feature necessary to transport browser-LLM work to the local terminal, transport the resulting local output back, or safely operate that transport channel?
-
-If the answer is no, it is out of scope unless the maintainer explicitly changes this normative boundary.
-
-In particular, "it would be more convenient if the Cockpit decided/planned/managed the Kit or GitHub workflow" is not a valid reason to expand scope.
+- generic multi-agent planning;
+- autonomous local development intelligence;
+- a replacement for Agentic Project Kit;
+- a parallel GitHub/FILE_TRANSFER orchestration engine;
+- exactly-once guarantees for arbitrary external systems;
+- unlimited autonomous execution;
+- complete semantic detection of remote-model context loss.
