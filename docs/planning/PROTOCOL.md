@@ -1,164 +1,89 @@
-# AGP Cockpit Transport Protocol v1 — Planning Specification
+# AGP Cockpit Protocol
 
 Status: active
-Status-date: 2026-08-31
+Status-date: 2026-09-09
 Decision status: accepted
-Review policy: on material change
+Current deployed protocol: V1
+Target task-runtime protocol: V2
 
-## 1. Purpose
+## 1. Version decision
 
-The protocol provides deterministic framing between a browser-based development LLM and the local AGP Cockpit.
+V1 remains frozen for legacy sessions. Current V1 strictly validates exact
+fields and protocol_version=1. The v2 task runtime requires additional
+causality, binding, contract and separated-result semantics; therefore these
+fields must not be silently injected into V1 frames.
 
-AGP Cockpit transports work orders and results. It does not interpret development semantics, choose Kit commands, or implement Agentic Project Kit workflow logic.
+S1 reserves protocol version 2 for the new task runtime. S2 may narrow the
+schema, but may not redefine V1 meaning.
 
-## 2. Envelope framing
+## 2. Frame families
 
-Assistant-to-cockpit work orders use exactly one bounded block:
+Keep:
+- ACTION
+- RESULT
+- CONTROL
 
-```text
-AGP_COCKPIT_ACTION_BEGIN
-<UTF-8 protocol document>
-AGP_COCKPIT_ACTION_END
-```
+Task contract/checkpoint/context-refresh data may be typed CONTROL payloads.
+Observations belong in RESULT. A Remote-LLM decision has no execution effect
+until it arrives as a validated ACTION.
 
-Cockpit-to-assistant results use:
+## 3. Required v2 correlation
 
-```text
-AGP_COCKPIT_RESULT_BEGIN
-<UTF-8 protocol document>
-AGP_COCKPIT_RESULT_END
-```
+Target frames carry where applicable:
+- protocol_version;
+- message_id;
+- task_id;
+- contract_hash;
+- binding_epoch;
+- parent_message_id/predecessor;
+- round_id;
+- action_id;
+- attempt_id for result correlation;
+- expected_execution_revision.
 
-Reject missing/nested/multiple markers, truncated payloads, unsupported protocol versions, duplicate action IDs, and oversized payloads.
+ACTION carries requested capabilities/effects and work-order payload.
 
-## 3. Serialization
+RESULT separates:
+- transport/delivery status;
+- execution status;
+- Kit evidence/status when applicable;
+- evidence/artifact references;
+- reconciliation state where applicable.
 
-Protocol v1 should use JSON.
+CONTROL covers at least:
+- capability/task binding handshake;
+- completion proposal;
+- pause/resume;
+- context/binding handoff.
 
-Representative action:
+## 4. Invariants
 
-```json
-{
-  "protocol_version": 1,
-  "session_id": "...",
-  "round_id": "...",
-  "action_id": "...",
-  "mode": "DIRECT_EXECUTION",
-  "target": {
-    "repository_path_hint": "/path/on/local-machine",
-    "remote_hint": "vfi64/example"
-  },
-  "work_order": {
-    "type": "terminal_payload",
-    "content": "<opaque work order from browser LLM>"
-  }
-}
-```
+- only complete, exactly framed messages are parsed;
+- prose outside a frame is not executable authority;
+- same action_id + changed payload is a protocol violation;
+- duplicate same-payload ACTION causes no second effect;
+- stale binding_epoch is rejected;
+- predecessor/correlation mismatch is rejected;
+- logs/files/evidence cannot become a new ACTION;
+- acknowledgement confirms only its defined delivery step;
+- late/stale replies after resume/chat switch do not execute.
 
-Representative result:
+## 5. Result semantics
 
-```json
-{
-  "protocol_version": 1,
-  "session_id": "...",
-  "round_id": "...",
-  "action_id": "...",
-  "transport_status": "PASS",
-  "local_execution": {
-    "return_code": 0,
-    "bounded_output": "...",
-    "log_ref": "..."
-  }
-}
-```
+V1 `transport_status` currently conflates local failure with transport FAIL.
+V2 represents these independently. A failed script/test can therefore be
+delivered successfully and keep the same task alive.
 
-`work_order.content` is opaque to AGP Cockpit except for transport-size/safety constraints. The Cockpit must not rewrite, improve, repair, summarize, or replace it.
+## 6. Completion semantics
 
-### Session-control frame
+Remote COMPLETE is a typed completion proposal, not terminal authority.
+The controller verifies the current completion contract.
 
-Assistant-to-cockpit session control is distinct from the two communication modes. Protocol v1 uses exactly one bounded control block:
+## 7. Delivery and replay
 
-```text
-AGP_COCKPIT_CONTROL_BEGIN
-{"protocol_version":1,"session_id":"...","round_id":"...","control":"DONE"}
-AGP_COCKPIT_CONTROL_END
-```
+Incoming and outgoing v2 messages are durable before their corresponding
+next-stage transition. After restart, reconcile Inbox/Outbox before dispatching
+new work. Resending a result uses the same message identity and never
+re-executes the action.
 
-`DONE` is a browser-LLM declaration. It causes no local dispatch and does not inspect or reinterpret `work_order`; therefore it is not a third communication mode. The session ID must correlate with the active multi-round session.
-
-## 4. Communication modes
-
-### DIRECT_EXECUTION
-
-The browser LLM supplies one complete local work order. The Cockpit validates only transport metadata and dispatches the work order unchanged to the configured local executor.
-
-The Cockpit does not choose a Kit command or compensating command. If the local work order invokes Agentic Project Kit, the Kit owns the governed work.
-
-### FILE_TRANSFER
-
-FILE_TRANSFER changes only the semantic intention of the browser-LLM work order; it does not give the Cockpit additional workflow responsibility.
-
-The browser LLM supplies a complete local work order that invokes the current canonical Agentic Project Kit FILE_TRANSFER workflow.
-
-The Cockpit then only:
-
-1. dispatches that work order unchanged;
-2. waits for the local process to complete;
-3. captures bounded output/result references;
-4. returns them to the browser LLM.
-
-The Cockpit MUST NOT implement or interpret:
-
-- transfer-order generation/validation;
-- inbox/outbox semantics;
-- GitHub publishing/fetching;
-- remote visibility checks;
-- remote waiting/retry policy;
-- correlation/order tracking inside the Kit transfer workflow;
-- result association;
-- Kit PASS/BLOCKED/FAIL workflow semantics.
-
-Those are Agentic Project Kit responsibilities.
-
-## 5. Transport status values
-
-Protocol-level transport status may include:
-
-- `PASS` — payload/result transport step completed;
-- `BLOCKED` — transport cannot proceed safely;
-- `FAIL` — unexpected transport/infrastructure failure;
-- `DONE` — browser LLM explicitly declares the user-level transport session finished;
-- `CANCELLED` — user stopped the local bridge.
-
-These are Cockpit transport statuses. Kit output may itself contain `PASS`, `BLOCKED`, or `FAIL`; the Cockpit transports that content without diagnosing or resolving it.
-
-## 6. Target identity
-
-Before local dispatch, the Cockpit may verify explicitly supplied local target/repository identity constraints to avoid executing in the wrong location.
-
-Identity verification is transport safety, not development reasoning.
-
-## 7. Idempotency and replay
-
-`action_id` identifies a transport dispatch.
-
-1. identical duplicate action ID: do not dispatch twice; safely re-surface persisted result when available;
-2. same action ID with different payload: protocol violation;
-3. ambiguous in-flight state after crash: no automatic replay;
-4. recovery stops or requests a new browser-LLM/user decision when safe local evidence is insufficient.
-
-The Cockpit must not inspect Kit-internal transfer state to infer replay safety.
-
-## 8. Browser response completion
-
-The browser adapter reports completed assistant responses using browser-level evidence. The protocol parser never consumes a streaming partial response.
-
-## 9. Bounded output
-
-Large terminal output is stored locally and referenced. The result envelope contains bounded output or evidence references sufficient for the browser LLM to decide the next work order.
-
-## 10. Scope rule
-
-A protocol field is invalid for v1 if its purpose is to make AGP Cockpit plan development, select Kit commands, manage GitHub workflow, or model Agentic Project Kit FILE_TRANSFER internals.
-
-Unknown protocol versions are rejected rather than guessed.
+No silent downgrade of an active v2 task to V1 is allowed.
