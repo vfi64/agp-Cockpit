@@ -92,6 +92,20 @@ CREATE TABLE IF NOT EXISTS messages(
     delivered INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY(task_id) REFERENCES tasks(task_id)
 );
+CREATE TABLE IF NOT EXISTS kit_evidence(
+    evidence_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id TEXT NOT NULL,
+    action_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    producer TEXT NOT NULL,
+    command_json TEXT NOT NULL,
+    revision TEXT NOT NULL,
+    artifact_hash TEXT NOT NULL,
+    raw_hash TEXT NOT NULL,
+    recoverable INTEGER NOT NULL DEFAULT 0,
+    recovery_command_json TEXT,
+    UNIQUE(task_id, action_id, raw_hash)
+);
 CREATE TABLE IF NOT EXISTS evidence(
     evidence_id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL,
@@ -344,6 +358,26 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.db.execute("UPDATE task_control SET active_execution=1 WHERE task_id=?", (task_id,))
             self.set_states(task_id, state="ACTIVE", execution_state="RUNNING")
         return attempt_no
+
+    def record_kit_evidence(self, task_id, evidence):
+        import json
+        status=evidence.status.upper()
+        with self.db:
+            self.db.execute(
+                "INSERT OR IGNORE INTO kit_evidence(task_id,action_id,status,producer,command_json,revision,artifact_hash,raw_hash,recoverable,recovery_command_json) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (task_id,evidence.action_id,status,evidence.producer,json.dumps(list(evidence.command)),evidence.revision,
+                 evidence.artifact_hash,evidence.raw_hash,1 if evidence.recoverable else 0,
+                 json.dumps(list(evidence.recovery_command)) if evidence.recovery_command else None))
+            if status == "BLOCKED" and not evidence.recoverable:
+                self.db.execute("UPDATE task_control SET suspension_reason='SAFETY_BLOCK' WHERE task_id=?",(task_id,))
+            self.db.execute("UPDATE tasks SET governance_state=? WHERE task_id=?",
+                ("BLOCKED" if status=="BLOCKED" else ("CLEAR" if status=="PASS" else "FAILED"),task_id))
+
+    def kit_evidence_for(self, task_id, action_id):
+        row=self.db.execute("SELECT * FROM kit_evidence WHERE task_id=? AND action_id=? ORDER BY evidence_id DESC LIMIT 1",
+            (task_id,action_id)).fetchone()
+        return dict(row) if row else None
+
 
     def record_result(self, task_id, action_id, attempt_no, outcome, summary, governance_blocked=False):
         normalized = outcome.upper()

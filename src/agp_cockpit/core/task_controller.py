@@ -40,6 +40,27 @@ class DurableTaskController:
     def begin_attempt(self, action_id):
         return self.store.begin_attempt(self.task_id, action_id)
 
+    def record_kit_result(self, evidence) -> None:
+        self.store.record_kit_evidence(self.task_id, evidence)
+
+    def authorize_kit_recovery(self, blocked_action_id: str, requested_command) -> tuple[str, ...]:
+        evidence=self.store.kit_evidence_for(self.task_id,blocked_action_id)
+        if not evidence or evidence["status"]!="BLOCKED":
+            raise ValueError("Kit BLOCKED evidence required")
+        if not evidence["recoverable"] or not evidence["recovery_command_json"]:
+            raise PermissionError("non-resolvable Kit gate requires suspension")
+        import json
+        allowed=tuple(json.loads(evidence["recovery_command_json"])); requested=tuple(requested_command)
+        if requested!=allowed or not requested or requested[0]!="agentic-kit":
+            raise PermissionError("only the evidenced Kit recovery path is authorized")
+        return requested
+
+    def kit_pass_matches(self, action_id: str, revision: str, artifact_hash: str, raw_hash: str) -> bool:
+        evidence=self.store.kit_evidence_for(self.task_id,action_id)
+        return bool(evidence and evidence["status"]=="PASS" and evidence["producer"]=="agentic-project-kit"
+            and evidence["revision"]==revision and evidence["artifact_hash"]==artifact_hash and evidence["raw_hash"]==raw_hash)
+
+
     def record_local_result(self, action_id, attempt_no, outcome, summary, governance_blocked=False):
         self.store.record_result(
             self.task_id, action_id, attempt_no, outcome, summary, governance_blocked
