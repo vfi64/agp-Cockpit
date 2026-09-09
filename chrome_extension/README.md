@@ -1,14 +1,12 @@
 # AGP Cockpit Chrome Extension
 
-## Local development setup
+## Production desktop setup
 
-1. Start the bridge service from the Cockpit repository:
+1. Start AGP Cockpit. The production bridge runtime is stored outside the repository.
 
-   `.venv/bin/python -m agp_cockpit.bridge_main --repository .`
+2. Read the production bridge token from:
 
-2. Read the token from:
-
-   `.local/agp-cockpit/bridge/token.txt`
+   `~/Library/Application Support/AGP Cockpit/bridge/token.txt`
 
 3. Open `chrome://extensions`.
 
@@ -30,3 +28,7 @@ For the first browser test use only:
 - `SINGLE_STEP`
 
 Do not switch to `LIVE` until the HTTP dry-run path is green.
+
+## Explicit repository-local development bridge
+
+When intentionally starting the development bridge with `.venv/bin/python -m agp_cockpit.bridge_main --repository .`, its token is repository-local at `.local/agp-cockpit/bridge/token.txt`. Do not use that development token for the production desktop bridge.

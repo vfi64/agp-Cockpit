@@ -1,5 +1,5 @@
 from __future__ import annotations
-from agp_cockpit.adapters.macos_settings import bridge_runtime_root
+from agp_cockpit.adapters.macos_settings import bridge_runtime_root, bridge_token_path
 from agp_cockpit.core.runtime_root_policy import require_stable_production_runtime_root
 
 from agp_cockpit.core.browser_readiness import start_browser_readiness_watch
@@ -192,13 +192,7 @@ def build_extension_guidance(
     bridge_host: str,
     bridge_port: int,
 ) -> str:
-    token_path = (
-        repository_root
-        / ".local"
-        / "agp-cockpit"
-        / "bridge"
-        / "token.txt"
-    )
+    token_path = bridge_token_path()
     return (
         "Chrome wurde gestartet, aber die AGP Cockpit Bridge Extension "
         "hat sich nicht beim Cockpit gemeldet.\n\n"
@@ -220,13 +214,7 @@ def probe_existing_bridge(
     bridge_host: str,
     bridge_port: int,
 ) -> bool:
-    token_path = (
-        repository_root
-        / ".local"
-        / "agp-cockpit"
-        / "bridge"
-        / "token.txt"
-    )
+    token_path = bridge_token_path()
     try:
         token = token_path.read_text(
             encoding="utf-8"

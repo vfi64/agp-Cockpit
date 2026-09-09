@@ -18,3 +18,7 @@ def application_support_root() -> Path:
 
 def bridge_runtime_root() -> Path:
     return application_support_root() / "bridge"
+
+
+def bridge_token_path() -> Path:
+    return bridge_runtime_root() / "token.txt"
