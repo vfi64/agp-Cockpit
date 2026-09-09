@@ -106,6 +106,15 @@ CREATE TABLE IF NOT EXISTS kit_evidence(
     recovery_command_json TEXT,
     UNIQUE(task_id, action_id, raw_hash)
 );
+CREATE TABLE IF NOT EXISTS remote_bindings(
+    task_id TEXT NOT NULL,
+    binding_epoch INTEGER NOT NULL,
+    conversation_ref TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(task_id, binding_epoch),
+    FOREIGN KEY(task_id) REFERENCES tasks(task_id)
+);
 CREATE TABLE IF NOT EXISTS evidence(
     evidence_id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL,

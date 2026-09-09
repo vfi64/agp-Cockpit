@@ -31,6 +31,72 @@ class DurableTaskController:
             max_no_progress_rounds=max_no_progress_rounds,
         )
 
+    @staticmethod
+    def negotiate_remote_context_version(client_versions) -> int:
+        supported = {2}
+        offered = {int(v) for v in client_versions}
+        common = supported & offered
+        if not common:
+            raise RuntimeError("REMOTE_CONTEXT_CAPABILITY_MISMATCH")
+        return max(common)
+
+    def bind_remote_context(self, conversation_ref: str) -> int:
+        if not conversation_ref:
+            raise ValueError("conversation_ref required")
+        row = self.store.db.execute(
+            "SELECT COALESCE(MAX(binding_epoch),0) AS epoch FROM remote_bindings WHERE task_id=?",
+            (self.task_id,),
+        ).fetchone()
+        epoch = int(row["epoch"]) + 1
+        with self.store.db:
+            self.store.db.execute(
+                "UPDATE remote_bindings SET status='STALE' WHERE task_id=? AND status='ACTIVE'",
+                (self.task_id,),
+            )
+            self.store.db.execute(
+                "INSERT INTO remote_bindings(task_id,binding_epoch,conversation_ref,status) VALUES(?,?,?,'ACTIVE')",
+                (self.task_id, epoch, conversation_ref),
+            )
+        return epoch
+
+    def active_remote_binding(self):
+        row = self.store.db.execute(
+            "SELECT binding_epoch,conversation_ref,status FROM remote_bindings WHERE task_id=? AND status='ACTIVE' ORDER BY binding_epoch DESC LIMIT 1",
+            (self.task_id,),
+        ).fetchone()
+        return dict(row) if row is not None else None
+
+    def binding_has_execution_authority(self, binding_epoch: int) -> bool:
+        active = self.active_remote_binding()
+        return bool(active and int(active["binding_epoch"]) == int(binding_epoch))
+
+    def remote_context_refresh(self) -> dict:
+        active = self.active_remote_binding()
+        if active is None:
+            raise RuntimeError("REMOTE_BINDING_REQUIRED")
+        task = self.snapshot
+        control = self.control_snapshot
+        return {
+            "task_id": self.task_id,
+            "binding_epoch": int(active["binding_epoch"]),
+            "conversation_ref": active["conversation_ref"],
+            "state": task["state"],
+            "execution_state": task["execution_state"],
+            "governance_state": task["governance_state"],
+            "suspension_reason": task["suspension_reason"],
+            "remote_rounds_used": task["remote_rounds_used"],
+            "local_actions_used": task["local_actions_used"],
+            "retries_used": task["retries_used"],
+            "no_progress_rounds": task["no_progress_rounds"],
+            "controller_generation": task["controller_generation"],
+            "checkpoint_id": control["checkpoint_id"],
+            "checkpoint_revision": control["checkpoint_revision"],
+            "checkpoint_artifact_hash": control["checkpoint_artifact_hash"],
+            "approved_checkpoint_id": control["approved_checkpoint_id"],
+            "approved_revision": control["approved_revision"],
+            "approved_artifact_hash": control["approved_artifact_hash"],
+        }
+
     def accept_remote_action(self, action_id: str, payload: Any, predecessor_action_id: str | None = None):
         mode = self.store.register_action(self.task_id, action_id, payload, predecessor_action_id)
         if mode == "NEW":
