@@ -1,4 +1,6 @@
 from __future__ import annotations
+from agp_cockpit.adapters.macos_settings import bridge_runtime_root
+from agp_cockpit.core.runtime_root_policy import require_stable_production_runtime_root
 
 from agp_cockpit.core.browser_readiness import start_browser_readiness_watch
 from dataclasses import asdict, dataclass
@@ -347,6 +349,7 @@ def run(
             root,
             host=bridge_host,
             port=bridge_port,
+            runtime_root=require_stable_production_runtime_root(bridge_runtime_root()),
         )
         runtime.start()
         owns_runtime = True

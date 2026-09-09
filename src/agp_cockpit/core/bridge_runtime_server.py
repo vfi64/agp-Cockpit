@@ -26,13 +26,13 @@ class BridgeRuntimeServer:
         host: str = "127.0.0.1",
         port: int = 8765,
         token: str | None = None,
+        runtime_root: Path | None = None,
     ) -> None:
         self.repository_root = repository_root.resolve()
         self.local_root = (
-            self.repository_root
-            / ".local"
-            / "agp-cockpit"
-            / "bridge"
+            runtime_root.expanduser().resolve()
+            if runtime_root is not None
+            else (self.repository_root / ".local" / "agp-cockpit" / "bridge")
         )
         self.local_root.mkdir(parents=True, exist_ok=True)
 

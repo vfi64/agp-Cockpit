@@ -179,3 +179,4 @@ Known semantic replacements:
   authoritative task state machine once the new controller activates.
 
 Legacy migration occurs only at a proven quiescent point.
+\n## 13. Production runtime isolation\n\nThe production desktop bridge stores runtime identity and token under platform Application Support, outside the repository and Dropbox/File Provider synchronization. Temporary/pytest roots are test-only through explicit injection. Production rejects transient runtime roots before binding. Test-owned bridges must stop during teardown. A stale or foreign listener must not be silently accepted merely because the TCP port is occupied. Authentication remains mandatory.\n
