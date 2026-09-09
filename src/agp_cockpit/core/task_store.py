@@ -498,6 +498,25 @@ CREATE TABLE IF NOT EXISTS task_control(
             return "STALLED"
         return "NO_PROGRESS"
 
+    def recover_interrupted_dispatches(self, task_id: str) -> list[str]:
+        rows = self.db.execute(
+            "SELECT action_id,attempt_no FROM attempts WHERE task_id=? AND status='DISPATCH_INTENT' ORDER BY action_id,attempt_no",
+            (task_id,),
+        ).fetchall()
+        recovered = []
+        for row in rows:
+            self.mark_unknown(task_id, row["action_id"], int(row["attempt_no"]), "restart after dispatch intent")
+            recovered.append(row["action_id"])
+        return recovered
+
+    def wait_for_service(self, task_id: str):
+        self.suspend(task_id, "WAITING_FOR_SERVICE")
+
+    def service_recovered(self, task_id: str):
+        if self.suspension_reason(task_id) != "WAITING_FOR_SERVICE":
+            raise RuntimeError("task is not waiting for service")
+        self.clear_suspension(task_id)
+
     def pending_outbox(self, task_id):
         return self.db.execute(
             "SELECT * FROM messages WHERE task_id=? AND direction='OUT' AND delivered=0 ORDER BY message_id",
