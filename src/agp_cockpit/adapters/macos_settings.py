@@ -11,3 +11,10 @@ def settings_path() -> Path:
         / "AGP Cockpit"
         / "settings.json"
     )
+
+
+def application_support_root() -> Path:
+    return settings_path().parent
+
+def bridge_runtime_root() -> Path:
+    return application_support_root() / "bridge"
