@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-09T13:33:10.428572+00:00",
+  "generated_at_utc": "2026-09-09T13:34:56.811922+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.0.9"
   },
   "repo": {
-    "branch": "feature/phase14-s4-durable-task-control",
+    "branch": "docs/post-pr67-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "db4762abd3c2e5c76b26d9e0ec2312f7fc589af7",
-    "head_matches_origin_main": false,
-    "head_short": "db4762ab",
+    "head": "c2f3086e57f5b7ab9d419205d69e4b6d63f1a619",
+    "head_matches_origin_main": true,
+    "head_short": "c2f3086e",
     "local_path": "cd /path/to/",
-    "origin_main": "13c7069f4de44a69c674e3d5ff77197a52fcafac",
-    "origin_main_short": "13c7069f",
-    "worktree_clean": false
+    "origin_main": "c2f3086e57f5b7ab9d419205d69e4b6d63f1a619",
+    "origin_main_short": "c2f3086e",
+    "worktree_clean": true
   },
   "schema_version": 1,
   "short_term_memory": {
