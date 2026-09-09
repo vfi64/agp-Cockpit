@@ -1,27 +1,47 @@
 # Workspace Status
 
-## Current continuation — Phase 14 / S4 durable task control and runtime isolation
+Status-date: 2026-09-09
+
+## AGP Cockpit v2 final acceptance
 
 - Repository: `vfi64/agp-Cockpit`.
-- Phase 11 / S0 desktop basis: COMPLETE / CERTIFIED.
-- Active phase: Phase 14 / S4 — durable task control, runtime isolation, browser readiness, and first self-hosting readiness.
-- Maintainer-approved direction: deterministic persistent task runtime driven by
-  a Remote Development LLM; Agentic Project Kit remains repository-lifecycle
-  authority; no local development LLM required.
-- ADR: `docs/architecture/ADR-0003-persistent-remote-llm-task-runtime.md`.
 - Normative product authority: `docs/planning/SCOPE_BOUNDARY.md`.
-- Phase 12 / S1, Phase 13 / S2, and Phase 14 / S3 are integrated and certified.
-- Historical Phase7/8/9 acceptance remains valid as legacy transport evidence.
-- Generated handoff projections are not primary semantic authority.
+- Master plan: `docs/planning/MASTER_PLAN.md`.
+- Test plan: `docs/planning/TEST_PLAN.md`.
+- Architecture ADR: `docs/architecture/ADR-0003-persistent-remote-llm-task-runtime.md`.
+- Phase 11 / S0 desktop basis: COMPLETE / CERTIFIED.
+- Phase 12 / S1 architecture contract: COMPLETE.
+- Phase 13 / S2 minimal Remote Recovery Proof: COMPLETE.
+- Phase 14 / S3 durable runtime and journal: COMPLETE.
+- Phase 14 / S4 pause/stop/human gates/stall: COMPLETE.
+- Phase 15 / S5 governed Kit recovery: COMPLETE.
+- Phase 16 / S6 remote context continuity: COMPLETE.
+- Phase 17 / S7 verified completion contract: COMPLETE.
+- Phase 18 / S8 real complex development E2E: COMPLETE.
+- Phase 19 / S9 human checkpoint E2E: COMPLETE.
+- Phase 20 / S10 optional local observation assistant: COMPLETE as value-gate;
+  default remains DO_NOT_ADMIT until controlled evidence proves benefit.
+- Phase 21 / S11 long-running robustness: COMPLETE.
+- Phase 22 / S12 cross-platform readiness: COMPLETE as PORTABLE_CORE_READY.
+  Native Windows/Linux product readiness is explicitly not claimed.
 
-## Phase 13 / S2 — Minimal Remote Recovery Proof
+## Final v2 adjudication
 
-- Status: implementation proof in progress.
-- Scope: deterministic controller only; no local LLM, live repository mutation, or automatic crash resume.
+The macOS product satisfies the `MASTER_PLAN.md` v2 completion criterion:
+all applicable S0-S11 gates are complete. S12 additionally establishes the
+portable-core boundary. The Remote Development LLM remains the sole D1
+development authority; Cockpit is the deterministic persistent task runtime;
+the Agentic Project Kit remains authoritative for governed repository lifecycle.
 
-## Phase 14 / S3 — Durable Task Runtime
+Final acceptance audit baseline:
+- architecture contract: PASS;
+- complete pytest suite: PASS;
+- Agentic Project Kit check: PASS;
+- repository main synchronized with origin/main and clean before closeout.
 
-- Status: implementation in progress.
-- SQLite-backed task/action/attempt/message/evidence persistence.
-- Stable payload hashes, durable duplicate protection, persisted budgets, OUTCOME_UNKNOWN and reconciliation.
-\n## Phase 14 / S4 — Durable control and runtime isolation\n\n- Status: ACTIVE.\n- Production bridge runtime authority is Application Support, not repository `.local`.\n- pytest/temp runtime roots are test-only and explicitly injected.\n- Production transient-root startup is fail-closed; authentication remains mandatory.\n
+The v2 architecture/implementation program is therefore FUNCTIONALLY ACCEPTED.
+Further native Windows/Linux product work, optional local-model admission, or
+new product capabilities require separately reviewed scope/planning authority.
+
+Generated handoff projections are continuation aids, not primary semantic
+authority.
