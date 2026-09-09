@@ -100,7 +100,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     from agp_cockpit.app_bootstrap import run
 
-    return int(run(root))
+    return int(
+        run(
+            root,
+            bridge_host=settings.bridge_host,
+            bridge_port=settings.bridge_port,
+        )
+    )
 
 
 if __name__ == '__main__':
