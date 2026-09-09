@@ -32,14 +32,14 @@
       "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
     ],
     "repo": {
-      "branch": "docs/browser-bridge-production-installation",
+      "branch": "docs/post-pr73-successor-package-refresh",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "c8353f10c1d4af36ec5552ddaa4a4d764b821092",
-      "head_matches_origin_main": false,
+      "head": "889ca852b850067a03f085b08f2e77bc3c304f0a",
+      "head_matches_origin_main": true,
       "local_path": "cd /path/to/",
-      "origin_main": "f214338c96e8461f7d54148a55fabfdd4f124dc3",
-      "worktree_clean": false
+      "origin_main": "889ca852b850067a03f085b08f2e77bc3c304f0a",
+      "worktree_clean": true
     },
     "scope": "current-continuation-state"
   },
@@ -182,14 +182,14 @@
   },
   "kind": "successor_execution_contract",
   "repo": {
-    "branch": "docs/browser-bridge-production-installation",
+    "branch": "docs/post-pr73-successor-package-refresh",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "c8353f10c1d4af36ec5552ddaa4a4d764b821092",
-    "head_matches_origin_main": false,
+    "head": "889ca852b850067a03f085b08f2e77bc3c304f0a",
+    "head_matches_origin_main": true,
     "local_path": "cd /path/to/",
-    "origin_main": "f214338c96e8461f7d54148a55fabfdd4f124dc3",
-    "worktree_clean": false
+    "origin_main": "889ca852b850067a03f085b08f2e77bc3c304f0a",
+    "worktree_clean": true
   },
   "rules": [
     {
