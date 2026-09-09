@@ -33,7 +33,7 @@ def test_desktop_start_loads_settings_and_emits_structured_event(tmp_path, monke
     )
     monkeypatch.setattr(
         "agp_cockpit.app_bootstrap.run",
-        lambda root: 0,
+        lambda root, **kwargs: 0,
     )
 
     (tmp_path / "chrome_extension").mkdir()

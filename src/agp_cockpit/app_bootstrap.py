@@ -16,7 +16,6 @@ from agp_cockpit.core.browser_refresh import (
 
 
 CHATGPT_URL = "https://chatgpt.com/"
-DEFAULT_PORT = 8765
 
 
 @dataclass(frozen=True)
@@ -186,6 +185,10 @@ def show_startup_guidance(message: str) -> None:
 
 def build_extension_guidance(
     repository_root: Path,
+    *,
+    extension_path: Path,
+    bridge_host: str,
+    bridge_port: int,
 ) -> str:
     token_path = (
         repository_root
@@ -194,8 +197,6 @@ def build_extension_guidance(
         / "bridge"
         / "token.txt"
     )
-    extension_path = repository_root / "chrome_extension"
-
     return (
         "Chrome wurde gestartet, aber die AGP Cockpit Bridge Extension "
         "hat sich nicht beim Cockpit gemeldet.\n\n"
@@ -204,7 +205,7 @@ def build_extension_guidance(
         "2. 'AGP Cockpit Bridge' muss installiert und aktiviert sein.\n"
         f"3. Falls sie fehlt: 'Entpackte Erweiterung laden' → {extension_path}\n"
         "4. Erweiterung einmal neu laden.\n"
-        "5. Base URL in den Optionen: http://127.0.0.1:8765\n"
+        f"5. Base URL in den Optionen: http://{bridge_host}:{bridge_port}\n"
         f"6. Token muss dem Inhalt von {token_path} entsprechen.\n"
         "7. ChatGPT-Tab neu laden.\n\n"
         "Das Cockpit bleibt trotzdem benutzbar."
@@ -213,6 +214,9 @@ def build_extension_guidance(
 
 def probe_existing_bridge(
     repository_root: Path,
+    *,
+    bridge_host: str,
+    bridge_port: int,
 ) -> bool:
     token_path = (
         repository_root
@@ -226,7 +230,7 @@ def probe_existing_bridge(
             encoding="utf-8"
         ).strip()
         req = urllib.request.Request(
-            "http://127.0.0.1:8765/v1/status",
+            f"http://{bridge_host}:{bridge_port}/v1/status",
             headers={"X-AGP-Token": token},
         )
         with urllib.request.urlopen(
@@ -296,6 +300,9 @@ end tell
 
 def run(
     repository_root: Path | None = None,
+    *,
+    bridge_host: str = "127.0.0.1",
+    bridge_port: int = 8765,
 ) -> int:
     root = (
         repository_root
@@ -319,20 +326,37 @@ def run(
         run_legacy_gui(root)
         return 0
 
+    from agp_cockpit.adapters.macos_extension import (
+        ExtensionStagingError,
+        stage_extension,
+    )
+
+    try:
+        extension_path = stage_extension(root)
+    except ExtensionStagingError as exc:
+        extension_path = root / "chrome_extension"
+        extension_staging_note = f" Extension staging failed: {exc}"
+    else:
+        extension_staging_note = ""
+
     runtime: BridgeRuntimeServer | None = None
     owns_runtime = False
 
     try:
         runtime = BridgeRuntimeServer(
             root,
-            host="127.0.0.1",
-            port=DEFAULT_PORT,
+            host=bridge_host,
+            port=bridge_port,
         )
         runtime.start()
         owns_runtime = True
         bridge_ready = True
     except OSError as exc:
-        bridge_ready = probe_existing_bridge(root)
+        bridge_ready = probe_existing_bridge(
+            root,
+            bridge_host=bridge_host,
+            bridge_port=bridge_port,
+        )
         if not bridge_ready:
             status = StartupStatus(
                 chrome_installed=True,
@@ -341,8 +365,8 @@ def run(
                 bridge_ready=False,
                 extension_ready=False,
                 message=(
-                    "Port 8765 ist belegt, aber keine kompatible "
-                    "AGP Cockpit Bridge antwortet.\n\n"
+                    f"Port {bridge_port} auf {bridge_host} ist belegt, "
+                    "aber keine kompatible AGP Cockpit Bridge antwortet.\n\n"
                     f"Technischer Hinweis: {exc}"
                 ),
             )
@@ -418,7 +442,12 @@ def run(
                 chatgpt_requested=True,
                 bridge_ready=bridge_ready,
                 extension_ready=False,
-                message=build_extension_guidance(root),
+                message=build_extension_guidance(
+                    root,
+                    extension_path=extension_path,
+                    bridge_host=bridge_host,
+                    bridge_port=bridge_port,
+                ) + extension_staging_note,
             )
             write_startup_status(root, failed)
             return
