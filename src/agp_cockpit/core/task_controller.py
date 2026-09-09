@@ -138,6 +138,15 @@ class DurableTaskController:
     def reconcile(self, action_id, conclusion):
         self.store.reconcile(self.task_id, action_id, conclusion)
 
+    def recover_interrupted_dispatches(self):
+        return self.store.recover_interrupted_dispatches(self.task_id)
+
+    def wait_for_service(self, reason: str = ""):
+        self.store.wait_for_service(self.task_id)
+
+    def service_recovered(self):
+        self.store.service_recovered(self.task_id)
+
     def pending_results(self):
         return [dict(row) for row in self.store.pending_outbox(self.task_id)]
 
