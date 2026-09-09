@@ -13,3 +13,8 @@
 - Product code for S2 must not begin until S1 is integrated/post-merge verified.
 - Historical Phase7/8/9 acceptance remains valid as legacy transport evidence.
 - Generated handoff projections are not primary semantic authority.
+
+## Phase 13 / S2 — Minimal Remote Recovery Proof
+
+- Status: implementation proof in progress.
+- Scope: deterministic controller only; no local LLM, live repository mutation, or automatic crash resume.
