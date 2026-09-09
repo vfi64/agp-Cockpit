@@ -20,16 +20,12 @@ class _FakeLogger:
 def test_desktop_start_loads_settings_and_emits_structured_event(tmp_path, monkeypatch):
     _FakeLogger.events.clear()
     monkeypatch.setattr(
-        "agp_cockpit.adapters.macos_settings.settings_path",
-        lambda: tmp_path / "user-settings.json",
+        "agp_cockpit.settings.load_and_migrate_settings",
+        lambda path: (AppSettings(bridge_port=9876), True),
     )
     monkeypatch.setattr(
         "agp_cockpit.core.diagnostic_log.DiagnosticLogger",
         _FakeLogger,
-    )
-    monkeypatch.setattr(
-        "agp_cockpit.settings.load_and_migrate_settings",
-        lambda path: (AppSettings(bridge_port=9876), True),
     )
     monkeypatch.setattr(
         "agp_cockpit.app_bootstrap.run",
