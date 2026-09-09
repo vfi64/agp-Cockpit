@@ -165,6 +165,40 @@ class DurableTaskController:
     def observe_progress(self, fingerprint: str):
         return self.store.observe_progress(self.task_id, fingerprint)
 
+    def set_completion_contract(self, revision, artifact_hash, required_kit_action_id, required_kit_raw_hash, *, human_checkpoint_required=False):
+        if not all((revision, artifact_hash, required_kit_action_id, required_kit_raw_hash)):
+            raise ValueError("complete completion-contract identity required")
+        with self.store.db:
+            self.store.db.execute(
+                "INSERT INTO completion_contracts(task_id,revision,artifact_hash,required_kit_action_id,required_kit_raw_hash,human_checkpoint_required,status,rejection_reason) VALUES(?,?,?,?,?,?,'ACTIVE',NULL) "
+                "ON CONFLICT(task_id) DO UPDATE SET revision=excluded.revision,artifact_hash=excluded.artifact_hash,required_kit_action_id=excluded.required_kit_action_id,required_kit_raw_hash=excluded.required_kit_raw_hash,human_checkpoint_required=excluded.human_checkpoint_required,status='ACTIVE',rejection_reason=NULL",
+                (self.task_id, revision, artifact_hash, required_kit_action_id, required_kit_raw_hash, 1 if human_checkpoint_required else 0),
+            )
+
+    def completion_contract(self):
+        row = self.store.db.execute("SELECT * FROM completion_contracts WHERE task_id=?", (self.task_id,)).fetchone()
+        return dict(row) if row is not None else None
+
+    def verify_completion_contract(self):
+        contract = self.completion_contract()
+        if self.snapshot["state"] != "COMPLETE_PROPOSED":
+            return False
+        reason = None
+        if contract is None:
+            reason = "MISSING_COMPLETION_CONTRACT"
+        elif self.snapshot["governance_state"] != "CLEAR":
+            reason = "GOVERNANCE_NOT_CLEAR"
+        elif self.snapshot["execution_state"] in {"RUNNING", "OUTCOME_UNKNOWN", "BLOCKED"}:
+            reason = "EXECUTION_NOT_SETTLED"
+        elif not self.kit_pass_matches(contract["required_kit_action_id"], contract["revision"], contract["artifact_hash"], contract["required_kit_raw_hash"]):
+            reason = "MISSING_OR_STALE_KIT_PASS"
+        elif int(contract["human_checkpoint_required"]) and not self.checkpoint_approved_for(contract["revision"], contract["artifact_hash"]):
+            reason = "MISSING_OR_STALE_HUMAN_APPROVAL"
+        with self.store.db:
+            self.store.db.execute("UPDATE completion_contracts SET status=?,rejection_reason=? WHERE task_id=?", ("VERIFIED" if reason is None else "REJECTED", reason, self.task_id))
+        self.store.set_states(self.task_id, state="VERIFIED_COMPLETE" if reason is None else "WAITING_FOR_REMOTE")
+        return reason is None
+
     def propose_complete(self):
         if self.snapshot["state"] in {"CANCELLED", "SUSPENDED"}:
             return False

@@ -106,6 +106,17 @@ CREATE TABLE IF NOT EXISTS kit_evidence(
     recovery_command_json TEXT,
     UNIQUE(task_id, action_id, raw_hash)
 );
+CREATE TABLE IF NOT EXISTS completion_contracts(
+    task_id TEXT PRIMARY KEY,
+    revision TEXT NOT NULL,
+    artifact_hash TEXT NOT NULL,
+    required_kit_action_id TEXT NOT NULL,
+    required_kit_raw_hash TEXT NOT NULL,
+    human_checkpoint_required INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    rejection_reason TEXT,
+    FOREIGN KEY(task_id) REFERENCES tasks(task_id)
+);
 CREATE TABLE IF NOT EXISTS remote_bindings(
     task_id TEXT NOT NULL,
     binding_epoch INTEGER NOT NULL,
