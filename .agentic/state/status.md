@@ -18,3 +18,9 @@
 
 - Status: implementation proof in progress.
 - Scope: deterministic controller only; no local LLM, live repository mutation, or automatic crash resume.
+
+## Phase 14 / S3 — Durable Task Runtime
+
+- Status: implementation in progress.
+- SQLite-backed task/action/attempt/message/evidence persistence.
+- Stable payload hashes, durable duplicate protection, persisted budgets, OUTCOME_UNKNOWN and reconciliation.
