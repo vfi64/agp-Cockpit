@@ -15,14 +15,14 @@ def test_durable_duplicate_and_payload_hash_guard(tmp_path):
 
 def test_outcome_unknown_survives_restart_and_blocks_retry(tmp_path):
     c=make(tmp_path); c.accept_remote_action('a1',{'mutating':True}); n=c.begin_attempt('a1'); c.mark_outcome_unknown('a1',n,'crash after dispatch'); assert c.snapshot['state']=='RECONCILING'
-    with pytest.raises(RuntimeError,match='cannot retry unresolved outcome'):c.begin_attempt('a1')
+    with pytest.raises(RuntimeError,match='unresolved outcome blocks dispatch'):c.begin_attempt('a1')
     c.close(); c=make(tmp_path); assert c.snapshot['execution_state']=='OUTCOME_UNKNOWN'
-    with pytest.raises(RuntimeError,match='cannot retry unresolved outcome'):c.begin_attempt('a1')
+    with pytest.raises(RuntimeError,match='unresolved outcome blocks dispatch'):c.begin_attempt('a1')
     c.close()
 
 def test_unknown_predecessor_cannot_be_bypassed_by_new_action(tmp_path):
     c=make(tmp_path); c.accept_remote_action('a1',{'mutating':True}); n=c.begin_attempt('a1'); c.mark_outcome_unknown('a1',n,'uncertain')
-    with pytest.raises(RuntimeError,match='predecessor outcome unresolved'):c.accept_remote_action('a2',{'repair':True},'a1')
+    with pytest.raises(RuntimeError,match='unresolved outcome blocks dispatch'):c.accept_remote_action('a2',{'repair':True},'a1')
     c.close()
 
 def test_reconcile_not_applied_allows_corrective_successor(tmp_path):
@@ -35,4 +35,4 @@ def test_outbox_delivery_is_restart_safe_and_does_not_reexecute(tmp_path):
     c=make(tmp_path); c.accept_remote_action('a1',{'cmd':'false'}); n=c.begin_attempt('a1'); c.record_local_result('a1',n,'FAIL','evidence'); msg=c.pending_results()[0]; c.close(); c=make(tmp_path); c.mark_result_delivered(msg['message_id']); assert c.pending_results()==[]; c.close(); c=make(tmp_path); assert c.pending_results()==[]; assert c.accept_remote_action('a1',{'cmd':'false'})=='DUPLICATE'; c.close()
 
 def test_completion_proposal_is_restart_safe(tmp_path):
-    c=make(tmp_path); c.propose_complete(); c.close(); c=make(tmp_path); assert c.snapshot['state']=='COMPLETE_PROPOSED'; assert not c.verify_complete(False); assert c.snapshot['state']=='WAITING_FOR_REMOTE'; c.propose_complete(); assert c.verify_complete(True); assert c.snapshot['state']=='VERIFIED_COMPLETE'; c.close()
+    c=make(tmp_path); c.propose_complete(); c.close(); c=make(tmp_path); assert c.snapshot['state']=='COMPLETE_PROPOSED'; assert not c.verify_complete(False); assert c.snapshot['state']=='WAITING_FOR_REMOTE'; c.propose_complete(); assert not c.verify_complete(True); assert c.snapshot['state']=='WAITING_FOR_REMOTE'; c.close()

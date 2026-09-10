@@ -98,6 +98,9 @@ class DurableTaskController:
         }
 
     def accept_remote_action(self, action_id: str, payload: Any, predecessor_action_id: str | None = None):
+        if isinstance(payload, dict) and "binding_epoch" in payload:
+            if not self.binding_has_execution_authority(int(payload["binding_epoch"])):
+                raise PermissionError("stale remote binding")
         mode = self.store.register_action(self.task_id, action_id, payload, predecessor_action_id)
         if mode == "NEW":
             self.store.bump(self.task_id, "remote_rounds_used")
@@ -122,9 +125,19 @@ class DurableTaskController:
         return requested
 
     def kit_pass_matches(self, action_id: str, revision: str, artifact_hash: str, raw_hash: str) -> bool:
-        evidence=self.store.kit_evidence_for(self.task_id,action_id)
-        return bool(evidence and evidence["status"]=="PASS" and evidence["producer"]=="agentic-project-kit"
-            and evidence["revision"]==revision and evidence["artifact_hash"]==artifact_hash and evidence["raw_hash"]==raw_hash)
+        evidence = self.store.kit_evidence_for(self.task_id, action_id)
+        action = self.store.db.execute(
+            "SELECT status FROM actions WHERE task_id=? AND action_id=?",
+            (self.task_id, action_id),
+        ).fetchone()
+        return bool(
+            action and action["status"] == "PASS"
+            and evidence and evidence["status"] == "PASS"
+            and evidence["producer"] == "agentic-project-kit"
+            and evidence["revision"] == revision
+            and evidence["artifact_hash"] == artifact_hash
+            and evidence["raw_hash"] == raw_hash
+        )
 
 
     def record_local_result(self, action_id, attempt_no, outcome, summary, governance_blocked=False):
@@ -217,11 +230,8 @@ class DurableTaskController:
     def verify_complete(self, passed):
         if self.snapshot["state"] != "COMPLETE_PROPOSED":
             return False
-        self.store.set_states(
-            self.task_id,
-            state="VERIFIED_COMPLETE" if passed else "WAITING_FOR_REMOTE",
-        )
-        return bool(passed)
+        self.store.set_states(self.task_id, state="WAITING_FOR_REMOTE")
+        return False
 
 
 from dataclasses import dataclass, field

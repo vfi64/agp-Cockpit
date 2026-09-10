@@ -24,7 +24,11 @@ def test_t19_non_resolvable_kit_gate_suspends(tmp_path):
     assert c.snapshot["state"]!="VERIFIED_COMPLETE"; c.close()
 
 def test_t20_kit_pass_exact_revision_artifact_producer_raw(tmp_path):
-    c=make(tmp_path); good=ev(status="PASS",revision="rev-7",artifact="artifact-7",raw="kit-pass"); c.record_kit_result(good)
+    c=make(tmp_path); good=ev(status="PASS",revision="rev-7",artifact="artifact-7",raw="kit-pass")
+    assert c.accept_remote_action("kit-1", {"effect":"E3","kind":"kit"}) == "NEW"
+    attempt=c.begin_attempt("kit-1"); c.record_local_result("kit-1",attempt,"PASS","observed Kit execution")
+    for row in c.pending_results(): c.mark_result_delivered(row["message_id"])
+    c.record_kit_result(good)
     assert c.kit_pass_matches("kit-1","rev-7","artifact-7",good.raw_hash)
     assert not c.kit_pass_matches("kit-1","stale","artifact-7",good.raw_hash)
     assert not c.kit_pass_matches("kit-1","rev-7","wrong",good.raw_hash)

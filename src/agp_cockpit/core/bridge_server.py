@@ -16,6 +16,7 @@ from agp_cockpit.core.bridge_protocol import (
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
 from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
+from agp_cockpit.core.task_controller import DurableTaskController
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class CockpitBridgeServer:
         repository_root: Path,
         *,
         config: BridgeServerConfig | None = None,
+        runtime_root: Path | None = None,
     ) -> None:
         cfg = config or BridgeServerConfig(
             token=secrets.token_urlsafe(24)
@@ -43,13 +45,27 @@ class CockpitBridgeServer:
 
         self.repository_root = repository_root.resolve()
         self.config = cfg
+        self.runtime_root = (runtime_root.expanduser().resolve() if runtime_root is not None else (self.repository_root / ".local" / "agp-cockpit" / "bridge"))
+        self.runtime_root.mkdir(parents=True, exist_ok=True)
         self.engine = BridgeEngine(self.repository_root)
         self.diag = DiagnosticLogger(self.repository_root)
         self.protocol_v1_actions = ActionRegistry()
         self.protocol_v1_results: dict[str, str] = {}
+        self._durable_db_path = self.runtime_root / "protocol-v1-actions.sqlite3"
+        self._durable_controllers: dict[str, DurableTaskController] = {}
 
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
+
+    def _durable_controller(self, session_id: str) -> DurableTaskController:
+        controller = self._durable_controllers.get(session_id)
+        if controller is None:
+            controller = DurableTaskController(
+                f"protocol-v1-http:{session_id}",
+                self._durable_db_path,
+            )
+            self._durable_controllers[session_id] = controller
+        return controller
 
     def start(self) -> None:
         if self._server is not None:
@@ -61,6 +77,7 @@ class CockpitBridgeServer:
         repo_root = self.repository_root
         protocol_v1_actions = self.protocol_v1_actions
         protocol_v1_results = self.protocol_v1_results
+        durable_controller_for = self._durable_controller
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -207,6 +224,21 @@ class CockpitBridgeServer:
                             raise ValueError("invalid Content-Length")
                         raw = self.rfile.read(length).decode("utf-8")
                         action = parse_action_frame(raw)
+                        durable = durable_controller_for(action.session_id)
+                        durable_decision = durable.accept_remote_action(
+                            action.action_id,
+                            asdict(action),
+                        )
+                        if durable_decision == "DUPLICATE":
+                            cached = protocol_v1_results.get(action.action_id)
+                            if cached is None:
+                                self._json(200, {
+                                    "decision": "DUPLICATE",
+                                    "action_id": action.action_id,
+                                    "replayed": False,
+                                    "reason": "durable duplicate suppressed after restart; no in-memory result replay available",
+                                })
+                                return
                         registration = protocol_v1_actions.register(action)
                         if registration.decision == "DUPLICATE":
                             cached = protocol_v1_results.get(action.action_id)

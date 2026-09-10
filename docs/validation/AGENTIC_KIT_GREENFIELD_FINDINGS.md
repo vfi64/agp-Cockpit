@@ -931,3 +931,19 @@ handoff-report files and must not require the recovery-only skip flag.
 - `.agentic/state/handoff/transfer_handoff_reports/latest-transfer-handoff-report.json`
 
 ---
+
+## KIT-GF-LESSON-MEGABLICK-001 — Megablick before repeated micro-patching
+
+**Status:** ACCEPTED_GREENFIELD_LESSON
+
+**Finding:** When repeated patch failures expose successive coupled symptoms in the same failure domain,
+local fail-fast output can make one systemic model drift look like a sequence of unrelated defects.
+
+**Lesson:** After the second failed mutation in one patch family, stop mutation and perform a bounded,
+read-only Megablick over lifecycle/call path, coupled invariants, persistence/restart behavior, delivered-path
+wiring, authority/confinement, and related tests. Distinguish product defect from stale test model, then make
+one coherent justified repair and validate broadly. Do not infer closure from static symbols alone.
+
+**Evidence:** Steps 592R9–592R14: a hardened seven-action runtime was correct while a legacy Phase-18 fixture
+retained several six-action expectations. Pytest fail-fast exposed them sequentially; the Megablick identified
+the common model drift and the coherent correction closed all runtime gates.

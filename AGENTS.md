@@ -61,3 +61,13 @@ assumed success. New action IDs cannot bypass unresolved predecessor effects.
 
 After two substantive failed repairs in one failure domain, perform
 SYSTEMIC_FAILURE_REVIEW before a third product mutation.
+
+## Megablick failure-domain method (MEGABLICK_FAILURE_DOMAIN_METHOD_V1)
+
+When repeated failures occur in one patch/failure family, do not continue symptom-by-symptom micro-patching.
+After the second failed mutation, switch to a bounded read-only **Megablick** before any third mutation:
+inspect the complete failure domain, including lifecycle/call path, coupled invariants and counters,
+persistent state and restart behavior, delivered product path, effect/resource authority, and all relevant tests.
+Classify product defect versus stale/partial test model, identify interacting causes, and derive one coherent
+minimal repair. Validate that repair at the narrow failing test, independent adjudication tests, and the
+broadest affected regression gate. Static presence alone is not closure when delivered-path behavior is at issue.

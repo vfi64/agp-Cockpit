@@ -13,7 +13,10 @@ def execute(c, action_id, payload, outcome, summary, *, governance_blocked=False
     assert c.accept_remote_action(action_id, payload, predecessor) == "NEW"
     attempt = c.begin_attempt(action_id)
     c.record_local_result(action_id, attempt, outcome, summary, governance_blocked)
+    for row in c.pending_results():
+        c.mark_result_delivered(row["message_id"])
     return attempt
+
 
 def test_t26_bounded_feature_survives_script_test_and_recoverable_kit_blocked(tmp_path):
     c = controller(tmp_path)
@@ -38,6 +41,7 @@ def test_t26_bounded_feature_survives_script_test_and_recoverable_kit_blocked(tm
         c.authorize_kit_recovery("a5-kit", ("git","commit","-am","bypass"))
 
     execute(c, "a6-kit-recovery", {"kind":"kit_recovery","command":["agentic-kit","work","recover"]}, "PASS", "governed recovery completed", predecessor="a5-kit")
+    execute(c, "a7-final-kit", {"kind":"kit","command":["agentic-kit","check"]}, "PASS", "final governed Kit verification", predecessor="a6-kit-recovery")
     c.record_kit_result(KitResultEvidence(
         action_id="a7-final-kit", status="PASS", producer="agentic-project-kit",
         command=("agentic-kit","check"), revision="rev-1", artifact_hash="artifact-1", raw_hash="final-pass",
@@ -50,9 +54,9 @@ def test_t26_bounded_feature_survives_script_test_and_recoverable_kit_blocked(tm
     assert c.snapshot["state"] == "VERIFIED_COMPLETE"
 
     rows = c.store.db.execute("SELECT outcome FROM evidence WHERE task_id=? ORDER BY evidence_id", (c.task_id,)).fetchall()
-    assert [r["outcome"] for r in rows] == ["FAIL","PASS","FAIL","PASS","BLOCKED","PASS"]
-    assert c.snapshot["remote_rounds_used"] == 6
-    assert c.snapshot["local_actions_used"] == 6
+    assert [r["outcome"] for r in rows] == ["FAIL","PASS","FAIL","PASS","BLOCKED","PASS","PASS"]
+    assert c.snapshot["remote_rounds_used"] == 7
+    assert c.snapshot["local_actions_used"] == 7
     c.close()
 
 def test_t26_restart_mid_recovery_keeps_same_task_and_binding(tmp_path):
