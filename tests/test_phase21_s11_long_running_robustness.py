@@ -10,7 +10,7 @@ def test_t27_restart_after_dispatch_intent_becomes_unknown_and_never_blind_repla
     c.accept_remote_action("a1",{"effect":"E2"}); assert c.begin_attempt("a1")==1; c.close()
     c=ctl(tmp_path); assert c.recover_interrupted_dispatches()==["a1"]
     assert c.snapshot["state"]=="RECONCILING" and c.snapshot["execution_state"]=="OUTCOME_UNKNOWN"
-    with pytest.raises(RuntimeError,match="cannot retry unresolved outcome"): c.begin_attempt("a1")
+    with pytest.raises(RuntimeError,match="unresolved outcome blocks dispatch"): c.begin_attempt("a1")
     c.reconcile("a1","CONFIRMED_NOT_APPLIED"); assert c.snapshot["state"]=="WAITING_FOR_REMOTE"
 
 def test_t27_result_persisted_before_restart_is_resent_without_reexecution(tmp_path):

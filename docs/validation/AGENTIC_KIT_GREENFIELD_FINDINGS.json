@@ -626,6 +626,16 @@
         "PR #2",
         "PR #3"
       ]
+    },
+    {
+      "id": "KIT-GF-LESSON-MEGABLICK-001",
+      "classification": "greenfield-validation-workflow-improvement",
+      "status": "ACCEPTED_GREENFIELD_LESSON",
+      "finding": "When repeated patch failures expose successive coupled assertions or symptoms in the same failure domain, stop local micro-patching and perform a bounded read-only Megablick over the complete lifecycle, invariants, call path, persistence, tests, and authority boundaries before the next mutation.",
+      "lesson": "Treat the failure domain as a system: distinguish product defect from stale test model, map coupled expectations and delivered-path wiring, then make one coherent justified repair and validate broadly. A third blind mutation in the same family is forbidden.",
+      "evidence": [
+        "Steps 592R9-592R14: fail-fast exposed a coupled six-to-seven-action fixture drift; bounded diagnosis identified the shared model and enabled one coherent correction."
+      ]
     }
   ]
 }

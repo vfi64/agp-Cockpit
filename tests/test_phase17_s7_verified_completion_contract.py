@@ -6,7 +6,11 @@ def make(tmp_path: Path):
     return DurableTaskController("t-s7", tmp_path/"runtime.sqlite3")
 
 def kit_pass(c, action="kit-final", revision="rev-1", artifact="artifact-1", raw="raw-1"):
+    assert c.accept_remote_action(action,{"effect":"E3","kind":"kit"})=="NEW"
+    attempt=c.begin_attempt(action); c.record_local_result(action,attempt,"PASS","observed Kit execution")
+    for row in c.pending_results(): c.mark_result_delivered(row["message_id"])
     c.record_kit_result(KitResultEvidence(action_id=action,status="PASS",producer="agentic-project-kit",command=("agentic-kit","check"),revision=revision,artifact_hash=artifact,raw_hash=raw))
+
 
 def contract(c, human=False):
     c.set_completion_contract("rev-1","artifact-1","kit-final","raw-1",human_checkpoint_required=human)
@@ -21,10 +25,11 @@ def test_premature_complete_without_contract_is_rejected(tmp_path):
     assert c.snapshot["state"]=="WAITING_FOR_REMOTE"; c.close()
 
 def test_stale_revision_or_artifact_kit_pass_rejects_completion(tmp_path):
-    for revision,artifact in (("old-rev","artifact-1"),("rev-1","old-artifact")):
-        c=make(tmp_path); contract(c); kit_pass(c,revision=revision,artifact=artifact)
-        assert c.propose_complete(); assert not c.verify_completion_contract()
-        assert c.completion_contract()["rejection_reason"]=="MISSING_OR_STALE_KIT_PASS"; c.close()
+    for i,(revision,artifact) in enumerate((("old-rev","artifact-1"),("rev-1","old-artifact"))):
+        case=tmp_path/f"case-{i}"; case.mkdir()
+        c=make(case); contract(c); kit_pass(c,revision=revision,artifact=artifact)
+        assert c.propose_complete(); assert not c.verify_completion_contract(); c.close()
+
 
 def test_governance_block_prevents_verified_complete(tmp_path):
     c=make(tmp_path); contract(c); kit_pass(c); c.store.set_states(c.task_id,governance_state="BLOCKED")

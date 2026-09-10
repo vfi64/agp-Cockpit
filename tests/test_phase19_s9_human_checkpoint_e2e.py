@@ -12,6 +12,9 @@ def make(tmp_path: Path):
 def execute(c, action_id, payload, predecessor=None):
     assert c.accept_remote_action(action_id,payload,predecessor)=="NEW"
     n=c.begin_attempt(action_id); c.record_local_result(action_id,n,"PASS","completed"); return n
+    for row in c.pending_results():
+        c.mark_result_delivered(row["message_id"])
+
 
 def test_human_checkpoint_suspends_same_task_and_exact_approval_resumes(tmp_path):
     c,epoch=make(tmp_path)
@@ -28,6 +31,7 @@ def test_human_checkpoint_suspends_same_task_and_exact_approval_resumes(tmp_path
     c.approve_human_checkpoint("visual-physical-1","rev-1","artifact-1")
     assert c.snapshot["state"]=="WAITING_FOR_REMOTE"
     assert c.snapshot["remote_rounds_used"]==before["remote_rounds_used"]
+    for row in c.pending_results(): c.mark_result_delivered(row["message_id"])
     execute(c,"a2",{"kind":"protected_followup"},"a1")
     c.close()
 
@@ -61,12 +65,11 @@ def test_late_action_from_pre_checkpoint_binding_loses_authority_after_rebind(tm
 
 def test_human_checkpoint_variant_reaches_verified_complete_only_with_matching_approval(tmp_path):
     c,_=make(tmp_path)
+    execute(c,"kit-final",{"effect":"E3","kind":"kit"})
     c.record_kit_result(KitResultEvidence(action_id="kit-final",status="PASS",producer="agentic-project-kit",command=("agentic-kit","check"),revision="rev-1",artifact_hash="artifact-1",raw_hash="raw-1"))
     c.set_completion_contract("rev-1","artifact-1","kit-final","raw-1",human_checkpoint_required=True)
     assert c.propose_complete(); assert not c.verify_completion_contract()
     assert c.completion_contract()["rejection_reason"]=="MISSING_OR_STALE_HUMAN_APPROVAL"
-    c.request_human_checkpoint("visual-final","rev-1","artifact-1")
-    c.approve_human_checkpoint("visual-final","rev-1","artifact-1")
-    assert c.propose_complete(); assert c.verify_completion_contract()
-    assert c.snapshot["state"]=="VERIFIED_COMPLETE"
-    c.close()
+    c.request_human_checkpoint("cp","rev-1","artifact-1"); c.approve_human_checkpoint("cp","rev-1","artifact-1")
+    assert c.propose_complete(); assert c.verify_completion_contract(); assert c.snapshot["state"]=="VERIFIED_COMPLETE"; c.close()
+

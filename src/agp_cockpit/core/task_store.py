@@ -35,7 +35,8 @@ class TaskStore:
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.path)
+        self.db = sqlite3.connect(self.path, timeout=5.0)
+        self.db.execute("PRAGMA busy_timeout = 5000")
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys = ON")
         self._init()
@@ -241,7 +242,10 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.set_states(task_id, state=next_state)
 
     def suspension_reason(self, task_id: str) -> str | None:
-        return self.control_row(task_id)["suspension_reason"]
+        control = self.control_row(task_id)
+        if control["checkpoint_id"] is not None and control["approved_checkpoint_id"] is None:
+            return "WAITING_FOR_HUMAN"
+        return control["suspension_reason"]
 
     def request_checkpoint(self, task_id: str, checkpoint_id: str, revision: str, artifact_hash: str):
         if not checkpoint_id or not revision or not artifact_hash:
@@ -256,7 +260,7 @@ CREATE TABLE IF NOT EXISTS task_control(
 
     def approve_checkpoint(self, task_id: str, checkpoint_id: str, revision: str, artifact_hash: str):
         control = self.control_row(task_id)
-        if control["suspension_reason"] != "WAITING_FOR_HUMAN":
+        if self.suspension_reason(task_id) != "WAITING_FOR_HUMAN":
             raise RuntimeError("task is not waiting for human approval")
         expected = (
             control["checkpoint_id"],
@@ -284,9 +288,15 @@ CREATE TABLE IF NOT EXISTS task_control(
         self.suspend(task_id, "USER_PAUSED")
 
     def resume(self, task_id: str):
-        if self.suspension_reason(task_id) != "USER_PAUSED":
+        control = self.control_row(task_id)
+        if control["suspension_reason"] != "USER_PAUSED":
             raise RuntimeError("only USER_PAUSED may resume directly")
-        self.clear_suspension(task_id)
+        with self.db:
+            self.db.execute("UPDATE task_control SET suspension_reason=NULL WHERE task_id=?", (task_id,))
+            self.set_states(
+                task_id,
+                state="SUSPENDED" if self.suspension_reason(task_id) is not None else "WAITING_FOR_REMOTE",
+            )
 
     def cancel(self, task_id: str):
         self.ensure_task(task_id)
@@ -309,14 +319,26 @@ CREATE TABLE IF NOT EXISTS task_control(
                 return max_name
         return None
 
-    def require_dispatch_allowed(self, task_id: str):
+    def require_dispatch_allowed(self, task_id: str, *, check_remote_budget: bool = True):
         task = self.task_row(task_id)
         reason = self.suspension_reason(task_id)
-        if task["state"] == "CANCELLED":
-            raise RuntimeError("task is cancelled")
+        if task["state"] in {"CANCELLED", "VERIFIED_COMPLETE"}:
+            raise RuntimeError(f"task is terminal: {task['state']}")
         if reason is not None:
             raise RuntimeError(f"task suspended: {reason}")
+        if int(self.control_row(task_id)["active_execution"]):
+            raise RuntimeError("another action is already executing")
+        unknown = self.db.execute(
+            "SELECT 1 FROM actions WHERE task_id=? AND status='OUTCOME_UNKNOWN' LIMIT 1",
+            (task_id,),
+        ).fetchone()
+        if unknown is not None:
+            raise RuntimeError("unresolved outcome blocks dispatch")
+        if self.pending_outbox(task_id):
+            raise RuntimeError("pending result must be delivered before new dispatch")
         exhausted = self._budget_exhausted(task_id)
+        if exhausted == "max_remote_rounds" and not check_remote_budget:
+            exhausted = None
         if exhausted is not None:
             self.suspend(task_id, "BUDGET_EXHAUSTED")
             raise RuntimeError(f"task budget exhausted: {exhausted}")
@@ -355,17 +377,36 @@ CREATE TABLE IF NOT EXISTS task_control(
         return "NEW"
 
     def begin_attempt(self, task_id, action_id):
-        self.require_dispatch_allowed(task_id)
-        row = self.db.execute(
-            "SELECT * FROM actions WHERE task_id=? AND action_id=?",
-            (task_id, action_id),
-        ).fetchone()
-        if row is None:
-            raise KeyError(action_id)
-        if row["status"] == "OUTCOME_UNKNOWN":
-            raise RuntimeError("cannot retry unresolved outcome")
-        attempt_no = int(row["attempt_count"]) + 1
-        with self.db:
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            self.require_dispatch_allowed(task_id, check_remote_budget=False)
+            row = self.db.execute(
+                "SELECT * FROM actions WHERE task_id=? AND action_id=?",
+                (task_id, action_id),
+            ).fetchone()
+            if row is None:
+                raise KeyError(action_id)
+            if row["status"] == "OUTCOME_UNKNOWN":
+                raise RuntimeError("cannot retry unresolved outcome")
+            if row["status"] != "REGISTERED":
+                raise RuntimeError(f"action not dispatchable from status {row['status']}")
+            if row["predecessor_action_id"]:
+                predecessor = self.db.execute(
+                    "SELECT status FROM actions WHERE task_id=? AND action_id=?",
+                    (task_id, row["predecessor_action_id"]),
+                ).fetchone()
+                if predecessor is None:
+                    raise RuntimeError("predecessor missing at dispatch")
+                if predecessor["status"] not in {
+                    "PASS", "FAIL", "BLOCKED", "RECONCILED_APPLIED", "RECONCILED_NOT_APPLIED"
+                }:
+                    raise RuntimeError("predecessor not settled at dispatch")
+            control = self.control_row(task_id)
+            task = self.task_row(task_id)
+            limit = control["max_local_actions"]
+            if limit is not None and int(task["local_actions_used"]) >= int(limit):
+                raise RuntimeError("task budget exhausted: max_local_actions")
+            attempt_no = int(row["attempt_count"]) + 1
             self.db.execute(
                 "UPDATE actions SET attempt_count=?,status='DISPATCH_INTENT' WHERE task_id=? AND action_id=?",
                 (attempt_no, task_id, action_id),
@@ -374,10 +415,16 @@ CREATE TABLE IF NOT EXISTS task_control(
                 "INSERT INTO attempts(task_id,action_id,attempt_no,status) VALUES(?,?,?,'DISPATCH_INTENT')",
                 (task_id, action_id, attempt_no),
             )
-            self.bump(task_id, "local_actions_used")
+            self.db.execute(
+                "UPDATE tasks SET local_actions_used=local_actions_used+1,state='ACTIVE',execution_state='RUNNING' WHERE task_id=?",
+                (task_id,),
+            )
             self.db.execute("UPDATE task_control SET active_execution=1 WHERE task_id=?", (task_id,))
-            self.set_states(task_id, state="ACTIVE", execution_state="RUNNING")
-        return attempt_no
+            self.db.commit()
+            return attempt_no
+        except Exception:
+            self.db.rollback()
+            raise
 
     def record_kit_evidence(self, task_id, evidence):
         import json
@@ -425,9 +472,10 @@ CREATE TABLE IF NOT EXISTS task_control(
                 (task_id, "OUT", "RESULT", action_id, payload),
             )
             self.db.execute("UPDATE task_control SET active_execution=0 WHERE task_id=?", (task_id,))
+            current = self.task_row(task_id)["state"]
             self.set_states(
                 task_id,
-                state="WAITING_FOR_REMOTE",
+                state=current if current in {"CANCELLED", "VERIFIED_COMPLETE"} else "WAITING_FOR_REMOTE",
                 execution_state=execution_state,
                 governance_state="BLOCKED" if governance_blocked or normalized == "BLOCKED" else "CLEAR",
             )
@@ -513,9 +561,15 @@ CREATE TABLE IF NOT EXISTS task_control(
         self.suspend(task_id, "WAITING_FOR_SERVICE")
 
     def service_recovered(self, task_id: str):
-        if self.suspension_reason(task_id) != "WAITING_FOR_SERVICE":
+        control = self.control_row(task_id)
+        if control["suspension_reason"] != "WAITING_FOR_SERVICE":
             raise RuntimeError("task is not waiting for service")
-        self.clear_suspension(task_id)
+        with self.db:
+            self.db.execute("UPDATE task_control SET suspension_reason=NULL WHERE task_id=?", (task_id,))
+            self.set_states(
+                task_id,
+                state="SUSPENDED" if self.suspension_reason(task_id) is not None else "WAITING_FOR_REMOTE",
+            )
 
     def pending_outbox(self, task_id):
         return self.db.execute(

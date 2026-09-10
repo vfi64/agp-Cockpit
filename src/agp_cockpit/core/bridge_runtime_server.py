@@ -60,6 +60,7 @@ class BridgeRuntimeServer:
                 port=port,
                 token=token,
             ),
+            runtime_root=self.local_root,
         )
 
     @property
