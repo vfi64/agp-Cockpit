@@ -99,12 +99,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     from agp_cockpit.app_bootstrap import run
+    from agp_cockpit.core.task_contract import LocalTaskContract
+
+    local_contract = LocalTaskContract(
+        root,
+        allowed_effects=frozenset(settings.allowed_effects),
+        allowed_tools=frozenset(settings.allowed_tools),
+        allow_network=settings.allow_network,
+    )
 
     return int(
         run(
             root,
             bridge_host=settings.bridge_host,
             bridge_port=settings.bridge_port,
+            local_contract=local_contract,
         )
     )
 

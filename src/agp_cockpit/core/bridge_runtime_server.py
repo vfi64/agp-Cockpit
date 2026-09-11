@@ -9,6 +9,7 @@ from agp_cockpit.core.bridge_server import (
     BridgeServerConfig,
     CockpitBridgeServer,
 )
+from agp_cockpit.core.task_contract import LocalTaskContract
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ class BridgeRuntimeServer:
         port: int = 8765,
         token: str | None = None,
         runtime_root: Path | None = None,
+        local_task_contract: LocalTaskContract | None = None,
     ) -> None:
         self.repository_root = repository_root.resolve()
         self.local_root = (
@@ -61,6 +63,7 @@ class BridgeRuntimeServer:
                 token=token,
             ),
             runtime_root=self.local_root,
+            local_task_contract=local_task_contract,
         )
 
     @property

@@ -9,7 +9,7 @@ def kit_pass(c, action="kit-final", revision="rev-1", artifact="artifact-1", raw
     assert c.accept_remote_action(action,{"effect":"E3","kind":"kit"})=="NEW"
     attempt=c.begin_attempt(action); c.record_local_result(action,attempt,"PASS","observed Kit execution")
     for row in c.pending_results(): c.mark_result_delivered(row["message_id"])
-    c.record_kit_result(KitResultEvidence(action_id=action,status="PASS",producer="agentic-project-kit",command=("agentic-kit","check"),revision=revision,artifact_hash=artifact,raw_hash=raw))
+    c.record_verified_kit_result(KitResultEvidence(action_id=action,status="PASS",producer="agentic-project-kit",command=("agentic-kit","check"),revision=revision,artifact_hash=artifact,raw_hash=raw), acquisition_source="local-executor")
 
 
 def contract(c, human=False):

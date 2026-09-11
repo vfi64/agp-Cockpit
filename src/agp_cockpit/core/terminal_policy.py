@@ -10,6 +10,8 @@ from agp_cockpit.core.terminal_exec import TerminalCommand
 class ExecutionPolicy:
     repository_root: Path
     allow_external_cwd: bool = False
+    allowed_tools: frozenset[str] | None = None
+    allow_network: bool = True
 
     def validate(self, command: TerminalCommand) -> None:
         command.validate()
@@ -26,6 +28,8 @@ class ExecutionPolicy:
                 ) from exc
 
         executable = Path(command.argv[0]).name
+        if self.allowed_tools is not None and executable not in self.allowed_tools:raise PermissionError(f"tool is not authorized by Task Contract: {executable}")
+        if not self.allow_network and executable in {"curl","wget","ssh","scp"}:raise PermissionError(f"network tool is not authorized by Task Contract: {executable}")
         if executable in {"sudo", "su"}:
             raise PermissionError(
                 f"privilege escalation command is not allowed: {executable}"

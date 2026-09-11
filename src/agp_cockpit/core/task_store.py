@@ -127,6 +127,14 @@ CREATE TABLE IF NOT EXISTS remote_bindings(
     PRIMARY KEY(task_id, binding_epoch),
     FOREIGN KEY(task_id) REFERENCES tasks(task_id)
 );
+CREATE TABLE IF NOT EXISTS task_authority(
+    task_id TEXT PRIMARY KEY,
+    repository_root TEXT NOT NULL,
+    allowed_effects_json TEXT NOT NULL,
+    allowed_tools_json TEXT NOT NULL,
+    allow_network INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(task_id) REFERENCES tasks(task_id)
+);
 CREATE TABLE IF NOT EXISTS evidence(
     evidence_id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL,
@@ -164,6 +172,9 @@ CREATE TABLE IF NOT EXISTS task_control(
                 )
             elif int(row["value"]) != SCHEMA_VERSION:
                 raise RuntimeError("unsupported task-store schema version")
+            cols={r["name"] for r in self.db.execute("PRAGMA table_info(kit_evidence)").fetchall()}
+            if "trusted" not in cols: self.db.execute("ALTER TABLE kit_evidence ADD COLUMN trusted INTEGER NOT NULL DEFAULT 0")
+            if "acquisition_source" not in cols: self.db.execute("ALTER TABLE kit_evidence ADD COLUMN acquisition_source TEXT NOT NULL DEFAULT 'caller'")
 
     @staticmethod
     def canonical_payload(payload: Any) -> str:
@@ -426,15 +437,21 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.db.rollback()
             raise
 
-    def record_kit_evidence(self, task_id, evidence):
+    def set_task_authority(self,task_id,*,repository_root,allowed_effects,allowed_tools,allow_network=False):
+        self.ensure_task(task_id)
+        with self.db:self.db.execute("INSERT INTO task_authority(task_id,repository_root,allowed_effects_json,allowed_tools_json,allow_network) VALUES(?,?,?,?,?) ON CONFLICT(task_id) DO UPDATE SET repository_root=excluded.repository_root,allowed_effects_json=excluded.allowed_effects_json,allowed_tools_json=excluded.allowed_tools_json,allow_network=excluded.allow_network",(task_id,str(Path(repository_root).expanduser().resolve()),json.dumps(sorted(set(allowed_effects))),json.dumps(sorted(set(allowed_tools))),1 if allow_network else 0))
+    def task_authority(self,task_id):
+        row=self.db.execute("SELECT * FROM task_authority WHERE task_id=?",(task_id,)).fetchone();return dict(row) if row else None
+
+    def record_kit_evidence(self, task_id, evidence, *, trusted=False, acquisition_source="caller"):
         import json
         status=evidence.status.upper()
         with self.db:
             self.db.execute(
-                "INSERT OR IGNORE INTO kit_evidence(task_id,action_id,status,producer,command_json,revision,artifact_hash,raw_hash,recoverable,recovery_command_json) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO kit_evidence(task_id,action_id,status,producer,command_json,revision,artifact_hash,raw_hash,recoverable,recovery_command_json,trusted,acquisition_source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                 (task_id,evidence.action_id,status,evidence.producer,json.dumps(list(evidence.command)),evidence.revision,
                  evidence.artifact_hash,evidence.raw_hash,1 if evidence.recoverable else 0,
-                 json.dumps(list(evidence.recovery_command)) if evidence.recovery_command else None))
+                 json.dumps(list(evidence.recovery_command)) if evidence.recovery_command else None,1 if trusted else 0,acquisition_source))
             if status == "BLOCKED" and not evidence.recoverable:
                 self.db.execute("UPDATE task_control SET suspension_reason='SAFETY_BLOCK' WHERE task_id=?",(task_id,))
             self.db.execute("UPDATE tasks SET governance_state=? WHERE task_id=?",

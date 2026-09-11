@@ -66,7 +66,7 @@ def test_late_action_from_pre_checkpoint_binding_loses_authority_after_rebind(tm
 def test_human_checkpoint_variant_reaches_verified_complete_only_with_matching_approval(tmp_path):
     c,_=make(tmp_path)
     execute(c,"kit-final",{"effect":"E3","kind":"kit"})
-    c.record_kit_result(KitResultEvidence(action_id="kit-final",status="PASS",producer="agentic-project-kit",command=("agentic-kit","check"),revision="rev-1",artifact_hash="artifact-1",raw_hash="raw-1"))
+    c.record_verified_kit_result(KitResultEvidence(action_id="kit-final",status="PASS",producer="agentic-project-kit",command=("agentic-kit","check"),revision="rev-1",artifact_hash="artifact-1",raw_hash="raw-1"), acquisition_source="local-executor")
     c.set_completion_contract("rev-1","artifact-1","kit-final","raw-1",human_checkpoint_required=True)
     assert c.propose_complete(); assert not c.verify_completion_contract()
     assert c.completion_contract()["rejection_reason"]=="MISSING_OR_STALE_HUMAN_APPROVAL"

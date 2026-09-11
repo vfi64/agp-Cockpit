@@ -36,7 +36,7 @@ def test_bridge_execution_reuses_existing_layer(monkeypatch, tmp_path):
     monkeypatch.setattr(
         execution,
         "_construct_policy",
-        lambda root: object(),
+        lambda root, **authority: object(),
     )
     monkeypatch.setattr(
         execution,

@@ -3,7 +3,7 @@ from pathlib import Path
 from agp_cockpit.core.bridge_execution import execute_structured_work_order
 from agp_cockpit.core.transport_protocol_v1 import ActionEnvelope, ResultEnvelope, encode_result_frame
 
-def execute_direct_action(action: ActionEnvelope, *, repository_root: Path, kit_binary: Path) -> str:
+def execute_direct_action(action: ActionEnvelope, *, repository_root: Path, kit_binary: Path, allowed_tools: frozenset[str] | None = None, allow_network: bool = True) -> str:
     if action.mode not in {"DIRECT_EXECUTION", "FILE_TRANSFER"}:
         raise ValueError("supported execution mode required")
     work_order = action.work_order
@@ -11,7 +11,7 @@ def execute_direct_action(action: ActionEnvelope, *, repository_root: Path, kit_
         raise ValueError("canonical work_order object required")
     if work_order["type"] != "terminal_payload" or not isinstance(work_order["content"], str):
         raise ValueError("unsupported work_order transport shape")
-    step = execute_structured_work_order(work_order["content"], repository_root=repository_root, kit_binary=kit_binary)
+    step = execute_structured_work_order(work_order["content"], repository_root=repository_root, kit_binary=kit_binary, allowed_tools=allowed_tools, allow_network=allow_network)
     local = {"return_code": step.returncode, "bounded_output": step.result_block, "log_ref": None}
     status = "PASS" if step.returncode == 0 and not step.timed_out else "FAIL"
     return encode_result_frame(ResultEnvelope(

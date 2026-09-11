@@ -16,7 +16,9 @@ from agp_cockpit.core.bridge_protocol import (
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
 from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
+from agp_cockpit.core.work_order import parse_work_order_json
 from agp_cockpit.core.task_controller import DurableTaskController
+from agp_cockpit.core.task_contract import LocalTaskContract
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,7 @@ class CockpitBridgeServer:
         *,
         config: BridgeServerConfig | None = None,
         runtime_root: Path | None = None,
+        local_task_contract: LocalTaskContract | None = None,
     ) -> None:
         cfg = config or BridgeServerConfig(
             token=secrets.token_urlsafe(24)
@@ -52,6 +55,7 @@ class CockpitBridgeServer:
         self.protocol_v1_actions = ActionRegistry()
         self.protocol_v1_results: dict[str, str] = {}
         self._durable_db_path = self.runtime_root / "protocol-v1-actions.sqlite3"
+        self.local_task_contract = local_task_contract
         self._durable_controllers: dict[str, DurableTaskController] = {}
 
         self._server: ThreadingHTTPServer | None = None
@@ -63,6 +67,7 @@ class CockpitBridgeServer:
             controller = DurableTaskController(
                 f"protocol-v1-http:{session_id}",
                 self._durable_db_path,
+                local_contract=self.local_task_contract,
             )
             self._durable_controllers[session_id] = controller
         return controller
@@ -252,10 +257,22 @@ class CockpitBridgeServer:
                                 "result_frame": cached,
                             })
                             return
+                        if not isinstance(action.work_order, dict) or action.work_order.get("type") != "terminal_payload" or not isinstance(action.work_order.get("content"), str):
+                            raise PermissionError("ACTION_NOT_AUTHORIZED_BY_LOCAL_TASK_CONTRACT")
+                        authority_order = parse_work_order_json(action.work_order["content"])
+                        authorization_payload = {
+                            "effect": "E3" if authority_order.kind == "kit" else "E2",
+                            "argv": list(authority_order.argv),
+                            "cwd": str(authority_order.cwd),
+                        }
+                        if not durable.action_authorized(authorization_payload):
+                            raise PermissionError("ACTION_NOT_AUTHORIZED_BY_LOCAL_TASK_CONTRACT")
                         frame = execute_direct_action(
                             action,
                             repository_root=engine.repository_root,
                             kit_binary=engine.kit_binary,
+                            allowed_tools=frozenset(json.loads(durable.store.task_authority(durable.task_id)["allowed_tools_json"])),
+                            allow_network=bool(durable.store.task_authority(durable.task_id).get("allow_network", 0)),
                         )
                         protocol_v1_results[action.action_id] = frame
                         self._json(200, {"decision": "EXECUTED", "action_id": action.action_id, "result_frame": frame})
