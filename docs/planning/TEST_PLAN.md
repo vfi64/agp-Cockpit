@@ -55,3 +55,21 @@ S6: T23-T25.
 S7/S8: T26 plus human-checkpoint variant.
 S11 robustness: T27.
 Optional local-LLM slice: T28.
+
+## 4. Independent review remediation contract
+
+The independent Ultra review is an external regression contract for the current
+remediation program. Its F01-F10 findings and K01-K07 package acceptance
+criteria are tracked in `ULTRA_REVIEW_REMEDIATION.md`.
+
+Rules:
+- do not mark an original counterprobe `xfail` merely because it exposes a
+  current product defect;
+- if an API changes, preserve the same or a stronger behavior guarantee;
+- direct store/controller tests do not substitute for a required shipped-path
+  or live-product acceptance test;
+- mock/unit/component evidence does not substitute for required live evidence;
+- exact revision, producer, action, artifact, and Task Contract binding are
+  required where the finding demands provenance;
+- K07 must map every original v2 acceptance criterion to concrete
+  exact-revision evidence, and unresolved criteria remain open.

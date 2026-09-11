@@ -14,6 +14,7 @@ Subordinate durable authorities:
 - `TEST_PLAN.md`
 - `DEVELOPMENT_GATES.md`
 - `LOCAL_EXECUTION_POLICY.md`
+- `ULTRA_REVIEW_REMEDIATION.md`
 
 Architecture decisions live under `docs/architecture/`. ADR-0003 is the
 accepted v2 course correction.
@@ -23,6 +24,8 @@ semantic planning. Generated handoff files are projections. Validation reports
 are evidence, not product direction.
 
 Current phase:
-Phase 11 / S0 COMPLETE and certified.
-Phase 12 / S1 ACTIVE until v2 architecture/ADR/protocol/gates are merged and
-post-merge verified.
+Independent Ultra review remediation is ACTIVE.
+The earlier v2 `FUNCTIONALLY_ACCEPTED` declaration is withdrawn.
+`ULTRA_REVIEW_REMEDIATION.md` tracks F01-F10 and K01-K07 through renewed
+acceptance. Historical phase completion records remain evidence, not current
+whole-product acceptance.

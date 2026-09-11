@@ -20,3 +20,6 @@ documents:
   - path: docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md
     lifecycle: active
     owner: validation
+  - path: docs/planning/ULTRA_REVIEW_REMEDIATION.md
+    lifecycle: active
+    owner: project

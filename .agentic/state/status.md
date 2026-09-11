@@ -25,23 +25,25 @@ Status-date: 2026-09-09
 - Phase 22 / S12 cross-platform readiness: COMPLETE as PORTABLE_CORE_READY.
   Native Windows/Linux product readiness is explicitly not claimed.
 
-## Final v2 adjudication
+## Current v2 adjudication
 
-The macOS product satisfies the `MASTER_PLAN.md` v2 completion criterion:
-all applicable S0-S11 gates are complete. S12 additionally establishes the
-portable-core boundary. The Remote Development LLM remains the sole D1
-development authority; Cockpit is the deterministic persistent task runtime;
-the Agentic Project Kit remains authoritative for governed repository lifecycle.
+Status-date: 2026-09-11
+State: REVIEW_REMEDIATION_ACTIVE
 
-Final acceptance audit baseline:
-- architecture contract: PASS;
-- complete pytest suite: PASS;
-- Agentic Project Kit check: PASS;
-- repository main synchronized with origin/main and clean before closeout.
+The earlier whole-product `FUNCTIONALLY_ACCEPTED` declaration is withdrawn.
+An independent Ultra review found product-path, resource-authority, persistence,
+completion-evidence, test-isolation, live-acceptance, budget/context, and
+first-use/accessibility gaps that are not closed by the previous phase labels.
 
-The v2 architecture/implementation program is therefore FUNCTIONALLY ACCEPTED.
-Further native Windows/Linux product work, optional local-model admission, or
-new product capabilities require separately reviewed scope/planning authority.
+Canonical remediation authority:
+`docs/planning/ULTRA_REVIEW_REMEDIATION.md`.
+
+Previously green architecture, pytest, Kit, CI, and phase evidence remains valid
+for exactly what was exercised. It must not be promoted into stronger
+product-level claims.
+
+Whole-product acceptance can be re-adjudicated only through K07 after the
+applicable F01-F10/K01-K07 contracts are proven at the correct revision.
 
 Generated handoff projections are continuation aids, not primary semantic
 authority.
