@@ -15,3 +15,9 @@ G7 Kit governance: no bypass of Kit BLOCKED/FAIL.
 G8 Completion: exact-revision local/CI/PR/post-merge evidence.
 G9 Live acceptance: mock evidence never substitutes required live proof.
 G10 Systemic failure: after two substantive repairs, run SYSTEMIC_FAILURE_REVIEW.
+
+G11 Independent-review regression: F01-F10/K01-K07 remain explicit open/partial
+work until their required behavior and evidence are proven. Do not weaken,
+rename away, or replace the independent review guarantees with narrower tests.
+Whole-product `FUNCTIONALLY_ACCEPTED` remains withdrawn until K07
+re-adjudication.

@@ -565,6 +565,18 @@
         "Kit 1.0.9 source: cli_commands/transfer_repo_pre_pr.py direct remote delete and remote_delete_failed path"
       ],
       "current_repair_status": "Kit 1.0.9 NOT_PROVEN_FIXED: Step 347 found the direct `git push origin --delete <branch>` plus `remote_delete_failed` path and no proven already-absent success path."
+    },
+    {
+      "id": "KIT-GF-RULE-REGISTRY-BOOTSTRAP",
+      "status": "CONFIRMED",
+      "severity": "MAJOR",
+      "classification": "kit_greenfield_adoption_defect",
+      "summary": "No deterministic rule-mechanism inventory bootstrap/applicability path was proven for an already initialized external workspace.",
+      "evidence": [
+        "601R5_NO_AUTOMATIC_KIT_INVENTORY_PRODUCER_PROVEN",
+        "601R6_KIT_ADOPTION_DEFECT_CONFIRMED"
+      ],
+      "required_action": "Provide deterministic Kit-owned bootstrap/adoption or explicit gate applicability; never fabricate registration semantics or hand-create inventory."
     }
   ],
   "explicit_exclusions": [
@@ -635,6 +647,45 @@
       "lesson": "Treat the failure domain as a system: distinguish product defect from stale test model, map coupled expectations and delivered-path wiring, then make one coherent justified repair and validate broadly. A third blind mutation in the same family is forbidden.",
       "evidence": [
         "Steps 592R9-592R14: fail-fast exposed a coupled six-to-seven-action fixture drift; bounded diagnosis identified the shared model and enabled one coherent correction."
+      ]
+    },
+    {
+      "id": "KIT-GF-LESSON-COMMAND-AUTHORITY-001",
+      "classification": "greenfield-validation-workflow-improvement",
+      "status": "ACCEPTED_GREENFIELD_LESSON",
+      "finding": "LLM repository work must be fail-closed behind existing Agentic Project Kit command-authority and workflow gates; guessed Kit CLI, raw lifecycle reconstruction, and bypass of missing authority surfaces defeat the Kit's purpose.",
+      "lesson": "Use the installed command manifest, agentic-kit command-for, audit-command-authority, instruction lint, rules validate-sources, rule-registry/workflow-guard, workspace orchestrators, and work finish as mandatory enforcement. Do not invent a parallel governance mechanism.",
+      "evidence": [
+        "Steps 597-601R2: repeated LLM-side command assumptions were blocked; 601R2 proved packaged audit-command-authority fails closed on missing authority surfaces."
+      ]
+    },
+    {
+      "id": "KIT-GF-LESSON-AUTHORITY-BEFORE-MUTATION-001",
+      "status": "ACCEPTED_GREENFIELD_LESSON",
+      "finding": "LLM repository work becomes unreliable when command syntax, source shape, policy files, or workflow prerequisites are inferred instead of established from repository and installed-Kit authority.",
+      "lesson": "Before mutation, establish exact command authority with the installed manifest and agentic-kit command-for, and establish exact source/schema shape from the repository. If authority is missing or contradictory, fail closed and diagnose; never fabricate Kit-owned state or reconstruct a mapped raw Git/GitHub workflow.",
+      "evidence": [
+        "Steps 597-601R2",
+        "Steps 609-611"
+      ],
+      "impact": "This removes avoidable mutation failures caused by guessed CLI contracts, guessed JSON structures, and guessed policy prerequisites."
+    },
+    {
+      "id": "KIT-GF-LESSON-GUARD-PREREQUISITE-001",
+      "status": "ACCEPTED_GREENFIELD_LESSON",
+      "finding": "A mandatory workflow guard currently dereferences .agentic/rule_preservation.yaml unconditionally even though this external workspace neither tracks nor historically contained that file.",
+      "lesson": "A fail-closed guard must distinguish a policy violation from absent or non-applicable adoption prerequisite state. Missing prerequisite authority must produce a bounded actionable diagnostic, not an unhandled traceback; the caller must not synthesize the missing policy file.",
+      "evidence": [
+        "Step 609 workflow-guard traceback",
+        "Step 610 tracked/history/source adjudication",
+        "Step 611 diagnose reproduces FileNotFoundError"
+      ],
+      "impact": "External-workspace governance remains strict without forcing agents to invent Kit-owned policy state.",
+      "preferred_kit_solution": [
+        "Resolve workspace applicability first. If rule preservation is not applicable to the current external workspace, return NOT_APPLICABLE or SKIP_WITH_REASON instead of treating the missing file as an error.",
+        "If rule preservation is applicable, the Kit must own deterministic bootstrap during workspace init/adopt/upgrade from authoritative rule registry/capsules and generate the canonical preservation file itself.",
+        "If required preservation semantics cannot be derived deterministically, block with a bounded machine-readable remediation plan that names the missing decisions; require user review/approval of semantics rather than manual file construction.",
+        "Never silently bypass an applicable guard and never fabricate preservation semantics."
       ]
     }
   ]

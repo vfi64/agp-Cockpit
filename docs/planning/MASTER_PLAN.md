@@ -138,11 +138,23 @@ The macOS product is functionally accepted for the target architecture only
 after S0-S11 applicable gates are satisfied. The optional local-LLM slice does
 not block acceptance.
 
-## 7. Final acceptance status
+## 7. Current acceptance status
 
-Status-date: 2026-09-09
+Status-date: 2026-09-11
+Adjudication: REVIEW_REMEDIATION_ACTIVE
 
-S0-S11 applicable gates are COMPLETE and the macOS target architecture is
-FUNCTIONALLY ACCEPTED under the criterion above. S12 is additionally COMPLETE
-as PORTABLE_CORE_READY. This does not claim native Windows or Linux product
-readiness. S10 remains optional and is not admitted to the critical path.
+The 2026-09-09 `FUNCTIONALLY_ACCEPTED` declaration is withdrawn after the
+independent Ultra review found that several promised product-level properties
+were not demonstrated by the shipped path or acceptance evidence.
+
+The prior COMPLETE phase records remain historical implementation/evidence
+records; they are not current proof that the corresponding product contract is
+accepted.
+
+Canonical remediation authority:
+`docs/planning/ULTRA_REVIEW_REMEDIATION.md`.
+
+Whole-product `FUNCTIONALLY_ACCEPTED` may be reconsidered only after the
+applicable K01-K07 acceptance criteria and the original review guarantees are
+re-proven at the correct revision. S12's `PORTABLE_CORE_READY` label does not
+override this macOS product re-adjudication.

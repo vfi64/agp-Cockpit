@@ -947,3 +947,61 @@ one coherent justified repair and validate broadly. Do not infer closure from st
 **Evidence:** Steps 592R9–592R14: a hardened seven-action runtime was correct while a legacy Phase-18 fixture
 retained several six-action expectations. Pytest fail-fast exposed them sequentially; the Megablick identified
 the common model drift and the coherent correction closed all runtime gates.
+
+## KIT-GF-LESSON-COMMAND-AUTHORITY-001 — Kit command authority must govern LLM repository work
+
+**Status:** ACCEPTED_GREENFIELD_LESSON
+
+**Finding:** Agentic Project Kit only delivers its intended repository/workflow
+governance value when LLM-generated repository work is forced through the Kit's
+existing command-authority and workflow gates. Merely having Kit commands
+available is insufficient if an LLM can guess CLI options, reconstruct raw
+Git/GitHub workflows, or continue after missing authority surfaces.
+
+**Lesson:** Every LLM work order that manages repository state must fail closed
+unless the exact Kit command, options, required parameters, workspace
+applicability, and lifecycle route are proven from the installed command
+manifest and `agentic-kit command-for`. Existing Kit mechanisms such as
+`audit-command-authority`, `instruction lint`, `rules validate-sources`,
+`rule-registry`, `workflow-guard`, workspace orchestrators, and `work finish`
+must be used as enforcement gates. A Kit BLOCKED/FAIL must never be bypassed by
+inventing operating-layer files or reconstructed git/gh commands.
+
+**Evidence:** Steps 597–601R2 exposed avoidable LLM-side command assumptions.
+Step 601R2 then demonstrated that the packaged `audit-command-authority`
+mechanism correctly fails closed on missing command-authority terms and handoff
+surfaces. The remedy is therefore mandatory use of existing Kit governance, not
+a parallel mechanism.
+
+## KIT-GF-RULE-REGISTRY-BOOTSTRAP: external-workspace rule-registry bootstrap gap
+
+- Status: CONFIRMED
+- Evidence: 601R5 and 601R6 disposable/read-only adjudication.
+- Finding: an already initialized external workspace can be valid for workspace adoption while `agentic-kit rule-registry check` hard-fails because `.agentic/rule_mechanism_inventory.yaml` is absent.
+- No automatic Kit producer was found among the manifest-proven workspace/rules paths tested, and `rule-registry register` requires reviewed semantic values that are not completely defined by authoritative repository evidence.
+- Required behavior: fail closed. Do not invent registration values and do not hand-create Kit-owned inventory state.
+- Product implication: Kit Greenfield/adoption must either provide a deterministic bootstrap/adoption path for the rule-mechanism inventory or make applicability explicit so non-applicable external workspaces are not blocked by this gate.
+- Remediation policy for this repository: continue only with gates whose applicability is established for the external workspace; preserve this finding for Kit repair.
+
+
+## Method/tooling lessons — authority and fail-closed guards
+
+### KIT-GF-LESSON-AUTHORITY-BEFORE-MUTATION-001 — ACCEPTED_GREENFIELD_LESSON
+
+**Finding:** LLM repository work becomes unreliable when command syntax, source shape, policy files, or workflow prerequisites are inferred instead of established from repository and installed-Kit authority.
+
+**Lesson:** Before mutation, establish exact command authority with the installed manifest and agentic-kit command-for, and establish exact source/schema shape from the repository. If authority is missing or contradictory, fail closed and diagnose; never fabricate Kit-owned state or reconstruct a mapped raw Git/GitHub workflow.
+
+**Impact:** This removes avoidable mutation failures caused by guessed CLI contracts, guessed JSON structures, and guessed policy prerequisites.
+
+**Evidence:** Steps 597-601R2, Steps 609-611.
+
+### KIT-GF-LESSON-GUARD-PREREQUISITE-001 — ACCEPTED_GREENFIELD_LESSON
+
+**Finding:** A mandatory workflow guard currently dereferences .agentic/rule_preservation.yaml unconditionally even though this external workspace neither tracks nor historically contained that file.
+
+**Lesson:** A fail-closed guard must distinguish a policy violation from absent or non-applicable adoption prerequisite state. Missing prerequisite authority must produce a bounded actionable diagnostic, not an unhandled traceback; the caller must not synthesize the missing policy file.
+
+**Impact:** External-workspace governance remains strict without forcing agents to invent Kit-owned policy state.
+
+**Evidence:** Step 609 workflow-guard traceback, Step 610 tracked/history/source adjudication, Step 611 diagnose reproduces FileNotFoundError.
