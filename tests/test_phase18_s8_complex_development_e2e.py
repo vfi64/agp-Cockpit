@@ -42,10 +42,10 @@ def test_t26_bounded_feature_survives_script_test_and_recoverable_kit_blocked(tm
 
     execute(c, "a6-kit-recovery", {"kind":"kit_recovery","command":["agentic-kit","work","recover"]}, "PASS", "governed recovery completed", predecessor="a5-kit")
     execute(c, "a7-final-kit", {"kind":"kit","command":["agentic-kit","check"]}, "PASS", "final governed Kit verification", predecessor="a6-kit-recovery")
-    c.record_kit_result(KitResultEvidence(
+    c.record_verified_kit_result(KitResultEvidence(
         action_id="a7-final-kit", status="PASS", producer="agentic-project-kit",
         command=("agentic-kit","check"), revision="rev-1", artifact_hash="artifact-1", raw_hash="final-pass",
-    ))
+    ), acquisition_source="local-executor")
     c.store.set_states(c.task_id, governance_state="CLEAR", execution_state="SUCCEEDED")
 
     c.set_completion_contract("rev-1","artifact-1","a7-final-kit","final-pass")

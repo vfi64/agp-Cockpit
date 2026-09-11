@@ -21,6 +21,9 @@ class AppSettings:
     max_rounds: int = 8
     diagnostics_enabled: bool = True
     repository_root: str | None = None
+    allowed_effects: tuple[str, ...] = ()
+    allowed_tools: tuple[str, ...] = ()
+    allow_network: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -55,6 +58,9 @@ def migrate_settings_dict(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     if raw_version == 1:
         current["schema_version"] = 2
         current.setdefault("repository_root", None)
+        current.setdefault("allowed_effects", [])
+        current.setdefault("allowed_tools", [])
+        current.setdefault("allow_network", False)
         raw_version = 2
         changed = True
     if raw_version != SETTINGS_SCHEMA_VERSION:
@@ -68,6 +74,9 @@ def _validated(data: dict[str, Any]) -> AppSettings:
     max_rounds = data.get("max_rounds", 8)
     diagnostics_enabled = data.get("diagnostics_enabled", True)
     repository_root = data.get("repository_root")
+    allowed_effects = data.get("allowed_effects", [])
+    allowed_tools = data.get("allowed_tools", [])
+    allow_network = data.get("allow_network", False)
 
     if not isinstance(host, str) or not host.strip():
         raise SettingsError("bridge_host must be a non-empty string")
@@ -81,6 +90,12 @@ def _validated(data: dict[str, Any]) -> AppSettings:
         not isinstance(repository_root, str) or not repository_root.strip()
     ):
         raise SettingsError("repository_root must be null or a non-empty string")
+    if not isinstance(allowed_effects, (list, tuple)) or any(not isinstance(x, str) or not x for x in allowed_effects):
+        raise SettingsError("allowed_effects must contain non-empty strings")
+    if not isinstance(allowed_tools, (list, tuple)) or any(not isinstance(x, str) or not x for x in allowed_tools):
+        raise SettingsError("allowed_tools must contain non-empty strings")
+    if not isinstance(allow_network, bool):
+        raise SettingsError("allow_network must be boolean")
 
     return AppSettings(
         schema_version=SETTINGS_SCHEMA_VERSION,
@@ -89,6 +104,9 @@ def _validated(data: dict[str, Any]) -> AppSettings:
         max_rounds=max_rounds,
         diagnostics_enabled=diagnostics_enabled,
         repository_root=repository_root.strip() if isinstance(repository_root, str) else None,
+        allowed_effects=tuple(allowed_effects),
+        allowed_tools=tuple(allowed_tools),
+        allow_network=allow_network,
     )
 
 

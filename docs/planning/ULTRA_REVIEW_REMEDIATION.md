@@ -54,13 +54,9 @@ not retain a second task authority. Product-level FAIL/correction/DONE behavior
 must be proven end to end.
 
 ### F02 / P1 — Executor resource/effect confinement is insufficient
-Status: OPEN.
+Status: EVIDENCE-BACKED COMPLETE IN K03.
 
-Repository cwd validation is not technical confinement of file, process,
-network, credential, or other external effects. Capability/effect profiles must
-derive from the local Task Contract and be enforced by the execution context.
-Tests must cover at least out-of-scope writes, symlinks, interpreter/shell
-subprocesses, and unauthorized network targets.
+K03 now derives effect/tool/network authority only from the local persisted Task Contract. Remote action/work-order content cannot self-grant authority. The delivered HTTP path validates that local authority before execution and threads the same locally persisted allowed_tools / allow_network constraints into a secondary ExecutionPolicy defense. Original resource-boundary regressions remain green. Evidence: 646R1, 649, 650.
 
 ### F03 / P1 — Duplicate and dispatch protection is incomplete
 Status: PARTIALLY_REMEDIATED / OPEN UNTIL CRASH-PROCESS EVIDENCE.
@@ -78,12 +74,9 @@ the same guarantees through the supported product path, including restart and
 human-checkpoint resume.
 
 ### F05 / P1 — VERIFIED_COMPLETE can lack trusted evidence
-Status: PARTIALLY_REMEDIATED / OPEN.
+Status: EVIDENCE-BACKED COMPLETE IN K03.
 
-Completion semantics have been hardened at controller level. Closure requires
-trusted local acquisition and revision/action/contract binding of Kit, CI, and
-artifact evidence. Remote `DONE` is only a completion proposal and may never
-directly produce `VERIFIED_COMPLETE`.
+Remote DONE remains only a completion proposal. Caller-supplied Kit PASS records remain untrusted. K03 adds a local acquisition boundary that constructs trusted Kit evidence only from an actually executed, locally authorized agentic-kit result, derives revision and raw evidence hash locally, and binds completion to revision, artifact identity, action, and raw hash. Raw-evidence mutation changes the hash and mismatched completion identity is rejected. Evidence: 647-650.
 
 ### F06 / P1 — Tests can mutate real user settings
 Status: OPEN / NEXT IMPLEMENTATION PACKAGE.
@@ -168,10 +161,13 @@ The focused K02 regression remains green. These results close the controller/sto
 
 ### K03 — Bind authorization and completion to trusted authority
 Findings: F02, F05.
-Status: OPEN.
+Status: EVIDENCE-BACKED COMPLETE / PENDING KIT CLOSEOUT.
 
-Implement real effect/resource confinement and trusted evidence acquisition.
-Do not infer authority from remote payload `kind` or harmlessness claims.
+Authority half: local Task Contract is the sole permission source; delivered HTTP execution and the secondary ExecutionPolicy enforce its effect/tool/network bounds, and the frozen authority regression remained unchanged through evidence work.
+
+Evidence half: actual locally authorized Kit execution is converted at a local acquisition boundary into trusted KitResultEvidence; caller-created PASS remains untrusted. Revision, artifact identity, action and raw evidence are bound into completion verification.
+
+Step 650 passed K03 20/20, execution 26/26, runtime/completion 32/32, settings 12/12, complete repository pytest, agentic-kit check, doctor, and git diff --check. K03 is complete subject only to normal Kit-governed branch/PR/post-merge closeout. K04 remains gated until that succeeds.
 
 ### K04 — Establish one vertical product path
 Findings: F01, F03, F05, F10.

@@ -293,6 +293,7 @@ def run(
     *,
     bridge_host: str = "127.0.0.1",
     bridge_port: int = 8765,
+    local_contract=None,
 ) -> int:
     root = (
         repository_root
@@ -338,6 +339,7 @@ def run(
             host=bridge_host,
             port=bridge_port,
             runtime_root=require_stable_production_runtime_root(bridge_runtime_root()),
+            local_contract=local_contract,
         )
         runtime.start()
         owns_runtime = True

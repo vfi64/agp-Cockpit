@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-import inspect
 
 from agp_cockpit.core.work_order import parse_work_order_json
 from agp_cockpit.core.work_order_runner import (
@@ -61,9 +60,8 @@ def order_label(order: Any) -> str:
     return str(_get(order, "label", "title", default=""))
 
 
-def _construct_policy(root: Path) -> ExecutionPolicy:
-    sig = inspect.signature(ExecutionPolicy)
-    return ExecutionPolicy(repository_root=root)
+def _construct_policy(root: Path, *, allowed_tools: frozenset[str] | None = None, allow_network: bool = True) -> ExecutionPolicy:
+    return ExecutionPolicy(repository_root=root, allowed_tools=allowed_tools, allow_network=allow_network)
 
 
 def _validate_root(order: Any, root: Path) -> None:
@@ -98,12 +96,14 @@ def preview_structured_work_order(
     *,
     repository_root: Path,
     kit_binary: Path,
+    allowed_tools: frozenset[str] | None = None,
+    allow_network: bool = True,
 ) -> PreviewedBridgeStep:
     root = repository_root.resolve()
     order = parse_work_order_json(work_order_text)
     _validate_root(order, root)
 
-    policy = _construct_policy(root)
+    policy = _construct_policy(root, allowed_tools=allowed_tools, allow_network=allow_network)
     preview = _invoke(
         preview_work_order,
         order,
@@ -124,15 +124,19 @@ def execute_structured_work_order(
     *,
     repository_root: Path,
     kit_binary: Path,
+    allowed_tools: frozenset[str] | None = None,
+    allow_network: bool = True,
 ) -> ExecutedBridgeStep:
     root = repository_root.resolve()
     previewed = preview_structured_work_order(
         work_order_text,
         repository_root=root,
         kit_binary=kit_binary,
+        allowed_tools=allowed_tools,
+        allow_network=allow_network,
     )
 
-    policy = _construct_policy(root)
+    policy = _construct_policy(root, allowed_tools=allowed_tools, allow_network=allow_network)
     run = _invoke(
         execute_work_order,
         previewed.order,

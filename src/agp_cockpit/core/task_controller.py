@@ -2,13 +2,17 @@ from pathlib import Path
 from typing import Any
 
 from .task_store import TaskStore
+from .task_contract import LocalTaskContract
 
 
 class DurableTaskController:
-    def __init__(self, task_id: str, store_path: str | Path):
+    def __init__(self, task_id: str, store_path: str | Path, *, local_contract: LocalTaskContract | None = None):
         self.task_id = task_id
         self.store = TaskStore(store_path)
         self.store.ensure_task(task_id)
+        self.local_contract = local_contract
+        if local_contract is not None:
+            self.store.set_task_authority(task_id, repository_root=local_contract.repository_root, allowed_effects=local_contract.allowed_effects, allowed_tools=local_contract.allowed_tools, allow_network=local_contract.allow_network)
 
     def close(self):
         self.store.close()
@@ -109,8 +113,29 @@ class DurableTaskController:
     def begin_attempt(self, action_id):
         return self.store.begin_attempt(self.task_id, action_id)
 
-    def record_kit_result(self, evidence) -> None:
-        self.store.record_kit_evidence(self.task_id, evidence)
+    def set_task_authority(self,*,repository_root,allowed_effects,allowed_tools,allow_network=False):self.store.set_task_authority(self.task_id,repository_root=repository_root,allowed_effects=allowed_effects,allowed_tools=allowed_tools,allow_network=allow_network)
+    def action_authorized(self,payload):
+        import json
+        a=self.store.task_authority(self.task_id)
+        if a is None or not isinstance(payload,dict):return False
+        if str(payload.get("effect") or "") not in set(json.loads(a["allowed_effects_json"])):return False
+        argv=payload.get("argv") or []
+        if not argv or Path(str(argv[0])).name not in set(json.loads(a["allowed_tools_json"])):return False
+        tool=Path(str(argv[0])).name
+        if tool in {"curl","wget","ssh","scp"} and not bool(a.get("allow_network",0)):return False
+        if payload.get("cwd") is not None:
+            try:Path(str(payload["cwd"])).expanduser().resolve().relative_to(Path(a["repository_root"]))
+            except ValueError:return False
+        return True
+    def record_kit_result(self,evidence):self.store.record_kit_evidence(self.task_id,evidence,trusted=False,acquisition_source="caller")
+    def record_verified_kit_result(self,evidence,*,acquisition_source):
+        if not acquisition_source:raise ValueError("trusted evidence acquisition source required")
+        self.store.record_kit_evidence(self.task_id,evidence,trusted=True,acquisition_source=acquisition_source)
+    def acquire_and_record_verified_kit_result(self,action_id,run,*,repository_root):
+        from .work_order_runner import acquire_trusted_kit_evidence
+        evidence=acquire_trusted_kit_evidence(action_id,run,repository_root=Path(repository_root))
+        self.record_verified_kit_result(evidence,acquisition_source="local-kit-execution")
+        return evidence
 
     def authorize_kit_recovery(self, blocked_action_id: str, requested_command) -> tuple[str, ...]:
         evidence=self.store.kit_evidence_for(self.task_id,blocked_action_id)
@@ -212,6 +237,8 @@ class DurableTaskController:
             reason = "GOVERNANCE_NOT_CLEAR"
         elif self.snapshot["execution_state"] in {"RUNNING", "OUTCOME_UNKNOWN", "BLOCKED"}:
             reason = "EXECUTION_NOT_SETTLED"
+        elif (lambda ev: ev is not None and int(ev.get("trusted",0)) != 1)(self.store.kit_evidence_for(self.task_id, contract["required_kit_action_id"])):
+            reason = "UNTRUSTED_KIT_EVIDENCE"
         elif not self.kit_pass_matches(contract["required_kit_action_id"], contract["revision"], contract["artifact_hash"], contract["required_kit_raw_hash"]):
             reason = "MISSING_OR_STALE_KIT_PASS"
         elif int(contract["human_checkpoint_required"]) and not self.checkpoint_approved_for(contract["revision"], contract["artifact_hash"]):

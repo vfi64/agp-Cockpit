@@ -30,17 +30,19 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=8765,
     )
+    parser.add_argument("--allowed-effect", action="append", default=[])
+    parser.add_argument("--allowed-tool", action="append", default=[])
+    parser.add_argument("--allow-network", action="store_true", default=False)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
-    runtime = BridgeRuntimeServer(
-        Path(args.repository),
-        host=args.host,
-        port=args.port,
-    )
+    from agp_cockpit.core.task_contract import LocalTaskContract
+    repository_root = Path(args.repository).expanduser().resolve()
+    local_contract = LocalTaskContract(repository_root, allowed_effects=frozenset(args.allowed_effect), allowed_tools=frozenset(args.allowed_tool), allow_network=args.allow_network)
+    runtime = BridgeRuntimeServer(repository_root, host=args.host, port=args.port, local_contract=local_contract)
     info = runtime.start()
 
     print("AGP Cockpit Bridge READY", flush=True)
