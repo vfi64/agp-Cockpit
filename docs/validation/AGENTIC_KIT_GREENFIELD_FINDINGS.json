@@ -156,6 +156,24 @@
       "historical_id": "Phase-10 Steps 504-509",
       "canonical_family": "KIT-GF-019",
       "summary": "restore-known-volatile missed archived transfer outbox residue and external pr-merge-safe blocked despite green CI"
+    },
+    {
+      "id": "KIT-GF-020",
+      "title": "External-workspace governance requires a non-persistable empty transfer inbox directory",
+      "summary": "governance requires a non-persistable empty transfer inbox directory",
+      "date": "2026-09-11",
+      "expected": "A valid external workspace must survive clone/checkout with governance-valid transfer state. Empty runtime directories must be deterministically materialized by a supported Kit lifecycle command, represented by a persistable Kit-owned carrier, or treated as a legitimate absent/empty state.",
+      "observed": "workspace init source owns creation of .agentic/transfer/inbox, while governance check requires the directory itself. The current repository has no inbox directory. Git cannot persist an empty directory, and authority probing established no standalone supported producer that authorizes manual fabrication.",
+      "impact": "A valid external workspace can fail governance after checkout solely because an empty runtime carrier directory is absent, blocking governed lifecycle work and encouraging agents to fabricate Kit-owned state.",
+      "workaround": "Do not create the directory manually and do not bypass governance. Preserve the failure as Kit Greenfield evidence and use only independently applicable authority-supported external-workspace gates.",
+      "repair": "Close the external-workspace lifecycle across checkout: provide deterministic Kit provisioning/persistable carrier semantics, or make governance resolve inbox absence through the same legitimate empty-state model as transfer state. Expose exact remediation through a high-level Kit command.",
+      "regression": "Fresh external workspace init -> commit/push -> fresh clone/checkout -> governance check must pass without manually creating .agentic/transfer/inbox; no pending transfer command must remain a deterministic NO_COMMAND state.",
+      "evidence": [
+        "Step 622 authority probe",
+        "installed Kit governance.py",
+        "installed Kit workspace_init.py",
+        "git ls-files .agentic/transfer"
+      ]
     }
   ],
   "families": [
@@ -687,6 +705,18 @@
         "If required preservation semantics cannot be derived deterministically, block with a bounded machine-readable remediation plan that names the missing decisions; require user review/approval of semantics rather than manual file construction.",
         "Never silently bypass an applicable guard and never fabricate preservation semantics."
       ]
+    },
+    {
+      "id": "KIT-GF-LESSON-DRYRUN-EXECUTE-PARITY-001",
+      "status": "ACCEPTED_GREENFIELD_LESSON",
+      "finding": "agentic-kit work finish dry-run accepted a path set containing .agentic/rule_ack/current.json, while execute later rejected that same volatile path at commit time.",
+      "lesson": "A lifecycle dry-run must validate the same commit-path admissibility constraints as execute. Volatile runtime paths must be rejected during planning, before any commit/handoff/push side effects occur.",
+      "evidence": [
+        "Step 617 dry-run PASS with .agentic/rule_ack/current.json selected",
+        "Step 617 execute blocked at transfer commit",
+        "Step 617R1 succeeded past commit only after excluding the volatile path"
+      ],
+      "impact": "Improves dry-run/execute parity and prevents partially advanced lifecycle state from a plan that was never executable as presented."
     }
   ]
 }

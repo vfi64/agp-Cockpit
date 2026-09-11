@@ -156,6 +156,16 @@ contract's process/crash/concurrency ownership evidence, product-path
 human-gate/restart proof, and dispatch failure-injection evidence. No product
 patch is justified solely by the invalid 612R1 harness failures.
 
+#### K02 evidence update — 2026-09-11 / steps 619R2, 620R2, 626
+
+Additional independent evidence now proves:
+- separate-process crash after durable `DISPATCH_INTENT` is recovered as `OUTCOME_UNKNOWN` and blind retry is blocked (619R2);
+- a second process/controller is denied while another action owns active execution (619R2);
+- injected failure at the final dispatch-state persistence seam rolls the entire dispatch transition back atomically (620R2);
+- T08's exact effect window is proven with a real harmless temporary filesystem effect followed by hard process exit before result persistence; restart recovers `a1` as `OUTCOME_UNKNOWN`, blocks automatic replay, and preserves one local action (626).
+
+The focused K02 regression remains green. These results close the controller/store-level process/crash/concurrency and dispatch-atomicity evidence requested by F03/F08. F04 remains explicitly bounded by its own wording: controller-level human-gate/terminal behavior is proven, while supported product-path human-checkpoint/restart proof belongs to the later vertical product-path acceptance boundary and must not be silently claimed here.
+
 ### K03 — Bind authorization and completion to trusted authority
 Findings: F02, F05.
 Status: OPEN.

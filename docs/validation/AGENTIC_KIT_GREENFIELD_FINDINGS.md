@@ -1005,3 +1005,21 @@ a parallel mechanism.
 **Impact:** External-workspace governance remains strict without forcing agents to invent Kit-owned policy state.
 
 **Evidence:** Step 609 workflow-guard traceback, Step 610 tracked/history/source adjudication, Step 611 diagnose reproduces FileNotFoundError.
+
+### KIT-GF-LESSON-DRYRUN-EXECUTE-PARITY-001 — ACCEPTED_GREENFIELD_LESSON
+
+`work finish --dry-run` accepted `.agentic/rule_ack/current.json` in the commit path set, while execute rejected that same volatile runtime path. Dry-run must validate the same path-admissibility constraints as execute so an apparently executable plan cannot fail only after lifecycle side effects have begun.
+
+### KIT-GF-020 — External-workspace governance requires a non-persistable empty transfer inbox directory
+
+**Expected:** A valid external workspace remains governance-valid across clone/checkout. Empty runtime carriers are Kit-provisioned, persistably represented, or accepted as a legitimate absent/empty state.
+
+**Observed:** `workspace init` owns `.agentic/transfer/inbox`, while `governance check` requires the directory itself. Git cannot persist an empty directory, and the authority probe established no supported standalone producer authorizing manual fabrication.
+
+**Impact:** External-workspace lifecycle work can be blocked by ephemeral filesystem shape rather than missing semantic state.
+
+**Rule for ongoing LLM work:** Never infer or fabricate Kit-owned workspace files/directories. Resolve applicability and command authority first; if no supported producer exists, record the Kit defect and fail closed.
+
+**Repair:** Close the lifecycle across checkout through deterministic Kit provisioning/persistable carrier semantics or by making governance consume the legitimate empty-state model used by transfer state.
+
+**Regression:** init → commit/push → fresh clone/checkout → governance succeeds without manual inbox creation; NO_COMMAND remains deterministic.
