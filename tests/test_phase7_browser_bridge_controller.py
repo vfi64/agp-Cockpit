@@ -20,7 +20,7 @@ def test_fake_browser_one_round_stops(tmp_path):
     harness.write_text('''
 global.window=global;
 let sent=0, staged=0, fetched=0;
-global.chrome={storage:{local:{get:async()=>({baseUrl:"http://127.0.0.1:8765",token:"t"})}}};
+global.chrome={storage:{local:{get:async()=>({baseUrl:"http://127.0.0.1:9876",token:"t"})}}};
 window.AGPCockpitConversationContract={
  waitForCompletedProtocolAssistant:async()=>({text:"FRAME",fingerprint:"f",source:"pre"}),
  stageDraft:async x=>{staged++; if(x!=="RESULT") throw Error("bad frame")},

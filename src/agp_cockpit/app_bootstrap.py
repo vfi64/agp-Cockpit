@@ -339,7 +339,7 @@ def run(
             host=bridge_host,
             port=bridge_port,
             runtime_root=require_stable_production_runtime_root(bridge_runtime_root()),
-            local_contract=local_contract,
+            local_task_contract=local_contract,
         )
         runtime.start()
         owns_runtime = True

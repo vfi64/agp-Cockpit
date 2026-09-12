@@ -5,7 +5,7 @@
   if (!C || !P) throw new Error("Phase7 dependencies missing");
 
   async function config() {
-    const v = await chrome.storage.local.get({token:"", baseUrl:"http://127.0.0.1:8765"});
+    const v = await chrome.storage.local.get({token:"", baseUrl:"http://127.0.0.1:9876"});
     if (!v.token) throw new Error("AGP bridge token missing");
     return {baseUrl:String(v.baseUrl).replace(/\/$/,""), token:String(v.token)};
   }

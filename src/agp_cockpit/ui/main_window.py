@@ -1,4 +1,5 @@
 from __future__ import annotations
+from agp_cockpit.ui.task_operator_panel import TaskOperatorPanel
 
 from agp_cockpit.core.browser_refresh import request_browser_refresh
 from pathlib import Path
@@ -39,6 +40,7 @@ class MainWindow(ttk.Frame):
         self.hermes_var = tk.StringVar(value="")
         self.model_var = tk.StringVar(value="")
         self.context_var = tk.StringVar(value=f"Repository: {self.repository_root}")
+        self.system_focus_var = tk.StringVar(value="Tastaturfokus: —")
 
         self._build()
         self.after(80, self.refresh_runtime_status)
@@ -93,20 +95,6 @@ class MainWindow(ttk.Frame):
 
         self.tabs = ttk.Notebook(self)
 
-        # AGP_BROWSER_REFRESH_BUTTON_062
-        try:
-            _agp_refresh_parent = self.tabs.winfo_toplevel()
-            _agp_browser_refresh_button = tk.Button(
-                _agp_refresh_parent,
-                text="Browser-Verbindung neu laden",
-                command=lambda: request_browser_refresh(
-                    self.repository_root,
-                    reason="cockpit-button",
-                ),
-            )
-            _agp_browser_refresh_button.place(relx=0.985, rely=0.985, anchor="se")
-        except Exception:
-            pass
         self.tabs.grid(
             row=3,
             column=0,
@@ -128,6 +116,13 @@ class MainWindow(ttk.Frame):
         order_tab.columnconfigure(0, weight=1)
         order_tab.rowconfigure(0, weight=1)
 
+        task_tab = ttk.Frame(
+            self.tabs,
+            padding=8,
+        )
+        task_tab.columnconfigure(0, weight=1)
+        task_tab.rowconfigure(0, weight=1)
+
         self.tabs.add(
             system_tab,
             text="System",
@@ -135,6 +130,10 @@ class MainWindow(ttk.Frame):
         self.tabs.add(
             order_tab,
             text="Auftrag",
+        )
+        self.tabs.add(
+            task_tab,
+            text="Task Operator",
         )
 
         self._build_system_tab(system_tab)
@@ -160,6 +159,43 @@ class MainWindow(ttk.Frame):
             column=0,
             sticky="ew",
             pady=(6, 0),
+        )
+
+        # AGP_BROWSER_REFRESH_BUTTON_062 — retained lifecycle compatibility marker; control is normal-flow
+        self.browser_refresh_button = ttk.Button(
+            order_tab,
+            text="Browser-Verbindung neu laden",
+            command=lambda: request_browser_refresh(
+                    self.repository_root,
+                    reason="cockpit-button",
+                ),
+            takefocus=True,
+        )
+        self.browser_refresh_button.grid(
+            row=2,
+            column=0,
+            sticky="e",
+            pady=(6, 0),
+        )
+        self.browser_transport_panel.mission_operator_button.bind(
+            "<FocusIn>",
+            lambda _e: self.work_order_panel.focus_var.set("Tastaturfokus: Mission Operator öffnen"),
+            add="+",
+        )
+        self.browser_refresh_button.bind(
+            "<FocusIn>",
+            lambda _e: self.work_order_panel.focus_var.set("Tastaturfokus: Browser-Verbindung neu laden"),
+            add="+",
+        )
+
+        self.task_operator_panel = TaskOperatorPanel(
+            task_tab,
+            repository_root=self.repository_root,
+        )
+        self.task_operator_panel.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
         )
 
     def _build_system_tab(self, parent: ttk.Frame) -> None:
@@ -223,11 +259,13 @@ class MainWindow(ttk.Frame):
             pady=(8, 0),
         )
 
-        ttk.Button(
+        self.runtime_refresh_button = ttk.Button(
             ollama_buttons,
             text="Aktualisieren",
             command=self.refresh_runtime_status,
-        ).grid(
+            takefocus=True,
+        )
+        self.runtime_refresh_button.grid(
             row=0,
             column=0,
             padx=(0, 6),
@@ -306,6 +344,15 @@ class MainWindow(ttk.Frame):
             column=0,
             sticky="w",
         )
+        ttk.Label(parent,textvariable=self.system_focus_var).grid(row=2,column=0,columnspan=2,sticky="w",pady=(8,0))
+        system_focus_names={
+            self.model_box:"Modell",
+            self.runtime_refresh_button:"Aktualisieren",
+            self.repair_button:"Starten / reparieren",
+            self.hermes_model_button:"Modell übernehmen",
+        }
+        for widget,name in system_focus_names.items():
+            widget.bind("<FocusIn>",lambda _e,n=name:self.system_focus_var.set(f"Tastaturfokus: {n}"),add="+")
 
     def refresh_runtime_status(self) -> None:
         try:
