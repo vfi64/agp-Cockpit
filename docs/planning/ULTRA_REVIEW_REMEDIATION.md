@@ -45,13 +45,16 @@ described as such.
 ## 3. Finding inventory
 
 ### F01 / P1 — Runtime not fully integrated into the product path
-Status: PARTIALLY_REMEDIATED / OPEN.
+Status: EVIDENCE-BACKED COMPLETE IN K04.
 
-The delivered HTTP `/v1/protocol/execute` path has since been wired to durable
-controller state, but closure still requires one authoritative controller
-across the supported Desktop/Browser/HTTP path. Legacy continuation logic must
-not retain a second task authority. Product-level FAIL/correction/DONE behavior
-must be proven end to end.
+K04 now establishes one durable task authority across the supported
+Desktop/Browser/HTTP execution path. The delivered Protocol-v1 execute path uses
+`DurableTaskController` before local execution, durable SQLite state lives under
+the stable runtime root, result delivery is explicitly acknowledged before a
+correction round, and duplicate actions remain suppressed across restart.
+Browser `DONE` now enters only the durable `COMPLETE_PROPOSED` surface; it does
+not verify completion. Evidence: K04 steps 651-667, including 665, 666R1 and
+667 final adjudication.
 
 ### F02 / P1 — Executor resource/effect confinement is insufficient
 Status: EVIDENCE-BACKED COMPLETE IN K03.
@@ -171,14 +174,31 @@ Step 650 passed K03 20/20, execution 26/26, runtime/completion 32/32, settings 1
 
 ### K04 — Establish one vertical product path
 Findings: F01, F03, F05, F10.
-Status: PARTIALLY IMPLEMENTED / OPEN.
+Status: EVIDENCE-BACKED COMPLETE FOR VERTICAL PRODUCT AUTHORITY / PENDING KIT CLOSEOUT.
 
-Desktop/Browser/HTTP must converge on the same hardened controller. A genuine
-local FAIL must be delivered as task evidence and permit an authorized
-correction round. A duplicate action after server restart must not duplicate
-effect. A direct controller-only test is insufficient.
+The supported Desktop/Browser/HTTP path now converges on the durable controller
+for task authority. K04 proves genuine local FAIL -> durable result evidence ->
+explicit RESULT_DELIVERED acknowledgement -> authorized correction, persistent
+duplicate suppression across server restart, a durable task status/control
+surface, restart-safe revision/artifact-bound human checkpoints, and browser
+`DONE` -> `COMPLETE_PROPOSED` only.
 
-K04 mutating product acceptance must not outrun K02/K03 safety boundaries.
+Final read-only adjudication step 667 passed the focused K04 authority set
+15/15, human-checkpoint/control set 7/7, completion/proposal set 8/8, the full
+repository pytest suite, and `git diff --check`.
+
+Finding boundaries are preserved:
+- F01's vertical product-path integration requirement is closed by K04.
+- F03's K04 duplicate/delivery portion is proven; broader crash/process
+  invariants remain governed by K02 evidence/status.
+- F04's deterministic product-path human-gate authority is proven; user-facing
+  checkpoint interaction/accessibility belongs to K06.
+- F05's browser DONE/proposal separation is proven; trusted Kit/CI/artifact
+  acquisition/provenance remains K03.
+- F10 first-use/accessibility remains open for K06.
+
+No additional K04 browser checkpoint UI mutation is required. K04 acceptance is
+complete subject only to normal Kit-governed branch/PR/post-merge closeout.
 
 ### K05 — Complete budgets, chat switch, and canonical context
 Findings: F09.

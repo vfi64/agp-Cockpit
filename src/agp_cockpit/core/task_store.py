@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,18 +33,30 @@ class StoredAction:
 
 
 class TaskStore:
+    @staticmethod
+    def _serialized(method):
+        def locked(self, *args, **kwargs):
+            with self._lock:
+                return method(self, *args, **kwargs)
+        locked.__name__ = method.__name__
+        locked.__doc__ = method.__doc__
+        return locked
+
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.path, timeout=5.0)
+        self._lock = threading.RLock()
+        self.db = sqlite3.connect(self.path, timeout=5.0, check_same_thread=False)
         self.db.execute("PRAGMA busy_timeout = 5000")
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys = ON")
         self._init()
 
+    @_serialized
     def close(self):
         self.db.close()
 
+    @_serialized
     def _init(self):
         with self.db:
             self.db.executescript(
@@ -184,6 +197,7 @@ CREATE TABLE IF NOT EXISTS task_control(
     def payload_hash(cls, payload: Any) -> str:
         return hashlib.sha256(cls.canonical_payload(payload).encode()).hexdigest()
 
+    @_serialized
     def ensure_task(self, task_id: str):
         with self.db:
             self.db.execute(
@@ -195,12 +209,14 @@ CREATE TABLE IF NOT EXISTS task_control(
                 (task_id,),
             )
 
+    @_serialized
     def task_row(self, task_id: str):
         row = self.db.execute("SELECT * FROM tasks WHERE task_id=?", (task_id,)).fetchone()
         if row is None:
             raise KeyError(task_id)
         return row
 
+    @_serialized
     def control_row(self, task_id: str):
         self.ensure_task(task_id)
         row = self.db.execute("SELECT * FROM task_control WHERE task_id=?", (task_id,)).fetchone()
@@ -208,6 +224,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             raise KeyError(task_id)
         return row
 
+    @_serialized
     def set_states(self, task_id: str, state=None, execution_state=None, governance_state=None):
         row = self.task_row(task_id)
         with self.db:
@@ -221,12 +238,14 @@ CREATE TABLE IF NOT EXISTS task_control(
                 ),
             )
 
+    @_serialized
     def bump(self, task_id: str, field: str, n: int = 1):
         if field not in {"remote_rounds_used", "local_actions_used", "retries_used", "no_progress_rounds"}:
             raise ValueError("unsupported budget field")
         with self.db:
             self.db.execute(f"UPDATE tasks SET {field}={field}+? WHERE task_id=?", (n, task_id))
 
+    @_serialized
     def set_limits(self, task_id: str, *, max_remote_rounds=None, max_local_actions=None, max_no_progress_rounds=None):
         self.ensure_task(task_id)
         for value in (max_remote_rounds, max_local_actions, max_no_progress_rounds):
@@ -238,6 +257,7 @@ CREATE TABLE IF NOT EXISTS task_control(
                 (max_remote_rounds, max_local_actions, max_no_progress_rounds, task_id),
             )
 
+    @_serialized
     def suspend(self, task_id: str, reason: str):
         if reason not in SUSPENSION_REASONS:
             raise ValueError("unsupported suspension reason")
@@ -246,18 +266,21 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.db.execute("UPDATE task_control SET suspension_reason=? WHERE task_id=?", (reason, task_id))
             self.set_states(task_id, state="SUSPENDED")
 
+    @_serialized
     def clear_suspension(self, task_id: str, *, next_state="WAITING_FOR_REMOTE"):
         self.ensure_task(task_id)
         with self.db:
             self.db.execute("UPDATE task_control SET suspension_reason=NULL WHERE task_id=?", (task_id,))
             self.set_states(task_id, state=next_state)
 
+    @_serialized
     def suspension_reason(self, task_id: str) -> str | None:
         control = self.control_row(task_id)
         if control["checkpoint_id"] is not None and control["approved_checkpoint_id"] is None:
             return "WAITING_FOR_HUMAN"
         return control["suspension_reason"]
 
+    @_serialized
     def request_checkpoint(self, task_id: str, checkpoint_id: str, revision: str, artifact_hash: str):
         if not checkpoint_id or not revision or not artifact_hash:
             raise ValueError("checkpoint identity, revision and artifact required")
@@ -269,6 +292,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             )
             self.set_states(task_id, state="SUSPENDED")
 
+    @_serialized
     def approve_checkpoint(self, task_id: str, checkpoint_id: str, revision: str, artifact_hash: str):
         control = self.control_row(task_id)
         if self.suspension_reason(task_id) != "WAITING_FOR_HUMAN":
@@ -287,6 +311,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             )
             self.set_states(task_id, state="WAITING_FOR_REMOTE")
 
+    @_serialized
     def checkpoint_approved_for(self, task_id: str, revision: str, artifact_hash: str) -> bool:
         control = self.control_row(task_id)
         return (
@@ -295,9 +320,11 @@ CREATE TABLE IF NOT EXISTS task_control(
             and control["approved_artifact_hash"] == artifact_hash
         )
 
+    @_serialized
     def pause(self, task_id: str):
         self.suspend(task_id, "USER_PAUSED")
 
+    @_serialized
     def resume(self, task_id: str):
         control = self.control_row(task_id)
         if control["suspension_reason"] != "USER_PAUSED":
@@ -309,6 +336,7 @@ CREATE TABLE IF NOT EXISTS task_control(
                 state="SUSPENDED" if self.suspension_reason(task_id) is not None else "WAITING_FOR_REMOTE",
             )
 
+    @_serialized
     def cancel(self, task_id: str):
         self.ensure_task(task_id)
         with self.db:
@@ -318,6 +346,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             )
             self.set_states(task_id, state="CANCELLED", execution_state="IDLE")
 
+    @_serialized
     def _budget_exhausted(self, task_id: str) -> str | None:
         task = self.task_row(task_id)
         control = self.control_row(task_id)
@@ -330,6 +359,7 @@ CREATE TABLE IF NOT EXISTS task_control(
                 return max_name
         return None
 
+    @_serialized
     def require_dispatch_allowed(self, task_id: str, *, check_remote_budget: bool = True):
         task = self.task_row(task_id)
         reason = self.suspension_reason(task_id)
@@ -354,6 +384,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.suspend(task_id, "BUDGET_EXHAUSTED")
             raise RuntimeError(f"task budget exhausted: {exhausted}")
 
+    @_serialized
     def register_action(self, task_id, action_id, payload, predecessor_action_id=None):
         self.ensure_task(task_id)
         canonical = self.canonical_payload(payload)
@@ -387,6 +418,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             )
         return "NEW"
 
+    @_serialized
     def begin_attempt(self, task_id, action_id):
         self.db.execute("BEGIN IMMEDIATE")
         try:
@@ -440,9 +472,11 @@ CREATE TABLE IF NOT EXISTS task_control(
     def set_task_authority(self,task_id,*,repository_root,allowed_effects,allowed_tools,allow_network=False):
         self.ensure_task(task_id)
         with self.db:self.db.execute("INSERT INTO task_authority(task_id,repository_root,allowed_effects_json,allowed_tools_json,allow_network) VALUES(?,?,?,?,?) ON CONFLICT(task_id) DO UPDATE SET repository_root=excluded.repository_root,allowed_effects_json=excluded.allowed_effects_json,allowed_tools_json=excluded.allowed_tools_json,allow_network=excluded.allow_network",(task_id,str(Path(repository_root).expanduser().resolve()),json.dumps(sorted(set(allowed_effects))),json.dumps(sorted(set(allowed_tools))),1 if allow_network else 0))
+    @_serialized
     def task_authority(self,task_id):
         row=self.db.execute("SELECT * FROM task_authority WHERE task_id=?",(task_id,)).fetchone();return dict(row) if row else None
 
+    @_serialized
     def record_kit_evidence(self, task_id, evidence, *, trusted=False, acquisition_source="caller"):
         import json
         status=evidence.status.upper()
@@ -457,12 +491,14 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.db.execute("UPDATE tasks SET governance_state=? WHERE task_id=?",
                 ("BLOCKED" if status=="BLOCKED" else ("CLEAR" if status=="PASS" else "FAILED"),task_id))
 
+    @_serialized
     def kit_evidence_for(self, task_id, action_id):
         row=self.db.execute("SELECT * FROM kit_evidence WHERE task_id=? AND action_id=? ORDER BY evidence_id DESC LIMIT 1",
             (task_id,action_id)).fetchone()
         return dict(row) if row else None
 
 
+    @_serialized
     def record_result(self, task_id, action_id, attempt_no, outcome, summary, governance_blocked=False):
         normalized = outcome.upper()
         if normalized not in {"PASS", "FAIL", "BLOCKED"}:
@@ -497,6 +533,7 @@ CREATE TABLE IF NOT EXISTS task_control(
                 governance_state="BLOCKED" if governance_blocked or normalized == "BLOCKED" else "CLEAR",
             )
 
+    @_serialized
     def mark_unknown(self, task_id, action_id, attempt_no, reason):
         with self.db:
             self.db.execute(
@@ -510,6 +547,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.db.execute("UPDATE task_control SET active_execution=0 WHERE task_id=?", (task_id,))
             self.set_states(task_id, state="RECONCILING", execution_state="OUTCOME_UNKNOWN")
 
+    @_serialized
     def reconcile(self, task_id, action_id, conclusion):
         if conclusion not in {"CONFIRMED_APPLIED", "CONFIRMED_NOT_APPLIED", "STILL_UNKNOWN"}:
             raise ValueError("invalid reconciliation conclusion")
@@ -535,6 +573,7 @@ CREATE TABLE IF NOT EXISTS task_control(
                 execution_state="SUCCEEDED" if conclusion == "CONFIRMED_APPLIED" else "FAILED",
             )
 
+    @_serialized
     def observe_progress(self, task_id: str, fingerprint: str):
         if not fingerprint:
             raise ValueError("progress fingerprint required")
@@ -563,6 +602,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             return "STALLED"
         return "NO_PROGRESS"
 
+    @_serialized
     def recover_interrupted_dispatches(self, task_id: str) -> list[str]:
         rows = self.db.execute(
             "SELECT action_id,attempt_no FROM attempts WHERE task_id=? AND status='DISPATCH_INTENT' ORDER BY action_id,attempt_no",
@@ -574,9 +614,11 @@ CREATE TABLE IF NOT EXISTS task_control(
             recovered.append(row["action_id"])
         return recovered
 
+    @_serialized
     def wait_for_service(self, task_id: str):
         self.suspend(task_id, "WAITING_FOR_SERVICE")
 
+    @_serialized
     def service_recovered(self, task_id: str):
         control = self.control_row(task_id)
         if control["suspension_reason"] != "WAITING_FOR_SERVICE":
@@ -588,12 +630,14 @@ CREATE TABLE IF NOT EXISTS task_control(
                 state="SUSPENDED" if self.suspension_reason(task_id) is not None else "WAITING_FOR_REMOTE",
             )
 
+    @_serialized
     def pending_outbox(self, task_id):
         return self.db.execute(
             "SELECT * FROM messages WHERE task_id=? AND direction='OUT' AND delivered=0 ORDER BY message_id",
             (task_id,),
         ).fetchall()
 
+    @_serialized
     def mark_delivered(self, message_id):
         with self.db:
             self.db.execute("UPDATE messages SET delivered=1 WHERE message_id=?", (message_id,))

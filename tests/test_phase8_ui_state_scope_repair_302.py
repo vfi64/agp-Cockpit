@@ -8,7 +8,10 @@ def test_phase8_ui_does_not_call_undefined_setstatus():
 def test_phase8_done_updates_canonical_overlay_state():
     assert "AGP_PHASE8_UI_STATE_REPAIR_316" in C
     assert "STATE.turns = Number(out.rounds || 0);" in C
-    assert "STATE.note = `Phase 8: ${out.state} (${out.rounds} rounds)`" in C
+    assert "STATE.note = durableTaskState" in C
+    assert "`Phase 8: ${out.state} / ${durableTaskState} (${out.rounds} rounds)`" in C
+    assert '"/v1/task/complete-proposal"' in C
+    assert '"COMPLETE_PROPOSED"' in C
     assert "STATE.lastEvent = `PHASE8_${out.state}`" in C
     assert 'STATE.lastEvent = "PHASE8_PAUSED"' in C
     assert 'STATE.lastEvent = "PHASE8_RUNNING"' in C
