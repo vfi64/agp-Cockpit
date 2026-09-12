@@ -99,15 +99,71 @@ class DurableTaskController:
             "approved_checkpoint_id": control["approved_checkpoint_id"],
             "approved_revision": control["approved_revision"],
             "approved_artifact_hash": control["approved_artifact_hash"],
+            "goal_scope_deadline": self.store.runtime_contract(self.task_id),
+            "authority": self.store.task_authority(self.task_id),
+            "evidence": [
+                dict(row) for row in self.store.db.execute(
+                    "SELECT action_id,outcome,summary,governance_blocked FROM evidence WHERE task_id=? ORDER BY evidence_id",
+                    (self.task_id,),
+                ).fetchall()
+            ],
+            "open_effects": [
+                dict(row) for row in self.store.db.execute(
+                    "SELECT action_id,status,payload_json FROM actions WHERE task_id=? AND status NOT IN "
+                    "('PASS','FAIL','BLOCKED','RECONCILED_APPLIED','RECONCILED_NOT_APPLIED') ORDER BY action_id",
+                    (self.task_id,),
+                ).fetchall()
+            ],
+            "approvals": {
+                "checkpoint_id": control["approved_checkpoint_id"],
+                "revision": control["approved_revision"],
+                "artifact_hash": control["approved_artifact_hash"],
+            },
+            "budgets": {
+                "remote_rounds_used": task["remote_rounds_used"],
+                "local_actions_used": task["local_actions_used"],
+                "retries_used": task["retries_used"],
+                "no_progress_rounds": task["no_progress_rounds"],
+                "max_remote_rounds": control["max_remote_rounds"],
+                "max_local_actions": control["max_local_actions"],
+                "max_no_progress_rounds": control["max_no_progress_rounds"],
+            },
+            "completion_contract": self.completion_contract(),
         }
 
     def accept_remote_action(self, action_id: str, payload: Any, predecessor_action_id: str | None = None):
-        if isinstance(payload, dict) and "binding_epoch" in payload:
-            if not self.binding_has_execution_authority(int(payload["binding_epoch"])):
-                raise PermissionError("stale remote binding")
+        from datetime import datetime, timezone
+        self.store.require_deadline_open(self.task_id, datetime.now(timezone.utc).isoformat())
+        active = self.active_remote_binding()
+        epoch = 0
+        if active is not None:
+            # Admission binds the action to the current authoritative epoch.
+            # Existing protocol callers may omit the explicit epoch.
+            epoch = int(active["binding_epoch"])
+            if isinstance(payload, dict) and "binding_epoch" in payload:
+                epoch = int(payload["binding_epoch"])
+                if not self.binding_has_execution_authority(epoch):
+                    raise PermissionError("stale remote binding")
+        elif isinstance(payload, dict) and "binding_epoch" in payload:
+            raise PermissionError("remote binding required for binding_epoch action")
+
         mode = self.store.register_action(self.task_id, action_id, payload, predecessor_action_id)
         if mode == "NEW":
-            self.store.bump(self.task_id, "remote_rounds_used")
+            try:
+                with self.store.db:
+                    self.store.reserve_action_budgets(self.task_id, action_id, epoch)
+                    self.store.consume_remote_round_reservation(self.task_id, action_id)
+            except Exception:
+                with self.store.db:
+                    self.store.db.execute(
+                        "DELETE FROM messages WHERE task_id=? AND action_id=? AND direction='IN'",
+                        (self.task_id, action_id),
+                    )
+                    self.store.db.execute(
+                        "DELETE FROM actions WHERE task_id=? AND action_id=?",
+                        (self.task_id, action_id),
+                    )
+                raise
         return mode
 
     def begin_attempt(self, action_id):

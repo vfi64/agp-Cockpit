@@ -131,6 +131,22 @@ CREATE TABLE IF NOT EXISTS completion_contracts(
     rejection_reason TEXT,
     FOREIGN KEY(task_id) REFERENCES tasks(task_id)
 );
+CREATE TABLE IF NOT EXISTS task_runtime_contract(
+    task_id TEXT PRIMARY KEY,
+    goal TEXT,
+    scope_json TEXT NOT NULL DEFAULT '[]',
+    deadline_utc TEXT,
+    FOREIGN KEY(task_id) REFERENCES tasks(task_id)
+);
+CREATE TABLE IF NOT EXISTS budget_reservations(
+    task_id TEXT NOT NULL,
+    action_id TEXT NOT NULL,
+    binding_epoch INTEGER NOT NULL DEFAULT 0,
+    remote_round_state TEXT NOT NULL,
+    local_action_state TEXT NOT NULL,
+    PRIMARY KEY(task_id, action_id),
+    FOREIGN KEY(task_id) REFERENCES tasks(task_id)
+);
 CREATE TABLE IF NOT EXISTS remote_bindings(
     task_id TEXT NOT NULL,
     binding_epoch INTEGER NOT NULL,
@@ -385,6 +401,76 @@ CREATE TABLE IF NOT EXISTS task_control(
             raise RuntimeError(f"task budget exhausted: {exhausted}")
 
     @_serialized
+    def set_runtime_contract(self, task_id: str, *, goal: str | None = None, scope=None, deadline_utc: str | None = None):
+        self.ensure_task(task_id)
+        with self.db:
+            self.db.execute(
+                "INSERT INTO task_runtime_contract(task_id,goal,scope_json,deadline_utc) VALUES(?,?,?,?) "
+                "ON CONFLICT(task_id) DO UPDATE SET goal=excluded.goal,scope_json=excluded.scope_json,deadline_utc=excluded.deadline_utc",
+                (task_id, goal, self.canonical_payload(scope or []), deadline_utc),
+            )
+
+    @_serialized
+    def runtime_contract(self, task_id: str):
+        row = self.db.execute("SELECT * FROM task_runtime_contract WHERE task_id=?", (task_id,)).fetchone()
+        return dict(row) if row is not None else None
+
+    @_serialized
+    def require_deadline_open(self, task_id: str, now_utc: str):
+        contract = self.runtime_contract(task_id)
+        if contract and contract["deadline_utc"] and now_utc >= contract["deadline_utc"]:
+            raise RuntimeError("task deadline exceeded")
+
+    @_serialized
+    def reserve_action_budgets(self, task_id: str, action_id: str, binding_epoch: int):
+        task = self.task_row(task_id)
+        control = self.control_row(task_id)
+        reserved = self.db.execute(
+            "SELECT "
+            "SUM(CASE WHEN remote_round_state='RESERVED' THEN 1 ELSE 0 END) AS remote_n,"
+            "SUM(CASE WHEN local_action_state='RESERVED' THEN 1 ELSE 0 END) AS local_n "
+            "FROM budget_reservations WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
+        remote_reserved = int(reserved["remote_n"] or 0)
+        local_reserved = int(reserved["local_n"] or 0)
+        remote_limit = control["max_remote_rounds"]
+        local_limit = control["max_local_actions"]
+        if remote_limit is not None and int(task["remote_rounds_used"]) + remote_reserved >= int(remote_limit):
+            raise RuntimeError("task budget exhausted: max_remote_rounds")
+        if local_limit is not None and int(task["local_actions_used"]) + local_reserved >= int(local_limit):
+            raise RuntimeError("task budget exhausted: max_local_actions")
+        self.db.execute(
+            "INSERT INTO budget_reservations(task_id,action_id,binding_epoch,remote_round_state,local_action_state) "
+            "VALUES(?,?,?,'RESERVED','RESERVED')",
+            (task_id, action_id, int(binding_epoch)),
+        )
+
+    @_serialized
+    def consume_remote_round_reservation(self, task_id: str, action_id: str):
+        row = self.db.execute(
+            "SELECT remote_round_state FROM budget_reservations WHERE task_id=? AND action_id=?",
+            (task_id, action_id),
+        ).fetchone()
+        if row is None or row["remote_round_state"] != "RESERVED":
+            raise RuntimeError("missing remote-round budget reservation")
+        self.db.execute(
+            "UPDATE budget_reservations SET remote_round_state='CONSUMED' WHERE task_id=? AND action_id=?",
+            (task_id, action_id),
+        )
+        self.db.execute(
+            "UPDATE tasks SET remote_rounds_used=remote_rounds_used+1 WHERE task_id=?",
+            (task_id,),
+        )
+
+    @_serialized
+    def reservation_for(self, task_id: str, action_id: str):
+        row = self.db.execute(
+            "SELECT * FROM budget_reservations WHERE task_id=? AND action_id=?",
+            (task_id, action_id),
+        ).fetchone()
+        return dict(row) if row is not None else None
+
     def register_action(self, task_id, action_id, payload, predecessor_action_id=None):
         self.ensure_task(task_id)
         canonical = self.canonical_payload(payload)
@@ -444,6 +530,21 @@ CREATE TABLE IF NOT EXISTS task_control(
                     "PASS", "FAIL", "BLOCKED", "RECONCILED_APPLIED", "RECONCILED_NOT_APPLIED"
                 }:
                     raise RuntimeError("predecessor not settled at dispatch")
+            from datetime import datetime, timezone
+            self.require_deadline_open(task_id, datetime.now(timezone.utc).isoformat())
+            reservation = self.db.execute(
+                "SELECT * FROM budget_reservations WHERE task_id=? AND action_id=?",
+                (task_id, action_id),
+            ).fetchone()
+            if reservation is None or reservation["local_action_state"] != "RESERVED":
+                raise RuntimeError("missing local-action budget reservation")
+            if int(reservation["binding_epoch"]) > 0:
+                active = self.db.execute(
+                    "SELECT binding_epoch FROM remote_bindings WHERE task_id=? AND status='ACTIVE' ORDER BY binding_epoch DESC LIMIT 1",
+                    (task_id,),
+                ).fetchone()
+                if active is None or int(active["binding_epoch"]) != int(reservation["binding_epoch"]):
+                    raise PermissionError("stale remote binding at dispatch")
             control = self.control_row(task_id)
             task = self.task_row(task_id)
             limit = control["max_local_actions"]
@@ -461,6 +562,10 @@ CREATE TABLE IF NOT EXISTS task_control(
             self.db.execute(
                 "UPDATE tasks SET local_actions_used=local_actions_used+1,state='ACTIVE',execution_state='RUNNING' WHERE task_id=?",
                 (task_id,),
+            )
+            self.db.execute(
+                "UPDATE budget_reservations SET local_action_state='CONSUMED' WHERE task_id=? AND action_id=?",
+                (task_id, action_id),
             )
             self.db.execute("UPDATE task_control SET active_execution=1 WHERE task_id=?", (task_id,))
             self.db.commit()
