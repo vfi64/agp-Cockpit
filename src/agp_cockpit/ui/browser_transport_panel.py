@@ -56,11 +56,13 @@ class BrowserTransportPanel(ttk.LabelFrame):
             pady=(8, 0),
         )
 
-        ttk.Button(
+        self.mission_operator_button = ttk.Button(
             buttons,
             text="Mission Operator öffnen",
             command=self.open_operator,
-        ).pack(side="left")
+            takefocus=True,
+        )
+        self.mission_operator_button.pack(side="left")
 
         ttk.Label(
             self,

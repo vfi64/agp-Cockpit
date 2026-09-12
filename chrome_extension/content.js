@@ -22,6 +22,8 @@
     candidateStablePolls: 0
   };
 
+  let AGP_DIAGNOSTICS_OPEN = false;
+
   const LIMITS = {
     maxTurns: 40,
     maxRuntimeMs: 2 * 60 * 60 * 1000,
@@ -197,10 +199,15 @@
   }
 
   async function settings() {
-    return chrome.storage.local.get({
+    const cfg = await chrome.storage.local.get({
       token:"",
-      baseUrl:"http://127.0.0.1:8765"
+      baseUrl:"http://127.0.0.1:9876"
     });
+    if (cfg.baseUrl === "http://127.0.0.1:8765") {
+      cfg.baseUrl = "http://127.0.0.1:9876";
+      await chrome.storage.local.set({baseUrl:cfg.baseUrl});
+    }
+    return cfg;
   }
 
   async function api(path, options={}) {
@@ -1538,50 +1545,47 @@ async function sendPrompt(prompt) {
 
     actions.appendChild(
       btn(
-        STATE.running ? "▶ Auto läuft" : "▶ Start Auto",
+        STATE.running ? "▶ Aufgabe läuft" : "▶ Aufgabe starten",
         "start",
         startAuto
       )
     );
-    actions.appendChild(
-      btn("■ Stop", "stop", async () => stop("Stopped by user"))
-    );
-    actions.appendChild(
-      btn("+ New DRY Mission", "mission", newDryMission)
-    );
-    actions.appendChild(
-      btn("● LIVE Probe", "liveprobe", newLiveProbeMission)
-    );
-    actions.appendChild(
-      btn("③ LIVE 3-Turn", "liveprobe", newMultiTurnLiveProbeMission)
-    );
-    actions.appendChild(
-      btn("⏭ Next Step", "next", resumeStep)
-    );
-    actions.appendChild(
-      btn("↻ Status", "status", refreshStatus)
-    );
+    actions.appendChild(btn("■ Stoppen", "stop", async () => stop("Stopped by user")));
+    actions.appendChild(btn("⏭ Nächster Schritt", "next", resumeStep));
+    actions.appendChild(btn("↻ Aktualisieren", "status", refreshStatus));
 
-
-    actions.appendChild(
-      btn("P5 Bind", "status", phase5Bind)
+    const diagnosticsToggle = btn(
+      AGP_DIAGNOSTICS_OPEN ? "▾ Diagnose" : "▸ Diagnose",
+      "status",
+      () => {
+        AGP_DIAGNOSTICS_OPEN = !AGP_DIAGNOSTICS_OPEN;
+        render();
+      }
     );
-    actions.appendChild(
-      btn("P5 Draft", "mission", phase5StageDraft)
-    );
-    actions.appendChild(
-      btn("P5 Send", "stop", phase5ConfirmAndSend)
-    );
-    actions.appendChild(
-      btn("P7 One Round", "start", phase7RunOneRound)
-    );
-    // AGP_PHASE8_CANONICAL_OVERLAY_UI_296
-    actions.appendChild(btn("P8 Run", "start", phase8RunMultiRound));
-    actions.appendChild(btn("P8 Pause", "status", phase8Pause));
-    actions.appendChild(btn("P8 Resume", "mission", phase8Resume));
-    actions.appendChild(btn("P8 Stop", "stop", phase8Stop));
-
+    diagnosticsToggle.setAttribute("aria-expanded", String(Boolean(AGP_DIAGNOSTICS_OPEN)));
+    diagnosticsToggle.setAttribute("aria-controls", "agp-cockpit-diagnostics");
+    actions.appendChild(diagnosticsToggle);
     root.appendChild(actions);
+
+    if (AGP_DIAGNOSTICS_OPEN) {
+      const diagnostics = document.createElement("div");
+      diagnostics.id = "agp-cockpit-diagnostics";
+      diagnostics.className = "agp-actions agp-diagnostics";
+      diagnostics.setAttribute("role", "region");
+      diagnostics.setAttribute("aria-label", "Entwicklerdiagnose");
+      diagnostics.appendChild(btn("Neue DRY-Mission", "mission", newDryMission));
+      diagnostics.appendChild(btn("LIVE-Probe", "liveprobe", newLiveProbeMission));
+      diagnostics.appendChild(btn("LIVE 3-Turn", "liveprobe", newMultiTurnLiveProbeMission));
+      diagnostics.appendChild(btn("Phase 5: Bind", "status", phase5Bind));
+      diagnostics.appendChild(btn("Phase 5: Draft", "mission", phase5StageDraft));
+      diagnostics.appendChild(btn("Phase 5: Send", "stop", phase5ConfirmAndSend));
+      diagnostics.appendChild(btn("Phase 7: One Round", "start", phase7RunOneRound));
+      diagnostics.appendChild(btn("Phase 8: Run", "start", phase8RunMultiRound));
+      diagnostics.appendChild(btn("Phase 8: Pause", "status", phase8Pause));
+      diagnostics.appendChild(btn("Phase 8: Resume", "mission", phase8Resume));
+      diagnostics.appendChild(btn("Phase 8: Stop", "stop", phase8Stop));
+      root.appendChild(diagnostics);
+    }
 
     const body = document.createElement("div");
     body.className = "agp-body";
@@ -1663,7 +1667,9 @@ async function sendPrompt(prompt) {
       debug.appendChild(error);
     }
 
-    root.appendChild(debug);
+    if (AGP_DIAGNOSTICS_OPEN) {
+      root.appendChild(debug);
+    }
   }
 
   render();

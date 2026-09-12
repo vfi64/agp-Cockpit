@@ -23,7 +23,7 @@ def test_065_is_live_single_step_and_bounded():
 
 def test_065_ui_entry_exists():
     s = src()
-    assert 'btn("③ LIVE 3-Turn"' in s
+    assert 'btn("LIVE 3-Turn"' in s
     assert "newMultiTurnLiveProbeMission" in s
 
 def test_existing_live_probe_guard_remains():

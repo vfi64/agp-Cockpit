@@ -10,7 +10,7 @@ def _run(tmp_path, mode):
 global.window = global;
 let sent = 0;
 let fetched = 0;
-global.chrome = {storage:{local:{get:async()=>({token:"t", baseUrl:"http://127.0.0.1:8765"})}}};
+global.chrome = {storage:{local:{get:async()=>({token:"t", baseUrl:"http://127.0.0.1:9876"})}}};
 window.AGPCockpitConversationContract = {
   currentAssistantSnapshot: async()=>({text:"FRAME", fingerprint:"fp"}),
   waitForCompletedProtocolAssistant: async()=>({text:"FRAME", fingerprint:"fp"}),

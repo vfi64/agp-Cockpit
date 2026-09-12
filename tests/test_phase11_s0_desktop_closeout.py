@@ -60,7 +60,7 @@ def test_bootstrap_contract_uses_configured_bridge_endpoint_and_local_extension(
     assert "stage_extension(root)" in source
     assert "extension_path=extension_path" in source
     assert "DEFAULT_PORT = 8765" not in source
-    assert '"http://127.0.0.1:8765/v1/status"' not in source
+    assert '"http://127.0.0.1:9876/v1/status"' not in source
 
 
 def test_app_passes_versioned_bridge_settings_to_bootstrap():

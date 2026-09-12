@@ -69,7 +69,7 @@ async function installBridgeMocks(page) {
   await page.evaluate(() => {
     window.__agpStore = {
       token: "phase066-test-token",
-      baseUrl: "http://127.0.0.1:8765"
+      baseUrl: "http://127.0.0.1:9876"
     };
     window.__agpEvents = [];
     window.__agpMission = null;
@@ -108,7 +108,7 @@ async function installBridgeMocks(page) {
       });
 
     window.fetch = async (url, options={}) => {
-      const u = new URL(String(url), "http://127.0.0.1:8765");
+      const u = new URL(String(url), "http://127.0.0.1:9876");
       const method = String(options.method || "GET").toUpperCase();
       let body = {};
       if (options.body) {

@@ -12,6 +12,7 @@ def looks_like_repository_context(path: Path) -> bool:
     return root.is_dir() and (root / "chrome_extension").is_dir() and (root / ".agentic").is_dir()
 
 
+
 def resolve_repository_root(
     *,
     explicit_root: Path | None,
@@ -60,6 +61,9 @@ def choose_repository_root() -> str | None:
 
 
 def persist_repository_root(settings: AppSettings, root: Path) -> AppSettings:
-    updated = replace(settings, repository_root=str(root.expanduser().resolve()))
+    resolved = root.expanduser().resolve()
+    if not looks_like_repository_context(resolved):
+        raise ValueError("repository root is not a valid AGP Cockpit repository context")
+    updated = replace(settings, repository_root=str(resolved))
     save_settings(settings_path(), updated)
     return updated

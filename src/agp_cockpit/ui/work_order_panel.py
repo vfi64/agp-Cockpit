@@ -42,7 +42,7 @@ class WorkOrderPanel(ttk.Frame):
 
         self.input_text = tk.Text(
             self,
-            height=7,
+            height=4,
             wrap="none",
         )
         self.input_text.grid(
@@ -50,6 +50,9 @@ class WorkOrderPanel(ttk.Frame):
             column=0,
             sticky="nsew",
         )
+        self.input_text.configure(takefocus=True)
+        self.input_text.bind("<Tab>", self._focus_next)
+        self.input_text.bind("<Shift-Tab>", self._focus_previous)
 
         buttons = ttk.Frame(self)
         buttons.grid(
@@ -59,17 +62,21 @@ class WorkOrderPanel(ttk.Frame):
             pady=(6, 6),
         )
 
-        ttk.Button(
+        self.example_button = ttk.Button(
             buttons,
             text="Beispiel",
             command=self.insert_example,
-        ).grid(row=0, column=0, padx=(0, 6))
+            takefocus=True,
+        )
+        self.example_button.grid(row=0, column=0, padx=(0, 6))
 
-        ttk.Button(
+        self.preview_button = ttk.Button(
             buttons,
             text="Prüfen",
             command=self.preview,
-        ).grid(row=0, column=1, padx=(0, 6))
+            takefocus=True,
+        )
+        self.preview_button.grid(row=0, column=1, padx=(0, 6))
 
         self.execute_button = ttk.Button(
             buttons,
@@ -99,7 +106,7 @@ class WorkOrderPanel(ttk.Frame):
 
         self.output_text = tk.Text(
             self,
-            height=10,
+            height=5,
             wrap="word",
             state="disabled",
         )
@@ -109,7 +116,26 @@ class WorkOrderPanel(ttk.Frame):
             sticky="nsew",
         )
 
+        self.focus_var = tk.StringVar(value="Tastaturfokus: Eingabe")
+        ttk.Label(self,textvariable=self.focus_var).grid(row=5,column=0,sticky="w",pady=(6,0))
+        focus_names = {
+            self.input_text: "Eingabe",
+            self.example_button: "Beispiel",
+            self.preview_button: "Prüfen",
+            self.execute_button: "Ausführen",
+            self.copy_button: "Ergebnis kopieren",
+        }
+        for widget,name in focus_names.items():
+            widget.bind("<FocusIn>",lambda _e,n=name:self.focus_var.set(f"Tastaturfokus: {n}"),add="+")
         self._approved_input: str | None = None
+
+    def _focus_next(self, event):
+        event.widget.tk_focusNext().focus_set()
+        return "break"
+
+    def _focus_previous(self, event):
+        event.widget.tk_focusPrev().focus_set()
+        return "break"
 
     def _set_output(self, text: str) -> None:
         self.output_text.configure(state="normal")

@@ -10,7 +10,7 @@
   ],
   "host_permissions": [
     "https://chatgpt.com/*",
-    "http://127.0.0.1:8765/*"
+    "http://127.0.0.1:9876/*"
   ],
   "content_scripts": [
     {

@@ -17,7 +17,7 @@
    `chrome_extension/`
 
 6. Open the extension options and enter:
-   - Base URL: `http://127.0.0.1:8765`
+   - Base URL: `http://127.0.0.1:9876`
    - Local bridge token: contents of `token.txt`
 
 7. Reload the ChatGPT tab after reloading the extension.
