@@ -29,6 +29,17 @@
     await C.stageDraft(data.result_frame);
     const approval = await C.approveCurrentDraft();
     await C.sendApprovedDraft(approval);
+    const ack = await fetch(cfg.baseUrl + "/v1/client-event", {
+      method:"POST",
+      headers:{"Content-Type":"application/json","X-AGP-Token":cfg.token},
+      body:JSON.stringify({
+        event:"RESULT_DELIVERED",
+        details:{session_id:action.session_id,action_id:action.action_id}
+      })
+    });
+    const ackData = await ack.json();
+    if (!ack.ok || !["ACKNOWLEDGED","ALREADY_ACKNOWLEDGED"].includes(ackData.result_delivery))
+      throw new Error(ackData.error || "durable result delivery acknowledgement failed");
     return {state:"DONE", session_id:action.session_id, round_id:action.round_id, action_id:action.action_id, assistant_fingerprint:snap.fingerprint, transport_status:result.transport_status};
   }
   window.AGPCockpitPhase7SingleRound = Object.freeze({runOneRound});

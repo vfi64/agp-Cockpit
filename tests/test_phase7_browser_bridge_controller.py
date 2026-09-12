@@ -31,10 +31,10 @@ window.AGPCockpitTransportProtocolV1={
  parseAction:()=>({mode:"DIRECT_EXECUTION",action_id:"a",session_id:"s",round_id:"r"}),
  parseResult:()=>({action_id:"a",session_id:"s",round_id:"r",transport_status:"PASS"})
 };
-global.fetch=async()=>{fetched++; return {ok:true,json:async()=>({decision:"EXECUTED",result_frame:"RESULT"})}};
+global.fetch=async(url,opts)=>{fetched++; if(String(url).includes("/v1/client-event")) return {ok:true,json:async()=>({ok:true,result_delivery:"ACKNOWLEDGED"})}; return {ok:true,json:async()=>({decision:"EXECUTED",result_frame:"RESULT"})}};
 require(process.argv[2]);
 window.AGPCockpitPhase7SingleRound.runOneRound().then(o=>{
- if(o.state!=="DONE"||fetched!==1||staged!==1||sent!==1) process.exit(2);
+ if(o.state!=="DONE"||fetched!==2||staged!==1||sent!==1) process.exit(2);
  console.log("FAKE_BROWSER_SINGLE_ROUND_PASS");
 }).catch(e=>{console.error(e);process.exit(3)});
 ''')

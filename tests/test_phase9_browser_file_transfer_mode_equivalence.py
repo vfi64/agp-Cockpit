@@ -22,13 +22,16 @@ window.AGPCockpitTransportProtocolV1 = {
   parseAction: ()=>({mode:process.argv[3], action_id:"a", session_id:"s", round_id:"r"}),
   parseResult: ()=>({action_id:"a", session_id:"s", round_id:"r", transport_status:"FAIL"})
 };
-global.fetch = async()=>{
+global.fetch = async(url,opts)=>{
   fetched++;
+  if(String(url).includes("/v1/client-event")){
+    return {ok:true, json:async()=>({ok:true, result_delivery:"ACKNOWLEDGED"})};
+  }
   return {ok:true, json:async()=>({decision:"EXECUTED", result_frame:"RESULT"})};
 };
 require(process.argv[2]);
 window.AGPCockpitPhase7SingleRound.runOneRound().then(o=>{
-  if(o.state!=="DONE" || fetched!==1 || sent!==1) process.exit(2);
+  if(o.state!=="DONE" || fetched!==2 || sent!==1) process.exit(2);
   console.log("MODE_OK="+process.argv[3]+" STATUS="+o.transport_status);
 }).catch(e=>{ console.error(e); process.exit(3); });
 ''')

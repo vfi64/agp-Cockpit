@@ -14,7 +14,7 @@ from agp_cockpit.core.bridge_protocol import (
     parse_turn_request,
 )
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
-from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame
+from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame, parse_result_frame
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.work_order import parse_work_order_json
 from agp_cockpit.core.task_controller import DurableTaskController
@@ -152,6 +152,16 @@ class CockpitBridgeServer:
                     self._json(403, {"error": "forbidden"})
                     return
 
+                if path == "/v1/task/status":
+                    from urllib.parse import parse_qs
+                    query = parse_qs(urlparse(self.path).query)
+                    session_id = str((query.get("session_id") or [""])[0]).strip()
+                    if not session_id:
+                        raise ValueError("session_id required")
+                    durable = durable_controller_for(session_id)
+                    self._json(200, {"authority":"DurableTaskController","session_id":session_id,"task":durable.snapshot,"control":durable.control_snapshot})
+                    return
+
                 if path == "/v1/status":
                     state = engine.runtime.state
                     diag.event(
@@ -267,18 +277,30 @@ class CockpitBridgeServer:
                         }
                         if not durable.action_authorized(authorization_payload):
                             raise PermissionError("ACTION_NOT_AUTHORIZED_BY_LOCAL_TASK_CONTRACT")
-                        frame = execute_direct_action(
-                            action,
-                            repository_root=engine.repository_root,
-                            kit_binary=engine.kit_binary,
-                            allowed_tools=frozenset(json.loads(durable.store.task_authority(durable.task_id)["allowed_tools_json"])),
-                            allow_network=bool(durable.store.task_authority(durable.task_id).get("allow_network", 0)),
-                        )
+                        attempt_no = durable.begin_attempt(action.action_id)
+                        try:
+                            frame = execute_direct_action(
+                                action,
+                                repository_root=engine.repository_root,
+                                kit_binary=engine.kit_binary,
+                                allowed_tools=frozenset(json.loads(durable.store.task_authority(durable.task_id)["allowed_tools_json"])),
+                                allow_network=bool(durable.store.task_authority(durable.task_id).get("allow_network", 0)),
+                            )
+                        except Exception as exc:
+                            durable.mark_outcome_unknown(action.action_id, attempt_no, f"execution raised before durable result persistence: {type(exc).__name__}: {exc}")
+                            raise
+                        observed = parse_result_frame(frame)
+                        durable.record_local_result(action.action_id, attempt_no, observed.transport_status, f"Protocol-v1 local execution observed return_code={observed.local_execution.get('return_code')}", observed.transport_status == "BLOCKED")
                         protocol_v1_results[action.action_id] = frame
                         self._json(200, {"decision": "EXECUTED", "action_id": action.action_id, "result_frame": frame})
                         return
 
                     if path == "/v1/turn":
+                        # K04: legacy mission continuation is not an authoritative execution path.
+                        self._json(410, {"error": "LEGACY_TURN_AUTHORITY_RETIRED", "next": "/v1/protocol/execute"})
+                        return
+
+                    if path == "/v1/turn-legacy-disabled":
                         length = int(
                             self.headers.get(
                                 "Content-Length",
@@ -366,6 +388,39 @@ class CockpitBridgeServer:
 
                     data = self._body()
 
+                    if path == "/v1/task/complete-proposal":
+                        session_id = str(data.get("session_id", "")).strip()
+                        if not session_id:
+                            raise ValueError("session_id required")
+                        durable = durable_controller_for(session_id)
+                        accepted = durable.propose_complete()
+                        self._json(200, {"authority":"DurableTaskController","accepted":bool(accepted),"session_id":session_id,"task":durable.snapshot})
+                        return
+
+                    if path == "/v1/task/checkpoint/request":
+                        session_id = str(data.get("session_id", "")).strip()
+                        checkpoint_id = str(data.get("checkpoint_id", "")).strip()
+                        revision = str(data.get("revision", "")).strip()
+                        artifact_hash = str(data.get("artifact_hash", "")).strip()
+                        if not all((session_id, checkpoint_id, revision, artifact_hash)):
+                            raise ValueError("complete checkpoint request required")
+                        durable = durable_controller_for(session_id)
+                        durable.request_human_checkpoint(checkpoint_id, revision, artifact_hash)
+                        self._json(200, {"authority":"DurableTaskController","session_id":session_id,"task":durable.snapshot,"control":durable.control_snapshot})
+                        return
+
+                    if path == "/v1/task/checkpoint/approve":
+                        session_id = str(data.get("session_id", "")).strip()
+                        checkpoint_id = str(data.get("checkpoint_id", "")).strip()
+                        revision = str(data.get("revision", "")).strip()
+                        artifact_hash = str(data.get("artifact_hash", "")).strip()
+                        if not all((session_id, checkpoint_id, revision, artifact_hash)):
+                            raise ValueError("complete checkpoint approval required")
+                        durable = durable_controller_for(session_id)
+                        durable.approve_human_checkpoint(checkpoint_id, revision, artifact_hash)
+                        self._json(200, {"authority":"DurableTaskController","session_id":session_id,"task":durable.snapshot,"control":durable.control_snapshot})
+                        return
+
                     if path == "/v1/client-event":
                         client_response = {"ok": True}
                         state = engine.runtime.state
@@ -375,6 +430,35 @@ class CockpitBridgeServer:
                         details = data.get("details", {})
                         if not isinstance(details, dict):
                             details = {"value": str(details)[:300]}
+
+                        if event_name == "RESULT_DELIVERED":
+                            session_id = str(details.get("session_id", "")).strip()
+                            action_id = str(details.get("action_id", "")).strip()
+                            if not session_id or not action_id:
+                                raise ValueError("RESULT_DELIVERED requires session_id and action_id")
+                            durable = durable_controller_for(session_id)
+                            pending = [
+                                row
+                                for row in durable.pending_results()
+                                if row.get("action_id") == action_id
+                            ]
+                            if len(pending) > 1:
+                                raise RuntimeError("multiple pending durable results for action")
+                            if len(pending) == 1:
+                                durable.mark_result_delivered(pending[0]["message_id"])
+                                client_response["result_delivery"] = "ACKNOWLEDGED"
+                            else:
+                                known = durable.store.db.execute(
+                                    "SELECT 1 FROM messages "
+                                    "WHERE task_id=? AND direction='OUT' AND kind='RESULT' "
+                                    "AND action_id=? AND delivered=1 LIMIT 1",
+                                    (durable.task_id, action_id),
+                                ).fetchone()
+                                if known is None:
+                                    raise ValueError(
+                                        "RESULT_DELIVERED does not match a durable result"
+                                    )
+                                client_response["result_delivery"] = "ALREADY_ACKNOWLEDGED"
 
                         if event_name == "EXTENSION_HANDSHAKE":
                             import time as _time

@@ -1,4 +1,6 @@
 import json
+
+import pytest
 from urllib.request import Request, urlopen
 
 from agp_cockpit.core.bridge_runtime_server import (
@@ -67,19 +69,22 @@ def test_http_end_to_end_dry_run(tmp_path):
             "label": "http dry-run probe",
         })
 
-        response = _request(
-            base + "/v1/turn",
-            info.token,
-            method="POST",
-            body={
-                "conversation_url": "https://chatgpt.com/c/test",
-                "assistant_text": order,
-                "turn_id": "http-054",
-            },
-        )
-
-        assert response["action"] == "stop"
-        assert response["state"] == "DRY_RUN_PREVIEW"
+        from urllib.error import HTTPError
+        with pytest.raises(HTTPError) as exc:
+            _request(
+                base + "/v1/turn",
+                info.token,
+                method="POST",
+                body={
+                    "conversation_url": "https://chatgpt.com/c/test",
+                    "assistant_text": order,
+                    "turn_id": "http-054",
+                },
+            )
+        assert exc.value.code == 410
+        payload = json.loads(exc.value.read())
+        assert payload["error"] == "LEGACY_TURN_AUTHORITY_RETIRED"
+        assert payload["next"] == "/v1/protocol/execute"
 
     finally:
         runtime.stop()

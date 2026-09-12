@@ -1697,9 +1697,38 @@ async function sendPrompt(prompt) {
       render();
     }
   });
+    // K04: Protocol-v1 DONE is transport termination only. It becomes a
+    // durable completion proposal; verification remains evidence-bound in
+    // DurableTaskController and is never performed by the browser.
+    let durableTaskState = "";
+    if (out.state === "DONE") {
+      const sessionId = String(
+        (out.control && out.control.session_id) ||
+        (out.last && out.last.session_id) ||
+        ""
+      ).trim();
+      if (!sessionId) throw new Error("K04_DONE_SESSION_REQUIRED");
+      const proposal = await api(
+        "/v1/task/complete-proposal",
+        {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({"session_id":sessionId})
+        }
+      );
+      if (
+        proposal.authority !== "DurableTaskController" ||
+        !proposal.accepted ||
+        !proposal.task ||
+        proposal.task.state !== "COMPLETE_PROPOSED"
+      ) throw new Error("K04_COMPLETION_PROPOSAL_REJECTED");
+      durableTaskState = proposal.task.state;
+    }
     // AGP_PHASE8_UI_STATE_REPAIR_316
     STATE.turns = Number(out.rounds || 0);
-    STATE.note = `Phase 8: ${out.state} (${out.rounds} rounds)`;
+    STATE.note = durableTaskState
+      ? `Phase 8: ${out.state} / ${durableTaskState} (${out.rounds} rounds)`
+      : `Phase 8: ${out.state} (${out.rounds} rounds)`;
     STATE.lastEvent = `PHASE8_${out.state}`;
     render();
   }
