@@ -11,7 +11,8 @@ def test_r11_marker():
 
 def test_r11_assistant_activity_ack():
     s = text()
-    assert 'via:"assistant_activity"' in s
+    assert "SEND_ASSISTANT_ACTIVITY_OBSERVED" in s
+    assert "authoritative_acceptance:false" in s
     assert "assistantNow !== assistantBefore" in s
     assert "lastAssistantText()" in s
 

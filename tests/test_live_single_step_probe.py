@@ -18,7 +18,7 @@ def test_live_probe_guard_runs_before_local_submit():
         "assertExactLiveProbeWorkOrder(text);"
     )
     submit = SOURCE.index(
-        '"/v1/turn"',
+        '"/v1/protocol/execute"',
         guard,
     )
     assert guard < submit

@@ -35,14 +35,18 @@ def extract_function(text: str, name: str) -> str:
 
 def test_e7_generation_ack_requires_fresh_edge():
     block = extract_function(SRC, "waitForSentUserMessage")
-    assert 'if (generationNow && !beforeGenerationActive)' in block
-    assert 'via:"generation_started"' in block
+    assert "generationNow &&" in block
+    assert "!beforeGenerationActive" in block
+    assert "!generationStartedObserved" in block
+    assert "SEND_GENERATION_STARTED_OBSERVED" in block
+    assert "generation_started_observed:generationStartedObserved" in block
     assert 'via:"generation_active"' not in block
 
 def test_e7_other_decisive_ack_paths_remain():
     block = extract_function(SRC, "waitForSentUserMessage")
     assert 'via:"user_message"' in block
-    assert 'via:"assistant_activity"' in block
+    assert "SEND_ASSISTANT_ACTIVITY_OBSERVED" in block
+    assert "authoritative_acceptance:false" in block
     assert 'confirmed:false' in block
     assert 'via:"timeout"' in block
 

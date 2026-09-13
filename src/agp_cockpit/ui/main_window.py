@@ -1,5 +1,6 @@
 from __future__ import annotations
 from agp_cockpit.ui.task_operator_panel import TaskOperatorPanel
+from agp_cockpit.ui.simple_task_panel import SimpleTaskPanel
 
 from agp_cockpit.core.browser_refresh import request_browser_refresh
 from pathlib import Path
@@ -101,6 +102,13 @@ class MainWindow(ttk.Frame):
             sticky="nsew",
         )
 
+        simple_tab = ttk.Frame(
+            self.tabs,
+            padding=4,
+        )
+        simple_tab.columnconfigure(0, weight=1)
+        simple_tab.rowconfigure(0, weight=1)
+
         system_tab = ttk.Frame(
             self.tabs,
             padding=8,
@@ -124,17 +132,27 @@ class MainWindow(ttk.Frame):
         task_tab.rowconfigure(0, weight=1)
 
         self.tabs.add(
+            simple_tab,
+            text="Arbeiten",
+        )
+        self.tabs.add(
             system_tab,
-            text="System",
+            text="Expert · System",
         )
         self.tabs.add(
             order_tab,
-            text="Auftrag",
+            text="Expert · Einzelauftrag",
         )
         self.tabs.add(
             task_tab,
-            text="Task Operator",
+            text="Expert · Task Operator",
         )
+
+        self.simple_task_panel = SimpleTaskPanel(
+            simple_tab,
+            repository_root=self.repository_root,
+        )
+        self.simple_task_panel.grid(row=0, column=0, sticky="nsew")
 
         self._build_system_tab(system_tab)
 

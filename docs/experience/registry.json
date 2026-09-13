@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "kind": "agp-cockpit.experience-registry",
+  "authority": "ADVISORY_ONLY",
+  "rules": [
+    "Repository, task-contract, planning, test, and Agentic Project Kit authority always outrank experience records.",
+    "Matching experience records must be revalidated against current sources before use.",
+    "A better lesson supersedes an older record explicitly; history is not silently overwritten.",
+    "STALE, CONTRADICTED, or SUPERSEDED records are not current guidance.",
+    "Automated candidate creation is allowed; CURRENT requires deterministic evidence checks."
+  ],
+  "records": [
+    {
+      "experience_id": "EXP-browser-explicit-start-001",
+      "path": "docs/experience/records/EXP-browser-explicit-start-001.json",
+      "topic": "browser_mission_explicit_start",
+      "status": "CURRENT",
+      "last_verified_revision": "f6577249c45e9a089cc9a3c0dffaebe30f465f9f"
+    }
+  ]
+}

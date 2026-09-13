@@ -717,6 +717,28 @@
         "Step 617R1 succeeded past commit only after excluding the volatile path"
       ],
       "impact": "Improves dry-run/execute parity and prevents partially advanced lifecycle state from a plan that was never executable as presented."
+    },
+    {
+      "id": "KIT-GF-LESSON-EXPERIENCE-REGISTRY-001",
+      "date": "2026-09-13",
+      "classification": "greenfield-validation-workflow-improvement",
+      "status": "CANDIDATE_FOR_KIT",
+      "title": "Evidence-backed supersedable operational experience registry",
+      "finding": "Agentic repository work can rediscover previously evidenced failure patterns when operational lessons remain only in chat/history or unstructured execution artifacts.",
+      "lesson": "Maintain an advisory machine-readable experience registry with applicability predicates, exact provenance, revision revalidation, deterministic counterchecks, and explicit supersession. Current repository/task/Kit authority always outranks experience.",
+      "candidate_kit_surfaces": [
+        "experience query",
+        "experience verify",
+        "experience record",
+        "experience supersede"
+      ],
+      "evidence": [
+        "Step 774",
+        "Step 775",
+        "Download/098_create_fresh_live_late_acceptance_validation_v1.py",
+        "Download/077_start_auto_click_path_instrumentation_repair_v1.py",
+        "Download/773_k07_explicit_start_signal_forensics_20260913-112302_return_bundle.json"
+      ]
     }
   ]
 }
