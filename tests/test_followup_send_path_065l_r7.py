@@ -46,15 +46,15 @@ def test_send_button_keeps_existing_contract_and_adds_submit_fallback():
     assert 'const form = anchor && anchor.closest ? anchor.closest("form") : null;' in block
     assert "isUsableSendControl" in block
 
-def test_send_prompt_uses_bounded_wait_not_single_lookup():
-    block = extract_function(src(), "sendPrompt")
+def test_dom_degraded_sender_uses_bounded_wait_not_single_lookup():
+    block = extract_function(src(), "sendPromptDomDegraded")
     assert "attempt < 20" in block
     assert "setTimeout(resolve, 150)" in block
     assert "button && !button.disabled" in block
     assert 'throw new Error("send button not found")' not in block
 
-def test_send_prompt_has_bounded_enter_fallback():
-    block = extract_function(src(), "sendPrompt")
+def test_dom_degraded_sender_has_bounded_enter_fallback():
+    block = extract_function(src(), "sendPromptDomDegraded")
     assert 'new KeyboardEvent("keydown"' in block
     assert 'new KeyboardEvent("keyup"' in block
     assert 'key:"Enter"' in block

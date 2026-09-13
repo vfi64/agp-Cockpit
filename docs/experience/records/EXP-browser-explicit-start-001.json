@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "experience_id": "EXP-browser-explicit-start-001",
+  "topic": "browser_mission_explicit_start",
+  "status": "CURRENT",
+  "authority_class": "ADVISORY_EVIDENCE_BACKED_EXPERIENCE",
+  "problem_signature": [
+    "desktop_task_started=true",
+    "bridge_connected=true",
+    "mission.state=READY",
+    "turn_count=0",
+    "step_count=0",
+    "no_first_remote_turn"
+  ],
+  "lesson": {
+    "summary": "A passive reconnect to a LIVE/FULL_AUTO READY mission must not start browser automation; an explicit operator/task start requires a distinct once-only browser start transition.",
+    "preferred_pattern": "explicit_once_only_start_signal_consumed_by_browser_startAuto",
+    "forbidden_regressions": [
+      "passive_reconnect_autostart",
+      "refresh_status_implies_execution",
+      "mission_creation_alone_implies_execution"
+    ]
+  },
+  "evidence": [
+    {
+      "kind": "historical_work_order",
+      "ref": "Download/098_create_fresh_live_late_acceptance_validation_v1.py",
+      "claim": "Historical flow separated fresh READY mission creation from explicit browser Start Auto."
+    },
+    {
+      "kind": "historical_fix",
+      "ref": "Download/077_start_auto_click_path_instrumentation_repair_v1.py",
+      "claim": "Historical startAuto was a distinct browser start path."
+    },
+    {
+      "kind": "current_forensics",
+      "ref": "Download/773_k07_explicit_start_signal_forensics_20260913-112302_return_bundle.json",
+      "claim": "Desktop Task starten left the browser mission READY at zero turns/steps."
+    },
+    {
+      "kind": "current_acceptance",
+      "ref": "Download/771_k07_cold_start_acceptance_and_stale_draft_cleanup_20260912-221010_return_bundle.json",
+      "claim": "Passive cold reconnect was accepted as non-starting behavior."
+    }
+  ],
+  "applicability": {
+    "requires": [
+      "browser_transport",
+      "task_operator",
+      "LIVE",
+      "FULL_AUTO"
+    ],
+    "match_any": [
+      "READY",
+      "startAuto",
+      "Task starten",
+      "first remote turn",
+      "reconnect",
+      "cold start"
+    ]
+  },
+  "verification": {
+    "required_checks": [
+      "reconnect_without_explicit_task_start_does_not_start",
+      "explicit_desktop_task_start_starts_exactly_once",
+      "repeated_status_refresh_does_not_duplicate_start"
+    ],
+    "revalidate_when": [
+      "referenced_source_changed",
+      "browser_start_contract_changed",
+      "task_operator_start_contract_changed",
+      "matching_failure_recurs"
+    ]
+  },
+  "supersedes": [],
+  "superseded_by": null,
+  "last_verified_revision": "f6577249c45e9a089cc9a3c0dffaebe30f465f9f",
+  "created_from_step": 774
+}

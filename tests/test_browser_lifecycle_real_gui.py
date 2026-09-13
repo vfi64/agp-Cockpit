@@ -9,5 +9,6 @@ def test_real_gui_refresh_control():
     assert '.winfo_toplevel()' in GUI
 
 def test_actual_main_window_evidence():
-    for token in ('AGP Cockpit','System','Auftrag','Notebook'):
+    # K07 task-first default; established GUI remains as Expert tabs.
+    for token in ('AGP Cockpit','Arbeiten','Expert · System','Expert · Einzelauftrag','Notebook'):
         assert token in GUI

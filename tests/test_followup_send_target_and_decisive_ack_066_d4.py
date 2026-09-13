@@ -22,9 +22,10 @@ def test_066_d4_composer_mutation_is_provisional_not_decisive():
 
 def test_066_d4_keeps_decisive_positive_signals():
     assert 'via:"user_message"' in SRC
-    assert 'via:"generation_started"' in SRC
+    assert "generation_started_observed" in SRC
     assert 'via:"generation_active"' not in SRC
-    assert 'via:"assistant_activity"' in SRC
+    assert "SEND_ASSISTANT_ACTIVITY_OBSERVED" in SRC
+    assert "authoritative_acceptance:false" in SRC
 
 def test_066_d4_remains_bounded_and_fail_closed():
     assert "for (let i = 0; i < 60; i += 1)" in SRC

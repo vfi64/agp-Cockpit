@@ -19,10 +19,15 @@
     lastHandshakeAt: 0,
     candidateHash: "",
     candidateText: "",
-    candidateStablePolls: 0
+    candidateStablePolls: 0,
+    assistantBaselineCount: 0
   };
 
   let AGP_DIAGNOSTICS_OPEN = false;
+  let AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
+  let AGP_TASK_FIRST_AUTOSTART_GENERATION = 0;
+  let AGP_TASK_FIRST_START_REQUEST_TIMER = null;
+  let AGP_TASK_FIRST_START_REQUEST_PRIMED = false;
 
   const LIMITS = {
     maxTurns: 40,
@@ -151,12 +156,60 @@
       .map(x => x.toString(16).padStart(2, "0")).join("");
   }
 
+  // AGP_K07_STRUCTURED_ASSISTANT_EXTRACTION_738
+  function pureJsonObjectCandidate(text) {
+    const value = String(text || "").trim();
+    if (!value) return "";
+    try {
+      const parsed = JSON.parse(value);
+      return (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? value : "";
+    } catch (_) { return ""; }
+  }
+
+  function assistantMessageNodes() {
+    return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
+  }
+
   function lastAssistantText() {
-    const nodes = Array.from(
-      document.querySelectorAll('[data-message-author-role="assistant"]')
-    );
+    const nodes = assistantMessageNodes();
     if (!nodes.length) return "";
-    return (nodes[nodes.length - 1].innerText || "").trim();
+    const assistant = nodes[nodes.length - 1];
+    const codeCandidates = Array.from(assistant.querySelectorAll("pre code, code"))
+      .map(node => pureJsonObjectCandidate(node.textContent)).filter(Boolean);
+    const uniqueCodeCandidates = [...new Set(codeCandidates)];
+    if (uniqueCodeCandidates.length === 1) return uniqueCodeCandidates[0];
+    const preCandidates = Array.from(assistant.querySelectorAll("pre"))
+      .map(node => pureJsonObjectCandidate(node.textContent)).filter(Boolean);
+    const uniquePreCandidates = [...new Set(preCandidates)];
+    if (uniquePreCandidates.length === 1) return uniquePreCandidates[0];
+    const rendered = String(assistant.innerText || assistant.textContent || "").trim();
+    const fencedCandidates = Array.from(rendered.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi))
+      .map(match => pureJsonObjectCandidate(match[1])).filter(Boolean);
+    const uniqueFencedCandidates = [...new Set(fencedCandidates)];
+    if (uniqueFencedCandidates.length === 1) return uniqueFencedCandidates[0];
+    return rendered;
+  }
+  // AGP_K07_LIVE_DOM_SERIALIZATION_RECOVERY_758
+  function repairRenderedJsonStringEscapes(text) {
+    const raw = String(text || "").trim();
+    if (!raw || raw[0] !== "{" || raw[raw.length - 1] !== "}") return "";
+    let out = "", inString = false, escaped = false;
+    for (let i = 0; i < raw.length; i += 1) {
+      const ch = raw[i];
+      if (!inString) { out += ch; if (ch === '"') inString = true; continue; }
+      if (escaped) { out += ch; escaped = false; continue; }
+      if (ch === "\\") { out += ch; escaped = true; continue; }
+      if (ch !== '"') { out += ch; continue; }
+      let j = i + 1;
+      while (j < raw.length && /\s/.test(raw[j])) j += 1;
+      const next = raw[j] || "";
+      if (next === ":" || next === "," || next === "}" || next === "]") {
+        out += ch; inString = false;
+      } else {
+        out += '\\"';
+      }
+    }
+    return (!inString && !escaped) ? out : "";
   }
 
   function composer() {
@@ -166,6 +219,25 @@
       document.querySelector('[contenteditable="true"]')
     );
   }
+
+  async function waitForComposer({timeoutMs = 20000, intervalMs = 100} = {}) {
+
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+
+      const el = composer();
+
+      if (el && el.isConnected) return el;
+
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+
+    }
+
+    throw new Error("ChatGPT composer not ready after 20s");
+
+  }
+
 
   function isUsableSendControl(el) {
     if (!el || !el.isConnected || el.disabled) return false;
@@ -387,6 +459,7 @@
     const assistantBefore = normalizeObservedMessageText(beforeAssistantText);
     const composerBefore = normalizeObservedMessageText(beforeComposerText);
     let provisionalComposerEvidence = "";
+    let generationStartedObserved = false;
 
     for (let i = 0; i < 60; i += 1) {
       await new Promise(resolve => setTimeout(resolve, 250));
@@ -409,20 +482,30 @@
       }
 
       const generationNow = chatgptGenerationActive();
-      if (generationNow && !beforeGenerationActive) {
-        return {confirmed:true, via:"generation_started"};
+      if (
+        generationNow &&
+        !beforeGenerationActive &&
+        !generationStartedObserved
+      ) {
+        generationStartedObserved = true;
+        await clientEvent("SEND_GENERATION_STARTED_OBSERVED", {
+          authoritative_acceptance:false
+        });
       }
 
       const assistantNow = normalizeObservedMessageText(lastAssistantText());
       if (assistantNow && assistantNow !== assistantBefore) {
-        return {confirmed:true, via:"assistant_activity"};
+        await clientEvent("SEND_ASSISTANT_ACTIVITY_OBSERVED", {
+          authoritative_acceptance:false
+        });
       }
     }
 
     return {
       confirmed:false,
       via:"timeout",
-      provisional:provisionalComposerEvidence
+      provisional:provisionalComposerEvidence,
+      generation_started_observed:generationStartedObserved
     };
   }
 
@@ -430,6 +513,8 @@
   const SEND_TRANSPORT = Object.freeze({
     IDLE:"IDLE",
     DRAFT_WRITTEN:"DRAFT_WRITTEN",
+    NATIVE_INPUT_REQUESTED:"NATIVE_INPUT_REQUESTED",
+    NATIVE_SUBMIT_DISPATCHED:"NATIVE_SUBMIT_DISPATCHED",
     SUBMIT_ATTEMPTED:"SUBMIT_ATTEMPTED",
     WAITING_FOR_ACCEPTANCE:"WAITING_FOR_ACCEPTANCE",
     ACCEPTED:"ACCEPTED",
@@ -441,6 +526,7 @@
   });
 
   let PENDING_SEND_TRANSPORT = null;
+  const AGP_ALLOW_DEGRADED_DOM_FALLBACK = false;
 
   function createSendTransport(prompt) {
     return {
@@ -460,8 +546,162 @@
       }
     };
   }
+  let AGP_FORMAT_REPAIR_ATTEMPTS = 0;
+  const AGP_MAX_FORMAT_REPAIR_ATTEMPTS = 2;
 
-async function sendPrompt(prompt) {
+  function formatRepairPrompt(attempt) {
+    return (
+      "FORMAT REPAIR ONLY. JSON syntax invalid; likely an unescaped quote or other string-escaping error. " +
+      "Re-serialize the SAME intended work order without changing its semantics as exactly one JSON object and nothing else. " +
+      "Preserve semantics, not broken byte-for-byte string serialization. " +
+      "The result must be parseable by JSON.parse. " +
+      "Escape every double quote inside JSON string values using the standard JSON backslash escape; escape backslashes as required. " +
+      "For shell work orders such as /bin/sh -lc, inner double quotes in argv strings must use the standard JSON backslash escape. " +
+      "No Markdown fences, no commentary, no leading or trailing prose. " +
+      `Automatic format-repair attempt ${attempt}/${AGP_MAX_FORMAT_REPAIR_ATTEMPTS}.`
+    );
+  }
+
+
+async function sendPromptNative(prompt) {
+    const transport = createSendTransport(prompt);
+    if (prompt === STATE.lastPrompt) {
+      throw new Error("identical prompt loop detected");
+    }
+
+    const nativeTransport = window.AGPBrowserNativeTransport;
+    if (
+      !nativeTransport ||
+      typeof nativeTransport.available !== "function" ||
+      typeof nativeTransport.submit !== "function" ||
+      !nativeTransport.available()
+    ) {
+      throw new Error("browser-native transport unavailable");
+    }
+
+    const beforeMessages = visibleUserMessages();
+    const beforeAssistantText = lastAssistantText();
+    transport.beforeAssistantText = beforeAssistantText;
+
+    await waitForComposer();
+
+    const stagedComposerText = normalizeObservedMessageText(
+      observedComposerText()
+    );
+    const expectedPromptText = normalizeObservedMessageText(prompt);
+
+    if (stagedComposerText) {
+      if (stagedComposerText !== expectedPromptText) {
+        throw new Error(
+          "browser-native transport found non-empty foreign composer content; refusing to overwrite"
+        );
+      }
+
+      const staleOwnedComposer = composer();
+      if (!staleOwnedComposer) {
+        throw new Error(
+          "browser-native transport stale-owned composer disappeared during recovery"
+        );
+      }
+
+      setComposerText(staleOwnedComposer, "");
+
+      const cleanupDeadline = Date.now() + 2000;
+      while (
+        normalizeObservedMessageText(observedComposerText()) &&
+        Date.now() < cleanupDeadline
+      ) {
+        await sleep(50);
+      }
+
+      if (normalizeObservedMessageText(observedComposerText())) {
+        throw new Error(
+          "browser-native transport could not clear exact stale Cockpit-owned draft"
+        );
+      }
+
+      await clientEvent("NATIVE_STALE_OWNED_COMPOSER_RECOVERED", {
+        chars:prompt.length,
+        ownership:"exact_current_prompt"
+      });
+    }
+
+    const beforeGenerationActive = chatgptGenerationActive();
+    STATE.lastPrompt = prompt;
+    PENDING_SEND_TRANSPORT = transport;
+
+    transport.transition(SEND_TRANSPORT.NATIVE_INPUT_REQUESTED, {
+      chars:prompt.length
+    });
+    await clientEvent("NATIVE_TRANSPORT_REQUESTED", {
+      chars:prompt.length
+    });
+
+    const nativeAck = await nativeTransport.submit(prompt);
+
+    transport.transition(SEND_TRANSPORT.NATIVE_SUBMIT_DISPATCHED, {
+      request_id:String(nativeAck.request_id || ""),
+      tab_id:Number(nativeAck.tab_id || 0),
+      native_stage:String(nativeAck.stage || "")
+    });
+    await clientEvent("NATIVE_TRANSPORT_SUBMIT_DISPATCHED", {
+      request_id:String(nativeAck.request_id || ""),
+      tab_id:Number(nativeAck.tab_id || 0),
+      native_stage:String(nativeAck.stage || "")
+    });
+
+    if (String(nativeAck.stage || "") !== "USER_TURN_COMMITTED") {
+      throw new Error(
+        `native transport returned non-committed stage: ${String(nativeAck.stage || "")}`
+      );
+    }
+
+    const acknowledgement = {
+      confirmed:true,
+      via:"user_message",
+      native_stage:"USER_TURN_COMMITTED"
+    };
+
+    transport.acknowledgement = acknowledgement;
+    transport.transition(SEND_TRANSPORT.ACCEPTED, {
+      via:"user_message",
+      request_id:String(nativeAck.request_id || ""),
+      native_stage:"USER_TURN_COMMITTED"
+    });
+    PENDING_SEND_TRANSPORT = null;
+    STATE.lastEvent = "PROMPT_SENT";
+    STATE.note = "Prompt bestätigt via persistentem User-Turn";
+    await clientEvent("NATIVE_USER_TURN_COMMITTED", {
+      request_id:String(nativeAck.request_id || ""),
+      via:"user_message",
+      native_stage:"USER_TURN_COMMITTED"
+    });
+    await clientEvent("NATIVE_SEND_ACCEPTED", {
+      request_id:String(nativeAck.request_id || ""),
+      via:"user_message"
+    });
+  }
+
+  async function sendPrompt(prompt) {
+    try {
+      return await sendPromptNative(prompt);
+    } catch (error) {
+      await clientEvent("NATIVE_TRANSPORT_FAILED", {
+        message:String(error && error.message ? error.message : error)
+      });
+
+      if (!AGP_ALLOW_DEGRADED_DOM_FALLBACK) {
+        throw error;
+      }
+
+      await clientEvent("DOM_TRANSPORT_DEGRADED_FALLBACK", {
+        explicit_degraded_mode:true
+      });
+      return await sendPromptDomDegraded(prompt);
+    }
+  }
+
+  async function sendPromptDomDegraded(prompt) {
     const transport = createSendTransport(prompt);
     if (prompt === STATE.lastPrompt) {
       throw new Error("identical prompt loop detected");
@@ -470,8 +710,7 @@ async function sendPrompt(prompt) {
     const beforeMessages = visibleUserMessages();
     const beforeAssistantText = lastAssistantText();
     transport.beforeAssistantText = beforeAssistantText;
-    const composerEl = composer();
-    if (!composerEl) throw new Error("ChatGPT composer not found");
+    const composerEl = await waitForComposer();
     STATE.lastPrompt = prompt;
     setComposerText(composerEl, prompt);
     transport.transition(SEND_TRANSPORT.DRAFT_WRITTEN, {chars:prompt.length});
@@ -611,7 +850,10 @@ async function sendPrompt(prompt) {
       transport.acknowledgement = acknowledgement;
       transport.transition(SEND_TRANSPORT.INDETERMINATE, {
         via:acknowledgement.via || "timeout",
-        attempts:transport.retryCount + 1
+        attempts:transport.retryCount + 1,
+        generation_started_observed:Boolean(
+          acknowledgement.generation_started_observed
+        )
       });
       STATE.lastEvent = "SEND_INDETERMINATE";
       STATE.note = "Prompt gesendet; Bestätigung noch unbestimmt";
@@ -647,6 +889,85 @@ async function sendPrompt(prompt) {
     }
   }
 
+  // AGP_K07_UNIQUE_WORK_ORDER_EXTRACTION_746
+  function extractSingleWorkOrderJson(text) {
+    const raw = String(text || "").trim();
+    if (!raw) return null;
+
+    let directText = raw;
+    let direct = parsePureJsonObject(directText);
+    if (!direct) {
+      const repairedText = repairRenderedJsonStringEscapes(raw);
+      const repairedValue = repairedText ? parsePureJsonObject(repairedText) : null;
+      if (repairedValue) { directText = repairedText; direct = repairedValue; }
+    }
+    const required = ["kind", "cwd", "argv", "timeout_seconds", "label"];
+    const isWorkOrder = value => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+      if (!required.every(key => Object.prototype.hasOwnProperty.call(value, key))) return false;
+      if (typeof value.kind !== "string" || !value.kind.trim()) return false;
+      if (typeof value.cwd !== "string" || !value.cwd.trim()) return false;
+      if (!Array.isArray(value.argv) || !value.argv.length ||
+          !value.argv.every(item => typeof item === "string")) return false;
+      if (!Number.isFinite(value.timeout_seconds) || value.timeout_seconds <= 0) return false;
+      if (typeof value.label !== "string" || !value.label.trim()) return false;
+      return true;
+    };
+
+    if (direct && isWorkOrder(direct)) {
+      return {text: directText, value: direct, source: directText === raw ? "pure-json" : "rendered-json-escape-repair"};
+    }
+
+    const candidates = [];
+    let depth = 0;
+    let start = -1;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = 0; i < raw.length; i += 1) {
+      const ch = raw[i];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (ch === "\\") {
+          escaped = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === "{") {
+        if (depth === 0) start = i;
+        depth += 1;
+        continue;
+      }
+      if (ch === "}") {
+        if (depth === 0) continue;
+        depth -= 1;
+        if (depth === 0 && start >= 0) {
+          const candidateText = raw.slice(start, i + 1).trim();
+          try {
+            const value = JSON.parse(candidateText);
+            if (isWorkOrder(value)) {
+              candidates.push({text:candidateText, value});
+            }
+          } catch (_) {}
+          start = -1;
+        }
+      }
+    }
+
+    const unique = [...new Set(candidates.map(item => item.text))]
+      .map(textValue => candidates.find(item => item.text === textValue));
+    candidates.length = unique.length;
+    if (candidates.length !== 1) return null;
+    return {text: unique[0].text, value: unique[0].value, source: "embedded-json"};
+  }
+
   function stop(reason, event="AUTO_STOPPED") {
     STATE.running = false;
     STATE.waitingForAssistant = false;
@@ -679,10 +1000,58 @@ async function sendPrompt(prompt) {
     ].join("\n");
   }
 
+  async function maybeAutoStartTaskFirstMission() {
+    const mission = STATE.mission;
+    if (!mission || STATE.running) return;
+    if (mission.execution_mode !== "LIVE" || mission.run_mode !== "FULL_AUTO") return;
+    if (!String(mission.title || "").startsWith("Task · ")) return;
+    if (!mission.mission_id) return;
+    if (AGP_TASK_FIRST_AUTOSTART_MISSION_ID === mission.mission_id) return;
+    const terminal = new Set(["DONE","COMPLETED","FAILED","ERROR","STOPPED","CANCELLED"]);
+    if (terminal.has(String(mission.state || ""))) return;
+
+    AGP_TASK_FIRST_AUTOSTART_MISSION_ID = mission.mission_id;
+    STATE.note = "Task übernommen · Automatik startet";
+    STATE.lastEvent = "TASK_FIRST_AUTOSTART";
+    render();
+    try {
+      await startAuto();
+    } catch (err) {
+      AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
+      STATE.lastEvent = "TASK_FIRST_AUTOSTART_FAILED";
+      STATE.note = String(err);
+      render();
+    }
+  }
+
+  async function pollExplicitTaskStartRequest() {
+    if (STATE.running) return;
+    try {
+      const req = await api("/v1/task/start-request");
+      const generation = Number(req.generation || 0);
+      const missionId = String(req.mission_id || "");
+      if (!AGP_TASK_FIRST_START_REQUEST_PRIMED) {
+        AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;
+        AGP_TASK_FIRST_START_REQUEST_PRIMED = true;
+        return;
+      }
+      if (!generation || generation <= AGP_TASK_FIRST_AUTOSTART_GENERATION) return;
+      const status = await refreshStatus();
+      if (!status.mission || status.mission.mission_id !== missionId) return;
+      AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;
+      // An explicit desktop start request is authoritative for this generation.
+      // Clear the legacy per-mission latch before entering the shared start path.
+      AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
+      await maybeAutoStartTaskFirstMission();
+    } catch (_err) {}
+  }
+
   async function refreshStatus() {
     const result = await api("/v1/status");
     STATE.state = result.state || "IDLE";
     STATE.mission = result.mission || null;
+    // K07: status refresh is observational only. A persisted READY/FULL_AUTO task
+    // must not execute merely because the desktop app/bridge reconnects.
     STATE.lastRefresh = new Date();
     STATE.note = STATE.mission
       ? `${STATE.mission.state} · ${STATE.mission.title || "Mission"}`
@@ -714,22 +1083,27 @@ async function sendPrompt(prompt) {
     });
     render();
 
-    const result = await api(
-      "/v1/turn",
-      {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          conversation_url:location.href,
-          assistant_text:text,
-          turn_id:crypto.randomUUID()
-        })
-      }
-    );
-
+    // AGP_K07_PROTOCOL_V1_CLIENT_MIGRATION_761
+    const mission = STATE.mission || {};
+    const workOrder = parsePureJsonObject(text);
+    if (!workOrder || typeof workOrder !== "object") throw new Error("completed assistant response is not a work-order JSON object");
+    const sessionId = String(mission.session_id || mission.mission_id || "").trim();
+    if (!sessionId) throw new Error("Protocol-v1 execution requires an active mission/session id");
+    const roundId = crypto.randomUUID();
+    const actionId = crypto.randomUUID();
+    const action = {
+      protocol_version:1, session_id:sessionId, round_id:roundId, action_id:actionId,
+      mode:"DIRECT_EXECUTION",
+      target:{kind:"local_repository",repository_root:String(workOrder.cwd || "")},
+      work_order:{type:"terminal_payload",content:JSON.stringify(workOrder)}
+    };
+    const actionFrame = ["AGP_COCKPIT_ACTION_BEGIN",JSON.stringify(action),"AGP_COCKPIT_ACTION_END"].join("\n");
+    const result = await api("/v1/protocol/execute",{method:"POST",headers:{"Content-Type":"text/plain"},body:actionFrame});
+    if (!["EXECUTED","REPLAYED"].includes(String(result.decision || ""))) throw new Error(`Protocol-v1 execution did not produce a deliverable result: ${JSON.stringify(result)}`);
+    if (typeof result.result_frame !== "string" || !result.result_frame.trim()) throw new Error("Protocol-v1 execution returned no result_frame");
+    await clientEvent("RESULT_DELIVERED",{session_id:sessionId,action_id:actionId});
     STATE.lastEvent = "TURN_SUBMIT_OK";
-    STATE.state = result.state || STATE.state;
-    return result;
+    return {action:"continue",prompt:result.result_frame,state:"RUNNING",note:`Protocol-v1 ${result.decision}`};
   }
 
   async function processCompletedAssistant(text) {
@@ -748,7 +1122,12 @@ async function sendPrompt(prompt) {
       return;
     }
 
+    STATE.assistantBaselineCount = assistantMessageNodes().length;
     await sendPrompt(result.prompt);
+    // K07: do not claim the next turn if the RESULT is still only a draft.
+    if (normalizeObservedMessageText(observedComposerText()).includes(normalizeObservedMessageText(result.prompt).slice(0, 80))) {
+      throw new Error("result prompt remained in composer after send acknowledgement");
+    }
     STATE.note = result.state || "";
     STATE.lastEvent = "PROMPT_SENT";
     STATE.waitingForAssistant = true;
@@ -759,11 +1138,18 @@ async function sendPrompt(prompt) {
     render();
   }
 
+  function newAssistantTextAfterBaseline() {
+    const nodes = assistantMessageNodes();
+    if (nodes.length <= STATE.assistantBaselineCount) return "";
+    return lastAssistantText();
+  }
+
   async function tick() {
+    await pollExplicitTaskStartRequest();
     if (!STATE.running || !STATE.waitingForAssistant) return;
 
     try {
-      const text = lastAssistantText();
+      const text = newAssistantTextAfterBaseline();
       if (!text) return;
 
       const hash = await digest(text);
@@ -812,7 +1198,12 @@ async function sendPrompt(prompt) {
       }
 
       const completed = STATE.candidateText;
-      const structured = parsePureJsonObject(completed);
+      // Historical pure-JSON completion seam retained as an explicit compatibility
+      // probe; bounded extraction below is the authoritative K07 decision boundary.
+      const pureStructured = parsePureJsonObject(completed);
+      const extracted = extractSingleWorkOrderJson(completed);
+      const structured = extracted ? extracted.value : pureStructured;
+      const completedForProcessing = extracted ? extracted.text : completed;
 
       if (!structured) {
         const graceLimit = LIMITS.stablePollsRequired + 5;
@@ -830,11 +1221,22 @@ async function sendPrompt(prompt) {
           return;
         }
 
-        throw new Error(
-          "assistant response stayed stable but is not a complete pure JSON object"
-        );
+                if (AGP_FORMAT_REPAIR_ATTEMPTS < AGP_MAX_FORMAT_REPAIR_ATTEMPTS) {
+          AGP_FORMAT_REPAIR_ATTEMPTS += 1;
+          const repairAttempt = AGP_FORMAT_REPAIR_ATTEMPTS;
+          STATE.lastEvent = "ASSISTANT_FORMAT_REPAIR";
+          STATE.note = `Antwortformat wird automatisch repariert · ${repairAttempt}/${AGP_MAX_FORMAT_REPAIR_ATTEMPTS}`;
+          await clientEvent("ASSISTANT_FORMAT_REPAIR", {attempt:repairAttempt, max_attempts:AGP_MAX_FORMAT_REPAIR_ATTEMPTS, chars:text.length});
+          STATE.lastAssistantHash = await digest(text);
+          resetCandidate();
+          render();
+          await sendPrompt(formatRepairPrompt(repairAttempt));
+          return;
+        }
+        throw new Error("assistant response stayed stable but is not a complete pure JSON object after automatic format repair");
       }
 
+      AGP_FORMAT_REPAIR_ATTEMPTS = 0; // valid structured response
       STATE.lastAssistantHash = STATE.candidateHash;
       STATE.waitingForAssistant = false;
       STATE.lastEvent = "ASSISTANT_RESPONSE_COMPLETE";
@@ -874,7 +1276,7 @@ async function sendPrompt(prompt) {
       render();
 
       resetCandidate();
-      await processCompletedAssistant(completed);
+      await processCompletedAssistant(completedForProcessing);
 
     } catch (err) {
       STATE.errors += 1;
@@ -898,6 +1300,11 @@ async function sendPrompt(prompt) {
     title:"061 LIVE READ-ONLY PROBE",
     missionText:
       "Execute exactly one read-only repository status check. " +
+      // AGP_K07_JSON_SERIALIZATION_CONTRACT_751
+      "The response must be parseable by JSON.parse as one complete JSON object. " +
+      "Escape every double quote inside JSON string values using the standard JSON backslash escape; escape backslashes as required. " +
+      "Do not return JSON-like text that is syntactically invalid JSON. " +
+      "For shell work orders such as /bin/sh -lc, inner double quotes in argv strings must use the standard JSON backslash escape. " +
       "Return exactly one JSON work order with kind=generic, " +
       "cwd=/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit, " +
       "argv=[\"/usr/bin/git\",\"status\",\"--short\"], " +
@@ -1237,6 +1644,7 @@ async function sendPrompt(prompt) {
     }
 
     STATE.lastAssistantHash = await digest(lastAssistantText());
+    STATE.assistantBaselineCount = assistantMessageNodes().length;
     resetCandidate();
     await sendPrompt(pending);
 
@@ -1289,6 +1697,7 @@ async function sendPrompt(prompt) {
     STATE.startedAt = Date.now();
     STATE.lastPrompt = "";
     STATE.lastAssistantHash = await digest(lastAssistantText());
+    STATE.assistantBaselineCount = assistantMessageNodes().length;
     resetCandidate();
 
     const bootstrap = missionBootstrapPrompt(mission);
@@ -1756,4 +2165,13 @@ async function sendPrompt(prompt) {
     STATE.lastEvent = "PHASE8_STOP_REQUESTED";
     render();
   }
+
+  // K07: passive READY state still observes explicit desktop start requests.
+  // The first observed generation is only baselined by the poll function.
+  if (!AGP_TASK_FIRST_START_REQUEST_TIMER) {
+    AGP_TASK_FIRST_START_REQUEST_TIMER = setInterval(() => {
+      void pollExplicitTaskStartRequest();
+    }, LIMITS.pollMs);
+  }
+
 })();

@@ -7,7 +7,9 @@ def test_no_floating_browser_refresh_overlay():
     assert '.place(relx=0.985' not in MAIN
     assert 'Browser-Verbindung neu laden' in MAIN
 def test_task_operator_is_notebook_tab():
-    assert 'text="Task Operator"' in MAIN
+    # K07 task-first UX keeps the durable operator as a preserved Expert tab.
+    assert 'text="Expert · Task Operator"' in MAIN
+    assert 'TaskOperatorPanel' in MAIN
     assert 'row=99' not in MAIN
 def test_task_operator_has_visible_focus_status():
     assert 'Tastaturfokus:' in TASK

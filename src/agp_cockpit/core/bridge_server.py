@@ -83,6 +83,7 @@ class CockpitBridgeServer:
         protocol_v1_actions = self.protocol_v1_actions
         protocol_v1_results = self.protocol_v1_results
         durable_controller_for = self._durable_controller
+        runtime_root = self.runtime_root
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -160,6 +161,11 @@ class CockpitBridgeServer:
                         raise ValueError("session_id required")
                     durable = durable_controller_for(session_id)
                     self._json(200, {"authority":"DurableTaskController","session_id":session_id,"task":durable.snapshot,"control":durable.control_snapshot})
+                    return
+
+                if path == "/v1/task/start-request":
+                    from agp_cockpit.core.start_request import StartRequestStore
+                    self._json(200, StartRequestStore(runtime_root).current())
                     return
 
                 if path == "/v1/status":
@@ -586,6 +592,15 @@ class CockpitBridgeServer:
                             },
                         )
                         self._json(200, client_response)
+                        return
+
+                    if path == "/v1/task/start-request":
+                        from agp_cockpit.core.start_request import StartRequestStore
+                        mission_id=str(data.get("mission_id","")).strip()
+                        state=engine.runtime.state
+                        if not mission_id or state is None or state.mission_id != mission_id:
+                            raise ValueError("start request must target current mission")
+                        self._json(200,StartRequestStore(runtime_root).request(mission_id))
                         return
 
                     if path == "/v1/mission":
