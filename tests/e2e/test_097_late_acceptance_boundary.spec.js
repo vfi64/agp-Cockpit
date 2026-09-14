@@ -53,7 +53,7 @@ test("097 new assistant completion resolves INDETERMINATE as ACCEPTED_LATE", asy
     "PENDING_SEND_TRANSPORT.transition(SEND_TRANSPORT.ACCEPTED_LATE",
     pending
   );
-  const process = SRC.indexOf("await processCompletedAssistant(completed);", acceptedLate);
+  const process = SRC.indexOf("await processCompletedAssistant(completedForProcessing);", acceptedLate);
   expect(complete).toBeGreaterThanOrEqual(0);
   expect(pending).toBeGreaterThan(complete);
   expect(acceptedLate).toBeGreaterThan(pending);

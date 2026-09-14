@@ -38,7 +38,8 @@ test("G4 requires four independent bounded send-acceptance signals", async () =>
   expect(body).toMatch(/generation_(started|active)|chatgpt_(busy|generating)|via\s*:\s*["']generation_(started|active)["']/);
 
   expect(body).toMatch(/assistantNow|lastAssistantText/);
-  expect(body).toMatch(/assistant_(response|activity)/);
+  expect(body).toContain("SEND_ASSISTANT_ACTIVITY_OBSERVED");
+  expect(body).toContain("authoritative_acceptance:false");
 
   expect(body).toMatch(/return\s*\{\s*confirmed\s*:\s*false\s*,\s*via\s*:\s*["\']timeout["\']/);
 });
@@ -46,7 +47,7 @@ test("G4 requires four independent bounded send-acceptance signals", async () =>
 test("G4 keeps acknowledgement bounded and does not treat click-attempt as success", async () => {
   const src = source();
   const waitBody = functionBody(src, "waitForSentUserMessage");
-  const sendBody = functionBody(src, "sendPrompt");
+  const sendBody = functionBody(src, "sendPromptDomDegraded");
 
   expect(waitBody).toMatch(/for\s*\(let\s+i\s*=\s*0;\s*i\s*<\s*\d+/);
   expect(waitBody).toMatch(/setTimeout/);

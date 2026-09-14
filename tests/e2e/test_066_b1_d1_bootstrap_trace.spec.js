@@ -49,7 +49,7 @@ async function installCryptoSubtleHarness(page) {
 
 const path = require("path");
 
-const ROOT = "/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit";
+const ROOT = path.resolve(__dirname, "../..");
 const CONTENT_JS = path.join(ROOT, "chrome_extension", "content.js");
 
 test("066-B1-D1 trace actual content.js bootstrap path", async ({page}) => {

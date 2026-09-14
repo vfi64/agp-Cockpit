@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "artifact_type": "agp-cockpit.validation",
+  "id": "BROWSER_NATIVE_SUBMIT_STRATEGIES_107",
+  "status": "active",
+  "decision_status": "verified_transport_repair",
+  "root_causes": [
+    "escaped regex lost during template serialization",
+    "collapsed user message includes localized toggle controls"
+  ],
+  "repair": [
+    "shared serialized message snapshot",
+    "formatting-invariant content extraction",
+    "new-message correlation",
+    "indeterminate outcomes prohibit blind replay",
+    "persisted mission-scoped transport diagnostics"
+  ],
+  "regressions": {
+    "before": {
+      "passed": 1,
+      "failed": 3
+    },
+    "after": {
+      "passed": 4,
+      "failed": 0
+    },
+    "formatting_variants": 7,
+    "full_python": "PASS",
+    "focused_final": {
+      "passed": 13
+    },
+    "kit_check": "PASS",
+    "doctor": "PASS",
+    "protected_diff": "PASS",
+    "full_playwright": {
+      "passed": 49
+    }
+  },
+  "live": {
+    "mission_id": "33651994-2368-44e0-9755-36fbad491def",
+    "prompt_requests": [
+      "1ecdcc31-8787-453a-8ae6-be2cb64067b0",
+      "f3347eb3-2cc6-4e97-80ff-bea5e3582696"
+    ],
+    "action_id": "db47e061-11f7-4dc1-9568-b3b5d7498507",
+    "committed_sends": 2,
+    "result_delivered": true,
+    "stop": "operator_after_bounded_round_trip"
+  },
+  "full_k07_acceptance": false,
+  "three_turn_acceptance": false
+}

@@ -5,10 +5,11 @@ def native(): return TEXT[TEXT.index("// AGP_BROWSER_NATIVE_TRANSPORT_V1"):]
 def test_failed_commit_returns_structured_target_and_post_click_evidence():
     n=native()
     assert "send_target:sendTarget" in n
-    assert "post_click:await evaluate" in n
-    assert "composer_text:" in n
-    assert "button_disabled:" in n
-    assert "button_aria_disabled:" in n
+    assert "after:lastObserved" in n
+    assert "lastObserved.composer_text" in n
+    assert "previousIds" in n
     assert "hit_testid:" in n
-def test_diagnostic_change_does_not_restore_mouse_commit():
-    assert '"Input.dispatchMouseEvent"' not in native()
+def test_diagnostic_change_does_not_restore_dom_submit():
+    n=native()
+    assert "button.click()" not in n
+    assert "requestSubmit()" not in n

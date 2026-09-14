@@ -73,3 +73,11 @@ Rules:
   required where the finding demands provenance;
 - K07 must map every original v2 acceptance criterion to concrete
   exact-revision evidence, and unresolved criteria remain open.
+
+## Native browser message evidence
+
+The native transport regression and formatting variants execute the real
+background script and its serialized browser expressions. Run the Playwright
+suite as well as the Python suite; both are included in the existing CI gate.
+See [Browser Native Message Evidence 107](../validation/BROWSER_NATIVE_SUBMIT_STRATEGIES_107.md)
+for the live mismatch, bounded repair and remaining K07 acceptance boundary.

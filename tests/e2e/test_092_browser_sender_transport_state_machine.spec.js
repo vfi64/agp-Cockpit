@@ -8,7 +8,7 @@ const SRC = fs.readFileSync(
 );
 
 function sendPromptBody() {
-  const start = SRC.indexOf("async function sendPrompt(");
+  const start = SRC.indexOf("async function sendPromptDomDegraded(");
   const nextAsync = SRC.indexOf("\n  async function ", start + 10);
   const nextFunction = SRC.indexOf("\n  function ", start + 10);
   const candidates = [nextAsync, nextFunction].filter(v => v > start);

@@ -12,11 +12,13 @@ def test_cdp_verifies_inserted_text_before_submit():
 
 def test_cdp_requires_exact_persistent_user_turn_commit():
     assert 'stage:"USER_TURN_COMMITTED"' in BACKGROUND
-    assert 'stage:"USER_TURN_NOT_COMMITTED"' in BACKGROUND
+    assert '"USER_TURN_INDETERMINATE"' in BACKGROUND
+    assert '"USER_TURN_NOT_COMMITTED"' in BACKGROUND
     assert "exact_user_message_found" in BACKGROUND
     assert "USER_TURN_COMMITTED" in NATIVE
 
-def test_native_module_rejects_uncommitted_stage():
+def test_native_module_allows_indeterminate_but_rejects_uncommitted_stage():
+    assert 'response.stage === "USER_TURN_INDETERMINATE"' in NATIVE
     assert 'response.stage !== "USER_TURN_COMMITTED"' in NATIVE
     assert "native transport uncommitted stage" in NATIVE
 

@@ -65,6 +65,8 @@ class MissionState:
     last_error: str = ""
     last_prompt: str = ""
     last_assistant_text: str = ""
+    browser_transport_event: str = ""
+    browser_transport_note: str = ""
 
     def validate(self) -> None:
         if self.execution_mode not in VALID_EXECUTION_MODES:

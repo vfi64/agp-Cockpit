@@ -214,6 +214,14 @@ class SimpleTaskPanel(ttk.Frame):
                     "Aktivität: Task ist angelegt; Browser-Mission wurde noch nicht beobachtet."
                 )
             else:
+                transport_event = mission.get("browser_transport_event", "")
+                if transport_event in {"NATIVE_TRANSPORT_FAILED", "MISSION_BOOTSTRAP_SEND_FAILED"}:
+                    self.state_var.set("Browser-Übertragung fehlgeschlagen — der Auftrag wartet auf Wiederaufnahme.")
+                    self.activity_var.set("Aktivität: " + str(mission.get("browser_transport_note") or transport_event))
+                    self.after(1000, self.refresh_status)
+                    return
+                if transport_event == "SEND_INDETERMINATE":
+                    self.state_var.set("Browser-Übertragung unbestätigt — Ergebnis wird geprüft; kein erneutes Senden.")
                 turns = int(mission.get("turn_count", 0) or 0)
                 steps = int(mission.get("step_count", 0) or 0)
                 mstate = str(mission.get("state") or mission_status_payload.get("state") or "")

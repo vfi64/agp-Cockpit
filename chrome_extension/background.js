@@ -1,3 +1,5 @@
+importScripts("native_message_evidence.js");
+
 const ALARM_NAME = "agp-browser-refresh-tabs";
 const LAST_HANDLED = "agpLastHandledRefreshGeneration";
 const PENDING = "agpPendingRefreshTabs";
@@ -126,6 +128,9 @@ async function agpNativeTransportV1(message, sender) {
 
     await chrome.debugger.sendCommand(target, "Runtime.enable");
 
+    const observeMessages = () => evaluate(`(${agpNativeMessageSnapshot.toString()})()`);
+    const beforeMessages = await observeMessages();
+
     const before = await evaluate(`(() => {
       const el = document.activeElement;
       return {
@@ -253,16 +258,12 @@ async function agpNativeTransportV1(message, sender) {
       };
     }
 
-    // 850 real discriminator A: preserve proven insertion; replace submit only.
-    // 850 discriminator A proved the inserted prompt is sendable with a
-    // physical Enter key. Preserve insertion and change only the automated submit
-    // event shape to a CDP keyDown/keyUp Enter sequence with text metadata.
     await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
       type:"keyDown",
       key:"Enter",
       code:"Enter",
-      text:"\\r",
-      unmodifiedText:"\\r",
+      text:"\r",
+      unmodifiedText:"\r",
       windowsVirtualKeyCode:13,
       nativeVirtualKeyCode:13
     });
@@ -274,109 +275,41 @@ async function agpNativeTransportV1(message, sender) {
       nativeVirtualKeyCode:13
     });
 
-    const escapedPrompt = JSON.stringify(text);
-
     let commitEvidence = null;
+    let lastObserved = null;
+    const previousIds = new Set(beforeMessages.messages.map(message => message.id).filter(Boolean));
     for (let i = 0; i < 40; i += 1) {
       await new Promise(resolve => setTimeout(resolve, 250));
-
-      const observed = await evaluate(`(() => {
-        const norm = value => String(value || "")
-          .replace(/\u00a0/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-
-        const expected = norm(${escapedPrompt});
-        const selectors = [
-          '[data-message-author-role="user"]',
-          'article [data-message-author-role="user"]',
-          '[data-testid^="conversation-turn-"] [data-message-author-role="user"]'
-        ];
-
-        const nodes = [];
-        const seen = new Set();
-        for (const selector of selectors) {
-          for (const node of document.querySelectorAll(selector)) {
-            if (seen.has(node)) continue;
-            seen.add(node);
-            nodes.push(node);
-          }
-        }
-
-        const messages = nodes.map(node => norm(node.innerText || node.textContent || ""));
-        const exactIndex = messages.findIndex(message => message === expected);
-
-        const composer = document.querySelector(
-          '#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]'
-        );
-        const composerText = composer
-          ? norm("value" in composer ? composer.value : (composer.innerText || composer.textContent || ""))
-          : "";
-
-        return {
-          url: location.href,
-          user_message_count: messages.length,
-          exact_user_message_index: exactIndex,
-          exact_user_message_found: exactIndex >= 0,
-          latest_user_message: messages.length ? messages[messages.length - 1] : "",
-          composer_text: composerText
-        };
-      })()`);
-
-      if (observed && observed.exact_user_message_found === true) {
+      const observed = await observeMessages();
+      const exactIndex = observed.url === beforeMessages.url
+        ? observed.messages.findIndex((message, index) =>
+          message.text === normalize(text) &&
+          (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
+        : -1;
+      observed.exact_user_message_index = exactIndex;
+      observed.exact_user_message_found = exactIndex >= 0;
+      lastObserved = observed;
+      if (observed.exact_user_message_found) {
         commitEvidence = observed;
         break;
       }
     }
 
     if (!commitEvidence) {
-      const afterTimeout = await evaluate(`(() => {
-        const norm = value => String(value || "")
-          .replace(/\u00a0/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-        const nodes = Array.from(document.querySelectorAll('[data-message-author-role="user"]'));
-        const messages = nodes.map(node => norm(node.innerText || node.textContent || ""));
-        const composer = document.querySelector(
-          '#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]'
-        );
-        return {
-          url: location.href,
-          user_message_count: messages.length,
-          latest_user_message: messages.length ? messages[messages.length - 1] : "",
-          composer_text: composer
-            ? norm("value" in composer ? composer.value : (composer.innerText || composer.textContent || ""))
-            : ""
-        };
-      })()`);
-
+      // A missing acknowledgement is not proof that a side effect did not occur.
+      const clearlyUnsent = lastObserved &&
+        lastObserved.url === beforeMessages.url &&
+        lastObserved.composer_text === normalize(text) &&
+        !lastObserved.generation_active;
       return {
         ok:false,
         request_id:requestId,
         tab_id:tabId,
-        stage:"USER_TURN_NOT_COMMITTED",
+        stage:clearlyUnsent ? "USER_TURN_NOT_COMMITTED" : "USER_TURN_INDETERMINATE",
         before,
         inserted,
         send_target:sendTarget,
-        post_click:await evaluate(`(() => {
-          const composer = document.querySelector("#prompt-textarea");
-          const button = document.querySelector('button[data-testid="send-button"]')
-            || document.querySelector('form button[type="submit"]');
-          const r = button ? button.getBoundingClientRect() : null;
-          const x = r ? r.left + r.width / 2 : null;
-          const y = r ? r.top + r.height / 2 : null;
-          const hit = (x !== null && y !== null) ? document.elementFromPoint(x, y) : null;
-          return {
-            composer_text:String(composer ? (composer.innerText || composer.textContent || "") : ""),
-            button_present:Boolean(button),
-            button_disabled:Boolean(button && button.disabled),
-            button_aria_disabled:String(button ? (button.getAttribute("aria-disabled") || "") : ""),
-            button_testid:String(button ? (button.getAttribute("data-testid") || "") : ""),
-            hit_tag:String(hit ? hit.tagName : ""),
-            hit_testid:String(hit ? (hit.getAttribute("data-testid") || "") : "")
-          };
-        })()`),
-        after:afterTimeout
+        after:lastObserved
       };
     }
 
