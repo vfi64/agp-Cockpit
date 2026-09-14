@@ -19,3 +19,7 @@ Those are subsequent acceptance slices.
 ## Local runner integration
 
 Persisted command files execute only through `Download/run_next.py`. The adapter snapshots matching return bundles before execution and accepts exactly one newly created `<step>_*_return_bundle.json` afterwards. Zero or multiple new bundles fail loudly. Browser automation is not part of this slice.
+
+## Exactly-once loop foundation
+
+Each complete remote reply is fingerprinted. Re-consumption of the same reply fails loudly. `AGP_DONE` and `AGP_NEEDS_HUMAN` are terminal local states. A command reply is persisted and executed through the existing runner, and the resulting bundle path is persisted as loop state. Browser file upload remains the next transport slice.
