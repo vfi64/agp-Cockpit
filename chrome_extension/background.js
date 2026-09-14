@@ -384,3 +384,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return true;
 });
+
+// K07_FILE_LOOP_RESULT_ATTACHMENT_WIRING
+async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
+  if (!globalThis.AGPResultFileAttachment) throw new Error("K07 result-file attachment seam unavailable");
+  const attached = await globalThis.AGPResultFileAttachment.attachResultFile(chrome, {tabId}, absolutePath);
+  if (!attached || attached.stage !== "RESULT_FILE_ATTACHED") throw new Error("K07 result-file attachment was not confirmed");
+  return attached;
+}
+async function agpSubmitFileLoopContinuation(tabId, absolutePath) {
+  await agpAttachFileLoopResultBundle(tabId, absolutePath);
+  const continuation = "Attached is the result file for the command you gave me. Evaluate it and continue the current task. If more local work is required, return the next command file; otherwise finish or request human input.";
+  if (typeof sendPromptToChatGPT !== "function") throw new Error("ChatGPT prompt transport unavailable");
+  await sendPromptToChatGPT(tabId, continuation);
+  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath};
+}

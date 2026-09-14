@@ -35,3 +35,10 @@ into the composer, and does not own Kit workflow semantics.
 A missing usable file input fails loudly. The next slice will wire this seam to the
 file-loop orchestrator and send only a short textual continuation prompt after the
 attachment is confirmed.
+
+## Attachment-to-continuation ordering
+
+For each completed local command, browser transport first attaches the result-bundle
+file and requires `RESULT_FILE_ATTACHED`. Only then does it send one bounded textual
+continuation instruction. Result contents are never serialized into the composer.
+Missing attachment confirmation or prompt transport fails loudly.
