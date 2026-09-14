@@ -81,3 +81,8 @@ background script and its serialized browser expressions. Run the Playwright
 suite as well as the Python suite; both are included in the existing CI gate.
 See [Browser Native Message Evidence 107](../validation/BROWSER_NATIVE_SUBMIT_STRATEGIES_107.md)
 for the live mismatch, bounded repair and remaining K07 acceptance boundary.
+
+The desktop-start regression in `tests/test_app_bootstrap.py` also exercises
+Chrome navigation failures and timeouts. Optional navigation must not terminate
+the available desktop/runtime; readiness still requires a fresh extension
+handshake, and ambiguous tab selection must not become a successful reload.
