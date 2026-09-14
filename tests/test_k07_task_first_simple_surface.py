@@ -22,12 +22,14 @@ def test_expert_gui_is_preserved_as_secondary_tabs():
     assert "TaskOperatorPanel(" in MAIN
 
 
-def test_high_level_contract_is_persisted_without_granting_new_authority():
+def test_high_level_contract_is_persisted_without_contract_defined_authority_escalation():
     assert "validate_task_contract" in API
     assert "start_task_from_contract" in API
     body = API.split("def start_task_from_contract", 1)[1]
     assert "set_runtime_contract" in body
-    assert "set_task_authority(" not in body
+    assert "load_and_migrate_settings" in body
+    assert "allowed_effects=settings.allowed_effects" in body
+    assert "allowed_tools=settings.allowed_tools" in body
 
 
 def test_simple_surface_explains_human_only_interruptions():

@@ -168,7 +168,10 @@ class SimpleTaskPanel(ttk.Frame):
                 mission_text=self._remote_mission_text(),
             )
             mission = mission_response["mission"]
-            request_task_start(str(mission["mission_id"]))
+            request_task_start(
+                str(mission["mission_id"]),
+                task_id=str(self.contract.get("task_id") or ""),
+            )
         except Exception as exc:
             self.state_var.set(f"Blockiert — Start fehlgeschlagen: {exc}")
             return

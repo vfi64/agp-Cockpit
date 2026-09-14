@@ -54,5 +54,15 @@ class TaskOperatorAPI:
             scope=scope,
             deadline_utc=payload.get("deadline_utc"),
         )
+        # Persist configured local authority under the real task identity.
+        from agp_cockpit.adapters.macos_settings import settings_path
+        from agp_cockpit.settings import load_and_migrate_settings
+        settings, _ = load_and_migrate_settings(settings_path())
+        self.controller.set_task_authority(
+            repository_root=self.repository_root,
+            allowed_effects=settings.allowed_effects,
+            allowed_tools=settings.allowed_tools,
+            allow_network=settings.allow_network,
+        )
         self.controller.store.set_states(task_id, state="WAITING_FOR_REMOTE")
         return self.status()

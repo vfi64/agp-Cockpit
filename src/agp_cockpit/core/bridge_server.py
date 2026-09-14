@@ -64,10 +64,18 @@ class CockpitBridgeServer:
     def _durable_controller(self, session_id: str) -> DurableTaskController:
         controller = self._durable_controllers.get(session_id)
         if controller is None:
+            # Protocol session is transport identity; prefer current task-first identity.
+            task_id = f"protocol-v1-http:{session_id}"
+            try:
+                from agp_cockpit.core.start_request import StartRequestStore
+                current = StartRequestStore(self.runtime_root).current()
+                requested = str(current.get("task_id") or "").strip()
+                if requested:
+                    task_id = requested
+            except Exception:
+                pass
             controller = DurableTaskController(
-                f"protocol-v1-http:{session_id}",
-                self._durable_db_path,
-                local_contract=self.local_task_contract,
+                task_id, self._durable_db_path, local_contract=self.local_task_contract,
             )
             self._durable_controllers[session_id] = controller
         return controller
@@ -84,6 +92,7 @@ class CockpitBridgeServer:
         protocol_v1_results = self.protocol_v1_results
         durable_controller_for = self._durable_controller
         runtime_root = self.runtime_root
+        local_task_contract = self.local_task_contract
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -192,6 +201,16 @@ class CockpitBridgeServer:
                                 None
                                 if state is None
                                 else asdict(state)
+                            ),
+                            "local_authority": (
+                                None
+                                if local_task_contract is None
+                                else {
+                                    "repository_root": str(local_task_contract.repository_root),
+                                    "allowed_effects": sorted(local_task_contract.allowed_effects),
+                                    "allowed_tools": sorted(local_task_contract.allowed_tools),
+                                    "allow_network": bool(local_task_contract.allow_network),
+                                }
                             ),
                         },
                     )
@@ -599,10 +618,17 @@ class CockpitBridgeServer:
                     if path == "/v1/task/start-request":
                         from agp_cockpit.core.start_request import StartRequestStore
                         mission_id=str(data.get("mission_id","")).strip()
+                        task_id=str(data.get("task_id","")).strip()
                         state=engine.runtime.state
                         if not mission_id or state is None or state.mission_id != mission_id:
                             raise ValueError("start request must target current mission")
-                        self._json(200,StartRequestStore(runtime_root).request(mission_id))
+                        self._json(
+                            200,
+                            StartRequestStore(runtime_root).request(
+                                mission_id,
+                                task_id=task_id,
+                            ),
+                        )
                         return
 
                     if path == "/v1/mission":

@@ -44,11 +44,15 @@
           reject(error);
           return;
         }
-        if (!response || response.ok !== true) {
+        if (!response) {
+          reject(new Error(`native transport rejected: ${JSON.stringify(response || null)}`));
+          return;
+        }
+        if (response.ok !== true && response.stage !== "USER_TURN_INDETERMINATE") {
           reject(new Error(
-            response && response.error
+            response.error
               ? String(response.error)
-              : `native transport rejected: ${JSON.stringify(response || null)}`
+              : `native transport rejected: ${JSON.stringify(response)}`
           ));
           return;
         }
