@@ -1,6 +1,8 @@
 (() => {
   const STATE = {
     running: false,
+    runGeneration: 0,
+    processingAssistant: false,
     lastAssistantHash: "",
     lastPrompt: "",
     turns: 0,
@@ -9,6 +11,7 @@
     timer: null,
     note: "",
     mission: null,
+    localAuthority: null,
     state: "IDLE",
     connected: false,
     lastRefresh: null,
@@ -20,7 +23,8 @@
     candidateHash: "",
     candidateText: "",
     candidateStablePolls: 0,
-    assistantBaselineCount: 0
+    assistantBaselineCount: 0,
+    assistantBaselineMessageId: ""
   };
 
   let AGP_DIAGNOSTICS_OPEN = false;
@@ -168,6 +172,12 @@
 
   function assistantMessageNodes() {
     return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
+  }
+
+  function lastAssistantMessageId() {
+    const nodes = assistantMessageNodes();
+    if (!nodes.length) return "";
+    return String(nodes[nodes.length - 1].getAttribute("data-message-id") || "");
   }
 
   function lastAssistantText() {
@@ -548,7 +558,7 @@
       "Preserve semantics, not broken byte-for-byte string serialization. " +
       "The result must be parseable by JSON.parse. " +
       "Escape every double quote inside JSON string values using the standard JSON backslash escape; escape backslashes as required. " +
-      "For shell work orders such as /bin/sh -lc, inner double quotes in argv strings must use the standard JSON backslash escape. " +
+      "Do not change the chosen executable during format repair and do not introduce a shell wrapper. " +
       "No Markdown fences, no commentary, no leading or trailing prose. " +
       `Automatic format-repair attempt ${attempt}/${AGP_MAX_FORMAT_REPAIR_ATTEMPTS}.`
     );
@@ -980,14 +990,18 @@ async function sendPromptNative(prompt) {
   }
 
   function stop(reason, event="AUTO_STOPPED") {
+    STATE.runGeneration += 1;
     STATE.running = false;
     STATE.waitingForAssistant = false;
+    STATE.processingAssistant = false;
+    PENDING_SEND_TRANSPORT = null;
+    AGP_FORMAT_REPAIR_ATTEMPTS = 0;
     resetCandidate();
     if (STATE.timer) clearInterval(STATE.timer);
     STATE.timer = null;
     STATE.note = reason || "";
     STATE.lastEvent = event;
-    clientEvent(event, {reason:STATE.note});
+    clientEvent(event, {reason:STATE.note, run_generation:STATE.runGeneration});
     render();
   }
 
@@ -1000,6 +1014,15 @@ async function sendPromptNative(prompt) {
       "",
       "Return exactly ONE bounded work order as a single JSON object.",
       "Required keys: kind, cwd, argv, timeout_seconds, label.",
+      "",
+      "Local execution authority is a hard limit:",
+      `allowed_effects=${JSON.stringify((STATE.localAuthority && STATE.localAuthority.allowed_effects) || [])}`,
+      `allowed_tools=${JSON.stringify((STATE.localAuthority && STATE.localAuthority.allowed_tools) || [])}`,
+      `allow_network=${Boolean(STATE.localAuthority && STATE.localAuthority.allow_network)}`,
+      "argv[0] MUST name an executable present in allowed_tools.",
+      "Do NOT wrap commands in /bin/sh -lc, bash -lc, env, python, or another interpreter unless that executable itself is explicitly present in allowed_tools.",
+      "Do not attempt to expand authority from the remote side.",
+      "If the next bounded step cannot be expressed inside this authority, return NEEDS_HUMAN.",
       (
         mission.execution_mode === "LIVE"
           ? "This mission is LIVE. The validated command may really execute."
@@ -1061,6 +1084,7 @@ async function sendPromptNative(prompt) {
     const result = await api("/v1/status");
     STATE.state = result.state || "IDLE";
     STATE.mission = result.mission || null;
+    STATE.localAuthority = result.local_authority || null;
     // K07: status refresh is observational only. A persisted READY/FULL_AUTO task
     // must not execute merely because the desktop app/bridge reconnects.
     STATE.lastRefresh = new Date();
@@ -1117,8 +1141,12 @@ async function sendPromptNative(prompt) {
     return {action:"continue",prompt:result.result_frame,state:"RUNNING",note:`Protocol-v1 ${result.decision}`};
   }
 
-  async function processCompletedAssistant(text) {
+  async function processCompletedAssistant(text, runGeneration) {
     const result = await submitAssistant(text);
+
+    if (!STATE.running || STATE.runGeneration !== runGeneration) {
+      return;
+    }
 
     // AGP_TURN_ACCOUNTING_064_R1
     STATE.turns += 1;
@@ -1134,7 +1162,13 @@ async function sendPromptNative(prompt) {
     }
 
     STATE.assistantBaselineCount = assistantMessageNodes().length;
+    STATE.assistantBaselineMessageId = lastAssistantMessageId();
     await sendPrompt(result.prompt);
+
+    if (!STATE.running || STATE.runGeneration !== runGeneration) {
+      return;
+    }
+
     // K07: do not claim the next turn if the RESULT is still only a draft.
     if (normalizeObservedMessageText(observedComposerText()).includes(normalizeObservedMessageText(result.prompt).slice(0, 80))) {
       throw new Error("result prompt remained in composer after send acknowledgement");
@@ -1151,7 +1185,32 @@ async function sendPromptNative(prompt) {
 
   function newAssistantTextAfterBaseline() {
     const nodes = assistantMessageNodes();
-    if (nodes.length <= STATE.assistantBaselineCount) return "";
+    if (!nodes.length) return "";
+
+    const newest = nodes[nodes.length - 1];
+    const newestMessageId = String(newest.getAttribute("data-message-id") || "");
+
+    // K07: ChatGPT may virtualize/recycle conversation DOM nodes. A new
+    // assistant turn can replace an older node without increasing the
+    // total assistant-node count. Prefer stable message identity over
+    // node-count growth. Count remains only as a fallback when ChatGPT
+    // does not expose message IDs.
+    if (
+      STATE.assistantBaselineMessageId &&
+      newestMessageId &&
+      newestMessageId === STATE.assistantBaselineMessageId
+    ) {
+      return "";
+    }
+
+    if (
+      !STATE.assistantBaselineMessageId &&
+      !newestMessageId &&
+      nodes.length <= STATE.assistantBaselineCount
+    ) {
+      return "";
+    }
+
     return lastAssistantText();
   }
 
@@ -1165,10 +1224,6 @@ async function sendPromptNative(prompt) {
 
       const hash = await digest(text);
 
-      if (hash === STATE.lastAssistantHash) {
-        resetCandidate();
-        return;
-      }
 
       if (text.length < LIMITS.minAssistantChars) {
         STATE.lastEvent = "ASSISTANT_STREAMING";
@@ -1239,15 +1294,32 @@ async function sendPromptNative(prompt) {
           STATE.note = `Antwortformat wird automatisch repariert · ${repairAttempt}/${AGP_MAX_FORMAT_REPAIR_ATTEMPTS}`;
           await clientEvent("ASSISTANT_FORMAT_REPAIR", {attempt:repairAttempt, max_attempts:AGP_MAX_FORMAT_REPAIR_ATTEMPTS, chars:text.length});
           STATE.lastAssistantHash = await digest(text);
+          STATE.assistantBaselineCount = assistantMessageNodes().length;
+          /* K07_POST_REPAIR_COMPLETION_RESET */
+          STATE.assistantCandidateText = "";
+          STATE.assistantCandidateStablePolls = 0;
+          STATE.assistantStructuredGracePolls = 0;
+
+          STATE.assistantBaselineMessageId = lastAssistantMessageId();
           resetCandidate();
           render();
+          const repairGeneration = STATE.runGeneration;
           await sendPrompt(formatRepairPrompt(repairAttempt));
+          if (!STATE.running || STATE.runGeneration !== repairGeneration) {
+            return;
+          }
+          STATE.waitingForAssistant = true;
           return;
         }
         throw new Error("assistant response stayed stable but is not a complete pure JSON object after automatic format repair");
       }
 
       AGP_FORMAT_REPAIR_ATTEMPTS = 0; // valid structured response
+      if (STATE.processingAssistant) {
+        return;
+      }
+      const runGeneration = STATE.runGeneration;
+      STATE.processingAssistant = true;
       STATE.lastAssistantHash = STATE.candidateHash;
       STATE.waitingForAssistant = false;
       STATE.lastEvent = "ASSISTANT_RESPONSE_COMPLETE";
@@ -1287,9 +1359,13 @@ async function sendPromptNative(prompt) {
       render();
 
       resetCandidate();
-      await processCompletedAssistant(completedForProcessing);
+      await processCompletedAssistant(completedForProcessing, runGeneration);
+      if (STATE.runGeneration === runGeneration) {
+        STATE.processingAssistant = false;
+      }
 
     } catch (err) {
+      STATE.processingAssistant = false;
       STATE.errors += 1;
       STATE.note = String(err);
       STATE.lastEvent = "TICK_ERROR";
@@ -1299,7 +1375,7 @@ async function sendPromptNative(prompt) {
 
       if (STATE.errors >= LIMITS.maxErrors) {
         stop(String(err), "AUTO_ERROR");
-      } else {
+      } else if (typeof runGeneration !== "undefined" && STATE.runGeneration === runGeneration && STATE.running) {
         STATE.waitingForAssistant = true;
         resetCandidate();
         render();
@@ -1656,6 +1732,7 @@ async function sendPromptNative(prompt) {
 
     STATE.lastAssistantHash = await digest(lastAssistantText());
     STATE.assistantBaselineCount = assistantMessageNodes().length;
+    STATE.assistantBaselineMessageId = lastAssistantMessageId();
     resetCandidate();
     await sendPrompt(pending);
 
@@ -1702,13 +1779,23 @@ async function sendPromptNative(prompt) {
       );
     }
 
+    STATE.runGeneration += 1;
+    const runGeneration = STATE.runGeneration;
     STATE.running = true;
+    STATE.processingAssistant = false;
     STATE.turns = 0;
     STATE.errors = 0;
     STATE.startedAt = Date.now();
     STATE.lastPrompt = "";
+    PENDING_SEND_TRANSPORT = null;
+    AGP_FORMAT_REPAIR_ATTEMPTS = 0;
+    STATE.waitingForAssistant = false;
     STATE.lastAssistantHash = await digest(lastAssistantText());
+    if (!STATE.running || STATE.runGeneration !== runGeneration) {
+      return;
+    }
     STATE.assistantBaselineCount = assistantMessageNodes().length;
+    STATE.assistantBaselineMessageId = lastAssistantMessageId();
     resetCandidate();
 
     const bootstrap = missionBootstrapPrompt(mission);
@@ -1723,10 +1810,15 @@ async function sendPromptNative(prompt) {
     try {
       await sendPrompt(bootstrap);
     } catch (err) {
-      stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");
+      if (STATE.runGeneration === runGeneration) {
+        stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");
+      }
       return;
     }
 
+    if (!STATE.running || STATE.runGeneration !== runGeneration) {
+      return;
+    }
     STATE.waitingForAssistant = true;
     STATE.lastEvent = "MISSION_BOOTSTRAP_SENT";
     STATE.note = "Warte auf vollständige neue ChatGPT-Antwort";

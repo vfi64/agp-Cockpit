@@ -1,3 +1,4 @@
+importScripts("result_file_attachment.js");
 importScripts("native_message_evidence.js");
 
 const ALARM_NAME = "agp-browser-refresh-tabs";
@@ -151,7 +152,10 @@ async function agpNativeTransportV1(message, sender) {
     );
 
     const inserted = await evaluate(`(() => {
-      const el = document.activeElement;
+      const active = document.activeElement;
+      const composer = document.querySelector('#prompt-textarea') ||
+        document.querySelector('[contenteditable="true"][role="textbox"]');
+      const el = composer || active;
       const value = el && "value" in el
         ? String(el.value || "")
         : String((el && (el.innerText || el.textContent)) || "");
@@ -160,7 +164,10 @@ async function agpNativeTransportV1(message, sender) {
         value,
         tag: el ? el.tagName : "",
         id: el ? el.id : "",
-        contenteditable: el ? el.getAttribute("contenteditable") : ""
+        contenteditable: el ? el.getAttribute("contenteditable") : "",
+        source: composer ? "composer" : "activeElement",
+        active_tag: active ? active.tagName : "",
+        active_id: active ? active.id : ""
       };
     })()`);
 
@@ -297,10 +304,40 @@ async function agpNativeTransportV1(message, sender) {
 
     if (!commitEvidence) {
       // A missing acknowledgement is not proof that a side effect did not occur.
-      const clearlyUnsent = lastObserved &&
+      // AGP_K07_TRUSTED_ENTER_COMMIT_RETRY_928
+      // Retry the same trusted CDP Enter primitive once, but only when exact evidence
+      // says the first attempt left the exact payload untouched and generation inactive.
+      let clearlyUnsent = lastObserved &&
         lastObserved.url === beforeMessages.url &&
         lastObserved.composer_text === normalize(text) &&
         !lastObserved.generation_active;
+      if (clearlyUnsent) {
+        await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+          type:"keyDown", key:"Enter", code:"Enter", text:"\r", unmodifiedText:"\r",
+          windowsVirtualKeyCode:13, nativeVirtualKeyCode:13
+        });
+        await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
+          type:"keyUp", key:"Enter", code:"Enter",
+          windowsVirtualKeyCode:13, nativeVirtualKeyCode:13
+        });
+        for (let i = 0; i < 20; i += 1) {
+          await new Promise(resolve => setTimeout(resolve, 250));
+          const observed = await observeMessages();
+          const exactIndex = observed.url === beforeMessages.url
+            ? observed.messages.findIndex((message, index) =>
+              message.text === normalize(text) &&
+              (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
+            : -1;
+          observed.exact_user_message_index = exactIndex;
+          observed.exact_user_message_found = exactIndex >= 0;
+          lastObserved = observed;
+          if (observed.exact_user_message_found) { commitEvidence = observed; break; }
+        }
+        if (commitEvidence) {
+          return {ok:true,request_id:requestId,tab_id:tabId,stage:"USER_TURN_COMMITTED",
+            before,inserted,commit:commitEvidence,commit_retry:"trusted_enter_once"};
+        }
+      }
       return {
         ok:false,
         request_id:requestId,
@@ -347,3 +384,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return true;
 });
+
+// K07_FILE_LOOP_RESULT_ATTACHMENT_WIRING
+async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
+  if (!globalThis.AGPResultFileAttachment) throw new Error("K07 result-file attachment seam unavailable");
+  const attached = await globalThis.AGPResultFileAttachment.attachResultFile(chrome, {tabId}, absolutePath);
+  if (!attached || attached.stage !== "RESULT_FILE_ATTACHED") throw new Error("K07 result-file attachment was not confirmed");
+  return attached;
+}
+async function agpSubmitFileLoopContinuation(tabId, absolutePath) {
+  await agpAttachFileLoopResultBundle(tabId, absolutePath);
+  const continuation = "Attached is the result file for the command you gave me. Evaluate it and continue the current task. If more local work is required, return the next command file; otherwise finish or request human input.";
+  if (typeof sendPromptToChatGPT !== "function") throw new Error("ChatGPT prompt transport unavailable");
+  await sendPromptToChatGPT(tabId, continuation);
+  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath};
+}

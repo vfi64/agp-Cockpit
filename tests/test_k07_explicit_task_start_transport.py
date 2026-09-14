@@ -1,11 +1,13 @@
 from pathlib import Path
+
 from agp_cockpit.core.start_request import StartRequestStore
+
 
 def test_persisted_monotonic(tmp_path):
  s=StartRequestStore(tmp_path); assert s.current()['generation']==0; assert s.request('m')['generation']==1; assert StartRequestStore(tmp_path).request('m')['generation']==2
 
 def test_desktop_emits_after_create():
- p=Path('src/agp_cockpit/ui/simple_task_panel.py').read_text(); assert p.index('create_live_full_auto(')<p.index('request_task_start(str(')
+ p=Path('src/agp_cockpit/ui/simple_task_panel.py').read_text(); assert p.index('create_live_full_auto(') < p.index('request_task_start(')
 
 def test_refresh_observational():
  c=Path('chrome_extension/content.js').read_text(); b=c[c.index('async function refreshStatus()'):c.index('async function submitAssistant(')]; assert 'maybeAutoStartTaskFirstMission' not in b and 'pollExplicitTaskStartRequest' not in b
