@@ -2,7 +2,7 @@ const {test, expect} = require("@playwright/test");
 const path = require("path");
 
 const ROOT = process.env.AGP_COCKPIT_ROOT ||
-  "/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit";
+  path.resolve(__dirname, "../..");
 const CONTRACT = path.join(
   ROOT, "chrome_extension", "conversation_contract.js"
 );
@@ -304,4 +304,3 @@ test("re-rendering identical previous response does not create a new response", 
 
   expect(result).toContain("PHASE5_COMPLETED_ASSISTANT_TIMEOUT");
 });
-

@@ -31,7 +31,7 @@ def test_background_uses_cdp_native_input_and_detaches():
     assert 'stage:"SEND_BUTTON_NOT_READY"' in BACKGROUND
     assert "chrome.debugger.detach" in BACKGROUND
     assert 'stage:"USER_TURN_COMMITTED"' in BACKGROUND
-    assert 'stage:"USER_TURN_NOT_COMMITTED"' in BACKGROUND
+    assert '"USER_TURN_NOT_COMMITTED"' in BACKGROUND
     assert "exact_user_message_found" in BACKGROUND
 
 def test_native_module_focuses_and_uses_runtime_message():

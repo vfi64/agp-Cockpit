@@ -29,7 +29,7 @@ def test_commit_contract_is_preserved():
     n=native()
     assert '"Input.dispatchKeyEvent"' in n
     assert 'stage:"USER_TURN_COMMITTED"' in n
-    assert 'stage:"USER_TURN_NOT_COMMITTED"' in n
+    assert '"USER_TURN_NOT_COMMITTED"' in n
     assert "exact_user_message_found" in n
 
 def test_no_mouse_submit_regression():

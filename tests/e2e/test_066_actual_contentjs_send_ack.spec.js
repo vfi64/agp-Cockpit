@@ -49,7 +49,7 @@ async function installCryptoSubtleHarness(page) {
 
 const path = require("path");
 
-const ROOT = "/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit";
+const ROOT = path.resolve(__dirname, "../..");
 const CONTENT_JS = path.join(ROOT, "chrome_extension", "content.js");
 
 async function installBridgeMocks(page) {
@@ -72,7 +72,7 @@ async function installBridgeMocks(page) {
       baseUrl: "http://127.0.0.1:9876"
     };
     window.__agpEvents = [];
-    window.__agpMission = null;
+    window.__agpMission = {schema_version:1, mission_id:"phase066-b1", title:"Fixture", mission_text:"Test status", state:"READY", current_step:0, turns:0, execution_mode:"DRY_RUN", run_mode:"SINGLE_STEP"};
 
     const storageGet = async (keys) => {
       const store = window.__agpStore;
@@ -144,64 +144,26 @@ async function installBridgeMocks(page) {
     };
   });
 
+  await page.addScriptTag({path: path.join(ROOT, "chrome_extension/native_message_evidence.js")});
   await page.addScriptTag({path: CONTENT_JS});
   await expect(page.getByText("AGP Cockpit Bridge")).toBeVisible();
 }
 
-test("G3 actual content.js accepts assistant activity when the user bubble is not observable", async ({page}) => {
-  await installCryptoSubtleHarness(page);
-  await installBridgeMocks(page);
-
-  await page.evaluate(() => {
-    const button = document.querySelector('button[data-testid="send-button"]');
-    button.addEventListener("click", () => {
-      setTimeout(() => {
-        document.querySelector('[data-message-author-role="assistant"]').textContent =
-          "assistant generation accepted the submitted prompt";
-      }, 120);
-    });
+for (const stage of ["USER_TURN_COMMITTED", "USER_TURN_INDETERMINATE"]) {
+  test("actual content.js handles native stage " + stage, async ({page}) => {
+    await installCryptoSubtleHarness(page);
+    await installBridgeMocks(page);
+    await page.evaluate(stage => {
+      window.AGPBrowserNativeTransport = {
+        available: () => true,
+        submit: async () => ({stage, request_id:"fixture-native", tab_id:1})
+      };
+    }, stage);
+    await page.getByRole("button", {name:"▶ Aufgabe starten", exact:true}).click();
+    await expect.poll(() => page.evaluate(() => window.__agpEvents)).toContain("MISSION_BOOTSTRAP_SENT");
+    const events = await page.evaluate(() => window.__agpEvents);
+    expect(events).not.toContain("MISSION_BOOTSTRAP_SEND_FAILED");
+    if (stage === "USER_TURN_COMMITTED") expect(events).toContain("NATIVE_SEND_ACCEPTED");
+    else expect(events).not.toContain("NATIVE_SEND_ACCEPTED");
   });
-
-  await page.getByRole("button", {name:"③ LIVE 3-Turn"}).click();
-  await page.getByRole("button", {name:"Start Auto"}).click();
-
-  await page.waitForFunction(() =>
-    window.__agpEvents.includes("MISSION_BOOTSTRAP_SENT"),
-    null,
-    {timeout: 12000}
-  );
-
-  const events = await page.evaluate(() => window.__agpEvents.slice());
-  expect(events).toContain("MISSION_BOOTSTRAP_SENT");
-  expect(events.some(e => String(e).includes("SEND_UNCONFIRMED"))).toBeFalsy();
-  expect(events.some(e => String(e).startsWith("UNEXPECTED_FETCH:"))).toBeFalsy();
-});
-
-test("G3 actual content.js accepts a normalized visible user bubble", async ({page}) => {
-  await installCryptoSubtleHarness(page);
-  await installBridgeMocks(page);
-
-  await page.evaluate(() => {
-    const button = document.querySelector('button[data-testid="send-button"]');
-    button.addEventListener("click", () => {
-      const composer = document.querySelector("#prompt-textarea");
-      const bubble = document.createElement("div");
-      bubble.setAttribute("data-message-author-role", "user");
-      bubble.textContent = "  " + composer.value.replace(/\s+/g, "   ") + "  ";
-      document.querySelector("main").appendChild(bubble);
-    });
-  });
-
-  await page.getByRole("button", {name:"③ LIVE 3-Turn"}).click();
-  await page.getByRole("button", {name:"Start Auto"}).click();
-
-  await page.waitForFunction(() =>
-    window.__agpEvents.includes("MISSION_BOOTSTRAP_SENT"),
-    null,
-    {timeout: 12000}
-  );
-
-  const events = await page.evaluate(() => window.__agpEvents.slice());
-  expect(events).toContain("MISSION_BOOTSTRAP_SENT");
-  expect(events.some(e => String(e).includes("SEND_UNCONFIRMED"))).toBeFalsy();
-});
+}

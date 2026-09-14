@@ -367,7 +367,7 @@
         {
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({event, details})
+          body:JSON.stringify({event, details:{...details, mission_id:STATE.mission ? STATE.mission.mission_id : ""}})
         }
       );
     } catch (_) {}
@@ -398,15 +398,7 @@
   }
 
   function visibleUserMessages() {
-    return Array.from(
-      document.querySelectorAll('[data-message-author-role="user"]')
-    )
-      .filter(el => {
-        const r = el.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      })
-      .map(el => (el.innerText || el.textContent || "").trim())
-      .filter(Boolean);
+    return agpNativeMessageSnapshot().messages.map(message => message.text).filter(Boolean);
   }
 
     // AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11
@@ -649,6 +641,25 @@ async function sendPromptNative(prompt) {
       tab_id:Number(nativeAck.tab_id || 0),
       native_stage:String(nativeAck.stage || "")
     });
+
+    if (String(nativeAck.stage || "") === "USER_TURN_INDETERMINATE") {
+      transport.acknowledgement = {
+        confirmed:false,
+        via:"native_indeterminate"
+      };
+      transport.transition(SEND_TRANSPORT.INDETERMINATE, {
+        request_id:String(nativeAck.request_id || ""),
+        native_stage:"USER_TURN_INDETERMINATE",
+        via:"native_transport",
+        attempts:Array.isArray(nativeAck.submit_attempts)
+          ? nativeAck.submit_attempts.length
+          : 0
+      });
+      await clientEvent("SEND_INDETERMINATE", {});
+      STATE.lastEvent = "SEND_INDETERMINATE";
+      STATE.note = "Prompt gesendet; native Bestätigung noch unbestimmt";
+      return;
+    }
 
     if (String(nativeAck.stage || "") !== "USER_TURN_COMMITTED") {
       throw new Error(

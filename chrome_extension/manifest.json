@@ -25,6 +25,7 @@
         "protocol_canonicalizer_v1.js",
         "phase7_single_round.js",
         "phase8_multi_round.js",
+        "native_message_evidence.js",
         "browser_native_transport.js",
         "content.js"
       ],

@@ -85,6 +85,17 @@
     if (String(response.request_id || "") !== requestId) {
       throw new Error("native transport correlation mismatch");
     }
+    if (response.stage === "USER_TURN_INDETERMINATE") {
+      return {
+        request_id: requestId,
+        stage: response.stage,
+        tab_id: response.tab_id,
+        commit: response.commit || null,
+        inserted: response.inserted || null,
+        submit_attempts: response.submit_attempts || [],
+        after: response.after || null
+      };
+    }
     if (response.stage !== "USER_TURN_COMMITTED") {
       const error = new Error(
         `native transport uncommitted stage: ${String(response.stage || "")}`

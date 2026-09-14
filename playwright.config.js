@@ -7,7 +7,6 @@ module.exports = defineConfig({
   workers: 1,
   reporter: "line",
   use: {
-    headless: true,
-    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    headless: true
   }
 });

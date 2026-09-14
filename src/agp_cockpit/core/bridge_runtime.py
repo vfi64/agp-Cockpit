@@ -40,6 +40,23 @@ class BridgeRuntime:
         )
         return self.state
 
+    def record_browser_transport(self, event: str, details: dict) -> bool:
+        """Persist correlated transport observations without changing task authority."""
+        allowed = {
+            "NATIVE_TRANSPORT_REQUESTED", "NATIVE_SEND_ACCEPTED",
+            "NATIVE_TRANSPORT_FAILED", "SEND_INDETERMINATE", "ACCEPTED_LATE",
+            "MISSION_BOOTSTRAP_SEND_FAILED", "MISSION_BOOTSTRAP_SENT",
+        }
+        state = self.state
+        if event not in allowed or state is None:
+            return False
+        if details.get("mission_id") != state.mission_id:
+            return False
+        state.browser_transport_event = event
+        state.browser_transport_note = str(details.get("reason") or details.get("message") or "")[:500]
+        self.store.save(state)
+        return True
+
     def set_modes(
         self,
         *,

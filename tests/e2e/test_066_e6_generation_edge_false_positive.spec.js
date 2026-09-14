@@ -67,7 +67,7 @@ test("E6 generation acknowledgement requires a new generation edge", async () =>
   const src = fs.readFileSync(CONTENT_JS, "utf8");
   const waitBody = extractFunction(src, "waitForSentUserMessage");
 
-  expect(waitBody).toContain("generationNow && !beforeGenerationActive");
+  expect(waitBody).toMatch(/generationNow\s*&&\s*!beforeGenerationActive/);
 
   expect(waitBody).not.toMatch(
     /if\s*\(\s*generationNow\s*\)\s*\{\s*return\s*\{\s*confirmed\s*:\s*true\s*,\s*via\s*:\s*["']generation_active["']/
@@ -85,8 +85,9 @@ test("E6 positive acknowledgement still has independent decisive signals", async
   const src = fs.readFileSync(CONTENT_JS, "utf8");
   const waitBody = extractFunction(src, "waitForSentUserMessage");
   expect(waitBody).toMatch(/via\s*:\s*["']user_message["']/);
-  expect(waitBody).toMatch(/via\s*:\s*["']generation_started["']/);
-  expect(waitBody).toMatch(/via\s*:\s*["']assistant_activity["']/);
+  expect(waitBody).toContain("SEND_GENERATION_STARTED_OBSERVED");
+  expect(waitBody).toContain("SEND_ASSISTANT_ACTIVITY_OBSERVED");
+  expect(waitBody).toContain("authoritative_acceptance:false");
   expect(waitBody).toMatch(/confirmed\s*:\s*false/);
   expect(waitBody).toMatch(/via\s*:\s*["']timeout["']/);
 });

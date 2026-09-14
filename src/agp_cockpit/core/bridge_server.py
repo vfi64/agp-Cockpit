@@ -437,6 +437,8 @@ class CockpitBridgeServer:
                         if not isinstance(details, dict):
                             details = {"value": str(details)[:300]}
 
+                        engine.runtime.record_browser_transport(event_name, details)
+
                         if event_name == "RESULT_DELIVERED":
                             session_id = str(details.get("session_id", "")).strip()
                             action_id = str(details.get("action_id", "")).strip()
