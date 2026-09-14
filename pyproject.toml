@@ -7,6 +7,7 @@ name = "agp-cockpit"
 version = "0.1.0.dev0"
 description = "Local macOS-first cockpit for transporting work between browser LLMs and Agentic Project Kit terminals."
 requires-python = ">=3.12"
+dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]

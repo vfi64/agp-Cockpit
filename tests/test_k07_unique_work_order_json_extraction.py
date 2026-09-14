@@ -14,7 +14,7 @@ def test_tick_uses_extracted_json_text_for_processing():
     assert "const extracted = extractSingleWorkOrderJson(completed);" in C
     assert "const structured = extracted ? extracted.value : pureStructured;" in C
     assert "const completedForProcessing = extracted ? extracted.text : completed;" in C
-    assert "await processCompletedAssistant(completedForProcessing);" in C
+    assert "await processCompletedAssistant(completedForProcessing, runGeneration);" in C
 
 
 def test_fail_closed_behavior_is_retained():

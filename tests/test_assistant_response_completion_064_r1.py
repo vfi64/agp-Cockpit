@@ -23,7 +23,7 @@ def test_completion_is_not_committed_before_json_gate():
 
 def test_turn_counting_happens_after_successful_submit():
     s = source()
-    fn = s[s.index("async function processCompletedAssistant(text)"):s.index("async function tick()")]
+    fn = s[s.index("async function processCompletedAssistant(text, runGeneration)"):s.index("async function tick()")]
     submit = fn.index("const result = await submitAssistant(text);")
     increment = fn.index("STATE.turns += 1;")
     branch = fn.index('if (result.action !== "continue" || !result.prompt)')
