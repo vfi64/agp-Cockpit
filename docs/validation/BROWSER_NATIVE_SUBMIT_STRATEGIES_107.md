@@ -69,3 +69,23 @@ systemic-review exit criterion.
 
 The old READY/zero-step mission projection remains distinct from durable
 task progress; transport observations are diagnostic, not completion evidence.
+
+## Desktop restart follow-up
+
+After merging the transport repair, the local desktop restart exposed another
+failure in the same delivered path: the optional AppleScript Chrome-navigation
+call raised an uncaught subprocess error and terminated startup. Its stderr was
+discarded, so this record does not attribute the failure to a specific macOS
+permission or Chrome defect.
+
+The existing macOS browser adapter now bounds both startup navigation and
+single-tab wakeup to ten seconds, returns a controlled diagnostic, and never
+replays an uncertain work order. Startup keeps the desktop and bridge available
+when navigation fails. It records `chatgpt_requested: false`; extension readiness
+still comes from the existing fresh-handshake check, not from that failed call.
+No permissions or security settings are changed.
+
+Five added behavioral cases failed before the repair and pass afterward.
+Additional success/no-tab/multiple-tab regressions preserve the conservative
+reload contract. The maintainer's next manual acceptance test remains pending;
+this follow-up does not claim K07 completion or a further live mission.

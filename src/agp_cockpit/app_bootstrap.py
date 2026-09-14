@@ -1,5 +1,6 @@
 from __future__ import annotations
 from agp_cockpit.adapters.macos_settings import bridge_runtime_root, bridge_token_path
+from agp_cockpit.adapters.macos_browser import run_chrome_automation
 from agp_cockpit.core.runtime_root_policy import require_stable_production_runtime_root
 
 from agp_cockpit.core.browser_readiness import start_browser_readiness_watch
@@ -49,7 +50,7 @@ def chrome_running() -> bool:
     return result.returncode == 0
 
 
-def request_chatgpt_tab() -> None:
+def request_chatgpt_tab() -> tuple[bool, str]:
     script = r"""
 tell application "Google Chrome"
     if it is not running then
@@ -80,12 +81,7 @@ tell application "Google Chrome"
     activate
 end tell
 """
-    subprocess.run(
-        ["/usr/bin/osascript", "-e", script],
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    return run_chrome_automation(script)
 
 
 def _read_json(path: Path) -> dict | None:
@@ -274,18 +270,10 @@ tell application "Google Chrome"
     return "RELOADED:" & targetURL
 end tell
 """
-    proc = subprocess.run(
-        ["/usr/bin/osascript", "-e", script],
-        text=True,
-        capture_output=True,
-        timeout=10,
-    )
-    result = proc.stdout.strip()
-    if proc.returncode == 0 and result.startswith("RELOADED:"):
+    ok, result = run_chrome_automation(script)
+    if ok and result.startswith("RELOADED:"):
         return True, result
-    if proc.stderr.strip():
-        return False, f"{result} {proc.stderr.strip()}".strip()
-    return False, result or f"osascript rc={proc.returncode}"
+    return False, result or "Chrome did not confirm a tab reload."
 
 
 def run(
@@ -371,7 +359,7 @@ def run(
     # AGP_INITIAL_HANDSHAKE_ASYNC_063R2
     # Initial extension silence is a CONNECTING condition, not an immediate
     # setup error. Manifest-V3 wake-up can be delayed substantially.
-    request_chatgpt_tab()
+    chatgpt_requested, browser_navigation_note = request_chatgpt_tab()
 
     # AGP_DETERMINISTIC_STARTUP_WAKE_063V
     handshake = wait_for_extension(
@@ -411,11 +399,13 @@ def run(
             "AGP Cockpit startet: Bridge und Chrome sind bereit; "
             "Browser-Erweiterung wird noch verbunden (CONNECTING)."
         )
+    if not chatgpt_requested:
+        message += f" Browser navigation: {browser_navigation_note}"
 
     status = StartupStatus(
         chrome_installed=True,
         chrome_started_or_reused=True,
-        chatgpt_requested=True,
+        chatgpt_requested=chatgpt_requested,
         bridge_ready=bridge_ready,
         extension_ready=extension_ready,
         message=message,
@@ -432,7 +422,7 @@ def run(
             failed = StartupStatus(
                 chrome_installed=True,
                 chrome_started_or_reused=True,
-                chatgpt_requested=True,
+                chatgpt_requested=chatgpt_requested,
                 bridge_ready=bridge_ready,
                 extension_ready=False,
                 message=build_extension_guidance(
@@ -453,7 +443,7 @@ def run(
         connecting = StartupStatus(
             chrome_installed=True,
             chrome_started_or_reused=True,
-            chatgpt_requested=True,
+            chatgpt_requested=chatgpt_requested,
             bridge_ready=bridge_ready,
             extension_ready=False,
             message=(
@@ -472,7 +462,7 @@ def run(
             delayed = StartupStatus(
                 chrome_installed=True,
                 chrome_started_or_reused=True,
-                chatgpt_requested=True,
+                chatgpt_requested=chatgpt_requested,
                 bridge_ready=bridge_ready,
                 extension_ready=False,
                 message=(
@@ -492,7 +482,7 @@ def run(
             delayed = StartupStatus(
                 chrome_installed=True,
                 chrome_started_or_reused=True,
-                chatgpt_requested=True,
+                chatgpt_requested=chatgpt_requested,
                 bridge_ready=bridge_ready,
                 extension_ready=False,
                 message=(
@@ -506,7 +496,7 @@ def run(
         ready = StartupStatus(
             chrome_installed=True,
             chrome_started_or_reused=True,
-            chatgpt_requested=True,
+            chatgpt_requested=chatgpt_requested,
             bridge_ready=bridge_ready,
             extension_ready=True,
             message=(
