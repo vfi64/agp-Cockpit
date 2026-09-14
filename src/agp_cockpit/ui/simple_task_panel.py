@@ -53,6 +53,14 @@ class SimpleTaskPanel(ttk.Frame):
             actions, text="Task starten", command=self.start_task, state="disabled"
         )
         self.start_button.grid(row=0, column=2)
+        self.pause_button = ttk.Button(actions, text="Pause", command=self.pause_file_loop)
+        self.pause_button.grid(row=0, column=3, padx=(8, 0))
+        self.resume_button = ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop)
+        self.resume_button.grid(row=0, column=4, padx=(8, 0))
+        self.stop_button = ttk.Button(actions, text="Stop", command=self.stop_file_loop)
+        self.stop_button.grid(row=0, column=5, padx=(8, 0))
+        self.reset_button = ttk.Button(actions, text="Reset", command=self.reset_file_loop)
+        self.reset_button.grid(row=0, column=6, padx=(8, 0))
 
         self.summary = tk.Text(self, height=14, wrap="word", state="disabled")
         self.summary.grid(row=3, column=0, sticky="nsew")
@@ -76,6 +84,17 @@ class SimpleTaskPanel(ttk.Frame):
         ).grid(row=5, column=0, sticky="ew", pady=(4, 0))
 
         self.after(750, self.refresh_status)
+
+    def _show_file_loop_state(self, snapshot: dict) -> None:
+        self.activity_var.set(f"File-Loop: {snapshot['state']} · Generation {snapshot['generation']}")
+    def pause_file_loop(self) -> None:
+        self._show_file_loop_state(self.api.file_loop_pause())
+    def resume_file_loop(self) -> None:
+        self._show_file_loop_state(self.api.file_loop_resume())
+    def stop_file_loop(self) -> None:
+        self._show_file_loop_state(self.api.file_loop_stop())
+    def reset_file_loop(self) -> None:
+        self._show_file_loop_state(self.api.file_loop_reset())
 
     def _set_summary(self, text: str) -> None:
         self.summary.configure(state="normal")
