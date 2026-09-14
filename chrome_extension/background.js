@@ -1,3 +1,4 @@
+importScripts("result_file_attachment.js");
 importScripts("native_message_evidence.js");
 
 const ALARM_NAME = "agp-browser-refresh-tabs";

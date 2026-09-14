@@ -23,3 +23,15 @@ Persisted command files execute only through `Download/run_next.py`. The adapter
 ## Exactly-once loop foundation
 
 Each complete remote reply is fingerprinted. Re-consumption of the same reply fails loudly. `AGP_DONE` and `AGP_NEEDS_HUMAN` are terminal local states. A command reply is persisted and executed through the existing runner, and the resulting bundle path is persisted as loop state. Browser file upload remains the next transport slice.
+
+## Result-file attachment transport
+
+The browser return path uses a dedicated Chrome DevTools Protocol attachment seam.
+It locates the current page's enabled `input[type=file]`, attaches the absolute local
+result-bundle path with `DOM.setFileInputFiles`, and dispatches input/change events.
+This seam is transport-only. It does not parse result contents, does not embed JSON
+into the composer, and does not own Kit workflow semantics.
+
+A missing usable file input fails loudly. The next slice will wire this seam to the
+file-loop orchestrator and send only a short textual continuation prompt after the
+attachment is confirmed.
