@@ -58,9 +58,8 @@ def test_bootstrap_requests_refresh():
     assert "wait_for_refresh_handled" in source
 
 
-def test_real_main_window_has_refresh_button():
+def test_real_main_window_has_no_manual_refresh_button():
     source = Path("src/agp_cockpit/ui/main_window.py").read_text(encoding="utf-8")
-    assert "AGP_BROWSER_REFRESH_BUTTON_062" in source
-    assert "Browser-Verbindung neu laden" in source
-    assert 'reason="cockpit-button"' in source
-    assert ".winfo_toplevel()" in source
+    assert "AGP_BROWSER_REFRESH_BUTTON_062" not in source
+    assert "Browser-Verbindung neu laden" not in source
+    assert 'reason="cockpit-button"' not in source

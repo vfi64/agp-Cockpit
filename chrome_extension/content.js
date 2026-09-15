@@ -1401,6 +1401,26 @@ async function sendPromptNative(prompt) {
       const completed = STATE.candidateText;
       // Historical pure-JSON completion seam retained as an explicit compatibility
       // probe; bounded extraction below is the authoritative K07 decision boundary.
+      // K07 decomplexified path: one Python attachment is a complete
+      // non-terminal remote response. Use the existing command-file ingress
+      // before legacy Protocol-v1 JSON compatibility parsing.
+      const k07CommandFiles = assistantPythonAttachmentCandidates();
+      if (k07CommandFiles.length === 1) {
+        STATE.processingAssistant = true;
+        STATE.lastAssistantHash = STATE.candidateHash;
+        STATE.waitingForAssistant = false;
+        STATE.lastEvent = "ASSISTANT_RESPONSE_COMPLETE";
+        try {
+          await processCompletedAssistant(completed, runGeneration);
+        } finally {
+          STATE.processingAssistant = false;
+        }
+        return;
+      }
+      if (k07CommandFiles.length > 1) {
+        throw new Error(`expected exactly one assistant .py attachment; observed ${k07CommandFiles.length}`);
+      }
+
       const pureStructured = parsePureJsonObject(completed);
       const extracted = extractSingleWorkOrderJson(completed);
       const structured = extracted ? extracted.value : pureStructured;
@@ -2205,38 +2225,8 @@ async function sendPromptNative(prompt) {
     actions.appendChild(btn("⏭ Nächster Schritt", "next", resumeStep));
     actions.appendChild(btn("↻ Aktualisieren", "status", refreshStatus));
 
-    const diagnosticsToggle = btn(
-      AGP_DIAGNOSTICS_OPEN ? "▾ Diagnose" : "▸ Diagnose",
-      "status",
-      () => {
-        AGP_DIAGNOSTICS_OPEN = !AGP_DIAGNOSTICS_OPEN;
-        render();
-      }
-    );
-    diagnosticsToggle.setAttribute("aria-expanded", String(Boolean(AGP_DIAGNOSTICS_OPEN)));
-    diagnosticsToggle.setAttribute("aria-controls", "agp-cockpit-diagnostics");
-    actions.appendChild(diagnosticsToggle);
-    root.appendChild(actions);
-
-    if (AGP_DIAGNOSTICS_OPEN) {
-      const diagnostics = document.createElement("div");
-      diagnostics.id = "agp-cockpit-diagnostics";
-      diagnostics.className = "agp-actions agp-diagnostics";
-      diagnostics.setAttribute("role", "region");
-      diagnostics.setAttribute("aria-label", "Entwicklerdiagnose");
-      diagnostics.appendChild(btn("Neue DRY-Mission", "mission", newDryMission));
-      diagnostics.appendChild(btn("LIVE-Probe", "liveprobe", newLiveProbeMission));
-      diagnostics.appendChild(btn("LIVE 3-Turn", "liveprobe", newMultiTurnLiveProbeMission));
-      diagnostics.appendChild(btn("Phase 5: Bind", "status", phase5Bind));
-      diagnostics.appendChild(btn("Phase 5: Draft", "mission", phase5StageDraft));
-      diagnostics.appendChild(btn("Phase 5: Send", "stop", phase5ConfirmAndSend));
-      diagnostics.appendChild(btn("Phase 7: One Round", "start", phase7RunOneRound));
-      diagnostics.appendChild(btn("Phase 8: Run", "start", phase8RunMultiRound));
-      diagnostics.appendChild(btn("Phase 8: Pause", "status", phase8Pause));
-      diagnostics.appendChild(btn("Phase 8: Resume", "mission", phase8Resume));
-      diagnostics.appendChild(btn("Phase 8: Stop", "stop", phase8Stop));
-      root.appendChild(diagnostics);
-    }
+    // Developer diagnostics remain available through bridge/CLI diagnostics;
+    // historical phase controls are intentionally absent from the normal overlay.
 
     const body = document.createElement("div");
     body.className = "agp-body";

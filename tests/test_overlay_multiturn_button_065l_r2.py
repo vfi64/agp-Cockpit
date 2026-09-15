@@ -1,6 +1,6 @@
 from pathlib import Path
 
-def test_multiturn_overlay_uses_existing_btn_factory():
+def test_multiturn_probe_is_not_exposed_as_normal_overlay_button():
     s = Path("chrome_extension/content.js").read_text(encoding="utf-8")
-    assert 'btn("LIVE 3-Turn", "liveprobe", newMultiTurnLiveProbeMission)' in s
-    assert 'button("③ LIVE 3-Turn", "liveprobe", newMultiTurnLiveProbeMission)' not in s
+    assert 'btn("LIVE 3-Turn", "liveprobe", newMultiTurnLiveProbeMission)' not in s
+    assert "newMultiTurnLiveProbeMission" in s

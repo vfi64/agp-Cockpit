@@ -35,7 +35,7 @@ class MainWindow(ttk.Frame):
         self.rowconfigure(3, weight=1)
 
         self.status_var = tk.StringVar(
-            value="Lokale Laufzeit wird geprüft …"
+            value="Lokale Laufzeit bereit"
         )
         self.ollama_var = tk.StringVar(value="")
         self.hermes_var = tk.StringVar(value="")
@@ -44,7 +44,6 @@ class MainWindow(ttk.Frame):
         self.system_focus_var = tk.StringVar(value="Tastaturfokus: —")
 
         self._build()
-        self.after(80, self.refresh_runtime_status)
 
     def _build(self) -> None:
         header = ttk.Frame(self)
@@ -94,127 +93,13 @@ class MainWindow(ttk.Frame):
             pady=(0, 8),
         )
 
-        self.tabs = ttk.Notebook(self)
-
-        self.tabs.grid(
-            row=3,
-            column=0,
-            sticky="nsew",
-        )
-
-        simple_tab = ttk.Frame(
-            self.tabs,
-            padding=4,
-        )
-        simple_tab.columnconfigure(0, weight=1)
-        simple_tab.rowconfigure(0, weight=1)
-
-        system_tab = ttk.Frame(
-            self.tabs,
-            padding=8,
-        )
-        system_tab.columnconfigure(0, weight=1)
-        system_tab.columnconfigure(1, weight=1)
-        system_tab.rowconfigure(1, weight=1)
-
-        order_tab = ttk.Frame(
-            self.tabs,
-            padding=4,
-        )
-        order_tab.columnconfigure(0, weight=1)
-        order_tab.rowconfigure(0, weight=1)
-
-        task_tab = ttk.Frame(
-            self.tabs,
-            padding=8,
-        )
-        task_tab.columnconfigure(0, weight=1)
-        task_tab.rowconfigure(0, weight=1)
-
-        self.tabs.add(
-            simple_tab,
-            text="Arbeiten",
-        )
-        self.tabs.add(
-            system_tab,
-            text="Expert · System",
-        )
-        self.tabs.add(
-            order_tab,
-            text="Expert · Einzelauftrag",
-        )
-        self.tabs.add(
-            task_tab,
-            text="Expert · Task Operator",
-        )
-
+        # Normal UI: one task-first surface. Historical expert tooling remains
+        # implemented internally/CLI-side, but is no longer part of the normal GUI.
         self.simple_task_panel = SimpleTaskPanel(
-            simple_tab,
+            self,
             repository_root=self.repository_root,
         )
-        self.simple_task_panel.grid(row=0, column=0, sticky="nsew")
-
-        self._build_system_tab(system_tab)
-
-        self.work_order_panel = WorkOrderPanel(
-            order_tab,
-            repository_root=self.repository_root,
-        )
-        self.work_order_panel.grid(
-            row=0,
-            column=0,
-            sticky="nsew",
-        )
-
-        self.browser_transport_panel = BrowserTransportPanel(
-            order_tab,
-            get_result_text=self.work_order_panel.get_result_for_copy,
-            set_work_order_text=self.work_order_panel.set_work_order_text,
-            repository_root=self.repository_root,
-        )
-        self.browser_transport_panel.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            pady=(6, 0),
-        )
-
-        # AGP_BROWSER_REFRESH_BUTTON_062 — retained lifecycle compatibility marker; control is normal-flow
-        self.browser_refresh_button = ttk.Button(
-            order_tab,
-            text="Browser-Verbindung neu laden",
-            command=lambda: request_browser_refresh(
-                    self.repository_root,
-                    reason="cockpit-button",
-                ),
-            takefocus=True,
-        )
-        self.browser_refresh_button.grid(
-            row=2,
-            column=0,
-            sticky="e",
-            pady=(6, 0),
-        )
-        self.browser_transport_panel.mission_operator_button.bind(
-            "<FocusIn>",
-            lambda _e: self.work_order_panel.focus_var.set("Tastaturfokus: Mission Operator öffnen"),
-            add="+",
-        )
-        self.browser_refresh_button.bind(
-            "<FocusIn>",
-            lambda _e: self.work_order_panel.focus_var.set("Tastaturfokus: Browser-Verbindung neu laden"),
-            add="+",
-        )
-
-        self.task_operator_panel = TaskOperatorPanel(
-            task_tab,
-            repository_root=self.repository_root,
-        )
-        self.task_operator_panel.grid(
-            row=0,
-            column=0,
-            sticky="nsew",
-        )
+        self.simple_task_panel.grid(row=3, column=0, sticky="nsew")
 
     def _build_system_tab(self, parent: ttk.Frame) -> None:
         ollama = ttk.LabelFrame(

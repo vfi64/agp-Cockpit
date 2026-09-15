@@ -44,23 +44,25 @@ class SimpleTaskPanel(ttk.Frame):
         self.load_button = ttk.Button(actions, text="Auftrag laden", command=self.load_contract)
         self.load_button.grid(row=0, column=0, padx=(0, 8))
 
-        self.validate_button = ttk.Button(
-            actions, text="Auftrag prüfen", command=self.validate_contract, state="disabled"
-        )
-        self.validate_button.grid(row=0, column=1, padx=(0, 8))
-
         self.start_button = ttk.Button(
             actions, text="Task starten", command=self.start_task, state="disabled"
         )
-        self.start_button.grid(row=0, column=2)
+        self.start_button.grid(row=0, column=1)
         self.pause_button = ttk.Button(actions, text="Pause", command=self.pause_file_loop)
-        self.pause_button.grid(row=0, column=3, padx=(8, 0))
+        self.pause_button.grid(row=0, column=2, padx=(8, 0))
         self.resume_button = ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop)
-        self.resume_button.grid(row=0, column=4, padx=(8, 0))
+        self.resume_button.grid(row=0, column=3, padx=(8, 0))
         self.stop_button = ttk.Button(actions, text="Stop", command=self.stop_file_loop)
-        self.stop_button.grid(row=0, column=5, padx=(8, 0))
+        self.stop_button.grid(row=0, column=4, padx=(8, 0))
         self.reset_button = ttk.Button(actions, text="Reset", command=self.reset_file_loop)
-        self.reset_button.grid(row=0, column=6, padx=(8, 0))
+        self.reset_button.grid(row=0, column=5, padx=(8, 0))
+        self.approve_button = ttk.Button(
+            actions,
+            text="Entscheidung freigeben",
+            command=self.approve_checkpoint,
+            state="disabled",
+        )
+        self.approve_button.grid(row=0, column=7, padx=(8, 0))
 
         self.summary = tk.Text(self, height=14, wrap="word", state="disabled")
         self.summary.grid(row=3, column=0, sticky="nsew")
@@ -96,6 +98,19 @@ class SimpleTaskPanel(ttk.Frame):
     def reset_file_loop(self) -> None:
         self._show_file_loop_state(self.api.file_loop_reset())
 
+    def approve_checkpoint(self) -> None:
+        try:
+            status = self.api.approve_checkpoint()
+        except Exception as exc:
+            self.state_var.set(f"Freigabe fehlgeschlagen — {exc}")
+            return
+        self.approve_button.configure(state="disabled")
+        self.state_var.set(
+            self._human_runtime_state(
+                status.get("state"), status.get("suspension_reason")
+            )
+        )
+
     def _set_summary(self, text: str) -> None:
         self.summary.configure(state="normal")
         self.summary.delete("1.0", "end")
@@ -105,23 +120,25 @@ class SimpleTaskPanel(ttk.Frame):
     def load_contract(self) -> None:
         path = filedialog.askopenfilename(
             parent=self.winfo_toplevel(),
-            title="Task Contract auswählen",
-            filetypes=[("JSON", "*.json"), ("Alle Dateien", "*.*")],
+            title="Auftrag auswählen",
+            filetypes=[("Textaufträge", "*.txt"), ("JSON-Aufträge", "*.json"), ("Alle Dateien", "*.*")],
         )
         if not path:
             return
         try:
-            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+            source = Path(path)
+            raw = source.read_text(encoding="utf-8")
+            payload = json.loads(raw) if source.suffix.lower() == ".json" else {"goal": raw.strip()}
         except Exception as exc:
             messagebox.showerror("Auftrag laden", str(exc), parent=self.winfo_toplevel())
             return
 
         self.contract = payload
         self.workflow_phase = "LOADED"
-        self.validate_button.configure(state="normal")
-        self.start_button.configure(state="disabled")
+        self.start_button.configure(state="normal")
+        self.start_button.focus_set()
         self._set_summary(self._human_summary(payload))
-        self.state_var.set("Auftrag geladen — bitte jetzt „Auftrag prüfen“ wählen.")
+        self.state_var.set("Auftrag geladen ✓ — bereit zum Starten.")
 
     def _human_summary(self, payload: dict) -> str:
         title = payload.get("title") or payload.get("task_id") or "—"
@@ -153,24 +170,13 @@ class SimpleTaskPanel(ttk.Frame):
             + json.dumps(self.contract, ensure_ascii=False, indent=2)
         )
 
-    def validate_contract(self) -> None:
-        try:
-            self.api.validate_task_contract(self.contract)
-        except Exception as exc:
-            self.workflow_phase = "INVALID"
-            self.start_button.configure(state="disabled")
-            self.state_var.set(f"Auftrag nicht startbereit — Prüfung fehlgeschlagen: {exc}")
-            return
-        self.workflow_phase = "VALIDATED"
-        self.start_button.configure(state="normal")
-        self.start_button.focus_set()
-        self.state_var.set(
-            "Auftrag geprüft ✓ — keine Probleme erkannt. "
-            "Bereit zum Starten; als Nächstes „Task starten“ wählen."
-        )
-
     def start_task(self) -> None:
         if self.contract is None:
+            return
+        try:
+            self.contract = self.api.prepare_task_contract(self.contract)
+        except Exception as exc:
+            self.state_var.set(f"Auftrag nicht startbereit — automatische technische Prüfung fehlgeschlagen: {exc}")
             return
         if not messagebox.askyesno(
             "Task starten",
@@ -224,6 +230,12 @@ class SimpleTaskPanel(ttk.Frame):
                 self.after(1000, self.refresh_status)
                 return
             status = self.api.status()
+            waiting_for_human = (
+                status.get("suspension_reason") == "WAITING_FOR_HUMAN"
+            )
+            self.approve_button.configure(
+                state="normal" if waiting_for_human else "disabled"
+            )
             self.state_var.set(
                 self._human_runtime_state(
                     status.get("state"), status.get("suspension_reason")

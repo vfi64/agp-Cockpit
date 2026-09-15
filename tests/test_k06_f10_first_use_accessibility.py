@@ -12,9 +12,9 @@ def test_responsive_native_surface():
  s=inspect.getsource(TaskOperatorPanel); assert "ttk.Button" in s and "ttk.Label" in s; assert ".geometry(" not in s; assert ".place(" not in s
 
 
-def test_main_window_integrates_durable_task_operator():
+def test_main_window_does_not_expose_durable_task_operator():
     import inspect
     from agp_cockpit.ui.main_window import MainWindow
     source = inspect.getsource(MainWindow)
-    assert "TaskOperatorPanel" in source
-    assert "task_operator_panel" in source
+    assert "TaskOperatorPanel(" not in source
+    assert "task_operator_panel" not in source

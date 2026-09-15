@@ -13,7 +13,14 @@ class TaskOperatorAPI:
         # AGP_K07_UNIFIED_DESKTOP_CONTROL_1007
         self.operator_control = OperatorControlStore(runtime_root)
     def file_loop_status(self) -> dict:
-        return self.file_loop.snapshot()
+        snapshot = dict(self.file_loop.snapshot())
+        control = self.operator_control.current()
+        action = str(control.get("action") or "").upper()
+        if action == "PAUSE": snapshot["state"] = "PAUSED"
+        elif action == "RESUME": snapshot["state"] = "RUNNING"
+        elif action == "STOP": snapshot["state"] = "STOPPED"
+        snapshot["generation"] = max(int(snapshot.get("generation", 0)), int(control.get("generation", 0)))
+        return snapshot
     def file_loop_pause(self) -> dict:
         snapshot = self.file_loop.pause()
         self.operator_control.request('PAUSE')
@@ -38,25 +45,32 @@ class TaskOperatorAPI:
         s=self.status(); ident=(s.get("checkpoint_id"),s.get("checkpoint_revision"),s.get("checkpoint_artifact_hash"))
         if not all(ident): raise RuntimeError("no pending human checkpoint")
         self.controller.approve_human_checkpoint(*ident); return self.status()
-    def validate_task_contract(self, payload) -> dict:
+    def prepare_task_contract(self, payload) -> dict:
         if not isinstance(payload, dict):
-            raise ValueError("Task Contract must be a JSON object")
-        task_id = str(payload.get("task_id") or "").strip()
-        goal = str(payload.get("goal") or "").strip()
-        repo = Path(str(payload.get("repository_root") or "")).expanduser().resolve()
-        criteria = payload.get("acceptance_criteria")
-        if not task_id:
-            raise ValueError("task_id required")
+            raise ValueError("Task Contract must be an object")
+        prepared = dict(payload)
+        goal = str(prepared.get("goal") or "").strip()
         if not goal:
             raise ValueError("goal required")
-        if repo != self.repository_root:
+        supplied_repo = str(prepared.get("repository_root") or "").strip()
+        if supplied_repo and Path(supplied_repo).expanduser().resolve() != self.repository_root:
             raise ValueError("repository_root does not match current Cockpit repository")
-        if not isinstance(criteria, list) or not criteria:
-            raise ValueError("acceptance_criteria must be a non-empty list")
-        return payload
+        if not str(prepared.get("task_id") or "").strip():
+            import uuid
+            prepared["task_id"] = "cockpit-" + uuid.uuid4().hex
+        prepared["repository_root"] = str(self.repository_root)
+        criteria = prepared.get("acceptance_criteria")
+        if criteria is None:
+            prepared["acceptance_criteria"] = []
+        elif not isinstance(criteria, list):
+            raise ValueError("acceptance_criteria must be a list")
+        return prepared
+
+    def validate_task_contract(self, payload) -> dict:
+        return self.prepare_task_contract(payload)
 
     def start_task_from_contract(self, payload) -> dict:
-        payload = self.validate_task_contract(payload)
+        payload = self.prepare_task_contract(payload)
         task_id = str(payload["task_id"])
         self.controller.close()
         runtime_root = Path.home()/".local"/"share"/"agp-cockpit"/"runtime"

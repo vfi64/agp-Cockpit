@@ -6,7 +6,6 @@ def test_main_window_preserves_resolved_repository_context():
     assert "self.repository_root = (repository_root or Path.cwd()).expanduser().resolve()" in s
     assert "textvariable=self.context_var" in s
     assert "repository_root=self.repository_root" in s
-    assert "request_browser_refresh(\n                    self.repository_root," in s
 
 def test_browser_transport_preserves_repository_context():
     s=Path("src/agp_cockpit/ui/browser_transport_panel.py").read_text(encoding="utf-8")
