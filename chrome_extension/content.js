@@ -2,6 +2,8 @@
   const STATE = {
     running: false,
     runGeneration: 0,
+    paused: false,
+    operatorControlGeneration: 0,
     processingAssistant: false,
     lastAssistantHash: "",
     lastPrompt: "",
@@ -220,6 +222,89 @@
       }
     }
     return (!inString && !escaped) ? out : "";
+  }
+
+
+  // AGP_K07_COMMAND_FILE_INGRESS_989
+  function assistantPythonAttachmentCandidates() {
+    const nodes = assistantMessageNodes();
+    if (!nodes.length) return [];
+    const assistant = nodes[nodes.length - 1];
+    const rows = Array.from(assistant.querySelectorAll("a[href]"))
+      .map(anchor => {
+        const href = String(anchor.href || anchor.getAttribute("href") || "").trim();
+        const label = String(
+          anchor.getAttribute("download") ||
+          anchor.getAttribute("aria-label") ||
+          anchor.textContent ||
+          ""
+        ).trim();
+        const name = label.split("/").pop().trim();
+        return {href, name};
+      })
+      .filter(item => item.href && /\.py(?:$|[?#])/i.test(item.name || item.href));
+    const unique = new Map();
+    for (const row of rows) unique.set(`${row.href}\n${row.name}`, row);
+    return Array.from(unique.values());
+  }
+
+  async function fetchSingleAssistantPythonAttachment() {
+    const candidates = assistantPythonAttachmentCandidates();
+    if (candidates.length !== 1) {
+      throw new Error(
+        `expected exactly one assistant .py attachment; observed ${candidates.length}`
+      );
+    }
+    const attachment = candidates[0];
+    const response = await chrome.runtime.sendMessage({
+      type:"AGP_K07_COMMAND_FILE_FETCH",
+      href:attachment.href,
+      filename:attachment.name
+    });
+    if (!response || response.ok !== true || response.stage !== "COMMAND_FILE_FETCHED") {
+      throw new Error(
+        response && response.error
+          ? String(response.error)
+          : "assistant .py attachment could not be materialized"
+      );
+    }
+    return response;
+  }
+
+  async function submitAssistantCommandFile() {
+    const fetched = await fetchSingleAssistantPythonAttachment();
+    const result = await api(
+      "/v1/file-loop/command",
+      {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          filename:fetched.filename,
+          content:fetched.content,
+          href:fetched.href,
+          message_id:lastAssistantMessageId()
+        })
+      }
+    );
+    if (
+      !result ||
+      result.state !== "COMMAND_FILE" ||
+      typeof result.result_file !== "string" ||
+      !result.result_file ||
+      typeof result.prompt !== "string" ||
+      !result.prompt
+    ) {
+      throw new Error("K07 command-file bridge response incomplete");
+    }
+    // AGP_K07_RESULT_CONTINUATION_CALL_991
+    const continuation = await chrome.runtime.sendMessage({
+      type:"AGP_K07_RESULT_CONTINUATION",
+      result_file:result.result_file
+    });
+    if (!continuation || continuation.ok !== true || continuation.stage !== "RESULT_ATTACHED_AND_CONTINUATION_SENT") {
+      throw new Error(continuation && continuation.error ? String(continuation.error) : "result continuation transport failed");
+    }
+    return result;
   }
 
   function composer() {
@@ -1058,6 +1143,39 @@ async function sendPromptNative(prompt) {
     }
   }
 
+  // AGP_K07_UNIFIED_OPERATOR_CONTROL_1005
+  async function pollOperatorControl() {
+    try {
+      const ctl = await api("/v1/file-loop/control");
+      const generation = Number(ctl.generation || 0);
+      if (!generation || generation <= STATE.operatorControlGeneration) return;
+      STATE.operatorControlGeneration = generation;
+      const action = String(ctl.action || "").toUpperCase();
+      if (action === "PAUSE") {
+        STATE.paused = true;
+        STATE.runGeneration += 1;
+        STATE.processingAssistant = false;
+        STATE.lastEvent = "OPERATOR_PAUSED";
+        STATE.note = "Automatik pausiert";
+        render();
+        return;
+      }
+      if (action === "RESUME") {
+        if (!STATE.paused) return;
+        STATE.paused = false;
+        STATE.runGeneration += 1;
+        STATE.lastEvent = "OPERATOR_RESUMED";
+        STATE.note = "Automatik fortgesetzt";
+        render();
+        return;
+      }
+      if (action === "STOP") {
+        STATE.paused = false;
+        stop("Vom Operator gestoppt", "OPERATOR_STOPPED");
+      }
+    } catch (_err) {}
+  }
+
   async function pollExplicitTaskStartRequest() {
     if (STATE.running) return;
     try {
@@ -1142,6 +1260,21 @@ async function sendPromptNative(prompt) {
   }
 
   async function processCompletedAssistant(text, runGeneration) {
+    // AGP_K07_COMMAND_FILE_ACTIVE_BRANCH_992
+    if (!STATE.running || STATE.runGeneration !== runGeneration) return;
+    const commandFiles = assistantPythonAttachmentCandidates();
+    if (commandFiles.length > 0) {
+      if (commandFiles.length !== 1) {
+        throw new Error(`expected exactly one assistant .py attachment; observed ${commandFiles.length}`);
+      }
+      await submitAssistantCommandFile();
+      if (!STATE.running || STATE.runGeneration !== runGeneration) return;
+      STATE.turns += 1;
+      STATE.lastEvent = "K07_COMMAND_FILE_TURN_COMPLETE";
+      render();
+      return;
+    }
+
     const result = await submitAssistant(text);
 
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
@@ -1215,6 +1348,8 @@ async function sendPromptNative(prompt) {
   }
 
   async function tick() {
+    await pollOperatorControl();
+    if (STATE.paused) return;
     await pollExplicitTaskStartRequest();
     if (!STATE.running || !STATE.waitingForAssistant) return;
 
@@ -1749,6 +1884,10 @@ async function sendPromptNative(prompt) {
   }
 
   async function startAuto() {
+    if (STATE.paused) {
+      await clientEvent("AUTO_START_IGNORED_PAUSED", {});
+      return;
+    }
     if (STATE.running) {
       await clientEvent("AUTO_START_IGNORED_ALREADY_RUNNING", {});
       return;

@@ -1,44 +1,11 @@
-# K07 Command-File / Result-File Protocol
+# K07 Decomplexified Command-File / Result-File Loop
 
-Status: transition foundation.
+Status: implementation slice.
 
-The remote model has exactly three protocol states:
+The remote model does not emit executable work orders in prose. Each non-terminal turn returns exactly one Python command file. Browser transport downloads that file and passes its local path to the Cockpit. The Cockpit renumbers/copies it into `Download/` and executes it only through `Download/run_next.py`.
 
-1. `AGP_COMMAND_FILE_BEGIN` ... `AGP_COMMAND_FILE_END`
-2. `AGP_DONE`
-3. `AGP_NEEDS_HUMAN`
+`run_next.py` remains the execution authority for compile, self-test, and the real run. Exactly one newly created `<step>_*_return_bundle.json` is required. Zero or multiple bundles fail loudly. The result bundle is attached to the same ChatGPT conversation; only a fixed bounded continuation sentence is sent as text. Result JSON is never copied into the composer.
 
-Execution semantics remain local. A command block is persisted as the next numbered
-Python file in the local Download workspace. Existing `run_next.py` remains the
-execution authority for compile, self-test and real run. Large result payloads
-are to return as files, not as JSON work orders embedded in composer text.
+Terminal remote text is limited to `AGP_DONE` or `AGP_NEEDS_HUMAN` plus an optional reason. Arbitrary prose is never executable. Duplicate command files are rejected by SHA-256 fingerprint. Pause, resume, stop, and generation fencing remain owned by the Cockpit lifecycle. Repository/GitHub workflow semantics remain owned by the Agentic Project Kit.
 
-This module deliberately does not yet execute commands or automate file upload.
-Those are subsequent acceptance slices.
-
-## Local runner integration
-
-Persisted command files execute only through `Download/run_next.py`. The adapter snapshots matching return bundles before execution and accepts exactly one newly created `<step>_*_return_bundle.json` afterwards. Zero or multiple new bundles fail loudly. Browser automation is not part of this slice.
-
-## Exactly-once loop foundation
-
-Each complete remote reply is fingerprinted. Re-consumption of the same reply fails loudly. `AGP_DONE` and `AGP_NEEDS_HUMAN` are terminal local states. A command reply is persisted and executed through the existing runner, and the resulting bundle path is persisted as loop state. Browser file upload remains the next transport slice.
-
-## Result-file attachment transport
-
-The browser return path uses a dedicated Chrome DevTools Protocol attachment seam.
-It locates the current page's enabled `input[type=file]`, attaches the absolute local
-result-bundle path with `DOM.setFileInputFiles`, and dispatches input/change events.
-This seam is transport-only. It does not parse result contents, does not embed JSON
-into the composer, and does not own Kit workflow semantics.
-
-A missing usable file input fails loudly. The next slice will wire this seam to the
-file-loop orchestrator and send only a short textual continuation prompt after the
-attachment is confirmed.
-
-## Attachment-to-continuation ordering
-
-For each completed local command, browser transport first attaches the result-bundle
-file and requires `RESULT_FILE_ATTACHED`. Only then does it send one bounded textual
-continuation instruction. Result contents are never serialized into the composer.
-Missing attachment confirmation or prompt transport fails loudly.
+Legacy Protocol-v1/browser code remains present only as compatibility infrastructure until end-to-end replacement acceptance proves the decomplexified path. This slice changes the core file-loop contract; browser download wiring is the next acceptance boundary.

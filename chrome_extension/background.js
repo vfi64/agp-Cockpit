@@ -385,6 +385,98 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+
+// AGP_K07_COMMAND_FILE_FETCH_989
+async function agpFetchAssistantCommandFile(message, sender) {
+  const href = String(message.href || "").trim();
+  const filename = String(message.filename || "").trim();
+  const tabId = sender && sender.tab ? sender.tab.id : null;
+
+  if (!href || !filename || !/\.py$/i.test(filename)) {
+    throw new Error("K07 command-file fetch requires one .py attachment");
+  }
+  if (!Number.isInteger(tabId)) {
+    throw new Error("K07 command-file fetch requires sender.tab.id");
+  }
+
+  const target = {tabId};
+  let attached = false;
+  try {
+    await chrome.debugger.attach(target, "1.3");
+    attached = true;
+    await chrome.debugger.sendCommand(target, "Runtime.enable");
+
+    const expression = `(async () => {
+      const href = ${JSON.stringify(href)};
+      const response = await fetch(href, {credentials:"include"});
+      if (!response.ok) throw new Error("attachment fetch HTTP " + response.status);
+      const text = await response.text();
+      return {
+        href,
+        text,
+        content_type:String(response.headers.get("content-type") || ""),
+        chars:text.length
+      };
+    })()`;
+
+    const evaluated = await chrome.debugger.sendCommand(
+      target,
+      "Runtime.evaluate",
+      {expression, returnByValue:true, awaitPromise:true}
+    );
+    if (evaluated && evaluated.exceptionDetails) {
+      throw new Error("K07 attachment fetch failed in page context");
+    }
+    const value = evaluated && evaluated.result ? evaluated.result.value : null;
+    if (!value || typeof value.text !== "string") {
+      throw new Error("K07 attachment fetch returned no text");
+    }
+    if (value.text.length < 1 || value.text.length > 2000000) {
+      throw new Error("K07 command file size outside bounded range");
+    }
+    return {
+      ok:true,
+      stage:"COMMAND_FILE_FETCHED",
+      filename,
+      href,
+      content:value.text,
+      content_type:String(value.content_type || ""),
+      chars:Number(value.chars || value.text.length)
+    };
+  } finally {
+    if (attached) {
+      try { await chrome.debugger.detach(target); } catch (_) {}
+    }
+  }
+}
+
+// AGP_K07_RESULT_CONTINUATION_MESSAGE_991
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.type !== "AGP_K07_RESULT_CONTINUATION") return false;
+  const tabId = sender && sender.tab ? sender.tab.id : null;
+  const absolutePath = String(message.result_file || "").trim();
+  if (!Number.isInteger(tabId) || !absolutePath.startsWith("/")) {
+    sendResponse({ok:false, stage:"RESULT_CONTINUATION_REJECTED"});
+    return false;
+  }
+  agpSubmitFileLoopContinuation(tabId, absolutePath)
+    .then(sendResponse)
+    .catch(error => sendResponse({ok:false, stage:"RESULT_CONTINUATION_FAILED", error:String(error && error.message ? error.message : error)}));
+  return true;
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.type !== "AGP_K07_COMMAND_FILE_FETCH") return false;
+  agpFetchAssistantCommandFile(message, sender)
+    .then(sendResponse)
+    .catch(error => sendResponse({
+      ok:false,
+      stage:"COMMAND_FILE_FETCH_FAILED",
+      error:String(error && error.message ? error.message : error)
+    }));
+  return true;
+});
+
 // K07_FILE_LOOP_RESULT_ATTACHMENT_WIRING
 async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
   if (!globalThis.AGPResultFileAttachment) throw new Error("K07 result-file attachment seam unavailable");

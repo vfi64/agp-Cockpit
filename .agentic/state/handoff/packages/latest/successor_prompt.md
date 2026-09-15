@@ -36,9 +36,9 @@ Critical rule IDs:
 
 ## Current continuation state
 
-- branch: `docs/post-pr111-successor-package-refresh`
-- head_matches_origin_main: `True`
-- worktree_clean: `True`
+- branch: `feature/k07-decomplexified-file-loop`
+- head_matches_origin_main: `False`
+- worktree_clean: `False`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
 - document_registry_source: `.agentic/registries/documentation.yaml`
 - Current state is volatile continuation data, not a durable rule source.
@@ -98,6 +98,8 @@ agentic-kit doctor --root .
 - `.agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md`
 - `.agentic/state/handoff/START_NEW_CHAT_PROMPT.md`
 - `.agentic/state/handoff/CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md`
+- `docs/reference/AGENTIC_KIT_COMMANDS.md`
+- `docs/reference/agentic-kit-commands.json`
 
 ## Bootstrap-Akzeptanzbremse
 
@@ -151,15 +153,15 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
     "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
   ],
   "repo": {
-    "branch": "docs/post-pr111-successor-package-refresh",
+    "branch": "feature/k07-decomplexified-file-loop",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "3cb9f3427c48b7f9838d1f6df5b10c1884dc2232",
-    "head_matches_origin_main": true,
-    "head_short": "3cb9f342",
+    "head": "bab54bf87920e27111a45fb7dc23d492fa3a33bd",
+    "head_matches_origin_main": false,
+    "head_short": "bab54bf8",
     "local_path": "cd /path/to/",
-    "origin_main": "3cb9f3427c48b7f9838d1f6df5b10c1884dc2232",
-    "origin_main_short": "3cb9f342",
-    "worktree_clean": true
+    "origin_main": "a04b4885d86abf50ce1426c13aef060260806e1d",
+    "origin_main_short": "a04b4885",
+    "worktree_clean": false
   }
 }
 ```

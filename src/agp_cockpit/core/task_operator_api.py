@@ -1,6 +1,7 @@
 from pathlib import Path
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.file_loop_lifecycle import FileLoopLifecycle
+from agp_cockpit.core.operator_control import OperatorControlStore
 
 class TaskOperatorAPI:
     def __init__(self, repository_root: Path, *, task_id: str = "operator-task") -> None:
@@ -9,14 +10,22 @@ class TaskOperatorAPI:
         runtime_root.mkdir(parents=True, exist_ok=True)
         self.controller = DurableTaskController(task_id, runtime_root/"tasks.sqlite3")
         self.file_loop = FileLoopLifecycle()
+        # AGP_K07_UNIFIED_DESKTOP_CONTROL_1007
+        self.operator_control = OperatorControlStore(runtime_root)
     def file_loop_status(self) -> dict:
         return self.file_loop.snapshot()
     def file_loop_pause(self) -> dict:
-        return self.file_loop.pause()
+        snapshot = self.file_loop.pause()
+        self.operator_control.request('PAUSE')
+        return snapshot
     def file_loop_resume(self) -> dict:
-        return self.file_loop.resume()
+        snapshot = self.file_loop.resume()
+        self.operator_control.request('RESUME')
+        return snapshot
     def file_loop_stop(self) -> dict:
-        return self.file_loop.stop()
+        snapshot = self.file_loop.stop()
+        self.operator_control.request('STOP')
+        return snapshot
     def file_loop_reset(self) -> dict:
         return self.file_loop.reset()
     def status(self) -> dict:
