@@ -15,7 +15,8 @@ def test_client_sends_task_identity():
     assert "task_id:str=''" in CLIENT
     assert "'task_id':task_id" in CLIENT
 
-def test_simple_surface_propagates_contract_task_id():
+def test_simple_surface_prepares_and_propagates_task_identity():
+    assert "self.api.prepare_task_contract(self.contract)" in SIMPLE
     assert 'task_id=str(self.contract.get("task_id") or "")' in SIMPLE
 
 def test_bridge_persists_start_request_task_id():

@@ -259,6 +259,12 @@ class CockpitBridgeServer:
                             raise ValueError("command-file request must be an object")
                         filename = str(data.get("filename", "")).strip()
                         content = data.get("content")
+                        # K07 observational correlation only. This does not
+                        # create execution, transport, or task-state authority.
+                        import hashlib as _k07_cycle_hash
+                        cycle_id = "k07-" + _k07_cycle_hash.sha256(
+                            (filename + "\0" + (content if isinstance(content, str) else "")).encode("utf-8")
+                        ).hexdigest()[:20]
                         if (
                             not filename
                             or not filename.lower().endswith(".py")
@@ -269,10 +275,31 @@ class CockpitBridgeServer:
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
 
+                        from agp_cockpit.core.start_request import StartRequestStore
+                        current_start = StartRequestStore(runtime_root).current()
+                        current_task_id = str(current_start.get("task_id") or "").strip()
+                        if current_task_id:
+                            durable = DurableTaskController(current_task_id, self._durable_db_path)
+                            try:
+                                if durable.snapshot.get("suspension_reason") == "WAITING_FOR_HUMAN":
+                                    raise RuntimeError("WAITING_FOR_HUMAN")
+                            finally:
+                                durable.close()
+
                         incoming_root = runtime_root / "file-loop-incoming"
                         incoming_root.mkdir(parents=True, exist_ok=True)
                         incoming = incoming_root / filename
                         incoming.write_text(content, encoding="utf-8")
+                        diag.event(
+                            "K07_COMMAND_ACCEPTED",
+                            component="file-loop",
+                            details={
+                                "cycle_id": cycle_id,
+                                "filename": filename,
+                                "command_sha256": _k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
+                                "task_id": current_task_id or None,
+                            },
+                        )
 
                         state_file = runtime_root / "file-loop-state.json"
                         outcome = consume_command_file(
@@ -283,6 +310,19 @@ class CockpitBridgeServer:
                         )
                         if outcome.run is None or outcome.continuation_text is None:
                             raise RuntimeError("command-file execution produced no return bundle")
+                        result_path = Path(outcome.run.return_bundle)
+                        result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
+                        diag.event(
+                            "K07_RESULT_BUNDLE_CREATED",
+                            component="file-loop",
+                            details={
+                                "cycle_id": cycle_id,
+                                "task_id": current_task_id or None,
+                                "step": outcome.run.step,
+                                "result_file": str(result_path),
+                                "result_sha256": result_sha256,
+                            },
+                        )
                         self._json(
                             200,
                             {
@@ -290,6 +330,8 @@ class CockpitBridgeServer:
                                 "step": outcome.run.step,
                                 "result_file": str(outcome.run.return_bundle),
                                 "prompt": outcome.continuation_text,
+                                "cycle_id": cycle_id,
+                                "result_sha256": result_sha256,
                             },
                         )
                         return

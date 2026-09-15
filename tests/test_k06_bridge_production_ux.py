@@ -10,28 +10,17 @@ def _repo(path: Path) -> Path:
     (path / ".agentic").mkdir()
     return path
 
-def test_default_bridge_is_simple_operator_surface():
+def test_default_bridge_is_simple_operator_surface_without_diagnostics_toggle():
     source = (ROOT / "chrome_extension" / "content.js").read_text()
-    start = source.index('const actions = document.createElement("div")')
-    end = source.index("if (AGP_DIAGNOSTICS_OPEN)", start)
-    default = source[start:end]
-    for label in ("Aufgabe starten","Stoppen","Nächster Schritt","Aktualisieren","Diagnose"):
-        assert label in default
-    for historical in ("P5 Bind","P7 One Round","P8 Run","LIVE Probe","New DRY Mission"):
-        assert historical not in default
+    for label in ("Aufgabe starten","Stoppen","Nächster Schritt","Aktualisieren"):
+        assert label in source
+    assert "▸ Diagnose" not in source
+    assert "▾ Diagnose" not in source
 
-def test_diagnostics_collapsed_by_default_and_accessible():
+def test_historical_phase_controls_are_absent_from_normal_overlay():
     source = (ROOT / "chrome_extension" / "content.js").read_text()
-    assert "let AGP_DIAGNOSTICS_OPEN = false;" in source
-    assert 'setAttribute("aria-expanded"' in source
-    assert 'setAttribute("aria-controls", "agp-cockpit-diagnostics")' in source
-    assert 'setAttribute("aria-label", "Entwicklerdiagnose")' in source
-
-def test_historical_controls_remain_available_only_in_diagnostics():
-    source = (ROOT / "chrome_extension" / "content.js").read_text()
-    diag = source[source.index("if (AGP_DIAGNOSTICS_OPEN)"):]
     for label in ("Phase 5: Bind","Phase 7: One Round","Phase 8: Run","LIVE 3-Turn"):
-        assert label in diag
+        assert label not in source
 
 def test_structurally_valid_saved_root_remains_authoritative(tmp_path):
     saved = _repo(tmp_path / "saved-repository")

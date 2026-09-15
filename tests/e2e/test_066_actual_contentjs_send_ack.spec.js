@@ -72,7 +72,7 @@ async function installBridgeMocks(page) {
       baseUrl: "http://127.0.0.1:9876"
     };
     window.__agpEvents = [];
-    window.__agpMission = {schema_version:1, mission_id:"phase066-b1", title:"Fixture", mission_text:"Test status", state:"READY", current_step:0, turns:0, execution_mode:"DRY_RUN", run_mode:"SINGLE_STEP"};
+    window.__agpMission = {schema_version:1, mission_id:"phase066-b1", title:"Task · Fixture", mission_text:"Test status", state:"READY", current_step:0, turns:0, execution_mode:"LIVE", run_mode:"FULL_AUTO"};
 
     const storageGet = async (keys) => {
       const store = window.__agpStore;
@@ -139,6 +139,28 @@ async function installBridgeMocks(page) {
         });
       }
 
+      if (u.pathname === "/v1/task/start-request" && method === "GET") {
+        window.__agpStartRequestGeneration = Number(window.__agpStartRequestGeneration || 0) + 1;
+        if (!window.__agpMission) {
+          window.__agpMission = {
+            schema_version: 1,
+            mission_id: "phase066-b1",
+            repository_root: "/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit",
+            state: "READY",
+            title: "Task · Fixture",
+            mission_text: "Test status",
+            current_step: 0,
+            turns: 0,
+            execution_mode: "LIVE",
+            run_mode: "FULL_AUTO"
+          };
+        }
+        return jsonResponse({
+          generation: window.__agpStartRequestGeneration,
+          mission_id: "phase066-b1"
+        });
+      }
+
       window.__agpEvents.push("UNEXPECTED_FETCH:" + method + ":" + u.pathname);
       return jsonResponse({error:"unexpected endpoint", path:u.pathname}, 500);
     };
@@ -159,7 +181,6 @@ for (const stage of ["USER_TURN_COMMITTED", "USER_TURN_INDETERMINATE"]) {
         submit: async () => ({stage, request_id:"fixture-native", tab_id:1})
       };
     }, stage);
-    await page.getByRole("button", {name:"▶ Aufgabe starten", exact:true}).click();
     await expect.poll(() => page.evaluate(() => window.__agpEvents)).toContain("MISSION_BOOTSTRAP_SENT");
     const events = await page.evaluate(() => window.__agpEvents);
     expect(events).not.toContain("MISSION_BOOTSTRAP_SEND_FAILED");
