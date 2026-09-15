@@ -174,6 +174,34 @@
         "installed Kit workspace_init.py",
         "git ls-files .agentic/transfer"
       ]
+    },
+    {
+      "date": "2026-09-15",
+      "event_id": "GF-E-KIT1010-EXT-20260915",
+      "canonical_families": [
+        "KIT-GF-003",
+        "KIT-GF-005",
+        "KIT-GF-009",
+        "KIT-GF-011",
+        "KIT-GF-017"
+      ],
+      "classification": "agentic-kit-external-workspace-verification",
+      "kit_version": "1.0.10",
+      "repository_head": "625721a64cefbf1115eab4d763c0d55e192e0ff9",
+      "summary": "Post-upgrade external-workspace evidence: Kit 1.0.10 recognizes agp-Cockpit as external_manifest_workspace; doctor PASS; transfer state WAIT/NO_COMMAND with clean synchronized main; canonical work/transfer/handoff/PR-closeout orchestrators are discoverable. This strengthens external lifecycle evidence but does not by itself close first-cycle or released-package end-to-end acceptance criteria.",
+      "evidence": [
+        "Download/1099_kit1010_post_upgrade_greenfield_acceptance_preflight_20260915-132359-840774_return_bundle.json",
+        "PR #115 substantive Cockpit closeout",
+        "PR #116 successor-package refresh"
+      ],
+      "adjudication": {
+        "KIT-GF-003": "PARTIAL_VERIFICATION_ONLY",
+        "KIT-GF-005": "PARTIAL_VERIFICATION_ONLY",
+        "KIT-GF-009": "PARTIAL_VERIFICATION_ONLY",
+        "KIT-GF-011": "PARTIAL_VERIFICATION_ONLY",
+        "KIT-GF-017": "PARTIAL_VERIFICATION_ONLY"
+      },
+      "remaining_requirement": "Use the canonical high-level Kit lifecycle on a qualifying external/released-package cycle and preserve end-to-end evidence before changing these families to VERIFIED/FIXED."
     }
   ],
   "families": [
