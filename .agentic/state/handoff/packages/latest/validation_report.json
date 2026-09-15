@@ -1,7 +1,7 @@
 {
   "findings": [],
-  "generated_head": "fc8756d614816145df56ec5dedec4ff48819f4c4",
-  "generated_head_short": "fc8756d6",
+  "generated_head": "00ba8a08960d4d3b512f3963e817fc24861fcc5d",
+  "generated_head_short": "00ba8a08",
   "kind": "successor_handoff_validation_report",
   "schema_version": 1,
   "status": "PASS"
