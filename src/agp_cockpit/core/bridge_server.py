@@ -19,6 +19,7 @@ from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.work_order import parse_work_order_json
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_contract import LocalTaskContract
+from agp_cockpit.core.file_loop_orchestrator import consume_command_file
 
 
 @dataclass(frozen=True)
@@ -172,6 +173,11 @@ class CockpitBridgeServer:
                     self._json(200, {"authority":"DurableTaskController","session_id":session_id,"task":durable.snapshot,"control":durable.control_snapshot})
                     return
 
+                if path == "/v1/file-loop/control":
+                    from agp_cockpit.core.operator_control import OperatorControlStore
+                    self._json(200, OperatorControlStore(runtime_root).current())
+                    return
+
                 if path == "/v1/task/start-request":
                     from agp_cockpit.core.start_request import StartRequestStore
                     self._json(200, StartRequestStore(runtime_root).current())
@@ -242,6 +248,52 @@ class CockpitBridgeServer:
                     return
 
                 try:
+                    # AGP_K07_COMMAND_FILE_HTTP_989
+                    if path == "/v1/file-loop/command":
+                        length = int(self.headers.get("Content-Length", "0"))
+                        if length <= 0 or length > 2_100_000:
+                            raise ValueError("invalid Content-Length")
+                        raw = self.rfile.read(length).decode("utf-8")
+                        data = json.loads(raw)
+                        if not isinstance(data, dict):
+                            raise ValueError("command-file request must be an object")
+                        filename = str(data.get("filename", "")).strip()
+                        content = data.get("content")
+                        if (
+                            not filename
+                            or not filename.lower().endswith(".py")
+                            or "/" in filename
+                            or "\\" in filename
+                        ):
+                            raise ValueError("exactly one safe .py filename required")
+                        if not isinstance(content, str) or not content or len(content) > 2_000_000:
+                            raise ValueError("bounded Python command content required")
+
+                        incoming_root = runtime_root / "file-loop-incoming"
+                        incoming_root.mkdir(parents=True, exist_ok=True)
+                        incoming = incoming_root / filename
+                        incoming.write_text(content, encoding="utf-8")
+
+                        state_file = runtime_root / "file-loop-state.json"
+                        outcome = consume_command_file(
+                            incoming,
+                            repo_root,
+                            state_file,
+                            stem=Path(filename).stem,
+                        )
+                        if outcome.run is None or outcome.continuation_text is None:
+                            raise RuntimeError("command-file execution produced no return bundle")
+                        self._json(
+                            200,
+                            {
+                                "state": outcome.state.value,
+                                "step": outcome.run.step,
+                                "result_file": str(outcome.run.return_bundle),
+                                "prompt": outcome.continuation_text,
+                            },
+                        )
+                        return
+
                     if path == "/v1/protocol/action":
                         length = int(self.headers.get("Content-Length", "0"))
                         if length <= 0 or length > 2_000_000:
@@ -613,6 +665,12 @@ class CockpitBridgeServer:
                             },
                         )
                         self._json(200, client_response)
+                        return
+
+                    if path == "/v1/file-loop/control":
+                        from agp_cockpit.core.operator_control import OperatorControlStore
+                        action = str(data.get("action", "")).strip()
+                        self._json(200, OperatorControlStore(runtime_root).request(action))
                         return
 
                     if path == "/v1/task/start-request":

@@ -24,11 +24,14 @@ def test_completion_is_not_committed_before_json_gate():
 def test_turn_counting_happens_after_successful_submit():
     s = source()
     fn = s[s.index("async function processCompletedAssistant(text, runGeneration)"):s.index("async function tick()")]
-    submit = fn.index("const result = await submitAssistant(text);")
-    increment = fn.index("STATE.turns += 1;")
-    branch = fn.index('if (result.action !== "continue" || !result.prompt)')
-    assert submit < increment < branch
-    assert fn.count("STATE.turns += 1;") == 1
+    command_submit = fn.index("await submitAssistantCommandFile();")
+    command_increment = fn.index("STATE.turns += 1;", command_submit)
+    legacy_submit = fn.index("const result = await submitAssistant(text);")
+    legacy_increment = fn.index("STATE.turns += 1;", legacy_submit)
+    legacy_branch = fn.index('if (result.action !== "continue" || !result.prompt)', legacy_submit)
+    assert command_submit < command_increment < legacy_submit
+    assert legacy_submit < legacy_increment < legacy_branch
+    assert fn.count("STATE.turns += 1;") == 2
 
 def test_old_prompt_based_turn_increment_removed():
     s = source()

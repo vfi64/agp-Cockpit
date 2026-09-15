@@ -1,0 +1,64 @@
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from urllib.request import Request, urlopen
+
+from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
+
+ROOT = Path(__file__).resolve().parents[1]
+
+def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
+    manifest = json.loads((ROOT / "chrome_extension/manifest.json").read_text())
+    assert "debugger" in manifest["permissions"]
+    assert "downloads" not in manifest["permissions"]
+    background = (ROOT / "chrome_extension/background.js").read_text()
+    assert "AGP_K07_COMMAND_FILE_FETCH_989" in background
+    assert '"Runtime.evaluate"' in background
+    assert 'fetch(href, {credentials:"include"})' in background
+    assert "chrome.downloads" not in background
+    content = (ROOT / "chrome_extension/content.js").read_text()
+    assert "AGP_K07_COMMAND_FILE_INGRESS_989" in content
+    assert "assistantPythonAttachmentCandidates" in content
+    assert "expected exactly one assistant .py attachment" in content
+    assert '"/v1/file-loop/command"' in content
+
+def test_command_file_http_executes_only_through_run_next(tmp_path):
+    download = tmp_path / "Download"
+    download.mkdir()
+    (download / "run_next.py").write_text(
+        "import sys\n"
+        "from pathlib import Path\n"
+        "n=int(sys.argv[1]);d=Path(__file__).parent\n"
+        "(d/f'{n:03d}_ok_return_bundle.json').write_text('{}')\n",
+        encoding="utf-8",
+    )
+    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    info = runtime.start()
+    try:
+        payload = {
+            "filename": "next_command.py",
+            "content": "print('safe fixture')\n",
+            "href": "https://chatgpt.com/backend-api/files/x",
+            "message_id": "m1",
+        }
+        req = Request(
+            f"http://127.0.0.1:{info.port}/v1/file-loop/command",
+            method="POST",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "X-AGP-Token": info.token,
+                "Content-Type": "application/json",
+            },
+        )
+        with urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        assert data["state"] == "COMMAND_FILE"
+        assert data["result_file"].endswith("_return_bundle.json")
+        assert Path(data["result_file"]).exists()
+        assert "Return exactly one Python command file" in data["prompt"]
+        commands = list(download.glob("*_next_command.py"))
+        assert len(commands) == 1
+    finally:
+        runtime.stop()
