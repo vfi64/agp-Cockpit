@@ -489,5 +489,5 @@ async function agpSubmitFileLoopContinuation(tabId, absolutePath) {
   const continuation = "Attached is the result file for the command you gave me. Evaluate it and continue the current task. If more local work is required, return the next command file; otherwise finish or request human input.";
   if (typeof sendPromptToChatGPT !== "function") throw new Error("ChatGPT prompt transport unavailable");
   await sendPromptToChatGPT(tabId, continuation);
-  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath};
+  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath, cycle_id:message.cycle_id || null, result_sha256:message.result_sha256 || null, trace_events:[{event:"BROWSER_RESULT_ATTACHED",cycle_id:message.cycle_id || null,result_sha256:message.result_sha256 || null},{event:"CONTINUATION_SENT",cycle_id:message.cycle_id || null,result_sha256:message.result_sha256 || null}]};
 }

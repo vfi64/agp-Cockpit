@@ -299,7 +299,9 @@
     // AGP_K07_RESULT_CONTINUATION_CALL_991
     const continuation = await chrome.runtime.sendMessage({
       type:"AGP_K07_RESULT_CONTINUATION",
-      result_file:result.result_file
+      result_file:result.result_file,
+      cycle_id:result.cycle_id || null,
+      result_sha256:result.result_sha256 || null
     });
     if (!continuation || continuation.ok !== true || continuation.stage !== "RESULT_ATTACHED_AND_CONTINUATION_SENT") {
       throw new Error(continuation && continuation.error ? String(continuation.error) : "result continuation transport failed");

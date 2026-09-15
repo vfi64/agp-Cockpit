@@ -14,3 +14,12 @@ def test_existing_execution_and_task_authorities_remain():
     assert 'outcome = consume_command_file(' in BRIDGE
     assert 'DurableTaskController' in BRIDGE
     assert 'command-file execution produced no return bundle' in BRIDGE
+
+def test_browser_result_transport_preserves_existing_cycle_correlation():
+    content = Path('chrome_extension/content.js').read_text()
+    background = Path('chrome_extension/background.js').read_text()
+    assert 'cycle_id:result.cycle_id || null' in content
+    assert 'result_sha256:result.result_sha256 || null' in content
+    assert 'event:"BROWSER_RESULT_ATTACHED"' in background
+    assert 'event:"CONTINUATION_SENT"' in background
+    assert 'cycle_id:message.cycle_id || null' in background
