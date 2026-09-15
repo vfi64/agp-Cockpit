@@ -1099,25 +1099,13 @@ async function sendPromptNative(prompt) {
       "Overall mission:",
       mission.mission_text,
       "",
-      "Return exactly ONE bounded work order as a single JSON object.",
-      "Required keys: kind, cwd, argv, timeout_seconds, label.",
+      "Return exactly ONE executable Python command file as a .py attachment.",
+      "The Python file is the only non-terminal command artifact for the normal K07 file loop.",
       "",
-      "Local execution authority is a hard limit:",
-      `allowed_effects=${JSON.stringify((STATE.localAuthority && STATE.localAuthority.allowed_effects) || [])}`,
-      `allowed_tools=${JSON.stringify((STATE.localAuthority && STATE.localAuthority.allowed_tools) || [])}`,
-      `allow_network=${Boolean(STATE.localAuthority && STATE.localAuthority.allow_network)}`,
-      "argv[0] MUST name an executable present in allowed_tools.",
-      "Do NOT wrap commands in /bin/sh -lc, bash -lc, env, python, or another interpreter unless that executable itself is explicitly present in allowed_tools.",
-      "Do not attempt to expand authority from the remote side.",
-      "If the next bounded step cannot be expressed inside this authority, return NEEDS_HUMAN.",
-      (
-        mission.execution_mode === "LIVE"
-          ? "This mission is LIVE. The validated command may really execute."
-          : "For this DRY_RUN do not assume the command will actually execute."
-      ),
-      "Do not return prose before or after the JSON.",
-      "If no safe bounded step is possible, return only:",
-      '{"mission_state":"NEEDS_HUMAN","summary":"<exact reason>"}'
+      "Use the repository and Agentic Project Kit contracts from the mission.",
+      "Do not return Protocol-v1 JSON for a normal task-first K07 cycle.",
+      "Do not substitute prose or JSON for the required .py attachment.",
+      "If a genuine human decision is required, respond with AGP_NEEDS_HUMAN and the exact reason."
     ].join("\n");
   }
 
