@@ -86,3 +86,51 @@ The desktop-start regression in `tests/test_app_bootstrap.py` also exercises
 Chrome navigation failures and timeouts. Optional navigation must not terminate
 the available desktop/runtime; readiness still requires a fresh extension
 handshake, and ambiguous tab selection must not become a successful reload.
+
+## 2026-09-15 — K07 communication-loop rebaseline
+
+This section supersedes older K07 planning statements where they conflict with the merged implementation through PR #115/#116. Historical remediation evidence remains historical and is not rewritten.
+
+### Current implemented direction
+
+The primary remote-LLM development path is the decomplexified artifact/file loop:
+
+`human -> Cockpit -> remote LLM -> one Python command artifact -> browser/download -> Cockpit -> run_next.py / Agentic Project Kit -> one return bundle -> browser file attachment -> same remote-LLM conversation -> next Python artifact | AGP_DONE | AGP_NEEDS_HUMAN`
+
+The remote LLM is not required to return a Protocol-v1 JSON work frame for this primary path. The browser/bridge transports opaque artifacts and minimal continuation control; it must not reproduce Git, GitHub, Agentic Project Kit, repository lifecycle, gate, PR, release, or handoff semantics.
+
+Protocol-v1, DIRECT_EXECUTION and FILE_TRANSFER remain compatibility/transport infrastructure only where still required by existing implementation and tests. They are not the target semantic interface for the simplified remote-LLM file loop. Do not create a parallel protocol.
+
+### Responsibility boundary
+
+- Remote LLM: reasoning, diagnosis, and creation of the next executable Python work artifact; terminal outcome is `AGP_DONE` or `AGP_NEEDS_HUMAN`.
+- Cockpit: deterministic orchestration, correlation, persistence, bounded execution and recovery.
+- Browser/bridge: minimal deterministic transport of the task, one Python artifact, one return bundle, and the fixed continuation trigger.
+- Agentic Project Kit: repository/Git/GitHub/workflow/lifecycle semantics.
+
+### Next acceptance objective
+
+Before further semantic expansion, prove the simplified loop with a real same-conversation end-to-end cycle. Instrument the existing seams rather than parsing browser/network traffic semantically. The cycle trace should correlate, at minimum:
+
+1. `LLM_COMMAND_CREATED`
+2. `BROWSER_COMMAND_DOWNLOADED`
+3. `COCKPIT_COMMAND_ACCEPTED`
+4. `LOCAL_EXECUTION_STARTED`
+5. `LOCAL_EXECUTION_FINISHED`
+6. `RESULT_BUNDLE_CREATED`
+7. `BROWSER_RESULT_ATTACHED`
+8. `CONTINUATION_SENT`
+9. terminal/next outcome: `LLM_NEXT_COMMAND`, `AGP_DONE`, or `AGP_NEEDS_HUMAN`
+
+Use one stable correlation identity across the cycle where current contracts permit it, plus artifact filename, SHA-256 and timestamp. Reuse existing task/cycle identifiers and persistence structures; do not introduce a second ledger if an existing authority can carry the evidence.
+
+Acceptance requires fail-loud, resumable behavior at browser boundaries and protection against duplicate local execution. Exactly-once or demonstrably idempotent handoff behavior is more important than hiding browser failures.
+
+### Immediate work order
+
+1. Inventory which transition events above are already emitted/persisted by the merged PR #115 implementation.
+2. Add only missing correlation/trace seams in one coherent product slice.
+3. Run focused Python and Playwright tests plus repository/Kit gates.
+4. Perform a real browser/remote-LLM E2E cycle in the same conversation.
+5. Preserve the resulting trace as acceptance evidence.
+6. Only after that evidence adjudicate whether legacy Protocol-v1 complexity can be further isolated or removed.
