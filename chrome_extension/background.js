@@ -85,6 +85,11 @@ chrome.alarms.onAlarm.addListener(async alarm => {
   await chrome.storage.local.remove(PENDING);
 });
 
+
+async function agpK07NativeTrace1165(payload) {
+  try { await chrome.runtime.sendMessage({type:"AGP_K07_NATIVE_TRACE_1165", payload}); } catch (_) {}
+}
+
 // AGP_BROWSER_NATIVE_TRANSPORT_V1
 async function agpNativeTransportV1(message, sender) {
   const requestId = String(message.request_id || "");
@@ -265,6 +270,7 @@ async function agpNativeTransportV1(message, sender) {
       };
     }
 
+    void agpK07NativeTrace1165({event:"PRIMARY_ENTER_BEFORE",request_id:requestId,send_target:sendTarget,inserted:inserted});
     await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
       type:"keyDown",
       key:"Enter",
@@ -312,6 +318,7 @@ async function agpNativeTransportV1(message, sender) {
         lastObserved.composer_text === normalize(text) &&
         !lastObserved.generation_active;
       if (clearlyUnsent) {
+        void agpK07NativeTrace1165({event:"RETRY_ENTER_BEFORE",request_id:requestId,last_observed:lastObserved});
         await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
           type:"keyDown", key:"Enter", code:"Enter", text:"\r", unmodifiedText:"\r",
           windowsVirtualKeyCode:13, nativeVirtualKeyCode:13
@@ -338,6 +345,7 @@ async function agpNativeTransportV1(message, sender) {
             before,inserted,commit:commitEvidence,commit_retry:"trusted_enter_once"};
         }
       }
+      void agpK07NativeTrace1165({event:"COMMIT_FAILURE",request_id:requestId,clearly_unsent:Boolean(clearlyUnsent),before_messages:beforeMessages,send_target:sendTarget,last_observed:lastObserved});
       return {
         ok:false,
         request_id:requestId,

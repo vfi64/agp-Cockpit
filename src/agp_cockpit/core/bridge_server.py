@@ -180,7 +180,10 @@ class CockpitBridgeServer:
 
                 if path == "/v1/task/start-request":
                     from agp_cockpit.core.start_request import StartRequestStore
-                    self._json(200, StartRequestStore(runtime_root).current())
+                    request = StartRequestStore(runtime_root).current()
+                    state = engine.runtime.state
+                    diag.event("TASK_START_REQUEST_POLLED", mission_id=(None if state is None else state.mission_id), state_after=("IDLE" if state is None else state.state), component="http", details={"generation": request.get("generation"), "request_mission_id": request.get("mission_id"), "request_task_id": request.get("task_id")})
+                    self._json(200, request)
                     return
 
                 if path == "/v1/status":
