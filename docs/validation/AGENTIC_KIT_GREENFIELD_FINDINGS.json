@@ -202,6 +202,20 @@
         "KIT-GF-017": "PARTIAL_VERIFICATION_ONLY"
       },
       "remaining_requirement": "Use the canonical high-level Kit lifecycle on a qualifying external/released-package cycle and preserve end-to-end evidence before changing these families to VERIFIED/FIXED."
+    },
+    {
+      "date": "2026-09-16",
+      "event_id": "GF-E025",
+      "historical_id": "Steps 1277-1281",
+      "canonical_family": "KIT-GF-021",
+      "summary": "project-local Kit installation existed but CLI discovery initially treated Kit as missing"
+    },
+    {
+      "date": "2026-09-16",
+      "event_id": "GF-E026",
+      "historical_id": "Steps 1277-1281",
+      "canonical_family": "KIT-GF-022",
+      "summary": "packaged 1.0.13 command-reference refresh failed on development-checkout-only generator path"
     }
   ],
   "families": [
@@ -623,6 +637,43 @@
         "601R6_KIT_ADOPTION_DEFECT_CONFIRMED"
       ],
       "required_action": "Provide deterministic Kit-owned bootstrap/adoption or explicit gate applicability; never fabricate registration semantics or hand-create inventory."
+    },
+    {
+      "id": "KIT-GF-021",
+      "title": "External-workspace Kit CLI discovery can misdiagnose an intact project-local installation as missing",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace-cli-resolution",
+      "expected": "Resolve the workspace-owned Kit executable/environment deterministically before concluding it is absent or choosing global installation.",
+      "observed": "Step 1277 proved agentic-project-kit 1.0.10 already installed in agp-Cockpit/.venv and upgraded that exact environment to 1.0.13 successfully.",
+      "impact": "Agents can misdiagnose installation loss or choose the wrong installation scope.",
+      "workaround": "Resolve repository-local virtual environment before global PATH assumptions.",
+      "repair": "Provide deterministic workspace-aware executable/environment resolution in install/upgrade/doctor/bootstrap guidance.",
+      "regression": "Project-local Kit without global PATH entry is detected and upgraded in place.",
+      "evidence": [
+        "Step 1277 pre-upgrade 1.0.10 in agp-Cockpit/.venv",
+        "Step 1277 successful in-place upgrade to 1.0.13",
+        "Step 1277 command-for/check/doctor operational"
+      ]
+    },
+    {
+      "id": "KIT-GF-022",
+      "title": "command-reference-refresh is not closed for packaged Kit use in an external workspace",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit-external-workspace-command-authority",
+      "expected": "When command-reference-check detects drift, Kit-owned refresh works from packaged authority or returns one exact executable supported remediation.",
+      "observed": "Kit 1.0.13 command-reference-refresh invokes ./.venv/bin/python scripts/generate_agentic_kit_command_reference.py, but that development-checkout script is absent in agp-Cockpit; installed source hard-codes the path.",
+      "impact": "Kit detects command-authority drift but cannot execute its prescribed repair in the external workspace.",
+      "workaround": "Do not copy a development generator or hand-generate Kit-owned state; preserve the failure.",
+      "repair": "Make refresh package-backed and workspace-aware without assuming Kit development-checkout layout.",
+      "regression": "Released wheel plus stale external-workspace reference: check detects drift, refresh succeeds without source checkout, subsequent check/audit pass.",
+      "evidence": [
+        "Step 1278 JSON_DRIFT",
+        "Step 1279 command-reference-check FAIL",
+        "Step 1280 refresh FAIL on missing generator",
+        "Step 1281 installed 1.0.13 source hard-codes checkout-local generator path"
+      ]
     }
   ],
   "explicit_exclusions": [
