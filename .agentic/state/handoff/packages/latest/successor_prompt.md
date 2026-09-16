@@ -155,9 +155,9 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
   "repo": {
     "branch": "fix/k07-task-first-file-loop-bootstrap",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "094b8d94135c492bf6e1ba43b4e0f5759f4b3fba",
+    "head": "b9c262e424f263593b9f25d7d72e9bb0f550f690",
     "head_matches_origin_main": false,
-    "head_short": "094b8d94",
+    "head_short": "b9c262e4",
     "local_path": "cd /path/to/",
     "origin_main": "98005384d1431d596d01c19f55c244bb78de9b2e",
     "origin_main_short": "98005384",
