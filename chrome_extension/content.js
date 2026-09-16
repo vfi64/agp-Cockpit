@@ -26,9 +26,31 @@
     candidateText: "",
     candidateStablePolls: 0,
     assistantBaselineCount: 0,
-    assistantBaselineMessageId: ""
+    assistantBaselineMessageId: "",
+    observedAssistantMessageId: "",
+    assistantBaselineText: "",
+    k07DebugTraceEnabled: false
   };
 
+  const AGP_K07_TRACE_STORAGE_KEY = "agpK07DebugTraceEnabled";
+  chrome.storage.local.get([AGP_K07_TRACE_STORAGE_KEY]).then(saved => {
+    if (typeof saved[AGP_K07_TRACE_STORAGE_KEY] === "boolean") {
+      STATE.k07DebugTraceEnabled = saved[AGP_K07_TRACE_STORAGE_KEY];
+      render();
+    }
+  }).catch(() => {});
+
+  function setK07DebugTraceEnabled(enabled, via="runtime") {
+    STATE.k07DebugTraceEnabled = Boolean(enabled);
+    chrome.storage.local.set({[AGP_K07_TRACE_STORAGE_KEY]:STATE.k07DebugTraceEnabled}).catch(() => {});
+    void clientEvent("K07_DEBUG_TRACE_CONTROL",{enabled:STATE.k07DebugTraceEnabled, via});
+    return STATE.k07DebugTraceEnabled;
+  }
+
+  globalThis.__AGP_K07_TRACE__ = {
+    enable:() => setK07DebugTraceEnabled(true, "console"),
+    disable:() => setK07DebugTraceEnabled(false, "console")
+  };
   let AGP_DIAGNOSTICS_OPEN = false;
   let AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
   let AGP_TASK_FIRST_AUTOSTART_GENERATION = 0;
@@ -176,16 +198,32 @@
     return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
   }
 
-  function lastAssistantMessageId() {
+  // AGP_K07_IDENTITY_AWARE_ASSISTANT_SELECTION_1212
+  function selectedAssistantMessageNode() {
     const nodes = assistantMessageNodes();
-    if (!nodes.length) return "";
-    return String(nodes[nodes.length - 1].getAttribute("data-message-id") || "");
+    if (!nodes.length) return null;
+    const observedId = String(STATE.observedAssistantMessageId || "");
+    if (observedId) {
+      const observed = nodes.find(node => String(node.getAttribute("data-message-id") || "") === observedId);
+      if (observed) return observed;
+    }
+    const baselineId = String(STATE.assistantBaselineMessageId || "");
+    const nonBaseline = nodes.filter(node => {
+      const id = String(node.getAttribute("data-message-id") || "");
+      return id && id !== baselineId && id !== "request-placeholder";
+    });
+    if (nonBaseline.length === 1) return nonBaseline[0];
+    return nodes[nodes.length - 1];
+  }
+
+  function lastAssistantMessageId() {
+    const assistant = selectedAssistantMessageNode();
+    return assistant ? String(assistant.getAttribute("data-message-id") || "") : "";
   }
 
   function lastAssistantText() {
-    const nodes = assistantMessageNodes();
-    if (!nodes.length) return "";
-    const assistant = nodes[nodes.length - 1];
+    const assistant = selectedAssistantMessageNode();
+    if (!assistant) return "";
     const codeCandidates = Array.from(assistant.querySelectorAll("pre code, code"))
       .map(node => pureJsonObjectCandidate(node.textContent)).filter(Boolean);
     const uniqueCodeCandidates = [...new Set(codeCandidates)];
@@ -456,6 +494,23 @@
 
     } catch (_) {}
   }
+
+  function k07DebugTrace(event, details={}) {
+    if (!STATE.k07DebugTraceEnabled) return;
+    void clientEvent("K07_DEBUG_TRACE", {
+      trace_event:String(event),
+      cycle:Number(STATE.turns || 0),
+      run_generation:Number(STATE.runGeneration || 0),
+      ...details
+    });
+  }
+
+
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message && message.type === "AGP_K07_NATIVE_TRACE_1165") {
+      void clientEvent("K07_NATIVE_TRACE", message.payload || {});
+    }
+  });
 
   async function clientEvent(event, details={}) {
     try {
@@ -1059,7 +1114,9 @@ async function sendPromptNative(prompt) {
         if (depth === 0 && start >= 0) {
           const candidateText = raw.slice(start, i + 1).trim();
           try {
+            k07DebugTrace("JSON_PARSE_ATTEMPT",{candidate_chars:String(candidateText||"").length});
             const value = JSON.parse(candidateText);
+            k07DebugTrace("JSON_PARSE_SUCCESS");
             if (isWorkOrder(value)) {
               candidates.push({text:candidateText, value});
             }
@@ -1103,6 +1160,19 @@ async function sendPromptNative(prompt) {
       "The Python file is the only non-terminal command artifact for the normal K07 file loop.",
       "",
       "Use the repository and Agentic Project Kit contracts from the mission.",
+      ...(STATE.mission && STATE.mission.execution_mode === "LIVE" ? [
+        "This mission is LIVE."
+      ] : []),
+      "",
+      "Local execution authority is a hard limit:",
+      JSON.stringify(STATE.localAuthority || {}),
+      "The proposed effect MUST be present in allowed_effects.",
+      "argv[0] MUST name an executable present in allowed_tools.",
+      "cwd MUST remain within the authorized repository_root.",
+      "Network-capable tools require allow_network=true.",
+      "Do NOT wrap commands in /bin/sh -lc or another shell to bypass allowed_tools.",
+      "Do not attempt to expand authority from the remote side.",
+      "",
       "Do not return Protocol-v1 JSON for a normal task-first K07 cycle.",
       "Do not substitute prose or JSON for the required .py attachment.",
       "If a genuine human decision is required, respond with AGP_NEEDS_HUMAN and the exact reason."
@@ -1111,13 +1181,15 @@ async function sendPromptNative(prompt) {
 
   async function maybeAutoStartTaskFirstMission() {
     const mission = STATE.mission;
-    if (!mission || STATE.running) return;
-    if (mission.execution_mode !== "LIVE" || mission.run_mode !== "FULL_AUTO") return;
-    if (!String(mission.title || "").startsWith("Task · ")) return;
-    if (!mission.mission_id) return;
-    if (AGP_TASK_FIRST_AUTOSTART_MISSION_ID === mission.mission_id) return;
+    if (!mission || STATE.running) return false;
+    if (mission.execution_mode !== "LIVE" || mission.run_mode !== "FULL_AUTO") return false;
+    // Task-first desktop missions currently use both "Task · <id>" and "E2E · <id>" titles.
+    // The explicit durable start-request + mission identity is the authority; do not reject E2E acceptance missions by presentation title.
+    if (!/^(Task|E2E) · /.test(String(mission.title || ""))) return false;
+    if (!mission.mission_id) return false;
+    if (AGP_TASK_FIRST_AUTOSTART_MISSION_ID === mission.mission_id) return false;
     const terminal = new Set(["DONE","COMPLETED","FAILED","ERROR","STOPPED","CANCELLED"]);
-    if (terminal.has(String(mission.state || ""))) return;
+    if (terminal.has(String(mission.state || ""))) return false;
 
     AGP_TASK_FIRST_AUTOSTART_MISSION_ID = mission.mission_id;
     STATE.note = "Task übernommen · Automatik startet";
@@ -1125,11 +1197,13 @@ async function sendPromptNative(prompt) {
     render();
     try {
       await startAuto();
+      return true;
     } catch (err) {
       AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
       STATE.lastEvent = "TASK_FIRST_AUTOSTART_FAILED";
       STATE.note = String(err);
       render();
+      return false;
     }
   }
 
@@ -1173,18 +1247,44 @@ async function sendPromptNative(prompt) {
       const generation = Number(req.generation || 0);
       const missionId = String(req.mission_id || "");
       if (!AGP_TASK_FIRST_START_REQUEST_PRIMED) {
-        AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;
         AGP_TASK_FIRST_START_REQUEST_PRIMED = true;
+        // A pending explicit desktop start request is durable authority, not
+        // historical telemetry. Do not discard it merely because this
+        // content script was reloaded after the request was written.
+        if (!generation) {
+          AGP_TASK_FIRST_AUTOSTART_GENERATION = 0;
+          return;
+        }
+      }
+      if (!generation || generation <= AGP_TASK_FIRST_AUTOSTART_GENERATION) {
+        await clientEvent("TASK_START_REQUEST_SUPPRESSED", {
+          generation,
+          last_generation:AGP_TASK_FIRST_AUTOSTART_GENERATION,
+          reason:"generation"
+        });
         return;
       }
-      if (!generation || generation <= AGP_TASK_FIRST_AUTOSTART_GENERATION) return;
       const status = await refreshStatus();
-      if (!status.mission || status.mission.mission_id !== missionId) return;
-      AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;
+      if (!status.mission || status.mission.mission_id !== missionId) {
+        await clientEvent("TASK_START_REQUEST_SUPPRESSED", {
+          generation,
+          request_mission_id:missionId,
+          status_mission_id:status.mission ? status.mission.mission_id : "",
+          reason:"mission_identity"
+        });
+        return;
+      }
+      await clientEvent("TASK_START_REQUEST_ACCEPTED", {
+        generation,
+        request_mission_id:missionId
+      });
       // An explicit desktop start request is authoritative for this generation.
       // Clear the legacy per-mission latch before entering the shared start path.
       AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
-      await maybeAutoStartTaskFirstMission();
+      const started = await maybeAutoStartTaskFirstMission();
+      if (started) {
+        AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;
+      }
     } catch (_err) {}
   }
 
@@ -1286,7 +1386,11 @@ async function sendPromptNative(prompt) {
 
     STATE.assistantBaselineCount = assistantMessageNodes().length;
     STATE.assistantBaselineMessageId = lastAssistantMessageId();
+    STATE.observedAssistantMessageId = "";
+    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    k07DebugTrace("PROMPT_SEND_REQUESTED",{chars:String(result.prompt||"").length});
     await sendPrompt(result.prompt);
+    k07DebugTrace("PROMPT_SENT");
 
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
@@ -1326,15 +1430,25 @@ async function sendPromptNative(prompt) {
       return "";
     }
 
+    const newestText = lastAssistantText();
+    k07DebugTrace("ASSISTANT_OBSERVED",{chars:String(newestText||"").length,message_id:String(newestMessageId||""),node_count:nodes.length});
+    const normalizedNewestText = normalizeObservedMessageText(newestText);
+
     if (
       !STATE.assistantBaselineMessageId &&
       !newestMessageId &&
-      nodes.length <= STATE.assistantBaselineCount
+      nodes.length <= STATE.assistantBaselineCount &&
+      normalizedNewestText === STATE.assistantBaselineText
     ) {
       return "";
     }
 
-    return lastAssistantText();
+    // ChatGPT can recycle the same assistant DOM node without exposing a
+    // data-message-id. A changed visible assistant payload is then the only
+    // reliable generation edge; do not suppress it merely because node count
+    // stayed constant.
+    STATE.observedAssistantMessageId = newestMessageId;
+    return newestText;
   }
 
   async function tick() {
@@ -1444,8 +1558,11 @@ async function sendPromptNative(prompt) {
           STATE.assistantCandidateText = "";
           STATE.assistantCandidateStablePolls = 0;
           STATE.assistantStructuredGracePolls = 0;
+          k07DebugTrace("FORMAT_REPAIR_STARTED",{candidate_chars:String(completed||"").length});
 
           STATE.assistantBaselineMessageId = lastAssistantMessageId();
+    STATE.observedAssistantMessageId = "";
+    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
           resetCandidate();
           render();
           const repairGeneration = STATE.runGeneration;
@@ -1456,6 +1573,7 @@ async function sendPromptNative(prompt) {
           STATE.waitingForAssistant = true;
           return;
         }
+          k07DebugTrace("FORMAT_REPAIR_EXHAUSTED",{candidate_chars:String(completed||"").length});
         throw new Error("assistant response stayed stable but is not a complete pure JSON object after automatic format repair");
       }
 
@@ -1878,6 +1996,8 @@ async function sendPromptNative(prompt) {
     STATE.lastAssistantHash = await digest(lastAssistantText());
     STATE.assistantBaselineCount = assistantMessageNodes().length;
     STATE.assistantBaselineMessageId = lastAssistantMessageId();
+    STATE.observedAssistantMessageId = "";
+    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
     resetCandidate();
     await sendPrompt(pending);
 
@@ -1945,6 +2065,8 @@ async function sendPromptNative(prompt) {
     }
     STATE.assistantBaselineCount = assistantMessageNodes().length;
     STATE.assistantBaselineMessageId = lastAssistantMessageId();
+    STATE.observedAssistantMessageId = "";
+    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
     resetCandidate();
 
     const bootstrap = missionBootstrapPrompt(mission);
@@ -2289,7 +2411,29 @@ async function sendPromptNative(prompt) {
 
     const debug = document.createElement("div");
     debug.className = "agp-debug";
-    debug.textContent = `Last event: ${STATE.lastEvent}`;
+    /* AGP_K07_OPERATOR_TRACE_RUNTIME_CONTROL_1137 */
+    debug.textContent = "";
+    const traceRow = document.createElement("div");
+    traceRow.className = "agp-k07-trace-control";
+    const traceState = document.createElement("span");
+    traceState.textContent = `Last event: ${STATE.lastEvent} | K07 trace: ${STATE.k07DebugTraceEnabled ? "AN" : "AUS"}`;
+    traceRow.appendChild(traceState);
+    const traceButton = document.createElement("button");
+    traceButton.type = "button";
+    traceButton.textContent = STATE.k07DebugTraceEnabled ? "Trace aus" : "Trace an";
+    traceButton.title = "Schaltet den vorhandenen K07-Debug-Trace; Ereignisse gehen ueber /v1/client-event ins Bridge-Log.";
+    traceButton.addEventListener("mousedown", event => event.stopPropagation());
+    traceButton.addEventListener("click", async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      setK07DebugTraceEnabled(!STATE.k07DebugTraceEnabled, "overlay");
+      render();
+    });
+    traceRow.appendChild(document.createTextNode(" "));
+    traceRow.appendChild(traceButton);
+    // K07 trace is a dedicated operator test control. Keep historical
+    // diagnostics hidden, but expose this control independently.
+    root.appendChild(traceRow);
 
     if (STATE.errorId) {
       const error = document.createElement("span");
@@ -2298,6 +2442,7 @@ async function sendPromptNative(prompt) {
       debug.appendChild(error);
     }
 
+    // Historical diagnostics remain hidden unless explicitly opened.
     if (AGP_DIAGNOSTICS_OPEN) {
       root.appendChild(debug);
     }
