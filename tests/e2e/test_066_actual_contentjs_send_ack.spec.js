@@ -98,7 +98,10 @@ async function installBridgeMocks(page) {
           }
         }
       },
-      runtime: {id: "phase066-test-extension"}
+      runtime: {
+        id: "phase066-test-extension",
+        onMessage: {addListener: () => {}}
+      }
     };
 
     const jsonResponse = (data, status=200) =>
