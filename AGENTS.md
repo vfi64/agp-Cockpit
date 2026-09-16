@@ -75,3 +75,11 @@ persistent state and restart behavior, delivered product path, effect/resource a
 Classify product defect versus stale/partial test model, identify interacting causes, and derive one coherent
 minimal repair. Validate that repair at the narrow failing test, independent adjudication tests, and the
 broadest affected regression gate. Static presence alone is not closure when delivered-path behavior is at issue.
+
+<!-- AGP_PROTOCOL_FIRST_RULE_V1 -->
+## Protocol-first engineering rule (mandatory)
+For every communication/browser/bridge/mission/turn/transport/Protocol-v1/authorization/executor/result-delivery/reload/recovery failure or change, every agent/LLM/chat/handoff MUST first read `docs/planning/COMMUNICATION_PROTOCOL.md`, `docs/engineering/FAILURE_META_ANALYSIS.md`, and relevant `docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md` entries. Reconstruct the trace against the normative state/transition model and identify the first proven divergence before repair.
+Local symptom chasing across protocol boundaries is prohibited. No repair may silently redefine protocol semantics.
+Every protocol-affecting success MUST update protocol authority, tests/invariants, and durable history in the same slice. Every materially informative failed attempt MUST record hypothesis, evidence, outcome, and learning.
+Every non-trivial failure meta-analysis MUST cover architecture/ownership, state machine, temporal ordering/concurrency, identity/lifetime, authorization, observability, recovery/idempotency, reuse of established solutions, root-cause versus symptom, regression risk, tests, and authority/document drift.
+A handoff is incomplete if current protocol state, unresolved first divergence, and relevant evidence are omitted.

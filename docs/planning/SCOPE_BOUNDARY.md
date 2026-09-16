@@ -122,3 +122,7 @@ artifact chain.
 - exactly-once guarantees for arbitrary external systems;
 - unlimited autonomous execution;
 - complete semantic detection of remote-model context loss.
+
+<!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
+## Communication protocol authority
+Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

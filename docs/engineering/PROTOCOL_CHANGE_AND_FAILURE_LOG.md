@@ -1,0 +1,20 @@
+# Protocol Change and Failure Log
+Durable engineering memory; normative semantics remain in planning protocol authorities.
+
+## 2026-09-16 Generation 51 — title/start path
+Successful repair; title guard allowed bootstrap preparation. Learning: acceptance alone is insufficient; trace the next authoritative transition.
+
+## 2026-09-16 Generation 51 — native composer
+Failure `MISSION_BOOTSTRAP_SEND_FAILED: native transport composer not found`; root cause was divergent locator contract. Repair aligned native locator with established textbox fallback; focused tests and staging parity passed.
+
+## 2026-09-16 attempt 1260
+Informative failure: handwritten unauthenticated bridge HTTP received 403. Learning: use canonical authenticated clients.
+
+## 2026-09-16 attempt 1262
+Informative failure: Download execution context could not import repository package. Learning: bootstrap repo src/use canonical environment.
+
+## 2026-09-16 Generation 52 — native send
+Success: native submit dispatched/accepted, user turn committed, native send accepted, MISSION_BOOTSTRAP_SENT. Real-path native composer repair proven.
+
+## 2026-09-16 Generation 52 — unresolved authorization divergence
+Assistant observed → TURN_SUBMIT_STARTED_CLIENT → TICK_ERROR `ACTION_NOT_AUTHORIZED_BY_LOCAL_TASK_CONTRACT`; READY, turn 0, step 0. Next work is protocol-first authorization reconstruction, not another blind E2E retry.
