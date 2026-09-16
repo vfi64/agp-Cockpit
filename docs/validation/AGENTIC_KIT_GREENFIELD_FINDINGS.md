@@ -1023,3 +1023,28 @@ a parallel mechanism.
 **Repair:** Close the lifecycle across checkout through deterministic Kit provisioning/persistable carrier semantics or by making governance consume the legitimate empty-state model used by transfer state.
 
 **Regression:** init → commit/push → fresh clone/checkout → governance succeeds without manual inbox creation; NO_COMMAND remains deterministic.
+
+
+## KIT-GF-021 — External-workspace Kit CLI discovery can misdiagnose an intact project-local installation as missing
+
+**Status:** OPEN
+
+**Finding:** Workspace troubleshooting can treat Agentic Project Kit as absent when it is not globally discoverable even though the external workspace has a functional project-local `.venv` installation.
+
+**Evidence:** Step 1277 proved `agentic-project-kit 1.0.10` already installed in `agp-Cockpit/.venv`, upgraded that exact environment to 1.0.13, and then passed `command-for`, `check`, and `doctor`.
+
+**Required Kit repair:** Resolve and report workspace-owned executable/environment provenance deterministically before global PATH assumptions. Upgrade/install guidance must preserve the selected environment.
+
+**Regression:** A project-local Kit with no global PATH entry is detected as installed and upgraded in place.
+
+## KIT-GF-022 — command-reference-refresh is not closed for packaged Kit use in an external workspace
+
+**Status:** OPEN
+
+**Finding:** Kit 1.0.13 detects stale repo-local command authority but its prescribed refresh route assumes a Kit development-checkout script that is absent from the external workspace.
+
+**Evidence:** Step 1278 produced `JSON_DRIFT`; Step 1279 confirmed `command-reference-check` FAIL; Step 1280 showed `command-reference-refresh` invoking missing `scripts/generate_agentic_kit_command_reference.py`; Step 1281 proved the released package hard-codes that checkout-local path and exposes no matching packaged generator file.
+
+**Required Kit repair:** Make refresh package-backed and workspace-aware. It must regenerate/synchronize from packaged command-manifest authority or provide one exact supported executable remediation. It must not depend on Kit source-checkout layout.
+
+**Regression:** Released wheel + fresh external workspace + stale command reference -> check detects drift -> refresh succeeds without source checkout -> subsequent check/audit PASS.

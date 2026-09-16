@@ -17,6 +17,7 @@
       'textarea[placeholder]',
       '[contenteditable="true"][data-testid*="composer"]',
       '[contenteditable="true"][id*="prompt"]',
+      '[contenteditable="true"][role="textbox"]',
       'form [contenteditable="true"]'
     ];
     for (const selector of selectors) {

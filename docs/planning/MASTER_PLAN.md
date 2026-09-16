@@ -206,3 +206,7 @@ Acceptance requires fail-loud, resumable behavior at browser boundaries and prot
 4. Perform a real browser/remote-LLM E2E cycle in the same conversation.
 5. Preserve the resulting trace as acceptance evidence.
 6. Only after that evidence adjudicate whether legacy Protocol-v1 complexity can be further isolated or removed.
+
+<!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
+## Communication protocol authority
+Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

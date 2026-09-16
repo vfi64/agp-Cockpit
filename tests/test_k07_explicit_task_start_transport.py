@@ -42,10 +42,11 @@ def test_explicit_start_generation_clears_legacy_mission_latch() -> None:
     poll_start = source.index("async function pollExplicitTaskStartRequest()")
     poll_end = source.index("async function refreshStatus()", poll_start)
     poll = source[poll_start:poll_end]
-    generation = poll.index("AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;")
-    clear_latch = poll.index("AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;", generation)
-    shared_start = poll.index("await maybeAutoStartTaskFirstMission();", clear_latch)
-    assert generation < clear_latch < shared_start
+    clear_latch = poll.index("AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;")
+    shared_start = poll.index("const started = await maybeAutoStartTaskFirstMission();", clear_latch)
+    success_guard = poll.index("if (started) {", shared_start)
+    generation = poll.index("AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;", success_guard)
+    assert clear_latch < shared_start < success_guard < generation
 
 
 def test_explicit_start_request_has_independent_liveness_poller() -> None:

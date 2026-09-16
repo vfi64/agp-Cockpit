@@ -14,7 +14,7 @@ def test_task_start_creates_live_full_auto_browser_mission():
 
 def test_task_first_browser_mission_autostarts_without_affecting_generic_expert_missions():
     assert "async function maybeAutoStartTaskFirstMission" in CONTENT
-    assert 'startsWith("Task · ")' in CONTENT
+    assert '/^(Task|E2E) · /' in CONTENT
     assert 'mission.execution_mode !== "LIVE"' in CONTENT
     assert 'mission.run_mode !== "FULL_AUTO"' in CONTENT
     assert "AGP_TASK_FIRST_AUTOSTART_MISSION_ID" in CONTENT
