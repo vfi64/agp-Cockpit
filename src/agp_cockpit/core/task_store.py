@@ -21,6 +21,16 @@ SUSPENSION_REASONS = {
 }
 
 
+def _serialized(method):
+    def locked(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    locked.__name__ = method.__name__
+    locked.__doc__ = method.__doc__
+    return locked
+
+
 @dataclass(frozen=True)
 class StoredAction:
     task_id: str
@@ -33,15 +43,6 @@ class StoredAction:
 
 
 class TaskStore:
-    @staticmethod
-    def _serialized(method):
-        def locked(self, *args, **kwargs):
-            with self._lock:
-                return method(self, *args, **kwargs)
-        locked.__name__ = method.__name__
-        locked.__doc__ = method.__doc__
-        return locked
-
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)

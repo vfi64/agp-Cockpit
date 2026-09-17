@@ -9,7 +9,10 @@ def test_failed_commit_returns_structured_target_and_post_click_evidence():
     assert "lastObserved.composer_text" in n
     assert "previousIds" in n
     assert "hit_testid:" in n
-def test_diagnostic_change_does_not_restore_dom_submit():
+def test_bounded_canonical_dom_submit_fallback_is_explicit():
     n=native()
-    assert "button.click()" not in n
+    assert "button[data-testid=\"send-button\"]" in n
+    assert "button.click()" in n
+    assert 'commit_retry:"canonical_dom_button"' in n
+    assert "exact_user_message_found" in n
     assert "requestSubmit()" not in n

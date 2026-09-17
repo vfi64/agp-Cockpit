@@ -110,7 +110,7 @@ def test_navigation_failure_keeps_desktop_and_runtime_available(monkeypatch, tmp
     monkeypatch.setattr(boot, "wait_for_extension", lambda *a, **k: handshake)
     monkeypatch.setattr(boot, "reload_exactly_one_chatgpt_tab", lambda: (False, "no reload"))
     monkeypatch.setattr(threading.Thread, "start", lambda self: None)
-    monkeypatch.setattr(boot, "run_legacy_gui", lambda root: events.append("gui"))
+    monkeypatch.setattr(boot, "run_legacy_gui", lambda root, local_contract=None: events.append("gui"))
     assert boot.run(tmp_path) == 0
     assert events == ["start", "gui", "stop"]
     status = json.loads((tmp_path / ".local/agp-cockpit/startup/status.json").read_text())

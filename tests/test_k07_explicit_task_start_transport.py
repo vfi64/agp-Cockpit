@@ -49,6 +49,36 @@ def test_explicit_start_generation_clears_legacy_mission_latch() -> None:
     assert clear_latch < shared_start < success_guard < generation
 
 
+def test_explicit_start_identity_is_mission_and_generation_scoped() -> None:
+    source = Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js"
+    text = source.read_text(encoding="utf-8")
+    assert "function taskStartRequestKey(missionId, generation)" in text
+    assert "const requestKey = taskStartRequestKey(missionId, generation);" in text
+    assert "reason:\"already_accepted\"" in text
+
+
+def test_explicit_start_ack_is_persisted_only_after_successful_start() -> None:
+    source = Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js"
+    text = source.read_text(encoding="utf-8")
+    poll_start = text.index("async function pollExplicitTaskStartRequest()")
+    poll_end = text.index("async function refreshStatus()", poll_start)
+    poll = text[poll_start:poll_end]
+    started = poll.index("if (started) {")
+    persist = poll.index("await persistTaskStartRequestKey(requestKey);", started)
+    assert started < persist
+    assert "AGP_TASK_FIRST_AUTOSTART_ACK_STORAGE_KEY" in text
+
+
+def test_bootstrap_transport_failure_does_not_ack_explicit_start() -> None:
+    source = Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js"
+    text = source.read_text(encoding="utf-8")
+    start = text.index("async function startAuto()")
+    end = text.index("// AGP_START_AUTO_CLICK_PATH_077", start)
+    block = text[start:end]
+    failure = block.index('stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");')
+    assert block.index("throw err;", failure) > failure
+
+
 def test_explicit_start_request_has_independent_liveness_poller() -> None:
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js").read_text(encoding="utf-8")

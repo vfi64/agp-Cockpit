@@ -91,6 +91,7 @@ class CockpitBridgeServer:
         repo_root = self.repository_root
         protocol_v1_actions = self.protocol_v1_actions
         protocol_v1_results = self.protocol_v1_results
+        durable_db_path = self._durable_db_path
         durable_controller_for = self._durable_controller
         runtime_root = self.runtime_root
         local_task_contract = self.local_task_contract
@@ -282,7 +283,7 @@ class CockpitBridgeServer:
                         current_start = StartRequestStore(runtime_root).current()
                         current_task_id = str(current_start.get("task_id") or "").strip()
                         if current_task_id:
-                            durable = DurableTaskController(current_task_id, self._durable_db_path)
+                            durable = DurableTaskController(current_task_id, durable_db_path)
                             try:
                                 if durable.snapshot.get("suspension_reason") == "WAITING_FOR_HUMAN":
                                     raise RuntimeError("WAITING_FOR_HUMAN")
@@ -393,7 +394,7 @@ class CockpitBridgeServer:
                             raise PermissionError("ACTION_NOT_AUTHORIZED_BY_LOCAL_TASK_CONTRACT")
                         authority_order = parse_work_order_json(action.work_order["content"])
                         authorization_payload = {
-                            "effect": "E3" if authority_order.kind == "kit" else "E2",
+                            "effect": "E2",
                             "argv": list(authority_order.argv),
                             "cwd": str(authority_order.cwd),
                         }

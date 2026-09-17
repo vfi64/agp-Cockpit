@@ -13,10 +13,10 @@ from agp_cockpit.core.mission_http_client import create_live_full_auto, status a
 class SimpleTaskPanel(ttk.Frame):
     """Default task-first surface. Expert controls stay elsewhere."""
 
-    def __init__(self, master: tk.Misc, *, repository_root: Path) -> None:
+    def __init__(self, master: tk.Misc, *, repository_root: Path, local_contract=None) -> None:
         super().__init__(master, padding=16)
         self.repository_root = repository_root.expanduser().resolve()
-        self.api = TaskOperatorAPI(self.repository_root)
+        self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
         self.contract: dict | None = None
         self.workflow_phase = "EMPTY"
 

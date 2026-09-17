@@ -13,6 +13,8 @@ def test_attachment_source_uses_cdp_file_input_without_composer_payload_fallback
     assert 'input[type="file"]' in text
     assert "Runtime.evaluate" in text
     assert "Runtime.callFunctionOn" in text
+    assert 'debugger.attach(target, "1.3")' in text
+    assert 'debugger.detach(target)' in text
     assert "AGPResultFileAttachment" in text
     assert "RESULT_FILE_ATTACHED" in text
     assert "prompt-textarea" not in text
