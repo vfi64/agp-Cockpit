@@ -20,11 +20,13 @@
     lastEvent: "INIT",
     errorId: "",
     waitingForAssistant: false,
+    assistantWaitStartedAt:0,
     lastHandshakeUrl: "",
     lastHandshakeAt: 0,
     candidateHash: "",
     candidateText: "",
     candidateStablePolls: 0,
+    attachmentWaitStartedAt: 0,
     assistantBaselineCount: 0,
     assistantBaselineMessageId: "",
     observedAssistantMessageId: "",
@@ -54,8 +56,28 @@
   let AGP_DIAGNOSTICS_OPEN = false;
   let AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
   let AGP_TASK_FIRST_AUTOSTART_GENERATION = 0;
+  let AGP_TASK_FIRST_AUTOSTART_REQUEST_KEY = "";
+  let AGP_TASK_FIRST_AUTOSTART_IN_FLIGHT_KEY = "";
   let AGP_TASK_FIRST_START_REQUEST_TIMER = null;
   let AGP_TASK_FIRST_START_REQUEST_PRIMED = false;
+  const AGP_TASK_FIRST_AUTOSTART_ACK_STORAGE_KEY = "agpTaskFirstAutostartAck";
+
+  function taskStartRequestKey(missionId, generation) {
+    return `${String(missionId || "")}:${Number(generation || 0)}`;
+  }
+
+  async function persistedTaskStartRequestKey() {
+    try {
+      const saved = await chrome.storage.local.get([AGP_TASK_FIRST_AUTOSTART_ACK_STORAGE_KEY]);
+      return String(saved[AGP_TASK_FIRST_AUTOSTART_ACK_STORAGE_KEY] || "");
+    } catch (_err) {
+      return "";
+    }
+  }
+
+  async function persistTaskStartRequestKey(key) {
+    await chrome.storage.local.set({[AGP_TASK_FIRST_AUTOSTART_ACK_STORAGE_KEY]:key});
+  }
 
   const LIMITS = {
     maxTurns: 40,
@@ -203,17 +225,20 @@
     const nodes = assistantMessageNodes();
     if (!nodes.length) return null;
     const observedId = String(STATE.observedAssistantMessageId || "");
-    if (observedId) {
+    if (observedId && !observedId.startsWith("request-placeholder")) {
       const observed = nodes.find(node => String(node.getAttribute("data-message-id") || "") === observedId);
       if (observed) return observed;
     }
     const baselineId = String(STATE.assistantBaselineMessageId || "");
     const nonBaseline = nodes.filter(node => {
       const id = String(node.getAttribute("data-message-id") || "");
-      return id && id !== baselineId && id !== "request-placeholder";
+      return id && id !== baselineId && !id.startsWith("request-placeholder");
     });
     if (nonBaseline.length === 1) return nonBaseline[0];
-    return nodes[nodes.length - 1];
+    const nonPlaceholder = nodes.filter(
+      node => !String(node.getAttribute("data-message-id") || "").startsWith("request-placeholder")
+    );
+    return nonPlaceholder[nonPlaceholder.length - 1] || null;
   }
 
   function lastAssistantMessageId() {
@@ -267,8 +292,17 @@
   function assistantPythonAttachmentCandidates() {
     const nodes = assistantMessageNodes();
     if (!nodes.length) return [];
-    const assistant = nodes[nodes.length - 1];
-    const rows = Array.from(assistant.querySelectorAll("a[href]"))
+    // Use the same identity-aware selection as assistant text extraction. The
+    // ChatGPT DOM can contain virtualized or stale assistant nodes alongside
+    // the currently observed response.
+    const baselineId = String(STATE.assistantBaselineMessageId || "");
+    const assistant = [...nodes].reverse().find(node => {
+      const id = String(node.getAttribute("data-message-id") || "");
+      if (baselineId && id === baselineId) return false;
+      return node.querySelector('a[href$=".py"], button[aria-label$=".py"]');
+    }) || selectedAssistantMessageNode();
+    if (!assistant) return [];
+    const rows = Array.from(assistant.querySelectorAll("a[href], button[aria-label]"))
       .map(anchor => {
         const href = String(anchor.href || anchor.getAttribute("href") || "").trim();
         const label = String(
@@ -278,12 +312,56 @@
           ""
         ).trim();
         const name = label.split("/").pop().trim();
-        return {href, name};
+        return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor};
       })
-      .filter(item => item.href && /\.py(?:$|[?#])/i.test(item.name || item.href));
+      .filter(item =>
+        /\.py(?:$|[?#])/i.test(item.name || item.href) &&
+        (item.href || item.isButton)
+      );
     const unique = new Map();
     for (const row of rows) unique.set(`${row.href}\n${row.name}`, row);
     return Array.from(unique.values());
+  }
+
+  async function readAssistantButtonAttachment(attachment) {
+    const button = attachment && attachment.node;
+    if (!button || !button.isConnected) {
+      throw new Error("K07 assistant attachment button is no longer connected");
+    }
+    button.click();
+    const deadline = Date.now() + 45000;
+    let preview = null;
+    while (Date.now() < deadline) {
+      preview = document.querySelector(
+        '[role="dialog"] .cm-content[role="textbox"], [role="dialog"] .cm-content'
+      );
+      const previewText = preview
+        ? String(preview.innerText || preview.textContent || "")
+        : "";
+      if (preview && previewText.trim()) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    const content = preview
+      ? String(preview.innerText || preview.textContent || "")
+      : "";
+    if (!preview || !content.trim()) {
+      throw new Error("K07 assistant attachment preview did not become readable");
+    }
+    const close = document.querySelector(
+      '[role="dialog"] [data-testid="close-button"], ' +
+      '[role="dialog"] button[aria-label="Vollbildmodus beenden"], ' +
+      '[role="dialog"] button[aria-label="Exit full screen"]'
+    );
+    if (close) close.click();
+    return {
+      ok: true,
+      stage: "COMMAND_FILE_FETCHED",
+      filename: attachment.name,
+      href: `chatgpt://assistant-attachment/${encodeURIComponent(attachment.name)}`,
+      content,
+      content_type: "text/x-python",
+      chars: content.length
+    };
   }
 
   async function fetchSingleAssistantPythonAttachment() {
@@ -294,6 +372,9 @@
       );
     }
     const attachment = candidates[0];
+    if (!attachment.href && attachment.isButton) {
+      return readAssistantButtonAttachment(attachment);
+    }
     const response = await chrome.runtime.sendMessage({
       type:"AGP_K07_COMMAND_FILE_FETCH",
       href:attachment.href,
@@ -506,10 +587,22 @@
   }
 
 
-  chrome.runtime.onMessage.addListener((message) => {
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message && message.type === "AGP_K07_NATIVE_TRACE_1165") {
       void clientEvent("K07_NATIVE_TRACE", message.payload || {});
+      return false;
     }
+    if (message && message.type === "AGP_K07_SEND_PROMPT") {
+      sendPrompt(String(message.prompt || ""))
+        .then(() => sendResponse({ok:true, stage:"PROMPT_SENT"}))
+        .catch(error => sendResponse({
+          ok:false,
+          stage:"PROMPT_SEND_FAILED",
+          error:String(error && error.message ? error.message : error)
+        }));
+      return true;
+    }
+    return false;
   });
 
   async function clientEvent(event, details={}) {
@@ -573,6 +666,12 @@
     return normalizeObservedMessageText(
       el.innerText || el.textContent || el.getAttribute("data-lexical-text") || ""
     );
+  }
+
+  function isKnownCockpitDraft(text) {
+    const value = normalizeObservedMessageText(text);
+    return value.includes("AGP COCKPIT MISSION — FIRST SINGLE STEP") ||
+      value.includes("Attached is the result file for the command you gave me.");
   }
 
   function chatgptGenerationActive() {
@@ -709,9 +808,8 @@
 
 async function sendPromptNative(prompt) {
     const transport = createSendTransport(prompt);
-    if (prompt === STATE.lastPrompt) {
-      throw new Error("identical prompt loop detected");
-    }
+    // K07 result continuations intentionally reuse one stable instruction.
+    // Progress is proven by the next assistant message, not prompt wording.
 
     const nativeTransport = window.AGPBrowserNativeTransport;
     if (
@@ -736,9 +834,16 @@ async function sendPromptNative(prompt) {
 
     if (stagedComposerText) {
       if (stagedComposerText !== expectedPromptText) {
-        throw new Error(
-          "browser-native transport found non-empty foreign composer content; refusing to overwrite"
-        );
+        if (!isKnownCockpitDraft(stagedComposerText)) {
+          throw new Error(
+            "browser-native transport found non-empty foreign composer content; refusing to overwrite"
+          );
+        }
+        setComposerText(composer(), "");
+        await clientEvent("NATIVE_STALE_OWNED_COMPOSER_RECOVERED", {
+          chars:stagedComposerText.length,
+          ownership:"known_cockpit_prompt_after_reload"
+        });
       }
 
       const staleOwnedComposer = composer();
@@ -866,9 +971,6 @@ async function sendPromptNative(prompt) {
 
   async function sendPromptDomDegraded(prompt) {
     const transport = createSendTransport(prompt);
-    if (prompt === STATE.lastPrompt) {
-      throw new Error("identical prompt loop detected");
-    }
 
     const beforeMessages = visibleUserMessages();
     const beforeAssistantText = lastAssistantText();
@@ -1037,6 +1139,7 @@ async function sendPromptNative(prompt) {
     STATE.candidateHash = "";
     STATE.candidateText = "";
     STATE.candidateStablePolls = 0;
+    STATE.attachmentWaitStartedAt = 0;
   }
 
   // AGP_STRUCTURED_RESPONSE_COMPLETION_064_R1
@@ -1137,6 +1240,7 @@ async function sendPromptNative(prompt) {
     STATE.runGeneration += 1;
     STATE.running = false;
     STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
     STATE.processingAssistant = false;
     PENDING_SEND_TRANSPORT = null;
     AGP_FORMAT_REPAIR_ATTEMPTS = 0;
@@ -1246,6 +1350,7 @@ async function sendPromptNative(prompt) {
       const req = await api("/v1/task/start-request");
       const generation = Number(req.generation || 0);
       const missionId = String(req.mission_id || "");
+      const requestKey = taskStartRequestKey(missionId, generation);
       if (!AGP_TASK_FIRST_START_REQUEST_PRIMED) {
         AGP_TASK_FIRST_START_REQUEST_PRIMED = true;
         // A pending explicit desktop start request is durable authority, not
@@ -1256,7 +1361,19 @@ async function sendPromptNative(prompt) {
           return;
         }
       }
-      if (!generation || generation <= AGP_TASK_FIRST_AUTOSTART_GENERATION) {
+      const persistedKey = await persistedTaskStartRequestKey();
+      if (requestKey && requestKey === persistedKey) {
+        AGP_TASK_FIRST_AUTOSTART_REQUEST_KEY = requestKey;
+        await clientEvent("TASK_START_REQUEST_SUPPRESSED", {
+          generation,
+          request_mission_id:missionId,
+          reason:"already_accepted"
+        });
+        return;
+      }
+      const sameMission = missionId === AGP_TASK_FIRST_AUTOSTART_MISSION_ID;
+      if (!generation || requestKey === AGP_TASK_FIRST_AUTOSTART_REQUEST_KEY ||
+          (sameMission && generation <= AGP_TASK_FIRST_AUTOSTART_GENERATION)) {
         await clientEvent("TASK_START_REQUEST_SUPPRESSED", {
           generation,
           last_generation:AGP_TASK_FIRST_AUTOSTART_GENERATION,
@@ -1281,9 +1398,14 @@ async function sendPromptNative(prompt) {
       // An explicit desktop start request is authoritative for this generation.
       // Clear the legacy per-mission latch before entering the shared start path.
       AGP_TASK_FIRST_AUTOSTART_MISSION_ID = null;
+      if (AGP_TASK_FIRST_AUTOSTART_IN_FLIGHT_KEY === requestKey) return;
+      AGP_TASK_FIRST_AUTOSTART_IN_FLIGHT_KEY = requestKey;
       const started = await maybeAutoStartTaskFirstMission();
+      AGP_TASK_FIRST_AUTOSTART_IN_FLIGHT_KEY = "";
       if (started) {
+        AGP_TASK_FIRST_AUTOSTART_REQUEST_KEY = requestKey;
         AGP_TASK_FIRST_AUTOSTART_GENERATION = generation;
+        await persistTaskStartRequestKey(requestKey);
       }
     } catch (_err) {}
   }
@@ -1403,6 +1525,7 @@ async function sendPromptNative(prompt) {
     STATE.note = result.state || "";
     STATE.lastEvent = "PROMPT_SENT";
     STATE.waitingForAssistant = true;
+    STATE.assistantWaitStartedAt = Date.now();
     resetCandidate();
     await clientEvent("PROMPT_SENT", {
       state:result.state
@@ -1414,8 +1537,12 @@ async function sendPromptNative(prompt) {
     const nodes = assistantMessageNodes();
     if (!nodes.length) return "";
 
-    const newest = nodes[nodes.length - 1];
+    // Ignore ChatGPT's transient request placeholder and use the same
+    // identity-aware selection as attachment and text extraction.
+    const newest = selectedAssistantMessageNode();
+    if (!newest) return "";
     const newestMessageId = String(newest.getAttribute("data-message-id") || "");
+    if (newestMessageId.startsWith("request-placeholder")) return "";
 
     // K07: ChatGPT may virtualize/recycle conversation DOM nodes. A new
     // assistant turn can replace an older node without increasing the
@@ -1452,10 +1579,19 @@ async function sendPromptNative(prompt) {
   }
 
   async function tick() {
+    // AGP_K07_ASSISTANT_WAIT_TIMEOUT_1360
+    if (STATE.running && STATE.waitingForAssistant &&
+        STATE.assistantWaitStartedAt > 0 &&
+        Date.now() - STATE.assistantWaitStartedAt > 180000) {
+      STATE.waitingForAssistant = false;
+      STATE.assistantWaitStartedAt = 0;
+      throw new Error("K07_ASSISTANT_RESPONSE_TIMEOUT after 180s");
+    }
     await pollOperatorControl();
     if (STATE.paused) return;
     await pollExplicitTaskStartRequest();
     if (!STATE.running || !STATE.waitingForAssistant) return;
+    const runGeneration = STATE.runGeneration;
 
     try {
       const text = newAssistantTextAfterBaseline();
@@ -1510,9 +1646,11 @@ async function sendPromptNative(prompt) {
       // before legacy Protocol-v1 JSON compatibility parsing.
       const k07CommandFiles = assistantPythonAttachmentCandidates();
       if (k07CommandFiles.length === 1) {
+        STATE.attachmentWaitStartedAt = 0;
         STATE.processingAssistant = true;
         STATE.lastAssistantHash = STATE.candidateHash;
         STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
         STATE.lastEvent = "ASSISTANT_RESPONSE_COMPLETE";
         try {
           await processCompletedAssistant(completed, runGeneration);
@@ -1525,6 +1663,28 @@ async function sendPromptNative(prompt) {
         throw new Error(`expected exactly one assistant .py attachment; observed ${k07CommandFiles.length}`);
       }
 
+      if (STATE.mission && STATE.mission.execution_mode === "LIVE" && STATE.mission.run_mode === "FULL_AUTO") {
+        // ChatGPT can finish rendering the assistant text before its file
+        // button is attached to the message DOM. Keep the stable candidate
+        // and allow a bounded attachment-rendering window before failing.
+        if (!STATE.attachmentWaitStartedAt) {
+          STATE.attachmentWaitStartedAt = Date.now();
+        }
+        const attachmentWaitMs = Date.now() - STATE.attachmentWaitStartedAt;
+        if (attachmentWaitMs < 15000) {
+          STATE.lastEvent = "COMMAND_FILE_ATTACHMENT_PENDING";
+          STATE.note = `Python-Anhang wird noch eingeblendet… ${Math.ceil((15000 - attachmentWaitMs) / 1000)}s`;
+          await clientEvent("COMMAND_FILE_ATTACHMENT_PENDING", {
+            wait_ms: attachmentWaitMs,
+            timeout_ms: 15000
+          });
+          render();
+          return;
+        }
+        throw new Error("K07_FILE_TRANSFER_ATTACHMENT_REQUIRED: expected exactly one assistant .py attachment; observed 0");
+      }
+
+      // Legacy compatibility only: non-task-first probes may still use structured text.
       const pureStructured = parsePureJsonObject(completed);
       const extracted = extractSingleWorkOrderJson(completed);
       const structured = extracted ? extracted.value : pureStructured;
@@ -1571,6 +1731,7 @@ async function sendPromptNative(prompt) {
             return;
           }
           STATE.waitingForAssistant = true;
+    STATE.assistantWaitStartedAt = Date.now();
           return;
         }
           k07DebugTrace("FORMAT_REPAIR_EXHAUSTED",{candidate_chars:String(completed||"").length});
@@ -1581,10 +1742,10 @@ async function sendPromptNative(prompt) {
       if (STATE.processingAssistant) {
         return;
       }
-      const runGeneration = STATE.runGeneration;
       STATE.processingAssistant = true;
       STATE.lastAssistantHash = STATE.candidateHash;
       STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
       STATE.lastEvent = "ASSISTANT_RESPONSE_COMPLETE";
       STATE.note = `Vollständige strukturierte Antwort erkannt · ${completed.length} Zeichen`;
 
@@ -1638,8 +1799,9 @@ async function sendPromptNative(prompt) {
 
       if (STATE.errors >= LIMITS.maxErrors) {
         stop(String(err), "AUTO_ERROR");
-      } else if (typeof runGeneration !== "undefined" && STATE.runGeneration === runGeneration && STATE.running) {
+      } else if (STATE.runGeneration === runGeneration && STATE.running) {
         STATE.waitingForAssistant = true;
+    STATE.assistantWaitStartedAt = Date.now();
         resetCandidate();
         render();
       }
@@ -2003,6 +2165,7 @@ async function sendPromptNative(prompt) {
 
     STATE.running = true;
     STATE.waitingForAssistant = true;
+    STATE.assistantWaitStartedAt = Date.now();
     STATE.lastEvent = "NEXT_STEP_PROMPT_SENT";
     await clientEvent("NEXT_STEP_PROMPT_SENT", {
       chars:pending.length
@@ -2059,6 +2222,7 @@ async function sendPromptNative(prompt) {
     PENDING_SEND_TRANSPORT = null;
     AGP_FORMAT_REPAIR_ATTEMPTS = 0;
     STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
     STATE.lastAssistantHash = await digest(lastAssistantText());
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
@@ -2084,13 +2248,16 @@ async function sendPromptNative(prompt) {
       if (STATE.runGeneration === runGeneration) {
         stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");
       }
-      return;
+      // Keep the durable explicit start request retryable. A stopped run is
+      // not a successfully accepted request.
+      throw err;
     }
 
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
     }
     STATE.waitingForAssistant = true;
+    STATE.assistantWaitStartedAt = Date.now();
     STATE.lastEvent = "MISSION_BOOTSTRAP_SENT";
     STATE.note = "Warte auf vollständige neue ChatGPT-Antwort";
     await clientEvent("MISSION_BOOTSTRAP_SENT", {
@@ -2339,6 +2506,7 @@ async function sendPromptNative(prompt) {
 
     // Developer diagnostics remain available through bridge/CLI diagnostics;
     // historical phase controls are intentionally absent from the normal overlay.
+    root.appendChild(actions);
 
     const body = document.createElement("div");
     body.className = "agp-body";

@@ -238,7 +238,7 @@ async function agpNativeTransportV1(message, sender) {
               record.aria_disabled !== "true" &&
               record.visible &&
               record.pointer_events !== "none" &&
-              record.hit_matches
+              (record.hit_matches || record.testid === "send-button")
             ) {
               return {found:true,target:record,diagnostics};
             }
@@ -343,6 +343,47 @@ async function agpNativeTransportV1(message, sender) {
         if (commitEvidence) {
           return {ok:true,request_id:requestId,tab_id:tabId,stage:"USER_TURN_COMMITTED",
             before,inserted,commit:commitEvidence,commit_retry:"trusted_enter_once"};
+        }
+
+        // Some ChatGPT composer revisions ignore synthetic Enter while exposing
+        // the canonical send control. Use that exact control as a bounded DOM
+        // fallback, then require the same persistent-message evidence.
+        const clickResult = await evaluate(`(() => {
+          const button = document.querySelector('button[data-testid="send-button"]');
+          if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") {
+            return {clicked:false, reason:"send_button_unavailable"};
+          }
+          const rect = button.getBoundingClientRect();
+          const style = getComputedStyle(button);
+          if (rect.width <= 0 || rect.height <= 0 || style.visibility === "hidden" ||
+              style.display === "none" || style.pointerEvents === "none") {
+            return {clicked:false, reason:"send_button_not_actionable"};
+          }
+          button.click();
+          return {clicked:true};
+        })()`);
+        void agpK07NativeTrace1165({event:"DOM_SEND_FALLBACK",request_id:requestId,click_result:clickResult});
+        if (clickResult && clickResult.clicked) {
+          for (let i = 0; i < 20; i += 1) {
+            await new Promise(resolve => setTimeout(resolve, 250));
+            const observed = await observeMessages();
+            const exactIndex = observed.url === beforeMessages.url
+              ? observed.messages.findIndex((message, index) =>
+                message.text === normalize(text) &&
+                (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
+              : -1;
+            observed.exact_user_message_index = exactIndex;
+            observed.exact_user_message_found = exactIndex >= 0;
+            lastObserved = observed;
+            if (observed.exact_user_message_found) {
+              commitEvidence = observed;
+              break;
+            }
+          }
+          if (commitEvidence) {
+            return {ok:true,request_id:requestId,tab_id:tabId,stage:"USER_TURN_COMMITTED",
+              before,inserted,commit:commitEvidence,commit_retry:"canonical_dom_button"};
+          }
         }
       }
       void agpK07NativeTrace1165({event:"COMMIT_FAILURE",request_id:requestId,clearly_unsent:Boolean(clearlyUnsent),before_messages:beforeMessages,send_target:sendTarget,last_observed:lastObserved});
@@ -467,7 +508,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ok:false, stage:"RESULT_CONTINUATION_REJECTED"});
     return false;
   }
-  agpSubmitFileLoopContinuation(tabId, absolutePath)
+  agpSubmitFileLoopContinuation(tabId, absolutePath, message.cycle_id, message.result_sha256)
     .then(sendResponse)
     .catch(error => sendResponse({ok:false, stage:"RESULT_CONTINUATION_FAILED", error:String(error && error.message ? error.message : error)}));
   return true;
@@ -492,10 +533,15 @@ async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
   if (!attached || attached.stage !== "RESULT_FILE_ATTACHED") throw new Error("K07 result-file attachment was not confirmed");
   return attached;
 }
-async function agpSubmitFileLoopContinuation(tabId, absolutePath) {
+async function agpSubmitFileLoopContinuation(tabId, absolutePath, cycleId, resultSha256) {
   await agpAttachFileLoopResultBundle(tabId, absolutePath);
   const continuation = "Attached is the result file for the command you gave me. Evaluate it and continue the current task. If more local work is required, return the next command file; otherwise finish or request human input.";
-  if (typeof sendPromptToChatGPT !== "function") throw new Error("ChatGPT prompt transport unavailable");
-  await sendPromptToChatGPT(tabId, continuation);
-  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath, cycle_id:message.cycle_id || null, result_sha256:message.result_sha256 || null, trace_events:[{event:"BROWSER_RESULT_ATTACHED",cycle_id:message.cycle_id || null,result_sha256:message.result_sha256 || null},{event:"CONTINUATION_SENT",cycle_id:message.cycle_id || null,result_sha256:message.result_sha256 || null}]};
+  const response = await chrome.tabs.sendMessage(tabId, {
+    type: "AGP_K07_SEND_PROMPT",
+    prompt: continuation
+  });
+  if (!response || response.ok !== true) {
+    throw new Error(String(response && response.error || "ChatGPT prompt transport unavailable"));
+  }
+  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath, cycle_id:cycleId || null, result_sha256:resultSha256 || null, trace_events:[{event:"BROWSER_RESULT_ATTACHED",cycle_id:cycleId || null,result_sha256:resultSha256 || null},{event:"CONTINUATION_SENT",cycle_id:cycleId || null,result_sha256:resultSha256 || null}]};
 }

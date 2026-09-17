@@ -6,9 +6,10 @@ TASK=(ROOT/'src/agp_cockpit/ui/task_operator_panel.py').read_text()
 def test_no_legacy_browser_refresh_control_in_normal_gui():
     assert '.place(relx=0.985' not in MAIN
     assert 'Browser-Verbindung neu laden' not in MAIN
-def test_normal_gui_is_single_task_first_surface():
+def test_normal_gui_keeps_task_first_surface_and_adds_standard_tasks():
     assert 'text="Expert · Task Operator"' not in MAIN
-    assert 'ttk.Notebook' not in MAIN
+    assert 'ttk.Notebook' in MAIN
+    assert 'text="Standard Tasks"' in MAIN
     assert 'SimpleTaskPanel' in MAIN
 def test_task_operator_has_visible_focus_status():
     assert 'Tastaturfokus:' in TASK

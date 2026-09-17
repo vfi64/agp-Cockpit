@@ -16,6 +16,7 @@ from agp_cockpit.core.startup_probe import observe_live_read_only
 from agp_cockpit.ui.hermes_status import format_hermes_status
 from agp_cockpit.ui.work_order_panel import WorkOrderPanel
 from agp_cockpit.ui.browser_transport_panel import BrowserTransportPanel
+from agp_cockpit.ui.standard_tasks_panel import StandardTasksPanel
 
 
 class MainWindow(ttk.Frame):
@@ -24,9 +25,11 @@ class MainWindow(ttk.Frame):
         master: tk.Misc,
         *,
         repository_root: Path | None = None,
+        local_contract=None,
     ) -> None:
         super().__init__(master, padding=12)
         self.repository_root = (repository_root or Path.cwd()).expanduser().resolve()
+        self.local_contract = local_contract
         self.grid(sticky="nsew")
 
         master.columnconfigure(0, weight=1)
@@ -93,13 +96,30 @@ class MainWindow(ttk.Frame):
             pady=(0, 8),
         )
 
-        # Normal UI: one task-first surface. Historical expert tooling remains
-        # implemented internally/CLI-side, but is no longer part of the normal GUI.
+        self.tabs = ttk.Notebook(self)
+        self.tabs.grid(row=3, column=0, sticky="nsew")
+
+        work_tab = ttk.Frame(self.tabs)
+        work_tab.columnconfigure(0, weight=1)
+        work_tab.rowconfigure(0, weight=1)
         self.simple_task_panel = SimpleTaskPanel(
-            self,
+            work_tab,
             repository_root=self.repository_root,
+            local_contract=self.local_contract,
         )
-        self.simple_task_panel.grid(row=3, column=0, sticky="nsew")
+        self.simple_task_panel.grid(row=0, column=0, sticky="nsew")
+        self.tabs.add(work_tab, text="Arbeiten")
+
+        standard_tab = ttk.Frame(self.tabs)
+        standard_tab.columnconfigure(0, weight=1)
+        standard_tab.rowconfigure(0, weight=1)
+        self.standard_tasks_panel = StandardTasksPanel(
+            standard_tab,
+            repository_root=self.repository_root,
+            local_contract=self.local_contract,
+        )
+        self.standard_tasks_panel.grid(row=0, column=0, sticky="nsew")
+        self.tabs.add(standard_tab, text="Standard Tasks")
 
     def _build_system_tab(self, parent: ttk.Frame) -> None:
         ollama = ttk.LabelFrame(

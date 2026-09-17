@@ -21,6 +21,14 @@ def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     content = (ROOT / "chrome_extension/content.js").read_text()
     assert "AGP_K07_COMMAND_FILE_INGRESS_989" in content
     assert "assistantPythonAttachmentCandidates" in content
+    assert 'button[aria-label$=".py"]' in content
+    assert "readAssistantButtonAttachment" in content
+    assert '[role="dialog"] .cm-content[role="textbox"]' in content
+    assert 'startsWith("request-placeholder")' in content
+    assert "root.appendChild(actions)" in content
+    assert "COMMAND_FILE_ATTACHMENT_PENDING" in content
+    assert "attachmentWaitMs < 15000" in content
+    assert "Date.now() + 45000" in content
     assert "expected exactly one assistant .py attachment" in content
     assert '"/v1/file-loop/command"' in content
 
@@ -62,3 +70,15 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         assert len(commands) == 1
     finally:
         runtime.stop()
+
+
+def test_fresh_k07_launcher_uses_active_project_interpreter():
+    launcher = (ROOT / "Download/1223_k07_fresh_full_e2e_acceptance_launch.py").read_text()
+    assert "import argparse,json,os,subprocess,sys" in launcher
+    assert "run([sys.executable,\"-c\",code])" in launcher
+
+
+def test_file_loop_handler_uses_server_database_path_closure():
+    server = (ROOT / "src/agp_cockpit/core/bridge_server.py").read_text()
+    assert "durable_db_path = self._durable_db_path" in server
+    assert "DurableTaskController(current_task_id, durable_db_path)" in server

@@ -9,7 +9,7 @@ from typing import Sequence
 from agp_cockpit import __version__
 
 
-def build_root(repository_root: Path | None = None):
+def build_root(repository_root: Path | None = None, local_contract=None):
     import tkinter as tk
     from agp_cockpit.ui.main_window import MainWindow
 
@@ -17,12 +17,12 @@ def build_root(repository_root: Path | None = None):
     root.title('AGP Cockpit')
     root.geometry('1020x600')
     root.minsize(820, 520)
-    MainWindow(root, repository_root=repository_root)
+    MainWindow(root, repository_root=repository_root, local_contract=local_contract)
     return root
 
 
-def run_gui_only(repository_root: Path | None = None) -> None:
-    root = build_root(repository_root)
+def run_gui_only(repository_root: Path | None = None, local_contract=None) -> None:
+    root = build_root(repository_root, local_contract=local_contract)
     root.mainloop()
 
 

@@ -2,10 +2,14 @@ from pathlib import Path
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.file_loop_lifecycle import FileLoopLifecycle
 from agp_cockpit.core.operator_control import OperatorControlStore
+from agp_cockpit.core.task_contract import LocalTaskContract
 
 class TaskOperatorAPI:
-    def __init__(self, repository_root: Path, *, task_id: str = "operator-task") -> None:
+    def __init__(self, repository_root: Path, *, task_id: str = "operator-task", local_contract: LocalTaskContract | None = None) -> None:
         self.repository_root = repository_root.expanduser().resolve()
+        if local_contract is not None and local_contract.repository_root != self.repository_root:
+            raise ValueError("local_contract repository_root does not match TaskOperatorAPI repository")
+        self.local_contract = local_contract or LocalTaskContract(self.repository_root)
         runtime_root = Path.home()/".local"/"share"/"agp-cockpit"/"runtime"
         runtime_root.mkdir(parents=True, exist_ok=True)
         self.controller = DurableTaskController(task_id, runtime_root/"tasks.sqlite3")
@@ -89,15 +93,12 @@ class TaskOperatorAPI:
             scope=scope,
             deadline_utc=payload.get("deadline_utc"),
         )
-        # Persist configured local authority under the real task identity.
-        from agp_cockpit.adapters.macos_settings import settings_path
-        from agp_cockpit.settings import load_and_migrate_settings
-        settings, _ = load_and_migrate_settings(settings_path())
+        # Persist exactly the application-established authority under the real task identity.
         self.controller.set_task_authority(
-            repository_root=self.repository_root,
-            allowed_effects=settings.allowed_effects,
-            allowed_tools=settings.allowed_tools,
-            allow_network=settings.allow_network,
+            repository_root=self.local_contract.repository_root,
+            allowed_effects=self.local_contract.allowed_effects,
+            allowed_tools=self.local_contract.allowed_tools,
+            allow_network=self.local_contract.allow_network,
         )
         self.controller.store.set_states(task_id, state="WAITING_FOR_REMOTE")
         self.file_loop.start()

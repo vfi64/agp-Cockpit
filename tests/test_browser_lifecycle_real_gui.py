@@ -10,5 +10,7 @@ def test_real_gui_has_no_legacy_refresh_control():
 def test_actual_main_window_evidence():
     assert "AGP Cockpit" in GUI
     assert "SimpleTaskPanel(" in GUI
-    for token in ("Expert · System", "Expert · Einzelauftrag", "Expert · Task Operator", "ttk.Notebook"):
+    for token in ("Expert · System", "Expert · Einzelauftrag", "Expert · Task Operator"):
         assert token not in GUI
+    assert "ttk.Notebook" in GUI
+    assert 'text="Standard Tasks"' in GUI

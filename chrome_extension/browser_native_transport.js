@@ -11,22 +11,36 @@
   }
 
   function resolveComposer() {
+    if (typeof document.querySelector === "function") {
+      const canonical = document.querySelector("#prompt-textarea");
+      if (canonical && canonical.getBoundingClientRect().width > 0 &&
+          canonical.getBoundingClientRect().height > 0 && !canonical.disabled) return canonical;
+      const root = document.querySelector('textarea[data-id="root"]');
+      if (root && root.getBoundingClientRect().width > 0 &&
+          root.getBoundingClientRect().height > 0 && !root.disabled) return root;
+      const textarea = document.querySelector("textarea");
+      if (textarea && textarea.getBoundingClientRect().width > 0 &&
+          textarea.getBoundingClientRect().height > 0 && !textarea.disabled) return textarea;
+    }
     const selectors = [
-      '#prompt-textarea',
+      "#prompt-textarea",
       'textarea[data-id="root"]',
-      'textarea[placeholder]',
+      "textarea",
       '[contenteditable="true"][data-testid*="composer"]',
       '[contenteditable="true"][id*="prompt"]',
       '[contenteditable="true"][role="textbox"]',
       'form [contenteditable="true"]'
     ];
+    if (!document || typeof document.querySelectorAll !== "function") return null;
     for (const selector of selectors) {
       for (const el of document.querySelectorAll(selector)) {
-        const r = el.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0 && !el.disabled) return el;
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0 && !el.disabled) {
+          return el;
+        }
       }
     }
-    return null;
+    return undefined;
   }
 
   function observedComposerText(el) {
