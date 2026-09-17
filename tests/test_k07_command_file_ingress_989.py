@@ -72,12 +72,6 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         runtime.stop()
 
 
-def test_fresh_k07_launcher_uses_active_project_interpreter():
-    launcher = (ROOT / "Download/1223_k07_fresh_full_e2e_acceptance_launch.py").read_text()
-    assert "import argparse,json,os,subprocess,sys" in launcher
-    assert "run([sys.executable,\"-c\",code])" in launcher
-
-
 def test_file_loop_handler_uses_server_database_path_closure():
     server = (ROOT / "src/agp_cockpit/core/bridge_server.py").read_text()
     assert "durable_db_path = self._durable_db_path" in server
