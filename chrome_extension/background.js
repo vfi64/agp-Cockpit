@@ -505,11 +505,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const tabId = sender && sender.tab ? sender.tab.id : null;
   const absolutePath = String(message.result_file || "").trim();
   const outputPath = String(message.output_file || "").trim();
-  if (!Number.isInteger(tabId) || !absolutePath.startsWith("/") || (outputPath && !outputPath.startsWith("/"))) {
+  const continuationPrompt = String(message.prompt || "").trim();
+  if (!Number.isInteger(tabId) || !absolutePath.startsWith("/") || (outputPath && !outputPath.startsWith("/")) || !continuationPrompt || continuationPrompt.length > 2000000) {
     sendResponse({ok:false, stage:"RESULT_CONTINUATION_REJECTED"});
     return false;
   }
-  agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, message.cycle_id, message.result_sha256)
+  agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, continuationPrompt, message.cycle_id, message.result_sha256)
     .then(sendResponse)
     .catch(error => sendResponse({ok:false, stage:"RESULT_CONTINUATION_FAILED", error:String(error && error.message ? error.message : error)}));
   return true;
@@ -534,16 +535,15 @@ async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
   if (!attached || attached.stage !== "RESULT_FILE_ATTACHED") throw new Error("K07 result-file attachment was not confirmed");
   return attached;
 }
-async function agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, cycleId, resultSha256) {
+async function agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, continuationPrompt, cycleId, resultSha256) {
   if (!globalThis.AGPResultFileAttachment || typeof globalThis.AGPResultFileAttachment.attachResultFiles !== "function") throw new Error("K07 result-file attachment seam unavailable");
   const evidence = [absolutePath];
   if (outputPath) evidence.push(outputPath);
   const attached = await globalThis.AGPResultFileAttachment.attachResultFiles(chrome, {tabId}, evidence);
   if (!attached || attached.stage !== "RESULT_FILES_ATTACHED") throw new Error("K07 result evidence attachment was not confirmed");
-  const continuation = "Attached is the result file for the command you gave me. Evaluate it and continue the current task. If more local work is required, return the next command file; otherwise finish or request human input.";
   const response = await chrome.tabs.sendMessage(tabId, {
     type: "AGP_K07_SEND_PROMPT",
-    prompt: continuation
+    prompt: continuationPrompt
   });
   if (!response || response.ok !== true) {
     throw new Error(String(response && response.error || "ChatGPT prompt transport unavailable"));

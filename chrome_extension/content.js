@@ -450,6 +450,7 @@
       type:"AGP_K07_RESULT_CONTINUATION",
       result_file:result.result_file,
       output_file:result.output_file || null,
+      prompt:result.prompt,
       cycle_id:result.cycle_id || null,
       result_sha256:result.result_sha256 || null
     });

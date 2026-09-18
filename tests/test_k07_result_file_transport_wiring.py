@@ -6,7 +6,8 @@ def test_order():
  assert fn.index("attachResultFiles") < fn.index("chrome.tabs.sendMessage(tabId")
 def test_no_json_payload():
  fn=BG[BG.index("async function agpSubmitFileLoopContinuation"):]
- assert "JSON.stringify" not in fn and "Attached is the result file" in fn
+ assert "JSON.stringify" not in fn and "prompt: continuationPrompt" in fn
+ assert "Attached is the result file for the command you gave me" not in fn
 def test_fail_loud_confirmation():
  fn=BG[BG.index("async function agpAttachFileLoopResultBundle"):]
  assert 'stage !== "RESULT_FILE_ATTACHED"' in fn

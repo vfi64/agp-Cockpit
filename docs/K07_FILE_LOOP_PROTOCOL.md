@@ -31,16 +31,16 @@ Every attempted local step has these correlated values:
 - exactly one newly created canonical return bundle when the runner can produce one;
 - the SHA-256 of every file sent back to the remote conversation.
 
-The bridge returns both the result-file path and the output-log path. The browser attaches both files in one file-input operation before sending the fixed continuation sentence. A replay returns the preserved paths and is marked `replayed`; it does not execute the command or send a second continuation.
+The bridge returns both the result-file path and the output-log path together with a continuation prompt derived from the result status. The browser attaches both files in one file-input operation before sending that exact prompt. A failed step therefore tells the remote model explicitly that recovery is required, whether the real run was reached, and that a new numbered command file must be returned. A replay returns the preserved paths and is marked `replayed`; it does not execute the command or send a second continuation.
 
 ### Failure matrix
 
 | Failure | Required local result | Evidence sent to remote model | Allowed next action |
 |---|---|---|---|
 | missing or unsafe `.py` attachment | fail before execution | authenticated bridge error and diagnostic event | request a new command file |
-| compile or self-test failure | failed return bundle if possible | return bundle plus `__run_next_output.txt` | repair command only |
-| runtime non-zero exit | failed return bundle | return bundle plus `__run_next_output.txt` | repair command only |
-| no return bundle with exit 0 | synthesized failed bundle | synthesized bundle plus `__run_next_output.txt` | repair command only |
+| compile or self-test failure | failed return bundle if possible | return bundle plus `__run_next_output.txt` and recovery prompt | repair command only |
+| runtime non-zero exit | failed return bundle | return bundle plus `__run_next_output.txt` and recovery prompt | repair command only |
+| no return bundle with exit 0 | synthesized failed bundle | synthesized bundle plus `__run_next_output.txt` and recovery prompt | repair command only |
 | malformed or incomplete JSON bundle | preserve it as untrusted evidence | bundle plus `__run_next_output.txt` and validation metadata | repair command only |
 | multiple bundles | fail closed; do not select one | `__run_next_output.txt` and bounded bridge diagnostic | human or repair command after diagnosis |
 | result attachment failure | keep local evidence and durable state | no false remote success; retry attachment with same files only | bounded transport retry or human |

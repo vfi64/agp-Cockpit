@@ -25,4 +25,7 @@ def test_browser_result_transport_preserves_existing_cycle_correlation():
     assert 'result_sha256:result.result_sha256 || null' in content
     assert 'event:"BROWSER_RESULT_EVIDENCE_ATTACHED"' in background
     assert 'event:"CONTINUATION_SENT"' in background
+    assert 'prompt:result.prompt' in content
+    assert 'const continuationPrompt = String(message.prompt || "").trim();' in background
+    assert 'prompt: continuationPrompt' in background
     assert 'cycle_id:cycleId || null' in background
