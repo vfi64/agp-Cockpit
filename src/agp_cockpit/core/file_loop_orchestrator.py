@@ -9,6 +9,7 @@ REPLAY_CONTINUATION_TEXT="This command file was already executed and is being re
 @dataclass(frozen=True)
 class LoopOutcome:
     state:RemoteState;run:FileLoopRun|None=None;human_reason:str|None=None;continuation_text:str|None=None
+    replayed:bool=False
 def _load(path:Path)->dict:
     if not path.exists():return {}
     data=json.loads(path.read_text(encoding="utf-8"));return data if isinstance(data,dict) else {}
@@ -33,6 +34,7 @@ def consume_command_file(source:Path,root:Path,state_file:Path,stem:str="remote_
             RemoteState.COMMAND_FILE,
             run=run,
             continuation_text=REPLAY_CONTINUATION_TEXT,
+            replayed=True,
         )
     command=accept_command_file(source,root/"Download",stem);run=execute_with_run_next(root,command)
     _save(state_file,{"last_command_sha256":fp,"step":run.step,"return_bundle":str(run.return_bundle),"command_file":str(run.command_file)})

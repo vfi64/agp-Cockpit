@@ -442,6 +442,9 @@
     ) {
       throw new Error("K07 command-file bridge response incomplete");
     }
+    if (result.replayed === true) {
+      return result;
+    }
     // AGP_K07_RESULT_CONTINUATION_CALL_991
     const continuation = await chrome.runtime.sendMessage({
       type:"AGP_K07_RESULT_CONTINUATION",

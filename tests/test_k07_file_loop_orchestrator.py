@@ -7,9 +7,9 @@ def fixture_root(tmp_path):
     dl=tmp_path/"Download";dl.mkdir();(dl/"run_next.py").write_text("import sys\nfrom pathlib import Path\nn=int(sys.argv[1]);d=Path(__file__).parent\n(d/f'{n:03d}_x_return_bundle.json').write_text('{}')\n");return tmp_path
 def test_attachment_exactly_once(tmp_path):
     root=fixture_root(tmp_path);state=root/".local/state.json";incoming=tmp_path/"incoming.py";incoming.write_text("print('x')\n")
-    o=consume_command_file(incoming,root,state);assert o.state is RemoteState.COMMAND_FILE and o.run.return_bundle.exists() and o.continuation_text==CONTINUATION_TEXT
+    o=consume_command_file(incoming,root,state);assert o.state is RemoteState.COMMAND_FILE and o.run.return_bundle.exists() and o.continuation_text==CONTINUATION_TEXT and o.replayed is False
     replay=consume_command_file(incoming,root,state)
-    assert replay.run.return_bundle.exists() and replay.continuation_text==REPLAY_CONTINUATION_TEXT
+    assert replay.run.return_bundle.exists() and replay.continuation_text==REPLAY_CONTINUATION_TEXT and replay.replayed is True
 def test_done_and_human(tmp_path):
     state=tmp_path/"state.json";assert consume_terminal_reply("AGP_DONE",state).state is RemoteState.DONE
     state.unlink();o=consume_terminal_reply("AGP_NEEDS_HUMAN\nConfirm login.",state);assert o.state is RemoteState.NEEDS_HUMAN and o.human_reason=="Confirm login."

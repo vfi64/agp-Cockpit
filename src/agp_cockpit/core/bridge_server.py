@@ -58,6 +58,7 @@ class CockpitBridgeServer:
         self._durable_db_path = self.runtime_root / "protocol-v1-actions.sqlite3"
         self.local_task_contract = local_task_contract
         self._durable_controllers: dict[str, DurableTaskController] = {}
+        self._file_loop_lock = threading.Lock()
 
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
@@ -95,6 +96,7 @@ class CockpitBridgeServer:
         durable_controller_for = self._durable_controller
         runtime_root = self.runtime_root
         local_task_contract = self.local_task_contract
+        file_loop_lock = self._file_loop_lock
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -251,6 +253,9 @@ class CockpitBridgeServer:
                     self._json(403, {"error": "forbidden"})
                     return
 
+                file_loop_locked = path == "/v1/file-loop/command"
+                if file_loop_locked:
+                    file_loop_lock.acquire()
                 try:
                     # AGP_K07_COMMAND_FILE_HTTP_989
                     if path == "/v1/file-loop/command":
@@ -336,6 +341,7 @@ class CockpitBridgeServer:
                                 "prompt": outcome.continuation_text,
                                 "cycle_id": cycle_id,
                                 "result_sha256": result_sha256,
+                                "replayed": outcome.replayed,
                             },
                         )
                         return
@@ -854,6 +860,9 @@ class CockpitBridgeServer:
                             "error_id": error_id,
                         },
                     )
+                finally:
+                    if file_loop_locked:
+                        file_loop_lock.release()
 
             def log_message(self, format, *args):
                 return

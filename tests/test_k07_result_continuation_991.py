@@ -12,6 +12,7 @@ def test_existing_result_attachment_authority_is_reused():
     assert "sendResponse({ok:true, stage:\"PROMPT_SENT\"})" in c
     assert 'type:"AGP_K07_RESULT_CONTINUATION"' in c
     assert "result_file:result.result_file" in c
+    assert "if (result.replayed === true)" in c
     assert "async function agpSubmitFileLoopContinuation(tabId, absolutePath, cycleId, resultSha256)" in b
     assert "message.cycle_id, message.result_sha256" in b
     assert "cycle_id:cycleId || null" in b
