@@ -1287,9 +1287,11 @@ async function sendPromptNative(prompt) {
     const mission = STATE.mission;
     if (!mission || STATE.running) return false;
     if (mission.execution_mode !== "LIVE" || mission.run_mode !== "FULL_AUTO") return false;
-    // Task-first desktop missions currently use both "Task · <id>" and "E2E · <id>" titles.
-    // The explicit durable start-request + mission identity is the authority; do not reject E2E acceptance missions by presentation title.
-    if (!/^(Task|E2E) · /.test(String(mission.title || ""))) return false;
+    // Task-first desktop missions use the "Task · <id>", "E2E · <id>", or
+    // "Standard · <label>" title families. The explicit durable start-request
+    // and mission identity remain the authority; this guard only excludes
+    // unrelated expert missions from the task-first autostart path.
+    if (!/^(Task|E2E|Standard) · /.test(String(mission.title || ""))) return false;
     if (!mission.mission_id) return false;
     if (AGP_TASK_FIRST_AUTOSTART_MISSION_ID === mission.mission_id) return false;
     const terminal = new Set(["DONE","COMPLETED","FAILED","ERROR","STOPPED","CANCELLED"]);

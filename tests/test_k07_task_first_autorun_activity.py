@@ -3,6 +3,7 @@ MISSION_CLIENT = Path("src/agp_cockpit/core/mission_http_client.py").read_text()
 
 ROOT=Path(__file__).resolve().parents[1]
 PANEL=(ROOT/"src/agp_cockpit/ui/simple_task_panel.py").read_text()
+STANDARD_PANEL=(ROOT/"src/agp_cockpit/ui/standard_tasks_panel.py").read_text()
 CONTENT=(ROOT/"chrome_extension/content.js").read_text()
 
 def test_task_start_creates_live_full_auto_browser_mission():
@@ -14,7 +15,8 @@ def test_task_start_creates_live_full_auto_browser_mission():
 
 def test_task_first_browser_mission_autostarts_without_affecting_generic_expert_missions():
     assert "async function maybeAutoStartTaskFirstMission" in CONTENT
-    assert '/^(Task|E2E) · /' in CONTENT
+    assert '/^(Task|E2E|Standard) · /' in CONTENT
+    assert 'title=f"Standard · {task.label}"' in STANDARD_PANEL
     assert 'mission.execution_mode !== "LIVE"' in CONTENT
     assert 'mission.run_mode !== "FULL_AUTO"' in CONTENT
     assert "AGP_TASK_FIRST_AUTOSTART_MISSION_ID" in CONTENT

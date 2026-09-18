@@ -18,3 +18,15 @@ Success: native submit dispatched/accepted, user turn committed, native send acc
 
 ## 2026-09-16 Generation 52 — unresolved authorization divergence
 Assistant observed → TURN_SUBMIT_STARTED_CLIENT → TICK_ERROR `ACTION_NOT_AUTHORIZED_BY_LOCAL_TASK_CONTRACT`; READY, turn 0, step 0. Next work is protocol-first authorization reconstruction, not another blind E2E retry.
+
+## 2026-09-18 Standard Task autostart — title-family divergence
+Informative failure: the Standard Tasks button persisted a valid explicit start
+request and created a `LIVE` + `FULL_AUTO` mission, but the browser remained in
+`READY` because the task-first autostart guard accepted only `Task ·` and `E2E ·`
+titles while the existing Standard Tasks panel emits `Standard · <label>`.
+The first divergence was the presentation-title eligibility guard after start
+request identity validation; mission identity, generation, and authority were
+otherwise valid. Repair: include the established `Standard ·` title family in
+the same task-first allowlist and preserve the guard for unrelated expert
+missions. Real browser evidence: manual overlay start completed the first
+file-transfer turn and produced a canonical return bundle before this repair.
