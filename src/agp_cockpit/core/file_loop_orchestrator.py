@@ -30,6 +30,7 @@ def consume_command_file(source:Path,root:Path,state_file:Path,stem:str="remote_
             runner_returncode=int(result.get("runner_returncode", 0)),
             stdout=str(result.get("stdout", "") or ""),
             stderr=str(result.get("stderr", "") or ""),
+            artifact_kind=str(result.get("artifact_kind", "return_bundle") or "return_bundle"),
         )
         return LoopOutcome(
             RemoteState.COMMAND_FILE,
@@ -38,7 +39,7 @@ def consume_command_file(source:Path,root:Path,state_file:Path,stem:str="remote_
             replayed=True,
         )
     command=accept_command_file(source,root/"Download",stem);run=execute_with_run_next(root,command)
-    _save(state_file,{"last_command_sha256":fp,"step":run.step,"return_bundle":str(run.return_bundle),"run_next_output":str(run.run_next_output),"command_file":str(run.command_file)})
+    _save(state_file,{"last_command_sha256":fp,"step":run.step,"return_bundle":str(run.return_bundle),"run_next_output":str(run.run_next_output),"artifact_kind":run.artifact_kind,"command_file":str(run.command_file)})
     return LoopOutcome(RemoteState.COMMAND_FILE,run=run,continuation_text=CONTINUATION_TEXT)
 def consume_terminal_reply(text:str,state_file:Path)->LoopOutcome:
     reply=parse_terminal_reply(text);state=_load(state_file);fp=hashlib.sha256(text.encode()).hexdigest()

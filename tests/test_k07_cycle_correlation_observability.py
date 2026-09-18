@@ -11,6 +11,7 @@ def test_cycle_identity_joins_command_and_result_observation():
     assert '"result_sha256": result_sha256' in BRIDGE
     assert '"output_file": str(output_path)' in BRIDGE
     assert '"output_sha256": output_sha256' in BRIDGE
+    assert '"result_validation": result_validation' in BRIDGE
 
 def test_existing_execution_and_task_authorities_remain():
     assert 'outcome = consume_command_file(' in BRIDGE

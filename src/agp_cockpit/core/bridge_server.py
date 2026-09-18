@@ -323,6 +323,11 @@ class CockpitBridgeServer:
                         result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
                         output_path = Path(outcome.run.run_next_output)
                         output_sha256 = _k07_cycle_hash.sha256(output_path.read_bytes()).hexdigest()
+                        try:
+                            parsed_result = json.loads(result_path.read_text(encoding="utf-8"))
+                            result_validation = {"valid": isinstance(parsed_result, dict), "error": None if isinstance(parsed_result, dict) else "result artifact must be a JSON object"}
+                        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                            result_validation = {"valid": False, "error": f"{type(exc).__name__}: {exc}"}
                         diag.event(
                             "K07_RESULT_BUNDLE_CREATED",
                             component="file-loop",
@@ -334,6 +339,8 @@ class CockpitBridgeServer:
                                 "result_sha256": result_sha256,
                                 "output_file": str(output_path),
                                 "output_sha256": output_sha256,
+                                "artifact_kind": outcome.run.artifact_kind,
+                                "result_validation": result_validation,
                             },
                         )
                         self._json(
@@ -347,6 +354,8 @@ class CockpitBridgeServer:
                                 "result_sha256": result_sha256,
                                 "output_file": str(output_path),
                                 "output_sha256": output_sha256,
+                                "artifact_kind": outcome.run.artifact_kind,
+                                "result_validation": result_validation,
                                 "replayed": outcome.replayed,
                             },
                         )

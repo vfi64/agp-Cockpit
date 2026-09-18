@@ -13,6 +13,7 @@ class FileLoopRun:
     runner_returncode:int
     stdout:str
     stderr:str
+    artifact_kind:str="return_bundle"
 def step_from_command_file(path:Path)->int:
     prefix=path.name.split("_",1)[0]
     if not prefix.isdigit(): raise ValueError("command file must start with numeric step")
@@ -78,6 +79,7 @@ def _materialize_work_order_result(
                 "step": step,
                 "command_file": str(command_file),
                 "execution": "work_order_emitted_by_command_file",
+                "artifact_kind": "return_bundle",
                 "runner_returncode": completed.returncode,
                 "run_next_output": str(download / "__run_next_output.txt"),
                 "work_order": work_order,
@@ -111,11 +113,45 @@ def _materialize_command_failure(
                 "step": step,
                 "command_file": str(command_file),
                 "execution": "command_file_failed",
+                "artifact_kind": "return_bundle",
                 "status": "failed",
                 "failure_reason": reason,
                 "runner_returncode": completed.returncode,
                 "run_next_output": str(download / "__run_next_output.txt"),
                 "work_order": None,
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return result
+
+
+def _materialize_multiple_bundle_diagnostic(
+    download: Path,
+    step: int,
+    command_file: Path,
+    completed: subprocess.CompletedProcess[str],
+    bundles: list[Path],
+) -> Path:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
+    result = download / f"{step}_{command_file.stem}_execution_diagnostic_{stamp}.json"
+    result.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "agp_cockpit_file_loop_execution_diagnostic",
+                "status": "failed",
+                "failure_reason": "multiple new return bundles were produced; none was selected",
+                "step": step,
+                "command_file": str(command_file),
+                "candidate_return_bundles": [str(path) for path in bundles],
+                "runner_returncode": completed.returncode,
+                "run_next_output": str(download / "__run_next_output.txt"),
                 "stdout": completed.stdout,
                 "stderr": completed.stderr,
             },
@@ -161,5 +197,13 @@ def execute_with_run_next(root:Path,command_file:Path,timeout_seconds:int=300)->
                     "local command produced no return artifact or observable output",
                 ).resolve()
             ]
-    if len(created)!=1: raise RuntimeError(f"expected exactly one new return bundle for step {step}, got {len(created)}")
-    return FileLoopRun(step,command_file,created[0],output_log,cp.returncode,cp.stdout,cp.stderr)
+    artifact_kind = "return_bundle"
+    if len(created) > 1:
+        diagnostic = _materialize_multiple_bundle_diagnostic(
+            download, step, command_file, cp, created
+        ).resolve()
+        created = [diagnostic]
+        artifact_kind = "execution_diagnostic"
+    if len(created) != 1:
+        raise RuntimeError(f"expected exactly one new return bundle for step {step}, got {len(created)}")
+    return FileLoopRun(step,command_file,created[0],output_log,cp.returncode,cp.stdout,cp.stderr,artifact_kind)

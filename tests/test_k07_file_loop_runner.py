@@ -34,7 +34,11 @@ def test_successful_command_output_gets_materialized_as_return_bundle(tmp_path):
     assert "status-ok" in data["stdout"]
 def test_two(tmp_path):
     cmd=make(tmp_path,"import sys\nfrom pathlib import Path\nn=int(sys.argv[1]); d=Path(__file__).parent\n(d/f'{n:03d}_a_return_bundle.json').write_text('{}')\n(d/f'{n:03d}_b_return_bundle.json').write_text('{}')\n")
-    with pytest.raises(RuntimeError,match="got 2"): execute_with_run_next(tmp_path,cmd)
+    r=execute_with_run_next(tmp_path,cmd)
+    data=__import__('json').loads(r.return_bundle.read_text())
+    assert r.artifact_kind=="execution_diagnostic"
+    assert data["kind"]=="agp_cockpit_file_loop_execution_diagnostic"
+    assert len(data["candidate_return_bundles"])==2
 
 def test_failed_command_gets_json_return_bundle(tmp_path):
     cmd=make(tmp_path,"import sys\nprint('compile failed: invalid syntax')\nraise SystemExit(1)\n")
