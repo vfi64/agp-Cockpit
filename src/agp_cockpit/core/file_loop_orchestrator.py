@@ -43,16 +43,25 @@ def _continuation_for_run(run:FileLoopRun)->str:
         + f"Command file: {run.command_file}\n")
 def consume_command_file(source:Path,root:Path,state_file:Path,stem:str="remote_command")->LoopOutcome:
     source=source.expanduser().resolve();fp=hashlib.sha256(source.read_bytes()).hexdigest();state=_load(state_file)
-    if state.get("last_command_sha256")==fp:
-        result_path = Path(str(state.get("return_bundle") or ""))
+    history = state.get("command_history", [])
+    if not isinstance(history, list):
+        history = []
+    previous = next(
+        (entry for entry in reversed(history) if isinstance(entry, dict) and entry.get("sha256") == fp),
+        None,
+    )
+    if previous is None and state.get("last_command_sha256") == fp:
+        previous = state
+    if previous is not None:
+        result_path = Path(str(previous.get("return_bundle") or ""))
         if not result_path.is_file():
             raise RuntimeError("duplicate remote command file has no preserved result bundle")
         result = _load(result_path)
         run = FileLoopRun(
-            step=int(state.get("step", 0)),
+            step=int(previous.get("step", 0)),
             command_file=source,
             return_bundle=result_path,
-            run_next_output=Path(str(state.get("run_next_output") or (root / "Download" / "__run_next_output.txt"))),
+            run_next_output=Path(str(previous.get("run_next_output") or (root / "Download" / "__run_next_output.txt"))),
             runner_returncode=int(result.get("runner_returncode", 0)),
             stdout=str(result.get("stdout", "") or ""),
             stderr=str(result.get("stderr", "") or ""),
@@ -65,7 +74,9 @@ def consume_command_file(source:Path,root:Path,state_file:Path,stem:str="remote_
             replayed=True,
         )
     command=accept_command_file(source,root/"Download",stem);run=execute_with_run_next(root,command)
-    _save(state_file,{"last_command_sha256":fp,"step":run.step,"return_bundle":str(run.return_bundle),"run_next_output":str(run.run_next_output),"artifact_kind":run.artifact_kind,"command_file":str(run.command_file)})
+    record={"sha256":fp,"step":run.step,"return_bundle":str(run.return_bundle),"run_next_output":str(run.run_next_output),"artifact_kind":run.artifact_kind,"command_file":str(run.command_file)}
+    history = (history + [record])[-16:]
+    _save(state_file,{"last_command_sha256":fp,"step":run.step,"return_bundle":str(run.return_bundle),"run_next_output":str(run.run_next_output),"artifact_kind":run.artifact_kind,"command_file":str(run.command_file),"command_history":history})
     return LoopOutcome(RemoteState.COMMAND_FILE,run=run,continuation_text=_continuation_for_run(run))
 def consume_terminal_reply(text:str,state_file:Path)->LoopOutcome:
     reply=parse_terminal_reply(text);state=_load(state_file);fp=hashlib.sha256(text.encode()).hexdigest()

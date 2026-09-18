@@ -28,10 +28,13 @@ def test_turn_counting_happens_after_successful_submit():
     command_increment = fn.index("STATE.turns += 1;", command_submit)
     legacy_submit = fn.index("const result = await submitAssistant(text);")
     legacy_increment = fn.index("STATE.turns += 1;", legacy_submit)
+    prompt_increment = fn.rindex("STATE.turns += 1;")
     legacy_branch = fn.index('if (result.action !== "continue" || !result.prompt)', legacy_submit)
+    prompt_send = fn.index("await sendPrompt(result.prompt);", legacy_submit)
     assert command_submit < command_increment < legacy_submit
-    assert legacy_submit < legacy_increment < legacy_branch
-    assert fn.count("STATE.turns += 1;") == 2
+    assert legacy_submit < legacy_branch < legacy_increment
+    assert prompt_send < prompt_increment
+    assert fn.count("STATE.turns += 1;") == 3
 
 def test_old_prompt_based_turn_increment_removed():
     s = source()

@@ -750,6 +750,12 @@ class CockpitBridgeServer:
                         state=engine.runtime.state
                         if not mission_id or state is None or state.mission_id != mission_id:
                             raise ValueError("start request must target current mission")
+                        if state.browser_transport_blocked:
+                            raise RuntimeError(
+                                "browser transport is blocked after an unverified send; "
+                                "reload the AGP Cockpit extension and the ChatGPT tab, "
+                                "then retry after a fresh extension handshake"
+                            )
                         self._json(
                             200,
                             StartRequestStore(runtime_root).request(

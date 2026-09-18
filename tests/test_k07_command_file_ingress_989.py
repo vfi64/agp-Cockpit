@@ -131,3 +131,45 @@ def test_concurrent_duplicate_command_file_is_executed_once(tmp_path):
         assert len(list(download.glob("*_concurrent_command.py"))) == 1
     finally:
         runtime.stop()
+
+
+def test_nonconsecutive_duplicate_command_file_is_replayed(tmp_path):
+    download = tmp_path / "Download"
+    download.mkdir()
+    (download / "run_next.py").write_text(
+        "import sys\n"
+        "from pathlib import Path\n"
+        "n=int(sys.argv[1]);d=Path(__file__).parent\n"
+        "marker=d/'runner_count.txt'\n"
+        "marker.write_text(str(int(marker.read_text() or '0')+1) if marker.exists() else '1')\n"
+        "(d/f'{n:03d}_ok_return_bundle.json').write_text('{}')\n",
+        encoding="utf-8",
+    )
+    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    info = runtime.start()
+
+    def submit(content: str, message_id: str):
+        req = Request(
+            f"http://127.0.0.1:{info.port}/v1/file-loop/command",
+            method="POST",
+            data=json.dumps({
+                "filename": "command.py",
+                "content": content,
+                "href": f"https://chatgpt.com/backend-api/files/{message_id}",
+                "message_id": message_id,
+            }).encode("utf-8"),
+            headers={"X-AGP-Token": info.token, "Content-Type": "application/json"},
+        )
+        with urlopen(req, timeout=10) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    try:
+        first = submit("print('first')\n", "first")
+        submit("print('different')\n", "different")
+        replay = submit("print('first')\n", "repeated-first")
+        assert first["replayed"] is False
+        assert replay["replayed"] is True
+        assert replay["result_file"] == first["result_file"]
+        assert (download / "runner_count.txt").read_text(encoding="utf-8") == "2"
+    finally:
+        runtime.stop()

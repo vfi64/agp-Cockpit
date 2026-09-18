@@ -1536,10 +1536,11 @@ async function sendPromptNative(prompt) {
     }
 
     // AGP_TURN_ACCOUNTING_064_R1
-    STATE.turns += 1;
-    render();
-
     if (result.action !== "continue" || !result.prompt) {
+      // Count a terminal assistant response only after its result has been
+      // accepted. A failed prompt insertion is not a completed turn.
+      STATE.turns += 1;
+      render();
       stop(
         `${result.state}: ${result.note || ""}`,
         result.state || "AUTO_STOPPED"
@@ -1552,6 +1553,10 @@ async function sendPromptNative(prompt) {
     k07DebugTrace("PROMPT_SEND_REQUESTED",{chars:String(result.prompt||"").length});
     await sendPrompt(result.prompt);
     k07DebugTrace("PROMPT_SENT");
+    // The turn is committed only after native transport has acknowledged the
+    // next prompt. INSERT_NOT_VERIFIED must not advance the counter.
+    STATE.turns += 1;
+    render();
 
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
