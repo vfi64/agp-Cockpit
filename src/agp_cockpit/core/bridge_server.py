@@ -356,6 +356,9 @@ class CockpitBridgeServer:
                                 "output_sha256": output_sha256,
                                 "artifact_kind": outcome.run.artifact_kind,
                                 "result_validation": result_validation,
+                                "result_status": parsed_result.get("status") if isinstance(parsed_result, dict) else None,
+                                "result_execution": parsed_result.get("execution") if isinstance(parsed_result, dict) else None,
+                                "failure_reason": parsed_result.get("failure_reason") if isinstance(parsed_result, dict) else None,
                                 "replayed": outcome.replayed,
                             },
                         )

@@ -1513,10 +1513,17 @@ async function sendPromptNative(prompt) {
       if (commandFiles.length !== 1) {
         throw new Error(`expected exactly one assistant .py attachment; observed ${commandFiles.length}`);
       }
-      await submitAssistantCommandFile();
+      const commandResult = await submitAssistantCommandFile();
       if (!STATE.running || STATE.runGeneration !== runGeneration) return;
       STATE.turns += 1;
-      STATE.lastEvent = "K07_COMMAND_FILE_TURN_COMPLETE";
+      const failed = commandResult.result_status === "failed" || commandResult.artifact_kind === "execution_diagnostic";
+      STATE.lastEvent = failed ? "K07_COMMAND_FILE_TURN_FAILED" : "K07_COMMAND_FILE_TURN_COMPLETE";
+      STATE.note = failed
+        ? String(commandResult.failure_reason || "local command execution failed; recovery requested")
+        : "local command completed; continuation requested";
+      STATE.waitingForAssistant = true;
+      STATE.assistantWaitStartedAt = Date.now();
+      resetCandidate();
       render();
       return;
     }

@@ -38,4 +38,5 @@ def test_result_prompt_must_leave_composer_before_next_turn_is_claimed():
     process = source[source.index("async function processCompletedAssistant("):source.index("async function tick()")]
     assert "await sendPrompt(result.prompt);" in process
     assert "result prompt remained in composer after send acknowledgement" in process
-    assert process.index("await sendPrompt(result.prompt);") < process.index("STATE.waitingForAssistant = true;")
+    legacy = process[process.index("const result = await submitAssistant(text);"):]
+    assert legacy.index("await sendPrompt(result.prompt);") < legacy.index("STATE.waitingForAssistant = true;")
