@@ -1,8 +1,15 @@
-from pathlib import Path
 import sys
+from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/"src"))
 import pytest
-from agp_cockpit.core.file_loop_runner import step_from_command_file,execute_with_run_next
+
+from agp_cockpit.core.file_loop_runner import (
+    execute_with_run_next,
+    step_from_command_file,
+)
+
+
 def test_step():
     assert step_from_command_file(Path("936_probe.py"))==936
     with pytest.raises(ValueError): step_from_command_file(Path("probe.py"))
@@ -51,3 +58,19 @@ def test_failed_command_gets_json_return_bundle(tmp_path):
     assert data["runner_returncode"]==1
     assert data["work_order"] is None
     assert "compile failed" in data["stdout"]
+
+def test_runner_uses_step_scoped_log_when_available(tmp_path):
+    cmd=make(tmp_path,"import sys\nfrom pathlib import Path\nn=int(sys.argv[1]); d=Path(__file__).parent\n(d/f'{n}_run_next_output.txt').write_text('immutable-log')\n(d/f'{n:03d}_probe_return_bundle.json').write_text('{}')\n")
+    r=execute_with_run_next(tmp_path,cmd)
+    assert r.run_next_output == tmp_path / "Download" / "1_run_next_output.txt"
+
+def test_invalid_return_bundle_becomes_failed_diagnostic(tmp_path):
+    cmd=make(tmp_path,"import sys\nfrom pathlib import Path\nn=int(sys.argv[1]); d=Path(__file__).parent\n(d/f'{n:03d}_probe_return_bundle.json').write_text('not-json')\n")
+    r=execute_with_run_next(tmp_path,cmd)
+    data=__import__('json').loads(r.return_bundle.read_text())
+    assert r.artifact_kind=="execution_diagnostic"
+    assert data["kind"]=="agp_cockpit_file_loop_execution_diagnostic"
+    assert data["status"]=="failed"
+    assert data["candidate_return_bundle"].endswith("001_probe_return_bundle.json")
+    assert "JSONDecodeError" in data["candidate_return_bundle_error"]
+    assert Path(data["candidate_return_bundle"]).exists()

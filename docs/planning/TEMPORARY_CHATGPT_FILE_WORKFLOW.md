@@ -30,6 +30,10 @@ This is the canonical human↔ChatGPT development transport while Cockpit is not
 - Prefer the largest safe coherent step instead of chains of tiny diagnostic assignments.
 - Every assignment must support `--self-test` because `run_next.py` performs compile,
   self-test, then real execution.
+- The real run must create exactly one new parseable JSON-object return bundle. The
+  runner fails closed before reporting `RUN_NEXT PASS` when that contract is not met.
+- The runner prefers the repository `.venv/bin/python` when it exists, while the
+  human-facing command remains unchanged.
 - Every assignment must print and record the current `COMMAND_MANIFEST_ACK`.
 - Product failures must remain fail-loud; do not fabricate recovery or widen authority.
 

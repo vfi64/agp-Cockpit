@@ -1,17 +1,22 @@
 from __future__ import annotations
+
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
-import hashlib,json
-from .file_loop_protocol import RemoteState,parse_terminal_reply,accept_command_file
-from .file_loop_runner import FileLoopRun,execute_with_run_next
+
+from .file_loop_protocol import RemoteState, accept_command_file, parse_terminal_reply
+from .file_loop_runner import FileLoopRun, execute_with_run_next
+
 CONTINUATION_TEXT="Attached is the result file. Evaluate it and continue the current task. Return exactly one Python command file if more local work is required; otherwise finish or request human input."
 REPLAY_CONTINUATION_TEXT="This command file was already executed and is being replayed idempotently. Read the attached existing result file; do not return the same command again. Continue the current task or finish."
 RECOVERY_CONTINUATION_PREFIX="""The attached local execution evidence reports a FAILED command-file step.
 Recovery is required. Do not claim that the requested Kit operation ran successfully.
-Read both attached files completely: the canonical return bundle and __run_next_output.txt.
+Read both attached files completely: the canonical return bundle and the immutable step-scoped run_next log.
 If the failure is a syntax/compile failure, the real run was never reached and no Kit command was executed.
 Return exactly one newly numbered Python command file that corrects the diagnosed failure.
 The replacement file must execute the intended local work during its real run and create exactly one canonical return bundle.
+The return-bundle file must contain exactly one parseable JSON object; do not append shell output, ACK text, or diagnostics to that file.
 Do not return prose, a JSON command description, or the same broken file. Do not bypass the local runner, Kit gates, or evidence requirements.
 """
 @dataclass(frozen=True)

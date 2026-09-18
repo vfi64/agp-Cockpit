@@ -51,3 +51,24 @@ Informative failure: a remote command file reached `Download/` and `run_next.py`
 Informative failure: `1415_037_chat_switch_complete_work_order.py` passed compile and self-test and exited with code 0, but its real run only printed a JSON object describing `agentic-kit transfer chat-switch-complete --json`. It did not invoke the Kit command and did not create a handoff result bundle itself. The previous runner converted that printed declaration into a synthetic success bundle. Repair: stdout declarations are now diagnostic only; a command file must execute the authorized local operation and create its own canonical bundle. JSON-only output becomes a failed step with the runner log attached, and the Standard Task prompt now states this executable-file contract explicitly.
 
 Informative failure: `1417_038_chat_switch_execute_validate_and_bundle.py` was accepted as an attachment, but `run_next.py` stopped at `py_compile` with an `IndentationError` on line 78. The real run and Kit command were therefore never reached. The bridge already preserved a failed return bundle and `__run_next_output.txt`, but the browser extension discarded the bridge's specific recovery prompt and sent only a generic continuation sentence. Repair: propagate the server-provided prompt through the content/background extension boundary; failed evidence now explicitly requires diagnosis and one newly numbered corrected command file, while remaining fail-closed and bounded by the mission/step limits.
+
+## 2026-09-18 K07 — runner contract and environment hardening
+
+Informative failures: `1419_042_chat_switch_standard_task.py` passed compile,
+self-test, and the real run with exit code 0 but created no return bundle;
+`1420_042_chat_switch_standard_task.py` was truncated and failed with an
+`IndentationError` before the real run. A further audit found that a generated
+bundle can exist while containing invalid JSON, as in an older `1387` work
+order that wrote a literal `\\n` suffix and appended an acknowledgement after
+the JSON object.
+
+The first two failures are distinct: the former is an execution-contract
+failure, the latter an attachment-integrity failure. The local runner now
+prefers the repository `.venv/bin/python` while preserving the unchanged human
+entry point, writes non-overwriting step-scoped log snapshots, and refuses to
+report `RUN_NEXT PASS` unless the real run creates exactly one parseable JSON
+object. The versioned Cockpit executor independently converts invalid bundles
+into one failed diagnostic bundle naming the raw candidate, preserving the
+runner log and recovery evidence. Learning: compile/self-test success does not
+prove real execution, exit code 0 does not prove result evidence, and a file
+existence check does not prove JSON validity.
