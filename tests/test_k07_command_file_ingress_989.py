@@ -38,7 +38,9 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
     (download / "run_next.py").write_text(
         "import sys\n"
         "from pathlib import Path\n"
+        "import json\n"
         "n=int(sys.argv[1]);d=Path(__file__).parent\n"
+        "(d/'runner_invoked.json').write_text(json.dumps({'argv':sys.argv[1:]}))\n"
         "(d/f'{n:03d}_ok_return_bundle.json').write_text('{}')\n",
         encoding="utf-8",
     )
@@ -68,6 +70,9 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         assert "Return exactly one Python command file" in data["prompt"]
         commands = list(download.glob("*_next_command.py"))
         assert len(commands) == 1
+        assert commands[0].read_text(encoding="utf-8") == "print('safe fixture')\n"
+        assert json.loads((download / "runner_invoked.json").read_text(encoding="utf-8"))["argv"] == ["1"]
+        assert Path(data["result_file"]).parent == download
     finally:
         runtime.stop()
 

@@ -23,9 +23,8 @@ def test_turn_accounting_is_generation_fenced():
 def test_format_repair_rebaselines_and_rearms():
     start = C.index('STATE.lastEvent = "ASSISTANT_FORMAT_REPAIR"')
     block = C[start:start + 1800]
-    assert "STATE.assistantBaselineCount = assistantMessageNodes().length" in block
-    assert "STATE.assistantBaselineMessageId = lastAssistantMessageId()" in block
-    assert block.index("STATE.assistantBaselineMessageId") < block.index("await sendPrompt(formatRepairPrompt")
+    assert "captureAssistantBaseline()" in block
+    assert block.index("captureAssistantBaseline()") < block.index("await sendPrompt(formatRepairPrompt")
     assert "STATE.waitingForAssistant = true" in block
     assert "STATE.runGeneration !== repairGeneration" in block
 

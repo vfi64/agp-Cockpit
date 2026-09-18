@@ -30,3 +30,17 @@ otherwise valid. Repair: include the established `Standard ·` title family in
 the same task-first allowlist and preserve the guard for unrelated expert
 missions. Real browser evidence: manual overlay start completed the first
 file-transfer turn and produced a canonical return bundle before this repair.
+
+## 2026-09-18 Standard Task — stale assistant baseline and attachment ingress
+Informative failure: the explicit start request was accepted and native
+bootstrap submission reached ChatGPT, but a long-lived conversation contained
+older assistant replies and file buttons. The observer used only the last
+assistant message id as its baseline, so the current turn could be confused
+with historical conversation DOM. The run then failed closed with
+`K07_FILE_TRANSFER_ATTACHMENT_REQUIRED` after observing no current `.py`
+attachment. Repair: capture the complete pre-turn assistant message-id set,
+exclude that set from text and attachment selection, and accept bounded UI
+label variants only when the filename still contains a `.py` suffix. The
+file-loop boundary remains strict: exactly one current `.py` attachment is
+materialized into `Download/`, executed only through `run_next.py`, and
+returned as one canonical JSON bundle. No prose or JSON fallback was added.

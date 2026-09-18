@@ -28,6 +28,7 @@
     candidateStablePolls: 0,
     attachmentWaitStartedAt: 0,
     assistantBaselineCount: 0,
+    assistantBaselineMessageIds: [],
     assistantBaselineMessageId: "",
     observedAssistantMessageId: "",
     assistantBaselineText: "",
@@ -220,6 +221,29 @@
     return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
   }
 
+  // AGP_K07_ASSISTANT_BASELINE_SET_1404
+  // A long-lived ChatGPT conversation can contain older assistant attachments
+  // and replies. The last message id alone is not a sufficient boundary: the
+  // selector must exclude the complete pre-turn assistant set.
+  function assistantBaselineIds() {
+    return new Set(
+      Array.isArray(STATE.assistantBaselineMessageIds)
+        ? STATE.assistantBaselineMessageIds.map(String).filter(Boolean)
+        : []
+    );
+  }
+
+  function captureAssistantBaseline() {
+    const nodes = assistantMessageNodes();
+    STATE.assistantBaselineMessageIds = nodes
+      .map(node => String(node.getAttribute("data-message-id") || ""))
+      .filter(Boolean);
+    STATE.assistantBaselineCount = nodes.length;
+    STATE.assistantBaselineMessageId = lastAssistantMessageId();
+    STATE.observedAssistantMessageId = "";
+    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+  }
+
   // AGP_K07_IDENTITY_AWARE_ASSISTANT_SELECTION_1212
   function selectedAssistantMessageNode() {
     const nodes = assistantMessageNodes();
@@ -229,12 +253,12 @@
       const observed = nodes.find(node => String(node.getAttribute("data-message-id") || "") === observedId);
       if (observed) return observed;
     }
-    const baselineId = String(STATE.assistantBaselineMessageId || "");
+    const baselineIds = assistantBaselineIds();
     const nonBaseline = nodes.filter(node => {
       const id = String(node.getAttribute("data-message-id") || "");
-      return id && id !== baselineId && !id.startsWith("request-placeholder");
+      return id && !baselineIds.has(id) && !id.startsWith("request-placeholder");
     });
-    if (nonBaseline.length === 1) return nonBaseline[0];
+    if (nonBaseline.length) return nonBaseline[nonBaseline.length - 1];
     const nonPlaceholder = nodes.filter(
       node => !String(node.getAttribute("data-message-id") || "").startsWith("request-placeholder")
     );
@@ -295,10 +319,10 @@
     // Use the same identity-aware selection as assistant text extraction. The
     // ChatGPT DOM can contain virtualized or stale assistant nodes alongside
     // the currently observed response.
-    const baselineId = String(STATE.assistantBaselineMessageId || "");
+    const baselineIds = assistantBaselineIds();
     const assistant = [...nodes].reverse().find(node => {
       const id = String(node.getAttribute("data-message-id") || "");
-      if (baselineId && id === baselineId) return false;
+      if (id && baselineIds.has(id)) return false;
       return node.querySelector('a[href$=".py"], button[aria-label$=".py"]');
     }) || selectedAssistantMessageNode();
     if (!assistant) return [];
@@ -314,8 +338,11 @@
         const name = label.split("/").pop().trim();
         return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor};
       })
+      .filter(item => (
+        /\.py(?:$|[?#\s])/i.test(item.name || "") ||
+        /\.py(?:$|[?#])/i.test(item.href || "")
+      ))
       .filter(item =>
-        /\.py(?:$|[?#])/i.test(item.name || item.href) &&
         (item.href || item.isButton)
       );
     const unique = new Map();
@@ -1508,10 +1535,7 @@ async function sendPromptNative(prompt) {
       return;
     }
 
-    STATE.assistantBaselineCount = assistantMessageNodes().length;
-    STATE.assistantBaselineMessageId = lastAssistantMessageId();
-    STATE.observedAssistantMessageId = "";
-    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    captureAssistantBaseline();
     k07DebugTrace("PROMPT_SEND_REQUESTED",{chars:String(result.prompt||"").length});
     await sendPrompt(result.prompt);
     k07DebugTrace("PROMPT_SENT");
@@ -1551,11 +1575,7 @@ async function sendPromptNative(prompt) {
     // total assistant-node count. Prefer stable message identity over
     // node-count growth. Count remains only as a fallback when ChatGPT
     // does not expose message IDs.
-    if (
-      STATE.assistantBaselineMessageId &&
-      newestMessageId &&
-      newestMessageId === STATE.assistantBaselineMessageId
-    ) {
+    if (newestMessageId && assistantBaselineIds().has(newestMessageId)) {
       return "";
     }
 
@@ -1715,7 +1735,7 @@ async function sendPromptNative(prompt) {
           STATE.note = `Antwortformat wird automatisch repariert · ${repairAttempt}/${AGP_MAX_FORMAT_REPAIR_ATTEMPTS}`;
           await clientEvent("ASSISTANT_FORMAT_REPAIR", {attempt:repairAttempt, max_attempts:AGP_MAX_FORMAT_REPAIR_ATTEMPTS, chars:text.length});
           STATE.lastAssistantHash = await digest(text);
-          STATE.assistantBaselineCount = assistantMessageNodes().length;
+          captureAssistantBaseline();
           /* K07_POST_REPAIR_COMPLETION_RESET */
           STATE.assistantCandidateText = "";
           STATE.assistantCandidateStablePolls = 0;
@@ -2158,10 +2178,7 @@ async function sendPromptNative(prompt) {
     }
 
     STATE.lastAssistantHash = await digest(lastAssistantText());
-    STATE.assistantBaselineCount = assistantMessageNodes().length;
-    STATE.assistantBaselineMessageId = lastAssistantMessageId();
-    STATE.observedAssistantMessageId = "";
-    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    captureAssistantBaseline();
     resetCandidate();
     await sendPrompt(pending);
 
@@ -2229,10 +2246,7 @@ async function sendPromptNative(prompt) {
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
     }
-    STATE.assistantBaselineCount = assistantMessageNodes().length;
-    STATE.assistantBaselineMessageId = lastAssistantMessageId();
-    STATE.observedAssistantMessageId = "";
-    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    captureAssistantBaseline();
     resetCandidate();
 
     const bootstrap = missionBootstrapPrompt(mission);

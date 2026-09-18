@@ -53,6 +53,15 @@ class StandardTasksPanel(ttk.Frame):
     def start_standard_task(self, task: StandardTask) -> None:
         contract = task.contract(self.repository_root)
         self.detail_var.set(task.description)
+        required_tools = {"git", "agentic-kit"}
+        missing_tools = sorted(required_tools - set(self.api.local_contract.allowed_tools))
+        if missing_tools:
+            self.status_var.set(
+                "BLOCKED — lokale Authority fehlt: "
+                + ", ".join(missing_tools)
+                + ". Für diesen Standard Task müssen die Tools ausdrücklich freigegeben sein."
+            )
+            return
         try:
             prepared = self.api.prepare_task_contract(contract)
             status = self.api.start_task_from_contract(prepared)

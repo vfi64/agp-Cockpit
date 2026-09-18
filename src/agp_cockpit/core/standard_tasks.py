@@ -36,8 +36,9 @@ def _chat_switch_contract(repository_root: Path) -> dict:
             "A detailed successor prompt is produced with absolute paths.",
             "No further development work starts after a PASS result.",
         ],
-        "constraints": [
+    "constraints": [
             "Use the repository's current Agentic Project Kit authority and contracts.",
+            "The local authority must explicitly allow both git and agentic-kit.",
             "Do not change product files during handoff preparation.",
             "Fail closed on missing or invalid handoff evidence.",
         ],
