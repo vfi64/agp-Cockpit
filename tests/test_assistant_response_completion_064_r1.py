@@ -46,8 +46,10 @@ def test_k07_requires_new_assistant_node_after_submit() -> None:
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js").read_text(encoding="utf-8")
     assert "function assistantMessageNodes()" in source
+    assert "function assistantBaselineIds()" in source
+    assert "function captureAssistantBaseline()" in source
+    assert "STATE.assistantBaselineMessageIds = nodes" in source
     assert "function newAssistantTextAfterBaseline()" in source
     assert "nodes.length <= STATE.assistantBaselineCount" in source
     tick = source[source.index("async function tick()"):]
     assert "const text = newAssistantTextAfterBaseline();" in tick
-    assert "STATE.assistantBaselineCount = assistantMessageNodes().length;" in source
