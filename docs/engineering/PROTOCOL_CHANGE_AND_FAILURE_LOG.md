@@ -72,3 +72,17 @@ into one failed diagnostic bundle naming the raw candidate, preserving the
 runner log and recovery evidence. Learning: compile/self-test success does not
 prove real execution, exit code 0 does not prove result evidence, and a file
 existence check does not prove JSON validity.
+
+## 2026-09-18 K07 — owned recovery draft was treated as foreign
+
+Informative failure: step `1426` was automatically executed and correctly
+produced a failed bundle plus `__run_next_output.txt` after the attached command
+file failed at `py_compile` with an `IndentationError`. Result delivery then
+stopped because the browser composer contained the Cockpit-generated recovery
+prompt, while the native transport recognized only bootstrap and normal-result
+drafts as Cockpit-owned. The recovery prompt was therefore incorrectly treated
+as foreign composer content. Repair: recognize the stable Cockpit recovery
+prefix as owned while retaining the fail-closed refusal for unrelated non-empty
+composer text. The local-run failure was not an autostart failure; it was an
+attachment-integrity failure followed by a recovery-transport classification
+failure.

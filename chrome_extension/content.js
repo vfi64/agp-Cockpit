@@ -703,7 +703,8 @@
   function isKnownCockpitDraft(text) {
     const value = normalizeObservedMessageText(text);
     return value.includes("AGP COCKPIT MISSION — FIRST SINGLE STEP") ||
-      value.includes("Attached is the result file for the command you gave me.");
+      value.includes("Attached is the result file for the command you gave me.") ||
+      value.includes("The attached local execution evidence reports a FAILED command-file step.");
   }
 
   function chatgptGenerationActive() {
