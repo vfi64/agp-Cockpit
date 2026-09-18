@@ -20,27 +20,6 @@ def step_from_command_file(path:Path)->int:
     return int(prefix)
 
 
-def _work_order_output(stdout: str) -> dict | None:
-    """Return a valid work-order object from the runner's final output line."""
-    for line in reversed(stdout.splitlines()):
-        candidate = line.strip()
-        if not candidate:
-            continue
-        try:
-            value = json.loads(candidate)
-        except json.JSONDecodeError:
-            continue
-        if (
-            isinstance(value, dict)
-            and isinstance(value.get("argv"), list)
-            and value.get("argv")
-            and isinstance(value.get("cwd"), str)
-            and value.get("cwd").strip()
-        ):
-            return value
-    return None
-
-
 def _contains_command_output(stdout: str) -> bool:
     """Distinguish command output from the fixed run_next progress banners."""
     noise = (
@@ -60,39 +39,6 @@ def _contains_command_output(stdout: str) -> bool:
         and not line.strip().startswith(noise)
         for line in stdout.splitlines()
     )
-
-
-def _materialize_work_order_result(
-    download: Path,
-    step: int,
-    command_file: Path,
-    completed: subprocess.CompletedProcess[str],
-    work_order: dict,
-) -> Path:
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
-    result = download / f"{step}_{command_file.stem}_run_{stamp}_return_bundle.json"
-    result.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "kind": "agp_cockpit_file_loop_return_bundle",
-                "step": step,
-                "command_file": str(command_file),
-                "execution": "work_order_emitted_by_command_file",
-                "artifact_kind": "return_bundle",
-                "runner_returncode": completed.returncode,
-                "run_next_output": str(download / "__run_next_output.txt"),
-                "work_order": work_order,
-                "stdout": completed.stdout,
-                "stderr": completed.stderr,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return result
 
 
 def _materialize_command_failure(
@@ -174,29 +120,13 @@ def execute_with_run_next(root:Path,command_file:Path,timeout_seconds:int=300)->
     after={p.resolve() for p in download.glob(f"{step:03d}_*_return_bundle.json")}
     created=sorted(after-before)
     if not created:
-        work_order = _work_order_output(cp.stdout)
         if cp.returncode != 0:
-            created = [
-                _materialize_command_failure(
-                    download, step, command_file, cp, "local command returned a non-zero status"
-                ).resolve()
-            ]
-        elif work_order is not None or _contains_command_output(cp.stdout):
-            created = [
-                _materialize_work_order_result(
-                    download, step, command_file, cp, work_order
-                ).resolve()
-            ]
+            reason = "local command returned a non-zero status"
+        elif _contains_command_output(cp.stdout):
+            reason = "local command did not create a return bundle; stdout is diagnostic only"
         else:
-            created = [
-                _materialize_command_failure(
-                    download,
-                    step,
-                    command_file,
-                    cp,
-                    "local command produced no return artifact or observable output",
-                ).resolve()
-            ]
+            reason = "local command produced no return artifact or observable output"
+        created = [_materialize_command_failure(download, step, command_file, cp, reason).resolve()]
     artifact_kind = "return_bundle"
     if len(created) > 1:
         diagnostic = _materialize_multiple_bundle_diagnostic(

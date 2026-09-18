@@ -18,6 +18,8 @@ The normal non-terminal cycle is a bounded state machine, not a best-effort prom
 
 The Cockpit may advance only on evidence for the current transition. A browser acknowledgement, a zero exit code, or a visible success sentence is not completion evidence by itself.
 
+A Python command file must perform the authorized local operation and write its own canonical return bundle. JSON printed to stdout that merely describes `argv`, `cwd`, or a proposed work order is diagnostic text, not execution evidence; the runner reports it as a failed step and returns the stdout log for repair.
+
 ### Evidence package
 
 Every attempted local step has these correlated values:

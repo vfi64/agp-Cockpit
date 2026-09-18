@@ -19,12 +19,13 @@ def test_zero(tmp_path):
     assert data["status"]=="failed"
     assert "no return artifact" in data["failure_reason"]
 
-def test_work_order_output_gets_materialized_as_return_bundle(tmp_path):
+def test_work_order_output_is_not_treated_as_execution(tmp_path):
     cmd=make(tmp_path,"import json\nprint(json.dumps({'kind':'generic','cwd':str(__file__),'argv':['git','status'],'timeout_seconds':30,'label':'status'}))\n")
     r=execute_with_run_next(tmp_path,cmd)
     data=__import__('json').loads(r.return_bundle.read_text())
     assert data["kind"]=="agp_cockpit_file_loop_return_bundle"
-    assert data["work_order"]["argv"]==["git","status"]
+    assert data["status"]=="failed"
+    assert "did not create a return bundle" in data["failure_reason"]
 
 def test_successful_command_output_gets_materialized_as_return_bundle(tmp_path):
     cmd=make(tmp_path,"import subprocess\nprint(subprocess.run(['printf','status-ok'],capture_output=True,text=True).stdout)\n")
