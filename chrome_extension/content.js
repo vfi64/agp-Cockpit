@@ -839,7 +839,7 @@
   }
 
 
-async function sendPromptNative(prompt) {
+  async function sendPromptNative(prompt) {
     const transport = createSendTransport(prompt);
     // K07 result continuations intentionally reuse one stable instruction.
     // Progress is proven by the next assistant message, not prompt wording.
@@ -919,7 +919,16 @@ async function sendPromptNative(prompt) {
       chars:prompt.length
     });
 
-    const nativeAck = await nativeTransport.submit(prompt);
+    let nativeAck = null;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      nativeAck = await nativeTransport.submit(prompt, {attempt});
+      if (String(nativeAck.stage || "") !== "COMPOSER_MODEL_NOT_VERIFIED") break;
+      await clientEvent("COMPOSER_MODEL_NOT_VERIFIED", {
+        attempt,
+        model: nativeAck.model || null
+      });
+      if (attempt < 2) await sleep(250);
+    }
 
     transport.transition(SEND_TRANSPORT.NATIVE_SUBMIT_DISPATCHED, {
       request_id:String(nativeAck.request_id || ""),
@@ -931,6 +940,16 @@ async function sendPromptNative(prompt) {
       tab_id:Number(nativeAck.tab_id || 0),
       native_stage:String(nativeAck.stage || "")
     });
+
+    if (String(nativeAck.stage || "") === "COMPOSER_MODEL_NOT_VERIFIED") {
+      const error = new Error("COMPOSER_MODEL_NOT_VERIFIED after bounded refocus retry");
+      error.code = "COMPOSER_MODEL_NOT_VERIFIED";
+      await clientEvent("COMPOSER_MODEL_RECOVERY_EXHAUSTED", {
+        attempts:2,
+        model:nativeAck.model || null
+      });
+      throw error;
+    }
 
     if (String(nativeAck.stage || "") === "USER_TURN_INDETERMINATE") {
       transport.acknowledgement = {
@@ -945,10 +964,30 @@ async function sendPromptNative(prompt) {
           ? nativeAck.submit_attempts.length
           : 0
       });
-      await clientEvent("SEND_INDETERMINATE", {});
+      const reconciliation = await waitForSentUserMessage(
+        prompt,
+        beforeMessages,
+        beforeAssistantText,
+        observedComposerText(),
+        beforeGenerationActive
+      );
+      if (reconciliation.confirmed) {
+        PENDING_SEND_TRANSPORT = null;
+        transport.acknowledgement = reconciliation;
+        transport.transition(SEND_TRANSPORT.ACCEPTED_LATE, {
+          via:"reconciliation",
+          native_stage:"USER_TURN_INDETERMINATE"
+        });
+        await clientEvent("ACCEPTED_LATE", {via:"reconciliation"});
+        return;
+      }
+      await clientEvent("SEND_INDETERMINATE", {
+        reconciliation:"not_confirmed",
+        provisional:reconciliation.provisional || ""
+      });
       STATE.lastEvent = "SEND_INDETERMINATE";
-      STATE.note = "Prompt gesendet; native Bestätigung noch unbestimmt";
-      return;
+      STATE.note = "Prompt nicht reconcilierbar bestätigt; kein weiterer Turn";
+      throw new Error("SEND_INDETERMINATE: user turn not reconciled");
     }
 
     if (String(nativeAck.stage || "") !== "USER_TURN_COMMITTED") {
@@ -987,8 +1026,15 @@ async function sendPromptNative(prompt) {
     try {
       return await sendPromptNative(prompt);
     } catch (error) {
+      if (error && error.code === "COMPOSER_MODEL_NOT_VERIFIED") {
+        STATE.lastTransportFailureClass = "COMPOSER_MODEL_NOT_VERIFIED";
+        await clientEvent("COMPOSER_MODEL_RECOVERY_EXHAUSTED", {
+          message:String(error.message || error)
+        });
+      }
       await clientEvent("NATIVE_TRANSPORT_FAILED", {
-        message:String(error && error.message ? error.message : error)
+        message:String(error && error.message ? error.message : error),
+        failure_class:STATE.lastTransportFailureClass || ""
       });
 
       if (!AGP_ALLOW_DEGRADED_DOM_FALLBACK) {
@@ -1282,7 +1328,11 @@ async function sendPromptNative(prompt) {
     STATE.timer = null;
     STATE.note = reason || "";
     STATE.lastEvent = event;
-    clientEvent(event, {reason:STATE.note, run_generation:STATE.runGeneration});
+    clientEvent(event, {
+      reason:STATE.note,
+      run_generation:STATE.runGeneration,
+      failure_class:STATE.lastTransportFailureClass || ""
+    });
     render();
   }
 
@@ -2256,6 +2306,7 @@ async function sendPromptNative(prompt) {
     STATE.errors = 0;
     STATE.startedAt = Date.now();
     STATE.lastPrompt = "";
+    STATE.lastTransportFailureClass = "";
     PENDING_SEND_TRANSPORT = null;
     AGP_FORMAT_REPAIR_ATTEMPTS = 0;
     STATE.waitingForAssistant = false;

@@ -751,11 +751,23 @@ class CockpitBridgeServer:
                         if not mission_id or state is None or state.mission_id != mission_id:
                             raise ValueError("start request must target current mission")
                         if state.browser_transport_blocked:
-                            raise RuntimeError(
-                                "browser transport is blocked after an unverified send; "
-                                "reload the AGP Cockpit extension and the ChatGPT tab, "
-                                "then retry after a fresh extension handshake"
+                            model_recovery = "COMPOSER_MODEL_NOT_VERIFIED" in (
+                                state.browser_transport_block_reason or ""
                             )
+                            if model_recovery and state.browser_transport_recovery_attempts < 1:
+                                state.browser_transport_blocked = False
+                                state.browser_transport_recovery_attempts += 1
+                                state.browser_transport_event = "COMPOSER_MODEL_RETRY_AUTHORIZED"
+                                state.browser_transport_note = (
+                                    "one explicit bounded editor-model recovery retry authorized"
+                                )
+                                engine.runtime.store.save(state)
+                            else:
+                                raise RuntimeError(
+                                    "browser transport is blocked after an unverified send; "
+                                    "reload the AGP Cockpit extension and the ChatGPT tab, "
+                                    "then retry after a fresh extension handshake"
+                                )
                         self._json(
                             200,
                             StartRequestStore(runtime_root).request(

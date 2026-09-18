@@ -47,6 +47,8 @@ class BridgeRuntime:
             "NATIVE_TRANSPORT_FAILED", "SEND_INDETERMINATE", "ACCEPTED_LATE",
             "MISSION_BOOTSTRAP_SEND_FAILED", "MISSION_BOOTSTRAP_SENT",
             "EXTENSION_HANDSHAKE",
+            "COMPOSER_MODEL_VERIFIED", "COMPOSER_MODEL_NOT_VERIFIED",
+            "COMPOSER_MODEL_RECOVERY_EXHAUSTED",
         }
         state = self.state
         if event not in allowed or state is None:
@@ -68,7 +70,8 @@ class BridgeRuntime:
             "NATIVE_TRANSPORT_FAILED",
             "SEND_INDETERMINATE",
             "MISSION_BOOTSTRAP_SEND_FAILED",
-        }:
+            "COMPOSER_MODEL_RECOVERY_EXHAUSTED",
+        } and str(details.get("failure_class") or "") != "COMPOSER_MODEL_NOT_VERIFIED":
             state.browser_transport_blocked = True
             state.browser_transport_block_reason = state.browser_transport_note or event
         self.store.save(state)

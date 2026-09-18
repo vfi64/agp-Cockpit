@@ -12,6 +12,7 @@ def test_correlated_transport_failure_survives_restart_without_failing_task(tmp_
     assert restored.browser_transport_note == "No confirmation"
     assert restored.browser_transport_blocked is True
     assert restored.browser_transport_block_reason == "No confirmation"
+    assert restored.browser_transport_recovery_attempts == 0
     assert restored.state == "READY"
     assert restored.turn_count == 0
 

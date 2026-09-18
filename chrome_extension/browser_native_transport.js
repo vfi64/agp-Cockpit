@@ -63,7 +63,9 @@
           reject(new Error(`native transport rejected: ${JSON.stringify(response || null)}`));
           return;
         }
-        if (response.ok !== true && response.stage !== "USER_TURN_INDETERMINATE") {
+        if (response.ok !== true &&
+            response.stage !== "USER_TURN_INDETERMINATE" &&
+            response.stage !== "COMPOSER_MODEL_NOT_VERIFIED") {
           reject(new Error(
             response.error
               ? String(response.error)
@@ -76,7 +78,7 @@
     });
   }
 
-  async function submit(text) {
+  async function submit(text, options = {}) {
     const prompt = String(text || "");
     if (!prompt) throw new Error("native transport refuses empty prompt");
 
@@ -98,6 +100,7 @@
       request_id: requestId,
       operation: "insert_and_submit",
       text: prompt,
+      attempt: Number(options.attempt || 1),
       page_url: location.href
     });
 
@@ -113,6 +116,15 @@
         inserted: response.inserted || null,
         submit_attempts: response.submit_attempts || [],
         after: response.after || null
+      };
+    }
+    if (response.stage === "COMPOSER_MODEL_NOT_VERIFIED") {
+      return {
+        request_id: requestId,
+        stage: response.stage,
+        tab_id: response.tab_id,
+        inserted: response.inserted || null,
+        model: response.model || null
       };
     }
     if (response.stage !== "USER_TURN_COMMITTED") {

@@ -150,6 +150,16 @@ async function agpNativeTransportV1(message, sender) {
       };
     })()`);
 
+    // Re-focus the canonical editor inside the debugger context. The page
+    // may still have focus on a dialog button even when the composer exists.
+    await evaluate(`(() => {
+      const composer = document.querySelector('#prompt-textarea') ||
+        document.querySelector('[contenteditable="true"][role="textbox"]') ||
+        document.querySelector('textarea[data-id="root"]');
+      if (composer && typeof composer.focus === "function") composer.focus();
+      return Boolean(composer && document.activeElement === composer);
+    })()`);
+
     await chrome.debugger.sendCommand(
       target,
       "Input.insertText",
@@ -184,6 +194,59 @@ async function agpNativeTransportV1(message, sender) {
         stage:"INSERT_NOT_VERIFIED",
         before,
         inserted
+      };
+    }
+
+    // AGP_COMPOSER_MODEL_VERIFIED_001
+    // DOM text alone is insufficient for ProseMirror/React editors. Require
+    // the canonical editor to own focus and expose an actionable send control
+    // after the input event has settled. This is the observable boundary for
+    // the editor model before Enter is dispatched.
+    let modelVerification = null;
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      modelVerification = await evaluate(`(() => {
+        const composer = document.querySelector('#prompt-textarea') ||
+          document.querySelector('[contenteditable="true"][role="textbox"]') ||
+          document.querySelector('textarea[data-id="root"]');
+        const active = document.activeElement;
+        const value = composer && "value" in composer
+          ? String(composer.value || "")
+          : String((composer && (composer.innerText || composer.textContent)) || "");
+        const buttons = Array.from(document.querySelectorAll(
+          'button[data-testid="send-button"], button[aria-label*="Send"], button[aria-label*="Senden"], form button[type="submit"]'
+        ));
+        const send = buttons.find(button => {
+          const rect = button.getBoundingClientRect();
+          const style = getComputedStyle(button);
+          return !button.disabled && button.getAttribute("aria-disabled") !== "true" &&
+            rect.width > 0 && rect.height > 0 && style.display !== "none" &&
+            style.visibility !== "hidden" && style.pointerEvents !== "none";
+        });
+        return {
+          stage: composer && active === composer && value.trim() === ${JSON.stringify(normalize(text))} && Boolean(send)
+            ? "COMPOSER_MODEL_VERIFIED"
+            : "COMPOSER_MODEL_NOT_VERIFIED",
+          value,
+          active_tag: active ? active.tagName : "",
+          active_id: active ? active.id : "",
+          composer_id: composer ? composer.id : "",
+          send_available: Boolean(send)
+        };
+      })()`);
+      if (modelVerification && modelVerification.stage === "COMPOSER_MODEL_VERIFIED") break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    if (!modelVerification || modelVerification.stage !== "COMPOSER_MODEL_VERIFIED") {
+      return {
+        ok:false,
+        request_id:requestId,
+        tab_id:tabId,
+        stage:"COMPOSER_MODEL_NOT_VERIFIED",
+        before,
+        inserted,
+        model:modelVerification,
+        model_wait_ms:3000
       };
     }
 
@@ -264,6 +327,7 @@ async function agpNativeTransportV1(message, sender) {
         stage:"SEND_BUTTON_NOT_READY",
         before,
         inserted,
+        model:modelVerification,
         send_target:null,
         send_diagnostics:sendDiagnostics,
         readiness_wait_ms:3000
@@ -342,7 +406,7 @@ async function agpNativeTransportV1(message, sender) {
         }
         if (commitEvidence) {
           return {ok:true,request_id:requestId,tab_id:tabId,stage:"USER_TURN_COMMITTED",
-            before,inserted,commit:commitEvidence,commit_retry:"trusted_enter_once"};
+            before,inserted,commit:commitEvidence,commit_retry:"trusted_enter_once",model:modelVerification};
         }
 
         // Some ChatGPT composer revisions ignore synthetic Enter while exposing
@@ -382,7 +446,7 @@ async function agpNativeTransportV1(message, sender) {
           }
           if (commitEvidence) {
             return {ok:true,request_id:requestId,tab_id:tabId,stage:"USER_TURN_COMMITTED",
-              before,inserted,commit:commitEvidence,commit_retry:"canonical_dom_button"};
+              before,inserted,commit:commitEvidence,commit_retry:"canonical_dom_button",model:modelVerification};
           }
         }
       }
@@ -394,6 +458,7 @@ async function agpNativeTransportV1(message, sender) {
         stage:clearlyUnsent ? "USER_TURN_NOT_COMMITTED" : "USER_TURN_INDETERMINATE",
         before,
         inserted,
+        model:modelVerification,
         send_target:sendTarget,
         after:lastObserved
       };
@@ -406,7 +471,8 @@ async function agpNativeTransportV1(message, sender) {
       stage:"USER_TURN_COMMITTED",
       before,
       inserted,
-      commit:commitEvidence
+      commit:commitEvidence,
+      model:modelVerification
     };
   } finally {
     if (attached) {
