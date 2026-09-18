@@ -44,3 +44,6 @@ label variants only when the filename still contains a `.py` suffix. The
 file-loop boundary remains strict: exactly one current `.py` attachment is
 materialized into `Download/`, executed only through `run_next.py`, and
 returned as one canonical JSON bundle. No prose or JSON fallback was added.
+
+## 2026-09-18 K07 — result evidence fallback and closed-loop contract
+Informative failure: a remote command file reached `Download/` and `run_next.py` returned code 0, but the command produced no canonical return bundle. The bridge synthesized a failed bundle, but only that bundle was attached; `Download/__run_next_output.txt` was not part of the remote evidence package. Root cause was an incomplete result-delivery contract, not a local execution success. Repair: carry the runner-log path and digest through the file-loop result, attach the return bundle and runner log together, and preserve replay idempotency. The Cockpit remains fail-closed: malformed, incomplete, or contradictory result evidence cannot become terminal success.

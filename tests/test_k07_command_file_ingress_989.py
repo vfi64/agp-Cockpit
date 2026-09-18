@@ -69,6 +69,8 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         assert data["replayed"] is False
         assert data["result_file"].endswith("_return_bundle.json")
         assert Path(data["result_file"]).exists()
+        assert Path(data["output_file"]).exists()
+        assert data["output_sha256"]
         assert "Return exactly one Python command file" in data["prompt"]
         commands = list(download.glob("*_next_command.py"))
         assert len(commands) == 1

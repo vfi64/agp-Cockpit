@@ -121,6 +121,13 @@ class MainWindow(ttk.Frame):
         self.standard_tasks_panel.grid(row=0, column=0, sticky="nsew")
         self.tabs.add(standard_tab, text="Standard Tasks")
 
+        system_tab = ttk.Frame(self.tabs)
+        system_tab.columnconfigure(0, weight=1)
+        system_tab.rowconfigure(0, weight=1)
+        self._build_system_tab(system_tab)
+        self.tabs.add(system_tab, text="System")
+        self.after(80, self.refresh_runtime_status)
+
     def _build_system_tab(self, parent: ttk.Frame) -> None:
         ollama = ttk.LabelFrame(
             parent,

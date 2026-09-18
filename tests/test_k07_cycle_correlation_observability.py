@@ -9,6 +9,8 @@ def test_cycle_identity_joins_command_and_result_observation():
     assert '"K07_RESULT_BUNDLE_CREATED"' in BRIDGE
     assert '"cycle_id": cycle_id' in BRIDGE
     assert '"result_sha256": result_sha256' in BRIDGE
+    assert '"output_file": str(output_path)' in BRIDGE
+    assert '"output_sha256": output_sha256' in BRIDGE
 
 def test_existing_execution_and_task_authorities_remain():
     assert 'outcome = consume_command_file(' in BRIDGE
@@ -20,6 +22,6 @@ def test_browser_result_transport_preserves_existing_cycle_correlation():
     background = Path('chrome_extension/background.js').read_text()
     assert 'cycle_id:result.cycle_id || null' in content
     assert 'result_sha256:result.result_sha256 || null' in content
-    assert 'event:"BROWSER_RESULT_ATTACHED"' in background
+    assert 'event:"BROWSER_RESULT_EVIDENCE_ATTACHED"' in background
     assert 'event:"CONTINUATION_SENT"' in background
     assert 'cycle_id:cycleId || null' in background

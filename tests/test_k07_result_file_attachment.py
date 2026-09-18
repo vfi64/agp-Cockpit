@@ -17,10 +17,11 @@ def test_attachment_source_uses_cdp_file_input_without_composer_payload_fallback
     assert 'debugger.detach(target)' in text
     assert "AGPResultFileAttachment" in text
     assert "RESULT_FILE_ATTACHED" in text
+    assert "attachResultFiles" in text
     assert "prompt-textarea" not in text
     assert "JSON.stringify" not in text
 
 def test_attachment_source_fails_loudly_when_file_input_missing():
     text = SRC.read_text()
     assert 'throw new Error("ChatGPT file input not found")' in text
-    assert 'throw new Error("absolute local file path required")' in text
+    assert 'throw new Error("absolute local file paths required")' in text

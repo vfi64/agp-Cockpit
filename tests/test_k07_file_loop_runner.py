@@ -11,6 +11,7 @@ def make(tmp_path,body):
 def test_one(tmp_path):
     cmd=make(tmp_path,"import sys\nfrom pathlib import Path\nn=int(sys.argv[1]); d=Path(__file__).parent\n(d/f'{n:03d}_probe_return_bundle.json').write_text('{}')\n")
     r=execute_with_run_next(tmp_path,cmd); assert r.return_bundle.name=="001_probe_return_bundle.json"
+    assert r.run_next_output == tmp_path / "Download" / "__run_next_output.txt"
 def test_zero(tmp_path):
     cmd=make(tmp_path,"import sys\n")
     r=execute_with_run_next(tmp_path,cmd)

@@ -9,6 +9,7 @@ class FileLoopRun:
     step:int
     command_file:Path
     return_bundle:Path
+    run_next_output:Path
     runner_returncode:int
     stdout:str
     stderr:str
@@ -78,6 +79,7 @@ def _materialize_work_order_result(
                 "command_file": str(command_file),
                 "execution": "work_order_emitted_by_command_file",
                 "runner_returncode": completed.returncode,
+                "run_next_output": str(download / "__run_next_output.txt"),
                 "work_order": work_order,
                 "stdout": completed.stdout,
                 "stderr": completed.stderr,
@@ -112,6 +114,7 @@ def _materialize_command_failure(
                 "status": "failed",
                 "failure_reason": reason,
                 "runner_returncode": completed.returncode,
+                "run_next_output": str(download / "__run_next_output.txt"),
                 "work_order": None,
                 "stdout": completed.stdout,
                 "stderr": completed.stderr,
@@ -126,9 +129,10 @@ def _materialize_command_failure(
 
 
 def execute_with_run_next(root:Path,command_file:Path,timeout_seconds:int=300)->FileLoopRun:
-    download=root/"Download"; runner=download/"run_next.py"
+    download=root/"Download"; runner=download/"run_next.py"; output_log=download/"__run_next_output.txt"
     if command_file.parent.resolve()!=download.resolve(): raise ValueError("command file must be in repository Download directory")
     step=step_from_command_file(command_file)
+    output_log.write_text("RUN_NEXT_OUTPUT_PENDING\n", encoding="utf-8")
     before={p.resolve() for p in download.glob(f"{step:03d}_*_return_bundle.json")}
     cp=subprocess.run([sys.executable,str(runner),str(step)],cwd=root,text=True,capture_output=True,timeout=timeout_seconds)
     after={p.resolve() for p in download.glob(f"{step:03d}_*_return_bundle.json")}
@@ -158,4 +162,4 @@ def execute_with_run_next(root:Path,command_file:Path,timeout_seconds:int=300)->
                 ).resolve()
             ]
     if len(created)!=1: raise RuntimeError(f"expected exactly one new return bundle for step {step}, got {len(created)}")
-    return FileLoopRun(step,command_file,created[0],cp.returncode,cp.stdout,cp.stderr)
+    return FileLoopRun(step,command_file,created[0],output_log,cp.returncode,cp.stdout,cp.stderr)

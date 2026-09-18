@@ -504,11 +504,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.type !== "AGP_K07_RESULT_CONTINUATION") return false;
   const tabId = sender && sender.tab ? sender.tab.id : null;
   const absolutePath = String(message.result_file || "").trim();
-  if (!Number.isInteger(tabId) || !absolutePath.startsWith("/")) {
+  const outputPath = String(message.output_file || "").trim();
+  if (!Number.isInteger(tabId) || !absolutePath.startsWith("/") || (outputPath && !outputPath.startsWith("/"))) {
     sendResponse({ok:false, stage:"RESULT_CONTINUATION_REJECTED"});
     return false;
   }
-  agpSubmitFileLoopContinuation(tabId, absolutePath, message.cycle_id, message.result_sha256)
+  agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, message.cycle_id, message.result_sha256)
     .then(sendResponse)
     .catch(error => sendResponse({ok:false, stage:"RESULT_CONTINUATION_FAILED", error:String(error && error.message ? error.message : error)}));
   return true;
@@ -533,8 +534,12 @@ async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
   if (!attached || attached.stage !== "RESULT_FILE_ATTACHED") throw new Error("K07 result-file attachment was not confirmed");
   return attached;
 }
-async function agpSubmitFileLoopContinuation(tabId, absolutePath, cycleId, resultSha256) {
-  await agpAttachFileLoopResultBundle(tabId, absolutePath);
+async function agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, cycleId, resultSha256) {
+  if (!globalThis.AGPResultFileAttachment || typeof globalThis.AGPResultFileAttachment.attachResultFiles !== "function") throw new Error("K07 result-file attachment seam unavailable");
+  const evidence = [absolutePath];
+  if (outputPath) evidence.push(outputPath);
+  const attached = await globalThis.AGPResultFileAttachment.attachResultFiles(chrome, {tabId}, evidence);
+  if (!attached || attached.stage !== "RESULT_FILES_ATTACHED") throw new Error("K07 result evidence attachment was not confirmed");
   const continuation = "Attached is the result file for the command you gave me. Evaluate it and continue the current task. If more local work is required, return the next command file; otherwise finish or request human input.";
   const response = await chrome.tabs.sendMessage(tabId, {
     type: "AGP_K07_SEND_PROMPT",
@@ -543,5 +548,5 @@ async function agpSubmitFileLoopContinuation(tabId, absolutePath, cycleId, resul
   if (!response || response.ok !== true) {
     throw new Error(String(response && response.error || "ChatGPT prompt transport unavailable"));
   }
-  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath, cycle_id:cycleId || null, result_sha256:resultSha256 || null, trace_events:[{event:"BROWSER_RESULT_ATTACHED",cycle_id:cycleId || null,result_sha256:resultSha256 || null},{event:"CONTINUATION_SENT",cycle_id:cycleId || null,result_sha256:resultSha256 || null}]};
+  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath, evidence_files:evidence, cycle_id:cycleId || null, result_sha256:resultSha256 || null, trace_events:[{event:"BROWSER_RESULT_EVIDENCE_ATTACHED",cycle_id:cycleId || null,result_sha256:resultSha256 || null,evidence_files:evidence},{event:"CONTINUATION_SENT",cycle_id:cycleId || null,result_sha256:resultSha256 || null}]};
 }

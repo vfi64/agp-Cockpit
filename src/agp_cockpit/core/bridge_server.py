@@ -321,6 +321,8 @@ class CockpitBridgeServer:
                             raise RuntimeError("command-file execution produced no return bundle")
                         result_path = Path(outcome.run.return_bundle)
                         result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
+                        output_path = Path(outcome.run.run_next_output)
+                        output_sha256 = _k07_cycle_hash.sha256(output_path.read_bytes()).hexdigest()
                         diag.event(
                             "K07_RESULT_BUNDLE_CREATED",
                             component="file-loop",
@@ -330,6 +332,8 @@ class CockpitBridgeServer:
                                 "step": outcome.run.step,
                                 "result_file": str(result_path),
                                 "result_sha256": result_sha256,
+                                "output_file": str(output_path),
+                                "output_sha256": output_sha256,
                             },
                         )
                         self._json(
@@ -341,6 +345,8 @@ class CockpitBridgeServer:
                                 "prompt": outcome.continuation_text,
                                 "cycle_id": cycle_id,
                                 "result_sha256": result_sha256,
+                                "output_file": str(output_path),
+                                "output_sha256": output_sha256,
                                 "replayed": outcome.replayed,
                             },
                         )
