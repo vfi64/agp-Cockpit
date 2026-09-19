@@ -1,5 +1,6 @@
-from pathlib import Path
 import platform
+from pathlib import Path
+
 
 def test_s12_contract_does_not_claim_native_windows_or_linux_support():
     text=Path("docs/planning/CROSS_PLATFORM_READINESS.md").read_text()

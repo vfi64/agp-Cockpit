@@ -1,5 +1,7 @@
 from agp_cockpit.core.task_controller import TaskController
-from agp_cockpit.core.task_models import ExecutionState,GovernanceState,TaskState
+from agp_cockpit.core.task_models import ExecutionState, GovernanceState, TaskState
+
+
 def test_fail_recovery():
  c=TaskController(); assert c.accept_remote_action("a1"); c.record_local_result("a1","FAIL","failure")
  assert c.execution_state is ExecutionState.FAILED and c.task_state is TaskState.WAITING_FOR_REMOTE

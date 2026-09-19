@@ -1,4 +1,5 @@
 from pathlib import Path
+
 C=(Path(__file__).resolve().parents[1]/"chrome_extension/content.js").read_text()
 
 def test_phase8_ui_does_not_call_undefined_setstatus():

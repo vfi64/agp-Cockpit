@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from agp_cockpit.core.single_round import SingleDirectExecutionRound, RoundState
+
+from agp_cockpit.core.single_round import RoundState, SingleDirectExecutionRound
+
 
 @dataclass
 class A:
@@ -9,10 +11,10 @@ class A:
 
 def mk(**kw):
     events=[]
-    vals=dict(read_completed=lambda:"FRAME",parse_action=lambda x:A(work_order={"opaque":[1,2]}),
-      dispatch=lambda w:(events.append(("dispatch",w)) or {"rc":0}),
-      make_result=lambda a,r:{"action_id":a.action_id,"local":r},
-      submit_result=lambda r:events.append(("submit",r)),stopped=lambda:False)
+    vals={"read_completed": lambda:"FRAME","parse_action": lambda x:A(work_order={"opaque":[1,2]}),
+      "dispatch": lambda w:(events.append(("dispatch",w)) or {"rc":0}),
+      "make_result": lambda a,r:{"action_id":a.action_id,"local":r},
+      "submit_result": lambda r:events.append(("submit",r)),"stopped": lambda:False}
     vals.update(kw)
     return SingleDirectExecutionRound(**vals),events
 

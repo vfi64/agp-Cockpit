@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 MAIN=(ROOT/'src/agp_cockpit/ui/main_window.py').read_text()
 BROWSER=(ROOT/'src/agp_cockpit/ui/browser_transport_panel.py').read_text()

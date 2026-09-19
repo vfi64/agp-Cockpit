@@ -1,7 +1,16 @@
+import sys
 from pathlib import Path
-import sys,pytest
+
+import pytest
+
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/"src"))
-from agp_cockpit.core.file_loop_protocol import RemoteState,parse_terminal_reply,accept_command_file
+from agp_cockpit.core.file_loop_protocol import (
+    RemoteState,
+    accept_command_file,
+    parse_terminal_reply,
+)
+
+
 def test_accepts_real_python_attachment(tmp_path):
     incoming=tmp_path/"incoming.py";incoming.write_text("print('ok')\n");dl=tmp_path/"Download";dl.mkdir()
     p=accept_command_file(incoming,dl,"probe");assert p.name=="001_probe.py";assert p.read_text()=="print('ok')\n"

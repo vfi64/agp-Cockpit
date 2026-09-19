@@ -1,4 +1,5 @@
 from pathlib import Path
+
 C=Path('chrome_extension/content.js').read_text()
 def test_contract():
  a=C[C.index('async function maybeAutoStartTaskFirstMission()'):C.index('// AGP_K07_UNIFIED_OPERATOR_CONTROL_1005')];assert 'await startAuto();\n      return true;' in a;assert 'return false;' in a

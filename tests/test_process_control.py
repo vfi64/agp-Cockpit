@@ -1,5 +1,5 @@
-from pathlib import Path
 import signal
+from pathlib import Path
 
 import pytest
 

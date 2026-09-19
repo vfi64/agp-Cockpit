@@ -3,14 +3,15 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from agp_cockpit import __version__
 
 
 def build_root(repository_root: Path | None = None, local_contract=None):
     import tkinter as tk
+
     from agp_cockpit.ui.main_window import MainWindow
 
     root = tk.Tk()

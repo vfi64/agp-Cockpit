@@ -1,5 +1,7 @@
 import signal
+
 from agp_cockpit.adapters import macos_process_control as mac
+
 
 def test_adapter_process_listing(monkeypatch):
     class R:

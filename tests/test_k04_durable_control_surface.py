@@ -1,9 +1,14 @@
 from __future__ import annotations
+
 import json
 from urllib.error import HTTPError
-from urllib.request import Request,urlopen
+from urllib.request import Request, urlopen
+
 import pytest
-from agp_cockpit.core.bridge_server import BridgeServerConfig,CockpitBridgeServer
+
+from agp_cockpit.core.bridge_server import BridgeServerConfig, CockpitBridgeServer
+
+
 def start(tmp_path):
  s=CockpitBridgeServer(tmp_path,config=BridgeServerConfig(host="127.0.0.1",port=0,token="t"),runtime_root=tmp_path/"rt"); s.start(); return s
 def req(s,path,data=None):

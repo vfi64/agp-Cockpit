@@ -1,4 +1,5 @@
 from pathlib import Path
+
 N=Path('chrome_extension/browser_native_transport.js').read_text()
 B=Path('chrome_extension/background.js').read_text()
 C=Path('chrome_extension/content.js').read_text()

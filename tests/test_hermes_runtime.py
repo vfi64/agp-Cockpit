@@ -2,6 +2,7 @@ from pathlib import Path
 
 import agp_cockpit.core.hermes_runtime as runtime
 
+
 def test_configured_model_availability(monkeypatch, tmp_path):
     config = tmp_path / "config.yaml"
     config.write_text("model: qwen3.5:9b-mlx\n", encoding="utf-8")

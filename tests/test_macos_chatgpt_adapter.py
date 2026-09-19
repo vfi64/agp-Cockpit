@@ -1,5 +1,6 @@
 from agp_cockpit.adapters import macos_chatgpt as mac
 
+
 def test_run_osascript_owns_platform_command(monkeypatch):
     seen={}
     class R:

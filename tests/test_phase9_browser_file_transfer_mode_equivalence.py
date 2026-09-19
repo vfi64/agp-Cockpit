@@ -1,5 +1,5 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "chrome_extension/phase7_single_round.js"
@@ -35,7 +35,7 @@ window.AGPCockpitPhase7SingleRound.runOneRound().then(o=>{
   console.log("MODE_OK="+process.argv[3]+" STATUS="+o.transport_status);
 }).catch(e=>{ console.error(e); process.exit(3); });
 ''')
-    return subprocess.run(["node", str(h), str(JS), mode], capture_output=True, text=True)
+    return subprocess.run(["node", str(h), str(JS), mode], capture_output=True, text=True, check=False)
 
 def test_source_accepts_direct_and_file_transfer_through_same_execute_path():
     t = JS.read_text()

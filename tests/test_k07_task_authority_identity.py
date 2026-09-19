@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 API=(ROOT/"src/agp_cockpit/core/task_operator_api.py").read_text()
 BRIDGE=(ROOT/"src/agp_cockpit/core/bridge_server.py").read_text()

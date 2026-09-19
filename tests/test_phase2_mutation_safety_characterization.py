@@ -4,17 +4,17 @@ No live Ollama/Hermes process is started/stopped and ~/.hermes is never touched.
 """
 from __future__ import annotations
 
-from pathlib import Path
 import signal
+from pathlib import Path
 
+from agp_cockpit.core.hermes_writer import (
+    restore_hermes_backup,
+    update_hermes_model,
+)
 from agp_cockpit.core.process_control import (
     ProcessInfo,
     start_ollama,
     stop_ollama_processes,
-)
-from agp_cockpit.core.hermes_writer import (
-    restore_hermes_backup,
-    update_hermes_model,
 )
 
 

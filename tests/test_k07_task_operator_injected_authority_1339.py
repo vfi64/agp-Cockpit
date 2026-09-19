@@ -1,6 +1,8 @@
 import json
+
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
+
 
 def test_injected_authority_is_persisted_under_real_task_id(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME",str(tmp_path/"home"))

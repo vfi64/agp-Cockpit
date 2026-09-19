@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
+
 VALID_EFFECT_CLASSES=frozenset({"E0","E1","E2","E3","E4"})
 @dataclass(frozen=True)
 class LocalTaskContract:

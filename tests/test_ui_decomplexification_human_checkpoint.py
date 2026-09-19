@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_simple_surface_exposes_contextual_human_release():
     s=Path("src/agp_cockpit/ui/simple_task_panel.py").read_text()
     assert 'text="Entscheidung freigeben"' in s

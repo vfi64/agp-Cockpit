@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import shutil
 import socket
-from typing import Iterable
+from collections.abc import Iterable
+from dataclasses import dataclass
+from pathlib import Path
 
 OLLAMA_DEFAULT_HOST = "127.0.0.1"
 OLLAMA_DEFAULT_PORT = 11434

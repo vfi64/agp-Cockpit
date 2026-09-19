@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_protocol_freezes_file_transfer_boundary():
  d=(ROOT/'docs/planning/COMMUNICATION_PROTOCOL.md').read_text()

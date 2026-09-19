@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import signal
+
 from agp_cockpit.adapters import macos_browser, macos_process_control, macos_runtime
+
 
 class CP:
     def __init__(self, returncode=0, stdout="", stderr=""):

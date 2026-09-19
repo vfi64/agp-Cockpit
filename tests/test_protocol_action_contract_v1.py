@@ -1,5 +1,6 @@
-from pathlib import Path
 import json
+from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_browser_action_contract_disambiguates_ui_from_protocol_mode():
  t=(ROOT/'chrome_extension/protocol_action_contract_v1.js').read_text()

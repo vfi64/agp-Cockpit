@@ -1,11 +1,15 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+
 import pytest
+
 from agp_cockpit.core.bridge_server import BridgeServerConfig, CockpitBridgeServer
 from agp_cockpit.core.transport_protocol_v1 import ActionEnvelope, encode_action_frame
+
 
 def post(server, body):
     url=f"http://127.0.0.1:{server._server.server_address[1]}/v1/protocol/action"
@@ -20,7 +24,7 @@ def server(tmp_path):
     finally: s.stop()
 
 def frame(**kw):
-    d=dict(protocol_version=1,session_id="s",round_id="r",action_id="a",mode="DIRECT_EXECUTION",target={"repository_path_hint":"/repo"},work_order={"opaque":True})
+    d={"protocol_version": 1,"session_id": "s","round_id": "r","action_id": "a","mode": "DIRECT_EXECUTION","target": {"repository_path_hint":"/repo"},"work_order": {"opaque":True}}
     d.update(kw); return encode_action_frame(ActionEnvelope(**d))
 
 def test_http_boundary_accepts_first_action_without_interpreting_payload(server):

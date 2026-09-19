@@ -7,8 +7,7 @@ def read_macos_clipboard() -> str:
     completed = subprocess.run(
         ["/usr/bin/pbpaste"],
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     if completed.returncode != 0:
@@ -24,8 +23,7 @@ def write_macos_clipboard(text: str) -> None:
         ["/usr/bin/pbcopy"],
         input=text,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     if completed.returncode != 0:

@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_existing_result_attachment_authority_is_reused():
     b=(ROOT/"chrome_extension/background.js").read_text()

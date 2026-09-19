@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_main_window_preserves_resolved_repository_context():
     s=Path("src/agp_cockpit/ui/main_window.py").read_text(encoding="utf-8")
     assert "repository_root: Path | None = None" in s

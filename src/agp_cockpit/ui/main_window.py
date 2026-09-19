@@ -1,10 +1,7 @@
 from __future__ import annotations
-from agp_cockpit.ui.task_operator_panel import TaskOperatorPanel
-from agp_cockpit.ui.simple_task_panel import SimpleTaskPanel
 
-from agp_cockpit.core.browser_refresh import request_browser_refresh
-from pathlib import Path
 import tkinter as tk
+from pathlib import Path
 from tkinter import messagebox, ttk
 
 from agp_cockpit.core.hermes_config import DEFAULT_HERMES_CONFIG
@@ -14,8 +11,7 @@ from agp_cockpit.core.live_startup import execute_live_guarded_startup
 from agp_cockpit.core.startup import StartupAction, decide_startup
 from agp_cockpit.core.startup_probe import observe_live_read_only
 from agp_cockpit.ui.hermes_status import format_hermes_status
-from agp_cockpit.ui.work_order_panel import WorkOrderPanel
-from agp_cockpit.ui.browser_transport_panel import BrowserTransportPanel
+from agp_cockpit.ui.simple_task_panel import SimpleTaskPanel
 from agp_cockpit.ui.standard_tasks_panel import StandardTasksPanel
 
 
@@ -361,7 +357,7 @@ class MainWindow(ttk.Frame):
                 )
             )
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces diagnostics.
             self.status_var.set(
                 f"Diagnosefehler: {exc}"
             )
@@ -387,7 +383,7 @@ class MainWindow(ttk.Frame):
 
         try:
             result = execute_live_guarded_startup()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces startup failures.
             messagebox.showerror(
                 "Ollama konnte nicht vorbereitet werden",
                 str(exc),
@@ -437,7 +433,7 @@ class MainWindow(ttk.Frame):
                 selected,
                 path=DEFAULT_HERMES_CONFIG,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces config failures.
             messagebox.showerror(
                 "Hermes-Konfiguration nicht geändert",
                 str(exc),

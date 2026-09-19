@@ -16,8 +16,8 @@ from agp_cockpit.core.bridge_protocol import (
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
 from agp_cockpit.core.file_loop_orchestrator import consume_command_file
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
-from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_contract import LocalTaskContract
+from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.transport_protocol_v1 import (
     ActionRegistry,
     parse_action_frame,
@@ -78,8 +78,8 @@ class CockpitBridgeServer:
                 requested = str(current.get("task_id") or "").strip()
                 if requested:
                     task_id = requested
-            except Exception:
-                pass
+            except Exception:  # noqa: BLE001 - stale optional task identity is recoverable.
+                task_id = f"protocol-v1-http:{session_id}"
             controller = DurableTaskController(
                 task_id, self._durable_db_path, local_contract=self.local_task_contract,
             )
@@ -150,7 +150,7 @@ class CockpitBridgeServer:
                 raw = self.rfile.read(length).decode("utf-8")
                 data = json.loads(raw)
                 if not isinstance(data, dict):
-                    raise ValueError("request body must be object")
+                    raise TypeError("request body must be object")
                 return data
 
             def do_OPTIONS(self) -> None:
@@ -661,7 +661,7 @@ class CockpitBridgeServer:
                                     )
                                     or 0
                                 )
-                            except Exception:
+                            except Exception:  # noqa: BLE001 - malformed diagnostic metadata defaults safely.
                                 handled_generation = 0
 
                             handled_refresh_path.write_text(
@@ -702,7 +702,7 @@ class CockpitBridgeServer:
                                         0,
                                     )
                                 )
-                            except Exception:
+                            except Exception:  # noqa: BLE001 - malformed refresh metadata defaults safely.
                                 refresh_generation = 0
 
                             client_response[
@@ -745,7 +745,9 @@ class CockpitBridgeServer:
                         return
 
                     if path == "/v1/file-loop/control":
-                        from agp_cockpit.core.operator_control import OperatorControlStore
+                        from agp_cockpit.core.operator_control import (
+                            OperatorControlStore,
+                        )
                         action = str(data.get("action", "")).strip()
                         self._json(200, OperatorControlStore(runtime_root).request(action))
                         return
@@ -882,7 +884,7 @@ class CockpitBridgeServer:
 
                     self._json(404, {"error": "not found"})
 
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - HTTP boundary returns structured diagnostics.
                     error_id = DiagnosticLogger.new_error_id()
                     diag.event(
                         "HTTP_REQUEST_FAILED",

@@ -1,4 +1,6 @@
 from pathlib import Path
+
+
 def test_gui_authority_forwarded_at_all_legacy_calls():
     s=Path("src/agp_cockpit/app_bootstrap.py").read_text()
     assert "run_legacy_gui(root)" not in s

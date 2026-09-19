@@ -5,9 +5,10 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from agp_cockpit.core.task_operator_api import TaskOperatorAPI
+from agp_cockpit.core.mission_http_client import create_live_full_auto
+from agp_cockpit.core.mission_http_client import status as mission_status
 from agp_cockpit.core.start_request_client import request_task_start
-from agp_cockpit.core.mission_http_client import create_live_full_auto, status as mission_status
+from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 
 
 class SimpleTaskPanel(ttk.Frame):
@@ -101,7 +102,7 @@ class SimpleTaskPanel(ttk.Frame):
     def approve_checkpoint(self) -> None:
         try:
             status = self.api.approve_checkpoint()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces checkpoint failures.
             self.state_var.set(f"Freigabe fehlgeschlagen — {exc}")
             return
         self.approve_button.configure(state="disabled")
@@ -129,7 +130,7 @@ class SimpleTaskPanel(ttk.Frame):
             source = Path(path)
             raw = source.read_text(encoding="utf-8")
             payload = json.loads(raw) if source.suffix.lower() == ".json" else {"goal": raw.strip()}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces file errors.
             messagebox.showerror("Auftrag laden", str(exc), parent=self.winfo_toplevel())
             return
 
@@ -175,7 +176,7 @@ class SimpleTaskPanel(ttk.Frame):
             return
         try:
             self.contract = self.api.prepare_task_contract(self.contract)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces validation failures.
             self.state_var.set(f"Auftrag nicht startbereit — automatische technische Prüfung fehlgeschlagen: {exc}")
             return
         if not messagebox.askyesno(
@@ -197,7 +198,7 @@ class SimpleTaskPanel(ttk.Frame):
                 str(mission["mission_id"]),
                 task_id=str(self.contract.get("task_id") or ""),
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces start failures.
             self.state_var.set(f"Blockiert — Start fehlgeschlagen: {exc}")
             return
         self.workflow_phase = "STARTED"
@@ -275,6 +276,6 @@ class SimpleTaskPanel(ttk.Frame):
                     self.activity_var.set(
                         "Aktivität: Browser-Mission angelegt; wartet auf den ersten Remote-Turn."
                     )
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001 - polling remains alive across transient UI errors.
+            self.activity_var.set("Aktivität: Status momentan nicht verfügbar.")
         self.after(1000, self.refresh_status)

@@ -262,7 +262,7 @@ class MissionOperatorPanel(ttk.Frame):
 
     def create_mission(self) -> None:
         try:
-            result = self.api.create(
+            self.api.create(
                 title=self.title_var.get().strip()
                 or "AGP Cockpit Mission",
                 mission_text=self.mission_text.get(
@@ -273,7 +273,7 @@ class MissionOperatorPanel(ttk.Frame):
                 run_mode=self.run_var.get(),
             )
             self.refresh()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces mission failures.
             messagebox.showerror(
                 "Mission",
                 str(exc),
@@ -284,7 +284,7 @@ class MissionOperatorPanel(ttk.Frame):
         try:
             self.api.resume_next_step()
             self.refresh()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces resume failures.
             messagebox.showerror(
                 "Next Step",
                 str(exc),

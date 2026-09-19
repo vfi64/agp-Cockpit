@@ -1,4 +1,6 @@
 from pathlib import Path
+
+
 def T(p):return Path(p).read_text()
 def test_agent_protocol_first():assert "AGP_PROTOCOL_FIRST_RULE_V1" in T("AGENTS.md")
 def test_authority():assert "canonical communication authority" in T("docs/planning/COMMUNICATION_PROTOCOL.md")

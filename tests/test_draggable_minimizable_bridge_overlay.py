@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_overlay_is_draggable_and_minimizable():
     source = Path("chrome_extension/content.js").read_text(encoding="utf-8")
     assert "AGP_OVERLAY_DRAG_MINIMIZE_063S2" in source

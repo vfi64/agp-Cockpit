@@ -1,5 +1,7 @@
+import json
+import subprocess
 from pathlib import Path
-import json, subprocess
+
 ROOT=Path(__file__).resolve().parents[1]
 JS=ROOT/"chrome_extension/phase8_multi_round.js"
 
@@ -12,7 +14,7 @@ def run_case(tmp_path, body):
         "window.AGPCockpitTransportProtocolV1={parseControl:t=>{if(!t.startsWith('CONTROL|'))throw Error('not control');let p=t.split('|');return {control:'DONE',session_id:p[1],round_id:p[2]}}};"
     )
     h.write_text(pre+"require("+json.dumps(str(JS))+");(async()=>{"+body+"})().catch(e=>{console.error(e);process.exit(9)});")
-    return subprocess.run(["node",str(h)],capture_output=True,text=True)
+    return subprocess.run(["node",str(h)],capture_output=True,text=True,check=False)
 
 def test_two_pass_rounds_then_browser_done_without_third_dispatch(tmp_path):
     p=run_case(tmp_path,"global.round=n=>({state:'DONE',session_id:'s',round_id:'r'+n,action_id:'a'+n,assistant_fingerprint:'f'+n,transport_status:'PASS'});global.answer=n=>({text:n<3?'ACTION':'CONTROL|s|done',fingerprint:'f'+n});let o=await window.AGPCockpitPhase8MultiRound.run({maxRounds:3,pausePollMs:1});if(o.state!=='DONE'||o.rounds!==2||calls!==2||waits!==3)process.exit(2);")

@@ -1,6 +1,15 @@
+import json
 from pathlib import Path
-import json,pytest
-from agp_cockpit.core.transport_protocol_v1 import ControlEnvelope,ProtocolViolation,encode_control_frame,parse_control_frame
+
+import pytest
+
+from agp_cockpit.core.transport_protocol_v1 import (
+ ControlEnvelope,
+ ProtocolViolation,
+ encode_control_frame,
+ parse_control_frame,
+)
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_done_control_roundtrip():
  c=ControlEnvelope(1,"s1","round-done","DONE");assert parse_control_frame(encode_control_frame(c))==c

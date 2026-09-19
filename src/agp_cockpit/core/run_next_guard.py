@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 SELF_TEST_SIDE_EFFECT_GUARD = "SELF_TEST_SIDE_EFFECT_GUARD"
 
 

@@ -4,6 +4,7 @@ from urllib.request import Request, urlopen
 
 from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
 
+
 def test_extension_handshake_via_client_event(tmp_path):
     runtime = BridgeRuntimeServer(tmp_path, port=0)
     info = runtime.start()

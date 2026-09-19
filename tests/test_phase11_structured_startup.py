@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import ClassVar
 
 from agp_cockpit import app
 from agp_cockpit.settings import AppSettings
 
 
 class _FakeLogger:
-    events: list[tuple[str, str, dict]] = []
+    events: ClassVar[list[tuple[str, str, dict]]] = []
 
     def __init__(self, root: Path):
         self.root = root

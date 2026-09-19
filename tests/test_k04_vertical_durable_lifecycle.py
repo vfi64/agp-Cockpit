@@ -1,9 +1,14 @@
 from __future__ import annotations
-import json,sqlite3
-from urllib.request import Request,urlopen
-from agp_cockpit.core.bridge_server import BridgeServerConfig,CockpitBridgeServer
+
+import json
+import sqlite3
+from urllib.request import Request, urlopen
+
+from agp_cockpit.core.bridge_server import BridgeServerConfig, CockpitBridgeServer
 from agp_cockpit.core.task_contract import LocalTaskContract
-from agp_cockpit.core.transport_protocol_v1 import ActionEnvelope,encode_action_frame
+from agp_cockpit.core.transport_protocol_v1 import ActionEnvelope, encode_action_frame
+
+
 def action(root,aid,argv):
  content=json.dumps({"kind":"generic","cwd":str(root),"argv":argv,"timeout_seconds":5,"label":aid})
  return ActionEnvelope(1,"vertical","round-"+aid,aid,"DIRECT_EXECUTION",{},{"type":"terminal_payload","content":content})

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_server_result_replay_contract():
     text=Path('src/agp_cockpit/core/bridge_server.py').read_text()
     assert 'self.protocol_v1_results: dict[str, str] = {}' in text

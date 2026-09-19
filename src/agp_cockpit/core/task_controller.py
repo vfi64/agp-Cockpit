@@ -1,8 +1,9 @@
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from .task_store import TaskStore
 from .task_contract import LocalTaskContract
+from .task_store import TaskStore
 
 
 class DurableTaskController:
@@ -132,8 +133,8 @@ class DurableTaskController:
         }
 
     def accept_remote_action(self, action_id: str, payload: Any, predecessor_action_id: str | None = None):
-        from datetime import datetime, timezone
-        self.store.require_deadline_open(self.task_id, datetime.now(timezone.utc).isoformat())
+        from datetime import datetime
+        self.store.require_deadline_open(self.task_id, datetime.now(UTC).isoformat())
         active = self.active_remote_binding()
         epoch = 0
         if active is not None:
@@ -293,7 +294,7 @@ class DurableTaskController:
             reason = "GOVERNANCE_NOT_CLEAR"
         elif self.snapshot["execution_state"] in {"RUNNING", "OUTCOME_UNKNOWN", "BLOCKED"}:
             reason = "EXECUTION_NOT_SETTLED"
-        elif (lambda ev: ev is not None and int(ev.get("trusted",0)) != 1)(self.store.kit_evidence_for(self.task_id, contract["required_kit_action_id"])):
+        elif (lambda ev: ev is not None and int(ev.get("trusted",0)) != 1)(self.store.kit_evidence_for(self.task_id, contract["required_kit_action_id"])):  # noqa: PLC3002 - preserve the established evidence gate semantics.
             reason = "UNTRUSTED_KIT_EVIDENCE"
         elif not self.kit_pass_matches(contract["required_kit_action_id"], contract["revision"], contract["artifact_hash"], contract["required_kit_raw_hash"]):
             reason = "MISSING_OR_STALE_KIT_PASS"
@@ -318,6 +319,7 @@ class DurableTaskController:
 
 
 from dataclasses import dataclass, field
+
 from .task_models import Evidence, ExecutionState, GovernanceState, TaskState
 
 

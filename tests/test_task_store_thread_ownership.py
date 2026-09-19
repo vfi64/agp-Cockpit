@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import threading
+
 from agp_cockpit.core.task_controller import DurableTaskController
+
 
 def test_session_controller_cross_thread_access(tmp_path):
     c=DurableTaskController("threaded",tmp_path/"runtime.sqlite3")
@@ -18,7 +21,8 @@ def test_same_session_concurrent_dispatch_is_serialized(tmp_path):
     def worker(a):
         barrier.wait()
         try: results.append((a,"OK",c.begin_attempt(a)))
-        except Exception as e: results.append((a,type(e).__name__,str(e)))
+        except Exception as e:  # noqa: BLE001 - the test records the actual concurrency error.
+            results.append((a,type(e).__name__,str(e)))
     a=threading.Thread(target=worker,args=("a1",));d=threading.Thread(target=worker,args=("a2",))
     a.start();d.start();barrier.wait();a.join();d.join()
     assert sum(x[1]=="OK" for x in results)==1

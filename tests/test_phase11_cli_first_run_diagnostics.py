@@ -5,8 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from agp_cockpit import __version__
-from agp_cockpit import app
+from agp_cockpit import __version__, app
 from agp_cockpit.first_run_diagnostics import run_first_run_diagnostics
 
 

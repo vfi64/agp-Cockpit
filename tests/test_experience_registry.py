@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 R=Path(__file__).resolve().parents[1]; B=R/'docs/experience'
 def j(p): return json.loads(p.read_text())
 def test_registry():

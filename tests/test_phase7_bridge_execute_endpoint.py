@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 S=(ROOT/"src/agp_cockpit/core/bridge_server.py").read_text()
 def body():

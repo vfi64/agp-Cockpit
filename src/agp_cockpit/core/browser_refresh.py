@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import json
 import os
 import time
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -63,7 +63,7 @@ def read_browser_refresh_request(
             reason=str(data.get("reason", "")),
             requested_at_unix=float(data.get("requested_at_unix", 0.0)),
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - malformed request means no pending refresh.
         return None
 
 
@@ -82,8 +82,8 @@ def wait_for_refresh_handled(
             data = json.loads(path.read_text(encoding="utf-8"))
             if int(data.get("generation", 0)) >= generation:
                 return True
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001, S112 - file may be mid-atomic-write.
+            continue
         time.sleep(poll_seconds)
 
     return False

@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from agp_cockpit.core.task_controller import DurableTaskController
+
 
 def make(tmp_path: Path):
     return DurableTaskController("t-s6", tmp_path / "runtime.sqlite3")

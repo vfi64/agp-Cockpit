@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from agp_cockpit.adapters.macos_runtime import MacOSRuntimeSnapshot
 
+
 def format_runtime_status(snapshot: MacOSRuntimeSnapshot) -> str:
     runtime = snapshot.runtime
     ollama_binary = str(runtime.ollama.path) if runtime.ollama.path is not None else "nicht gefunden"

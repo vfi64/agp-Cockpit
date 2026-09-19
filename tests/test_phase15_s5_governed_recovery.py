@@ -1,7 +1,10 @@
 import hashlib
+
 import pytest
+
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_models import KitResultEvidence
+
 
 def make(tmp_path): return DurableTaskController("t-s5",tmp_path/"tasks.sqlite")
 def ev(status="BLOCKED",recoverable=False,recovery=None,revision="rev-a",artifact="artifact-a",producer="agentic-project-kit",raw="raw"):
@@ -38,7 +41,8 @@ def test_t20_kit_pass_exact_revision_artifact_producer_raw(tmp_path):
 
 def test_t21_file_transfer_remains_opaque_kit_owned_pass_through():
     from agp_cockpit.core import protocol_execution_v1
-    src=open(protocol_execution_v1.__file__,encoding="utf-8").read()
+    with open(protocol_execution_v1.__file__, encoding="utf-8") as handle:
+        src = handle.read()
     assert '"FILE_TRANSFER"' in src
     assert all(x not in src for x in ("github.","requests.post(","transfer_order","current.yaml"))
 

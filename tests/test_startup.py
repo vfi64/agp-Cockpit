@@ -1,11 +1,15 @@
 from agp_cockpit.core.startup import (
-    StartupAction, StartupHooks, StartupObservation,
-    decide_startup, execute_guarded_startup,
+    StartupAction,
+    StartupHooks,
+    StartupObservation,
+    decide_startup,
+    execute_guarded_startup,
 )
 
+
 def O(**kw):
-    d = dict(ollama_installed=True, port_busy=False,
-             port_owner_is_ollama=False, api_reachable=False, models=())
+    d = {"ollama_installed": True, "port_busy": False,
+             "port_owner_is_ollama": False, "api_reachable": False, "models": ()}
     d.update(kw)
     return StartupObservation(**d)
 

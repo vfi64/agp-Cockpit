@@ -1,22 +1,20 @@
 from __future__ import annotations
-from agp_cockpit.adapters.macos_settings import bridge_runtime_root, bridge_token_path
-from agp_cockpit.adapters.macos_browser import run_chrome_automation
-from agp_cockpit.core.runtime_root_policy import require_stable_production_runtime_root
 
-from agp_cockpit.core.browser_readiness import start_browser_readiness_watch
-from dataclasses import asdict, dataclass
-from pathlib import Path
 import json
 import subprocess
 import time
 import urllib.request
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
+from agp_cockpit.adapters.macos_browser import run_chrome_automation
+from agp_cockpit.adapters.macos_settings import bridge_runtime_root, bridge_token_path
 from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
 from agp_cockpit.core.browser_refresh import (
     request_browser_refresh,
     wait_for_refresh_handled,
 )
-
+from agp_cockpit.core.runtime_root_policy import require_stable_production_runtime_root
 
 CHATGPT_URL = "https://chatgpt.com/"
 
@@ -46,6 +44,7 @@ def chrome_running() -> bool:
         ["/usr/bin/pgrep", "-x", "Google Chrome"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        check=False,
     )
     return result.returncode == 0
 
@@ -177,7 +176,7 @@ def show_startup_guidance(message: str) -> None:
             parent=root,
         )
         root.destroy()
-    except Exception:
+    except Exception:  # noqa: BLE001 - GUI fallback must never block startup.
         print(message, flush=True)
 
 
@@ -224,7 +223,7 @@ def probe_existing_bridge(
             timeout=2,
         ) as response:
             return response.status == 200
-    except Exception:
+    except Exception:  # noqa: BLE001 - bridge probing is best-effort.
         return False
 
 
@@ -380,6 +379,7 @@ def run(
             extension_ready = handshake is not None
         else:
             handshake = None
+            extension_staging_note += f" Wake-up not confirmed: {wake_note}."
 
 
     # AGP_SKIP_REDUNDANT_POST_HANDSHAKE_REFRESH_063V_R3
@@ -513,8 +513,8 @@ def run(
                 _json.dumps(data, indent=2) + "\n",
                 encoding="utf-8",
             )
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001 - telemetry persistence is best-effort.
+            return
 
     import threading as _threading
     if browser_connecting:

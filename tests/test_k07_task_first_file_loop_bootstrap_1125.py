@@ -1,4 +1,5 @@
 from pathlib import Path
+
 C=(Path(__file__).resolve().parents[1]/"chrome_extension/content.js").read_text()
 def test_bootstrap():
  a=C.index("function missionBootstrapPrompt"); b=C.index("async function maybeAutoStartTaskFirstMission",a); x=C[a:b]

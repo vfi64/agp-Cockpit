@@ -1,10 +1,18 @@
+import hashlib
 from pathlib import Path
-import hashlib, pytest
+
+import pytest
+
+from agp_cockpit.core.kit_carrier import KitAuthorityResult
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_models import KitResultEvidence
 from agp_cockpit.core.terminal_exec import TerminalResult
-from agp_cockpit.core.work_order_runner import WorkOrderRun, acquire_trusted_kit_evidence
-from agp_cockpit.core.kit_carrier import KitAuthorityResult
+from agp_cockpit.core.work_order_runner import (
+ WorkOrderRun,
+ acquire_trusted_kit_evidence,
+)
+
+
 def ro(tmp_path,rc=0,argv=("agentic-kit","check"),accepted=True,out="ok"):
  return WorkOrderRun(TerminalResult(tuple(argv),tmp_path,rc,out,"",False,0.01),f"RC={rc}\n{out}",KitAuthorityResult(True,0,"{}","",accepted,"accepted"))
 def test_local_pass_is_trusted(tmp_path):

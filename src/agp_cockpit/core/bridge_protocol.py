@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -27,7 +27,7 @@ def parse_turn_request(text: str) -> BrowserTurnRequest:
         raise ValueError(f"invalid JSON: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise ValueError("request must be a JSON object")
+        raise TypeError("request must be a JSON object")
 
     conversation_url = data.get("conversation_url")
     assistant_text = data.get("assistant_text")

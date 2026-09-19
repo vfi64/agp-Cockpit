@@ -5,6 +5,7 @@ import json
 import sqlite3
 import threading
 from dataclasses import dataclass
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -531,8 +532,8 @@ CREATE TABLE IF NOT EXISTS task_control(
                     "PASS", "FAIL", "BLOCKED", "RECONCILED_APPLIED", "RECONCILED_NOT_APPLIED"
                 }:
                     raise RuntimeError("predecessor not settled at dispatch")
-            from datetime import datetime, timezone
-            self.require_deadline_open(task_id, datetime.now(timezone.utc).isoformat())
+            from datetime import datetime
+            self.require_deadline_open(task_id, datetime.now(UTC).isoformat())
             reservation = self.db.execute(
                 "SELECT * FROM budget_reservations WHERE task_id=? AND action_id=?",
                 (task_id, action_id),

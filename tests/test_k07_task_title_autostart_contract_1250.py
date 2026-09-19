@@ -1,4 +1,5 @@
 from pathlib import Path
+
 C=Path('chrome_extension/content.js').read_text()
 def test_task_e2e_and_standard_titles_are_task_first_autostart_eligible():
  a=C[C.index('async function maybeAutoStartTaskFirstMission()'):C.index('// AGP_K07_UNIFIED_OPERATOR_CONTROL_1005')]

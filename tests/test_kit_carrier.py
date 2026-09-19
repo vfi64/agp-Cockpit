@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import json
+from pathlib import Path
 
 import agp_cockpit.core.kit_carrier as carrier
 from agp_cockpit.core.work_order import LocalWorkOrder

@@ -1,8 +1,10 @@
 from pathlib import Path
-from agp_cockpit.core.task_controller import DurableTaskController
+
 from agp_cockpit.core.file_loop_lifecycle import FileLoopLifecycle
 from agp_cockpit.core.operator_control import OperatorControlStore
 from agp_cockpit.core.task_contract import LocalTaskContract
+from agp_cockpit.core.task_controller import DurableTaskController
+
 
 class TaskOperatorAPI:
     def __init__(self, repository_root: Path, *, task_id: str = "operator-task", local_contract: LocalTaskContract | None = None) -> None:
@@ -51,7 +53,7 @@ class TaskOperatorAPI:
         self.controller.approve_human_checkpoint(*ident); return self.status()
     def prepare_task_contract(self, payload) -> dict:
         if not isinstance(payload, dict):
-            raise ValueError("Task Contract must be an object")
+            raise TypeError("Task Contract must be an object")
         prepared = dict(payload)
         goal = str(prepared.get("goal") or "").strip()
         if not goal:

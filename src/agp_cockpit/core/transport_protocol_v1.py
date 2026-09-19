@@ -1,7 +1,10 @@
 from __future__ import annotations
+
+import hashlib
+import json
 from dataclasses import dataclass
-import hashlib, json
 from typing import Any, Literal
+
 PROTOCOL_VERSION=1
 MAX_FRAME_BYTES=2_000_000
 ACTION_BEGIN="AGP_COCKPIT_ACTION_BEGIN"

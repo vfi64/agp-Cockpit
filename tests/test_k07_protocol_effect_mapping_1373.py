@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_bridge_does_not_self_grant_e3_for_kit_work_order():
     s=(ROOT/'src/agp_cockpit/core/bridge_server.py').read_text()

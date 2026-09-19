@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from typing import Any
-
 
 FINAL_STATES = {
     "DONE",
@@ -43,7 +42,7 @@ def parse_mission_signal(text: str) -> MissionSignal | None:
 
     summary = data.get("summary", "")
     if not isinstance(summary, str):
-        raise ValueError("mission summary must be a string")
+        raise TypeError("mission summary must be a string")
 
     return MissionSignal(
         state=state,

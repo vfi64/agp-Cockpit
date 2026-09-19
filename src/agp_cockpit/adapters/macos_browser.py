@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import subprocess
+from dataclasses import dataclass
+
 from agp_cockpit.core.browser_transport import discover_chrome
 
 
@@ -30,11 +31,11 @@ class MacOSChromeBrowserPort:
         return discover_chrome().installed
 
     def focus(self) -> None:
-        completed = subprocess.run(["/usr/bin/open", "-a", "Google Chrome"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        completed = subprocess.run(["/usr/bin/open", "-a", "Google Chrome"], text=True, capture_output=True, check=False)
         if completed.returncode != 0:
             raise RuntimeError(completed.stderr.strip() or "Google Chrome konnte nicht fokussiert werden")
 
     def open_url(self, url: str) -> None:
-        completed = subprocess.run(["/usr/bin/open", "-a", "Google Chrome", url], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        completed = subprocess.run(["/usr/bin/open", "-a", "Google Chrome", url], text=True, capture_output=True, check=False)
         if completed.returncode != 0:
             raise RuntimeError(completed.stderr.strip() or "URL konnte nicht in Chrome geöffnet werden")

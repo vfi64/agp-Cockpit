@@ -1,5 +1,6 @@
+import subprocess
 from pathlib import Path
-import subprocess, textwrap
+
 ROOT=Path(__file__).resolve().parents[1]
 JS=(ROOT/"chrome_extension/phase7_single_round.js").read_text()
 def test_controller_uses_execute_not_validation_or_legacy():
@@ -38,7 +39,7 @@ window.AGPCockpitPhase7SingleRound.runOneRound().then(o=>{
  console.log("FAKE_BROWSER_SINGLE_ROUND_PASS");
 }).catch(e=>{console.error(e);process.exit(3)});
 ''')
-    p=subprocess.run(["node",str(harness),str(ROOT/"chrome_extension/phase7_single_round.js")],capture_output=True,text=True)
+    p=subprocess.run(["node",str(harness),str(ROOT/"chrome_extension/phase7_single_round.js")],capture_output=True,text=True,check=False)
     assert p.returncode==0, p.stdout+p.stderr
     assert "FAKE_BROWSER_SINGLE_ROUND_PASS" in p.stdout
 

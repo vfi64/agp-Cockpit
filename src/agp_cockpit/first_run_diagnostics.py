@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import platform
 import sys
+from pathlib import Path
 from typing import Any
 
 from agp_cockpit import __version__
-
 
 SCHEMA_VERSION = 1
 
@@ -98,7 +97,7 @@ def run_first_run_diagnostics(repository_root: Path) -> dict[str, Any]:
                 'macOS user-settings location is not authoritative on this host.',
                 path=None,
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - diagnostics must report settings failures.
         checks.append(_check(
             'settings', 'FAIL',
             'User settings are unreadable or incompatible.',

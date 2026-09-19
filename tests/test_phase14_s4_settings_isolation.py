@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_structured_startup_stubs_settings_loader():
     source=Path('tests/test_phase11_structured_startup.py').read_text(encoding='utf-8')
     assert 'agp_cockpit.settings.load_and_migrate_settings' in source

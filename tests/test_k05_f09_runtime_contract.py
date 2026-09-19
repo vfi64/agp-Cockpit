@@ -1,8 +1,8 @@
 import json
+
 import pytest
 
 from agp_cockpit.core.task_controller import DurableTaskController
-from agp_cockpit.core.task_store import TaskStore
 
 
 def make_controller(tmp_path, *, remote=2, local=2):

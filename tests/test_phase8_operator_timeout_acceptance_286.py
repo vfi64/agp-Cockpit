@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_operator_controls_are_explicit():
  t=(ROOT/"chrome_extension/content.js").read_text()

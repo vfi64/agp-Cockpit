@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import json
 import secrets
+from dataclasses import dataclass
+from pathlib import Path
 
 from agp_cockpit.core.bridge_server import (
     BridgeServerConfig,

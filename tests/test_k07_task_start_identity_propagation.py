@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 
 ROOT=Path(__file__).resolve().parents[1]
 STORE=(ROOT/"src/agp_cockpit/core/start_request.py").read_text()

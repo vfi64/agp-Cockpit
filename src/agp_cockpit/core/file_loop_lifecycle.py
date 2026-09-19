@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from threading import RLock
+
+
 class FileLoopState(str,Enum):
     IDLE="IDLE"; RUNNING="RUNNING"; PAUSED="PAUSED"; STOPPED="STOPPED"
 @dataclass

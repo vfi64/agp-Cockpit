@@ -1,4 +1,5 @@
 from pathlib import Path
+
 S=Path("chrome_extension/content.js").read_text(encoding="utf-8")
 B=S[S.index("/* AGP_K07_OPERATOR_TRACE_RUNTIME_CONTROL_1137 */"):]
 def test_default_off_and_existing_authority():

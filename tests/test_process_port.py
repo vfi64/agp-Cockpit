@@ -1,5 +1,6 @@
 from agp_cockpit.core.runtime import process_name_present
 
+
 class FakeProcessPort:
     def __init__(self, running):
         self.running={name.casefold() for name in running}; self.queries=[]
