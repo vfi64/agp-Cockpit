@@ -35,14 +35,14 @@
       "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
     ],
     "repo": {
-      "branch": "docs/post-pr133-handoff-refresh",
+      "branch": "main",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "574a4c47009ae95d599103028e5a20ae7128b71a",
+      "head": "f6f4dc0e1e56d95688beb67790c077086c291d98",
       "head_matches_origin_main": true,
       "local_path": "cd /path/to/",
-      "origin_main": "574a4c47009ae95d599103028e5a20ae7128b71a",
-      "worktree_clean": false
+      "origin_main": "f6f4dc0e1e56d95688beb67790c077086c291d98",
+      "worktree_clean": true
     },
     "scope": "current-continuation-state"
   },
@@ -185,14 +185,14 @@
   },
   "kind": "successor_execution_contract",
   "repo": {
-    "branch": "docs/post-pr133-handoff-refresh",
+    "branch": "main",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "574a4c47009ae95d599103028e5a20ae7128b71a",
+    "head": "f6f4dc0e1e56d95688beb67790c077086c291d98",
     "head_matches_origin_main": true,
     "local_path": "cd /path/to/",
-    "origin_main": "574a4c47009ae95d599103028e5a20ae7128b71a",
-    "worktree_clean": false
+    "origin_main": "f6f4dc0e1e56d95688beb67790c077086c291d98",
+    "worktree_clean": true
   },
   "rules": [
     {
