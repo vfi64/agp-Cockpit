@@ -79,6 +79,17 @@ def test_bootstrap_transport_failure_does_not_ack_explicit_start() -> None:
     assert block.index("throw err;", failure) > failure
 
 
+def test_stop_calls_durable_bridge_control() -> None:
+    source = Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js"
+    text = source.read_text(encoding="utf-8")
+    start = text.index("async function stop(")
+    end = text.index("\n  function missionBootstrapPrompt", start)
+    block = text[start:end]
+    assert 'api("/v1/file-loop/control"' in block
+    assert 'body:JSON.stringify({action:"STOP"})' in block
+    assert 'clientEvent("OPERATOR_STOP_REQUEST_FAILED"' in block
+
+
 def test_explicit_start_request_has_independent_liveness_poller() -> None:
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js").read_text(encoding="utf-8")
