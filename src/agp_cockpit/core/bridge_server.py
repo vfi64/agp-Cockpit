@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 import json
 import secrets
 import threading
+from dataclasses import asdict, dataclass
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import urlparse
 
 from agp_cockpit.core.bridge_engine import BridgeEngine
@@ -14,12 +14,16 @@ from agp_cockpit.core.bridge_protocol import (
     parse_turn_request,
 )
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
-from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame, parse_result_frame
+from agp_cockpit.core.file_loop_orchestrator import consume_command_file
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
-from agp_cockpit.core.work_order import parse_work_order_json
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_contract import LocalTaskContract
-from agp_cockpit.core.file_loop_orchestrator import consume_command_file
+from agp_cockpit.core.transport_protocol_v1 import (
+    ActionRegistry,
+    parse_action_frame,
+    parse_result_frame,
+)
+from agp_cockpit.core.work_order import parse_work_order_json
 
 
 @dataclass(frozen=True)
@@ -58,6 +62,7 @@ class CockpitBridgeServer:
         self._durable_db_path = self.runtime_root / "protocol-v1-actions.sqlite3"
         self.local_task_contract = local_task_contract
         self._durable_controllers: dict[str, DurableTaskController] = {}
+        self._file_loop_lock = threading.Lock()
 
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
@@ -95,6 +100,7 @@ class CockpitBridgeServer:
         durable_controller_for = self._durable_controller
         runtime_root = self.runtime_root
         local_task_contract = self.local_task_contract
+        file_loop_lock = self._file_loop_lock
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -251,6 +257,9 @@ class CockpitBridgeServer:
                     self._json(403, {"error": "forbidden"})
                     return
 
+                file_loop_locked = path == "/v1/file-loop/command"
+                if file_loop_locked:
+                    file_loop_lock.acquire()
                 try:
                     # AGP_K07_COMMAND_FILE_HTTP_989
                     if path == "/v1/file-loop/command":
@@ -312,10 +321,18 @@ class CockpitBridgeServer:
                             state_file,
                             stem=Path(filename).stem,
                         )
-                        if outcome.run is None or outcome.continuation_text is None:
+                        terminal_loop = outcome.state.value in {"BLOCKED", "NEEDS_HUMAN", "DONE"}
+                        if outcome.run is None or (outcome.continuation_text is None and not terminal_loop):
                             raise RuntimeError("command-file execution produced no return bundle")
                         result_path = Path(outcome.run.return_bundle)
                         result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
+                        output_path = Path(outcome.run.run_next_output)
+                        output_sha256 = _k07_cycle_hash.sha256(output_path.read_bytes()).hexdigest()
+                        try:
+                            parsed_result = json.loads(result_path.read_text(encoding="utf-8"))
+                            result_validation = {"valid": isinstance(parsed_result, dict), "error": None if isinstance(parsed_result, dict) else "result artifact must be a JSON object"}
+                        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                            result_validation = {"valid": False, "error": f"{type(exc).__name__}: {exc}"}
                         diag.event(
                             "K07_RESULT_BUNDLE_CREATED",
                             component="file-loop",
@@ -325,6 +342,10 @@ class CockpitBridgeServer:
                                 "step": outcome.run.step,
                                 "result_file": str(result_path),
                                 "result_sha256": result_sha256,
+                                "output_file": str(output_path),
+                                "output_sha256": output_sha256,
+                                "artifact_kind": outcome.run.artifact_kind,
+                                "result_validation": result_validation,
                             },
                         )
                         self._json(
@@ -334,8 +355,18 @@ class CockpitBridgeServer:
                                 "step": outcome.run.step,
                                 "result_file": str(outcome.run.return_bundle),
                                 "prompt": outcome.continuation_text,
+                                "terminal": terminal_loop,
+                                "human_reason": outcome.human_reason,
                                 "cycle_id": cycle_id,
                                 "result_sha256": result_sha256,
+                                "output_file": str(output_path),
+                                "output_sha256": output_sha256,
+                                "artifact_kind": outcome.run.artifact_kind,
+                                "result_validation": result_validation,
+                                "result_status": parsed_result.get("status") if isinstance(parsed_result, dict) else None,
+                                "result_execution": parsed_result.get("execution") if isinstance(parsed_result, dict) else None,
+                                "failure_reason": parsed_result.get("failure_reason") if isinstance(parsed_result, dict) else None,
+                                "replayed": outcome.replayed,
                             },
                         )
                         return
@@ -726,6 +757,24 @@ class CockpitBridgeServer:
                         state=engine.runtime.state
                         if not mission_id or state is None or state.mission_id != mission_id:
                             raise ValueError("start request must target current mission")
+                        if state.browser_transport_blocked:
+                            model_recovery = "COMPOSER_MODEL_NOT_VERIFIED" in (
+                                state.browser_transport_block_reason or ""
+                            )
+                            if model_recovery and state.browser_transport_recovery_attempts < 1:
+                                state.browser_transport_blocked = False
+                                state.browser_transport_recovery_attempts += 1
+                                state.browser_transport_event = "COMPOSER_MODEL_RETRY_AUTHORIZED"
+                                state.browser_transport_note = (
+                                    "one explicit bounded editor-model recovery retry authorized"
+                                )
+                                engine.runtime.store.save(state)
+                            else:
+                                raise RuntimeError(
+                                    "browser transport is blocked after an unverified send; "
+                                    "reload the AGP Cockpit extension and the ChatGPT tab, "
+                                    "then retry after a fresh extension handshake"
+                                )
                         self._json(
                             200,
                             StartRequestStore(runtime_root).request(
@@ -854,6 +903,9 @@ class CockpitBridgeServer:
                             "error_id": error_id,
                         },
                     )
+                finally:
+                    if file_loop_locked:
+                        file_loop_lock.release()
 
             def log_message(self, format, *args):
                 return

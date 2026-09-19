@@ -181,7 +181,15 @@ for (const stage of ["USER_TURN_COMMITTED", "USER_TURN_INDETERMINATE"]) {
     await page.evaluate(stage => {
       window.AGPBrowserNativeTransport = {
         available: () => true,
-        submit: async () => ({stage, request_id:"fixture-native", tab_id:1})
+        submit: async prompt => {
+          if (stage === "USER_TURN_INDETERMINATE") {
+            const node = document.createElement("div");
+            node.dataset.messageAuthorRole = "user";
+            node.textContent = prompt;
+            document.querySelector("main").append(node);
+          }
+          return {stage, request_id:"fixture-native", tab_id:1};
+        }
       };
     }, stage);
     await expect.poll(() => page.evaluate(() => window.__agpEvents)).toContain("MISSION_BOOTSTRAP_SENT");

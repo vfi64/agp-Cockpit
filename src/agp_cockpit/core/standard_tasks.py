@@ -36,8 +36,9 @@ def _chat_switch_contract(repository_root: Path) -> dict:
             "A detailed successor prompt is produced with absolute paths.",
             "No further development work starts after a PASS result.",
         ],
-        "constraints": [
+    "constraints": [
             "Use the repository's current Agentic Project Kit authority and contracts.",
+            "The local authority must explicitly allow both git and agentic-kit.",
             "Do not change product files during handoff preparation.",
             "Fail closed on missing or invalid handoff evidence.",
         ],
@@ -63,6 +64,8 @@ Complete the handoff in one coherent local work order whenever possible. Capture
 Evaluate validation_report.json and continue only when it is PASS. Create a separate continuation brief only for repository-specific or volatile information that does not belong in the canonical package. Create a detailed start prompt containing the absolute repository path, absolute package and file paths, required reading order, current state, next step, diagnostics, and the rule that the successor must make no repository changes during initial handoff intake.
 
 Pass on the communication contract: exactly one newly numbered Download/*.py work order per local step, no reused number, execution through run_next.py, exactly one canonical *_return_bundle.json per execution, complete result evaluation before the next work order, and large coherent steps.
+
+The attached Python file is the executable local work order. It must execute the authorized Kit command during its real run (for this task: `agentic-kit transfer chat-switch-complete --json`), capture its return code/stdout/stderr, validate the required handoff files and validation report, and write exactly one canonical return bundle into Download/. Printing a JSON object that merely describes an argv/cwd command is not execution evidence and is an invalid work order. `--self-test` must validate structure without running the Kit command or mutating the repository.
 
 Produce exactly one canonical JSON completion result for this standard task. It must include PASS, BLOCKED, or FAIL; package path; validation status; continuation-brief path; detailed-start-prompt path; and next action. On PASS, do not start further development in this chat.
 """

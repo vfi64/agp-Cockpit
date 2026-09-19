@@ -46,14 +46,34 @@ class BridgeRuntime:
             "NATIVE_TRANSPORT_REQUESTED", "NATIVE_SEND_ACCEPTED",
             "NATIVE_TRANSPORT_FAILED", "SEND_INDETERMINATE", "ACCEPTED_LATE",
             "MISSION_BOOTSTRAP_SEND_FAILED", "MISSION_BOOTSTRAP_SENT",
+            "EXTENSION_HANDSHAKE",
+            "COMPOSER_MODEL_VERIFIED", "COMPOSER_MODEL_NOT_VERIFIED",
+            "COMPOSER_MODEL_RECOVERY_EXHAUSTED",
         }
         state = self.state
         if event not in allowed or state is None:
             return False
-        if details.get("mission_id") != state.mission_id:
+        if event != "EXTENSION_HANDSHAKE" and details.get("mission_id") != state.mission_id:
             return False
         state.browser_transport_event = event
         state.browser_transport_note = str(details.get("reason") or details.get("message") or "")[:500]
+        if event == "EXTENSION_HANDSHAKE":
+            # A fresh extension handshake is the only automatic recovery from
+            # a transport block. A native send acknowledgement is not enough:
+            # it can come from a stale content script instance.
+            version = str(details.get("version") or "").strip()
+            if not version:
+                return False
+            state.browser_transport_blocked = False
+            state.browser_transport_block_reason = ""
+        elif event in {
+            "NATIVE_TRANSPORT_FAILED",
+            "SEND_INDETERMINATE",
+            "MISSION_BOOTSTRAP_SEND_FAILED",
+            "COMPOSER_MODEL_RECOVERY_EXHAUSTED",
+        } and str(details.get("failure_class") or "") != "COMPOSER_MODEL_NOT_VERIFIED":
+            state.browser_transport_blocked = True
+            state.browser_transport_block_reason = state.browser_transport_note or event
         self.store.save(state)
         return True
 

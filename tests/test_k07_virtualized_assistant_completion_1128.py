@@ -9,7 +9,8 @@ def _fn():
 
 def test_1128_generation_fence_records_baseline_text():
     assert 'assistantBaselineText: ""' in C
-    assert C.count("STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());") >= 4
+    assert "STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());" in C
+    assert C.count("captureAssistantBaseline();") >= 4
 
 def test_1128_virtualized_same_count_changed_text_is_not_suppressed():
     fn=_fn()
@@ -19,5 +20,5 @@ def test_1128_virtualized_same_count_changed_text_is_not_suppressed():
 
 def test_1128_message_id_remains_primary_generation_fence():
     fn=_fn()
-    assert "newestMessageId === STATE.assistantBaselineMessageId" in fn
-    assert fn.index("newestMessageId === STATE.assistantBaselineMessageId") < fn.index("normalizedNewestText === STATE.assistantBaselineText")
+    assert "assistantBaselineIds().has(newestMessageId)" in fn
+    assert fn.index("assistantBaselineIds().has(newestMessageId)") < fn.index("normalizedNewestText === STATE.assistantBaselineText")

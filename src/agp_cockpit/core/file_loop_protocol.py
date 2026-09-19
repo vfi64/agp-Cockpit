@@ -1,11 +1,12 @@
 from __future__ import annotations
+import re
+import shutil
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-import re, shutil
 DONE="AGP_DONE"; HUMAN="AGP_NEEDS_HUMAN"
 class RemoteState(str,Enum):
-    COMMAND_FILE="COMMAND_FILE"; DONE="DONE"; NEEDS_HUMAN="NEEDS_HUMAN"
+    COMMAND_FILE="COMMAND_FILE"; DONE="DONE"; NEEDS_HUMAN="NEEDS_HUMAN"; BLOCKED="BLOCKED"
 @dataclass(frozen=True)
 class RemoteReply:
     state:RemoteState; command_file:Path|None=None; human_reason:str|None=None

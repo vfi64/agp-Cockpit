@@ -150,6 +150,16 @@ async function agpNativeTransportV1(message, sender) {
       };
     })()`);
 
+    // Re-focus the canonical editor inside the debugger context. The page
+    // may still have focus on a dialog button even when the composer exists.
+    await evaluate(`(() => {
+      const composer = document.querySelector('#prompt-textarea') ||
+        document.querySelector('[contenteditable="true"][role="textbox"]') ||
+        document.querySelector('textarea[data-id="root"]');
+      if (composer && typeof composer.focus === "function") composer.focus();
+      return Boolean(composer && document.activeElement === composer);
+    })()`);
+
     await chrome.debugger.sendCommand(
       target,
       "Input.insertText",
@@ -184,6 +194,68 @@ async function agpNativeTransportV1(message, sender) {
         stage:"INSERT_NOT_VERIFIED",
         before,
         inserted
+      };
+    }
+
+    // AGP_COMPOSER_MODEL_VERIFIED_001
+    // DOM text alone is insufficient for ProseMirror/React editors. Require
+    // the canonical editor to own focus and expose an actionable send control
+    // after the input event has settled. This is the observable boundary for
+    // the editor model before Enter is dispatched.
+    let modelVerification = null;
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      modelVerification = await evaluate(`(() => {
+        const composer = document.querySelector('#prompt-textarea') ||
+          document.querySelector('[contenteditable="true"][role="textbox"]') ||
+          document.querySelector('textarea[data-id="root"]');
+        const active = document.activeElement;
+        const value = composer && "value" in composer
+          ? String(composer.value || "")
+          : String((composer && (composer.innerText || composer.textContent)) || "");
+        const buttons = Array.from(document.querySelectorAll(
+          'button[data-testid="send-button"], button[aria-label*="Send"], button[aria-label*="Senden"], form button[type="submit"]'
+        ));
+        const normalize = value => String(value || "")
+          .replace(/\\u00a0/g, " ")
+          .replace(/\\s+/g, " ")
+          .trim();
+        const send = buttons.find(button => {
+          const rect = button.getBoundingClientRect();
+          const style = getComputedStyle(button);
+          return !button.disabled && button.getAttribute("aria-disabled") !== "true" &&
+            rect.width > 0 && rect.height > 0 && style.display !== "none" &&
+            style.visibility !== "hidden" && style.pointerEvents !== "none";
+        });
+        return {
+          // Focus is useful evidence for refocusing, but it is not proof of
+          // the editor model. ChatGPT may move focus while React/ProseMirror
+          // has already accepted the inserted value. The stable boundary is
+          // the canonical composer value plus an actionable send control.
+          stage: composer && normalize(value) === ${JSON.stringify(normalize(text))} && Boolean(send)
+            ? "COMPOSER_MODEL_VERIFIED"
+            : "COMPOSER_MODEL_NOT_VERIFIED",
+          value,
+          active_tag: active ? active.tagName : "",
+          active_id: active ? active.id : "",
+          focused: active === composer,
+          composer_id: composer ? composer.id : "",
+          send_available: Boolean(send)
+        };
+      })()`);
+      if (modelVerification && modelVerification.stage === "COMPOSER_MODEL_VERIFIED") break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    if (!modelVerification || modelVerification.stage !== "COMPOSER_MODEL_VERIFIED") {
+      return {
+        ok:false,
+        request_id:requestId,
+        tab_id:tabId,
+        stage:"COMPOSER_MODEL_NOT_VERIFIED",
+        before,
+        inserted,
+        model:modelVerification,
+        model_wait_ms:3000
       };
     }
 
@@ -264,6 +336,7 @@ async function agpNativeTransportV1(message, sender) {
         stage:"SEND_BUTTON_NOT_READY",
         before,
         inserted,
+        model:modelVerification,
         send_target:null,
         send_diagnostics:sendDiagnostics,
         readiness_wait_ms:3000
@@ -342,7 +415,7 @@ async function agpNativeTransportV1(message, sender) {
         }
         if (commitEvidence) {
           return {ok:true,request_id:requestId,tab_id:tabId,stage:"USER_TURN_COMMITTED",
-            before,inserted,commit:commitEvidence,commit_retry:"trusted_enter_once"};
+            before,inserted,commit:commitEvidence,commit_retry:"trusted_enter_once",model:modelVerification};
         }
 
         // Some ChatGPT composer revisions ignore synthetic Enter while exposing
@@ -382,7 +455,7 @@ async function agpNativeTransportV1(message, sender) {
           }
           if (commitEvidence) {
             return {ok:true,request_id:requestId,tab_id:tabId,stage:"USER_TURN_COMMITTED",
-              before,inserted,commit:commitEvidence,commit_retry:"canonical_dom_button"};
+              before,inserted,commit:commitEvidence,commit_retry:"canonical_dom_button",model:modelVerification};
           }
         }
       }
@@ -394,6 +467,7 @@ async function agpNativeTransportV1(message, sender) {
         stage:clearlyUnsent ? "USER_TURN_NOT_COMMITTED" : "USER_TURN_INDETERMINATE",
         before,
         inserted,
+        model:modelVerification,
         send_target:sendTarget,
         after:lastObserved
       };
@@ -406,7 +480,8 @@ async function agpNativeTransportV1(message, sender) {
       stage:"USER_TURN_COMMITTED",
       before,
       inserted,
-      commit:commitEvidence
+      commit:commitEvidence,
+      model:modelVerification
     };
   } finally {
     if (attached) {
@@ -504,11 +579,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.type !== "AGP_K07_RESULT_CONTINUATION") return false;
   const tabId = sender && sender.tab ? sender.tab.id : null;
   const absolutePath = String(message.result_file || "").trim();
-  if (!Number.isInteger(tabId) || !absolutePath.startsWith("/")) {
+  const outputPath = String(message.output_file || "").trim();
+  const continuationPrompt = String(message.prompt || "").trim();
+  if (!Number.isInteger(tabId) || !absolutePath.startsWith("/") || (outputPath && !outputPath.startsWith("/")) || !continuationPrompt || continuationPrompt.length > 2000000) {
     sendResponse({ok:false, stage:"RESULT_CONTINUATION_REJECTED"});
     return false;
   }
-  agpSubmitFileLoopContinuation(tabId, absolutePath, message.cycle_id, message.result_sha256)
+  agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, continuationPrompt, message.cycle_id, message.result_sha256)
     .then(sendResponse)
     .catch(error => sendResponse({ok:false, stage:"RESULT_CONTINUATION_FAILED", error:String(error && error.message ? error.message : error)}));
   return true;
@@ -533,15 +610,18 @@ async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
   if (!attached || attached.stage !== "RESULT_FILE_ATTACHED") throw new Error("K07 result-file attachment was not confirmed");
   return attached;
 }
-async function agpSubmitFileLoopContinuation(tabId, absolutePath, cycleId, resultSha256) {
-  await agpAttachFileLoopResultBundle(tabId, absolutePath);
-  const continuation = "Attached is the result file for the command you gave me. Evaluate it and continue the current task. If more local work is required, return the next command file; otherwise finish or request human input.";
+async function agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, continuationPrompt, cycleId, resultSha256) {
+  if (!globalThis.AGPResultFileAttachment || typeof globalThis.AGPResultFileAttachment.attachResultFiles !== "function") throw new Error("K07 result-file attachment seam unavailable");
+  const evidence = [absolutePath];
+  if (outputPath) evidence.push(outputPath);
+  const attached = await globalThis.AGPResultFileAttachment.attachResultFiles(chrome, {tabId}, evidence);
+  if (!attached || attached.stage !== "RESULT_FILES_ATTACHED") throw new Error("K07 result evidence attachment was not confirmed");
   const response = await chrome.tabs.sendMessage(tabId, {
     type: "AGP_K07_SEND_PROMPT",
-    prompt: continuation
+    prompt: continuationPrompt
   });
   if (!response || response.ok !== true) {
     throw new Error(String(response && response.error || "ChatGPT prompt transport unavailable"));
   }
-  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath, cycle_id:cycleId || null, result_sha256:resultSha256 || null, trace_events:[{event:"BROWSER_RESULT_ATTACHED",cycle_id:cycleId || null,result_sha256:resultSha256 || null},{event:"CONTINUATION_SENT",cycle_id:cycleId || null,result_sha256:resultSha256 || null}]};
+  return {ok:true, stage:"RESULT_ATTACHED_AND_CONTINUATION_SENT", file_path:absolutePath, evidence_files:evidence, cycle_id:cycleId || null, result_sha256:resultSha256 || null, trace_events:[{event:"BROWSER_RESULT_EVIDENCE_ATTACHED",cycle_id:cycleId || null,result_sha256:resultSha256 || null,evidence_files:evidence},{event:"CONTINUATION_SENT",cycle_id:cycleId || null,result_sha256:resultSha256 || null}]};
 }

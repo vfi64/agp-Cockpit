@@ -19,6 +19,7 @@ def test_chat_switch_contract_is_repository_bound_and_fail_closed():
     contract = task.contract(ROOT)
     assert contract["repository_root"] == str(ROOT.resolve())
     assert "Fail closed" in " ".join(contract["constraints"])
+    assert "git and agentic-kit" in " ".join(contract["constraints"])
     assert "validation_report.json is PASS" in " ".join(contract["acceptance_criteria"])
 
 
@@ -36,3 +37,9 @@ def test_standard_task_panel_uses_existing_mission_and_start_request_routes():
     assert "create_live_full_auto" in PANEL
     assert "request_task_start" in PANEL
     assert "start_task_from_contract" in PANEL
+
+
+def test_standard_task_panel_fails_before_remote_start_without_required_tools():
+    assert 'required_tools = {"git", "agentic-kit"}' in PANEL
+    assert "missing_tools" in PANEL
+    assert "BLOCKED — lokale Authority fehlt" in PANEL

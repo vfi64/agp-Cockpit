@@ -12,7 +12,7 @@ def test_command_file_branch_precedes_existing_legacy_submit_path():
     assert "assistantPythonAttachmentCandidates()" in fn
     assert "await submitAssistantCommandFile()" in fn
     assert "STATE.runGeneration !== runGeneration" in fn
-    assert 'STATE.lastEvent = "K07_COMMAND_FILE_TURN_COMPLETE"' in fn
+    assert 'STATE.lastEvent = failed ? "K07_COMMAND_FILE_TURN_FAILED" : "K07_COMMAND_FILE_TURN_COMPLETE"' in fn
     assert fn.index("await submitAssistantCommandFile()") < fn.index("await submitAssistant(text)")
 
 def test_existing_legacy_submit_path_remains_for_compatibility():

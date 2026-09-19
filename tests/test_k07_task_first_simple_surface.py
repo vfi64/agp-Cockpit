@@ -17,6 +17,7 @@ def test_normal_gui_exposes_work_and_standard_task_tabs():
     assert "ttk.Notebook" in MAIN
     assert 'self.tabs.add(work_tab, text="Arbeiten")' in MAIN
     assert 'self.tabs.add(standard_tab, text="Standard Tasks")' in MAIN
+    assert 'self.tabs.add(system_tab, text="System")' in MAIN
     assert 'Expert · System' not in MAIN
     assert 'Expert · Einzelauftrag' not in MAIN
     assert 'Expert · Task Operator' not in MAIN

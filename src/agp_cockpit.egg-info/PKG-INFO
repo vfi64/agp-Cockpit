@@ -3,5 +3,8 @@ Name: agp-cockpit
 Version: 0.1.0.dev0
 Summary: Local macOS-first cockpit for transporting work between browser LLMs and Agentic Project Kit terminals.
 Requires-Python: >=3.12
+Requires-Dist: PyYAML>=6.0
 Provides-Extra: test
 Requires-Dist: pytest>=8; extra == "test"
+Provides-Extra: packaging
+Requires-Dist: pyinstaller<7,>=6.10; extra == "packaging"

@@ -28,10 +28,13 @@ def test_turn_counting_happens_after_successful_submit():
     command_increment = fn.index("STATE.turns += 1;", command_submit)
     legacy_submit = fn.index("const result = await submitAssistant(text);")
     legacy_increment = fn.index("STATE.turns += 1;", legacy_submit)
+    prompt_increment = fn.rindex("STATE.turns += 1;")
     legacy_branch = fn.index('if (result.action !== "continue" || !result.prompt)', legacy_submit)
+    prompt_send = fn.index("await sendPrompt(result.prompt);", legacy_submit)
     assert command_submit < command_increment < legacy_submit
-    assert legacy_submit < legacy_increment < legacy_branch
-    assert fn.count("STATE.turns += 1;") == 2
+    assert legacy_submit < legacy_branch < legacy_increment
+    assert prompt_send < prompt_increment
+    assert fn.count("STATE.turns += 1;") == 3
 
 def test_old_prompt_based_turn_increment_removed():
     s = source()
@@ -46,8 +49,10 @@ def test_k07_requires_new_assistant_node_after_submit() -> None:
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js").read_text(encoding="utf-8")
     assert "function assistantMessageNodes()" in source
+    assert "function assistantBaselineIds()" in source
+    assert "function captureAssistantBaseline()" in source
+    assert "STATE.assistantBaselineMessageIds = nodes" in source
     assert "function newAssistantTextAfterBaseline()" in source
     assert "nodes.length <= STATE.assistantBaselineCount" in source
     tick = source[source.index("async function tick()"):]
     assert "const text = newAssistantTextAfterBaseline();" in tick
-    assert "STATE.assistantBaselineCount = assistantMessageNodes().length;" in source

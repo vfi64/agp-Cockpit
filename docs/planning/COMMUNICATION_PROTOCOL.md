@@ -119,3 +119,27 @@ This section is normative for K07 development and acceptance.
 8. A step should be the largest safe coherent unit: reproduce when necessary, repair the proven defect, run focused gates, then real E2E when justified. Avoid diagnostic-only micro-steps when the repair is mechanically determined.
 9. Acceptance is evidence-based: each boundary must be proven by authoritative events/artifacts. UI appearance or absence of an error is not sufficient evidence.
 10. If a proposed change increases protocol paths or ambiguity instead of reducing them, stop and justify it against this section before implementation.
+
+## K07 COMMAND-FILE EXECUTION CONTRACT
+
+This section is normative for the local Python work-order boundary.
+
+1. A command attachment must be semantically complete, not merely valid
+   Python. The deterministic preflight requires an executable entry point,
+   an explicit `__main__` guard, an explicit `--self-test` argument, a
+   declared `agentic-kit` command, and a return-bundle writer.
+2. A command that fails this contract is rejected before the local runner or
+   Kit is invoked. The rejection produces one diagnostic return bundle with
+   command-file byte size, line count, SHA-256, interpreter, CWD and runner
+   argv.
+3. `py_compile` success, `--self-test` exit code 0, or a real-run exit code 0
+   alone never proves that the requested work happened. Exactly one valid
+   JSON return bundle is required.
+4. The execution identity in the return bundle must distinguish the command
+   file, interpreter, CWD, argv and return code. Transport hashes prove only
+   that the received content was not changed between transport stages; they
+   do not prove that the remote model originally generated a complete file.
+5. A failed file-loop step may request bounded recovery only while progress is
+   still possible. After three consecutive failures with the same failure
+   signature and no proven progress, the loop enters terminal `BLOCKED` and
+   sends no additional automatic remote turn.

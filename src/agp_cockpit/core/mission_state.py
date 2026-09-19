@@ -67,6 +67,9 @@ class MissionState:
     last_assistant_text: str = ""
     browser_transport_event: str = ""
     browser_transport_note: str = ""
+    browser_transport_blocked: bool = False
+    browser_transport_block_reason: str = ""
+    browser_transport_recovery_attempts: int = 0
 
     def validate(self) -> None:
         if self.execution_mode not in VALID_EXECUTION_MODES:

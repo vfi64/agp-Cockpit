@@ -9,3 +9,13 @@ def test_order():
  assert C.index("const k07CommandFiles = assistantPythonAttachmentCandidates();") < C.index("const pureStructured = parsePureJsonObject(completed);")
 def test_legacy_retained():
  assert "FORMAT REPAIR ONLY" in C and "/v1/protocol/execute" in C
+
+def test_long_chat_baseline_excludes_all_previous_assistant_messages():
+ assert "assistantBaselineMessageIds" in C
+ assert "captureAssistantBaseline" in C
+ assert "const baselineIds = assistantBaselineIds()" in C
+ assert "!baselineIds.has(id)" in C
+
+def test_attachment_name_detection_tolerates_ui_label_suffixes_without_relaxing_type():
+ assert r'/\.py(?:$|[?#\s])/i.test(item.name || "")' in C
+ assert r'/\.py(?:$|[?#])/i.test(item.href || "")' in C

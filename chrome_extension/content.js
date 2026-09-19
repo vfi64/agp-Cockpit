@@ -28,6 +28,7 @@
     candidateStablePolls: 0,
     attachmentWaitStartedAt: 0,
     assistantBaselineCount: 0,
+    assistantBaselineMessageIds: [],
     assistantBaselineMessageId: "",
     observedAssistantMessageId: "",
     assistantBaselineText: "",
@@ -220,6 +221,29 @@
     return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
   }
 
+  // AGP_K07_ASSISTANT_BASELINE_SET_1404
+  // A long-lived ChatGPT conversation can contain older assistant attachments
+  // and replies. The last message id alone is not a sufficient boundary: the
+  // selector must exclude the complete pre-turn assistant set.
+  function assistantBaselineIds() {
+    return new Set(
+      Array.isArray(STATE.assistantBaselineMessageIds)
+        ? STATE.assistantBaselineMessageIds.map(String).filter(Boolean)
+        : []
+    );
+  }
+
+  function captureAssistantBaseline() {
+    const nodes = assistantMessageNodes();
+    STATE.assistantBaselineMessageIds = nodes
+      .map(node => String(node.getAttribute("data-message-id") || ""))
+      .filter(Boolean);
+    STATE.assistantBaselineCount = nodes.length;
+    STATE.assistantBaselineMessageId = lastAssistantMessageId();
+    STATE.observedAssistantMessageId = "";
+    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+  }
+
   // AGP_K07_IDENTITY_AWARE_ASSISTANT_SELECTION_1212
   function selectedAssistantMessageNode() {
     const nodes = assistantMessageNodes();
@@ -229,12 +253,12 @@
       const observed = nodes.find(node => String(node.getAttribute("data-message-id") || "") === observedId);
       if (observed) return observed;
     }
-    const baselineId = String(STATE.assistantBaselineMessageId || "");
+    const baselineIds = assistantBaselineIds();
     const nonBaseline = nodes.filter(node => {
       const id = String(node.getAttribute("data-message-id") || "");
-      return id && id !== baselineId && !id.startsWith("request-placeholder");
+      return id && !baselineIds.has(id) && !id.startsWith("request-placeholder");
     });
-    if (nonBaseline.length === 1) return nonBaseline[0];
+    if (nonBaseline.length) return nonBaseline[nonBaseline.length - 1];
     const nonPlaceholder = nodes.filter(
       node => !String(node.getAttribute("data-message-id") || "").startsWith("request-placeholder")
     );
@@ -295,10 +319,10 @@
     // Use the same identity-aware selection as assistant text extraction. The
     // ChatGPT DOM can contain virtualized or stale assistant nodes alongside
     // the currently observed response.
-    const baselineId = String(STATE.assistantBaselineMessageId || "");
+    const baselineIds = assistantBaselineIds();
     const assistant = [...nodes].reverse().find(node => {
       const id = String(node.getAttribute("data-message-id") || "");
-      if (baselineId && id === baselineId) return false;
+      if (id && baselineIds.has(id)) return false;
       return node.querySelector('a[href$=".py"], button[aria-label$=".py"]');
     }) || selectedAssistantMessageNode();
     if (!assistant) return [];
@@ -314,8 +338,11 @@
         const name = label.split("/").pop().trim();
         return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor};
       })
+      .filter(item => (
+        /\.py(?:$|[?#\s])/i.test(item.name || "") ||
+        /\.py(?:$|[?#])/i.test(item.href || "")
+      ))
       .filter(item =>
-        /\.py(?:$|[?#])/i.test(item.name || item.href) &&
         (item.href || item.isButton)
       );
     const unique = new Map();
@@ -405,20 +432,25 @@
         })
       }
     );
+    const terminal = Boolean(result && result.terminal === true);
     if (
       !result ||
-      result.state !== "COMMAND_FILE" ||
+      (result.state !== "COMMAND_FILE" && !terminal) ||
       typeof result.result_file !== "string" ||
       !result.result_file ||
-      typeof result.prompt !== "string" ||
-      !result.prompt
+      (!terminal && (typeof result.prompt !== "string" || !result.prompt))
     ) {
       throw new Error("K07 command-file bridge response incomplete");
+    }
+    if (result.replayed === true || terminal) {
+      return result;
     }
     // AGP_K07_RESULT_CONTINUATION_CALL_991
     const continuation = await chrome.runtime.sendMessage({
       type:"AGP_K07_RESULT_CONTINUATION",
       result_file:result.result_file,
+      output_file:result.output_file || null,
+      prompt:result.prompt,
       cycle_id:result.cycle_id || null,
       result_sha256:result.result_sha256 || null
     });
@@ -587,7 +619,9 @@
   }
 
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (chrome.runtime && chrome.runtime.onMessage &&
+      typeof chrome.runtime.onMessage.addListener === "function") {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message && message.type === "AGP_K07_NATIVE_TRACE_1165") {
       void clientEvent("K07_NATIVE_TRACE", message.payload || {});
       return false;
@@ -603,7 +637,8 @@
       return true;
     }
     return false;
-  });
+    });
+  }
 
   async function clientEvent(event, details={}) {
     try {
@@ -671,7 +706,8 @@
   function isKnownCockpitDraft(text) {
     const value = normalizeObservedMessageText(text);
     return value.includes("AGP COCKPIT MISSION — FIRST SINGLE STEP") ||
-      value.includes("Attached is the result file for the command you gave me.");
+      value.includes("Attached is the result file for the command you gave me.") ||
+      value.includes("The attached local execution evidence reports a FAILED command-file step.");
   }
 
   function chatgptGenerationActive() {
@@ -806,7 +842,7 @@
   }
 
 
-async function sendPromptNative(prompt) {
+  async function sendPromptNative(prompt) {
     const transport = createSendTransport(prompt);
     // K07 result continuations intentionally reuse one stable instruction.
     // Progress is proven by the next assistant message, not prompt wording.
@@ -886,7 +922,16 @@ async function sendPromptNative(prompt) {
       chars:prompt.length
     });
 
-    const nativeAck = await nativeTransport.submit(prompt);
+    let nativeAck = null;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      nativeAck = await nativeTransport.submit(prompt, {attempt});
+      if (String(nativeAck.stage || "") !== "COMPOSER_MODEL_NOT_VERIFIED") break;
+      await clientEvent("COMPOSER_MODEL_NOT_VERIFIED", {
+        attempt,
+        model: nativeAck.model || null
+      });
+      if (attempt < 2) await sleep(250);
+    }
 
     transport.transition(SEND_TRANSPORT.NATIVE_SUBMIT_DISPATCHED, {
       request_id:String(nativeAck.request_id || ""),
@@ -898,6 +943,16 @@ async function sendPromptNative(prompt) {
       tab_id:Number(nativeAck.tab_id || 0),
       native_stage:String(nativeAck.stage || "")
     });
+
+    if (String(nativeAck.stage || "") === "COMPOSER_MODEL_NOT_VERIFIED") {
+      const error = new Error("COMPOSER_MODEL_NOT_VERIFIED after bounded refocus retry");
+      error.code = "COMPOSER_MODEL_NOT_VERIFIED";
+      await clientEvent("COMPOSER_MODEL_RECOVERY_EXHAUSTED", {
+        attempts:2,
+        model:nativeAck.model || null
+      });
+      throw error;
+    }
 
     if (String(nativeAck.stage || "") === "USER_TURN_INDETERMINATE") {
       transport.acknowledgement = {
@@ -912,10 +967,30 @@ async function sendPromptNative(prompt) {
           ? nativeAck.submit_attempts.length
           : 0
       });
-      await clientEvent("SEND_INDETERMINATE", {});
+      const reconciliation = await waitForSentUserMessage(
+        prompt,
+        beforeMessages,
+        beforeAssistantText,
+        observedComposerText(),
+        beforeGenerationActive
+      );
+      if (reconciliation.confirmed) {
+        PENDING_SEND_TRANSPORT = null;
+        transport.acknowledgement = reconciliation;
+        transport.transition(SEND_TRANSPORT.ACCEPTED_LATE, {
+          via:"reconciliation",
+          native_stage:"USER_TURN_INDETERMINATE"
+        });
+        await clientEvent("ACCEPTED_LATE", {via:"reconciliation"});
+        return;
+      }
+      await clientEvent("SEND_INDETERMINATE", {
+        reconciliation:"not_confirmed",
+        provisional:reconciliation.provisional || ""
+      });
       STATE.lastEvent = "SEND_INDETERMINATE";
-      STATE.note = "Prompt gesendet; native Bestätigung noch unbestimmt";
-      return;
+      STATE.note = "Prompt nicht reconcilierbar bestätigt; kein weiterer Turn";
+      throw new Error("SEND_INDETERMINATE: user turn not reconciled");
     }
 
     if (String(nativeAck.stage || "") !== "USER_TURN_COMMITTED") {
@@ -954,8 +1029,15 @@ async function sendPromptNative(prompt) {
     try {
       return await sendPromptNative(prompt);
     } catch (error) {
+      if (error && error.code === "COMPOSER_MODEL_NOT_VERIFIED") {
+        STATE.lastTransportFailureClass = "COMPOSER_MODEL_NOT_VERIFIED";
+        await clientEvent("COMPOSER_MODEL_RECOVERY_EXHAUSTED", {
+          message:String(error.message || error)
+        });
+      }
       await clientEvent("NATIVE_TRANSPORT_FAILED", {
-        message:String(error && error.message ? error.message : error)
+        message:String(error && error.message ? error.message : error),
+        failure_class:STATE.lastTransportFailureClass || ""
       });
 
       if (!AGP_ALLOW_DEGRADED_DOM_FALLBACK) {
@@ -1249,7 +1331,11 @@ async function sendPromptNative(prompt) {
     STATE.timer = null;
     STATE.note = reason || "";
     STATE.lastEvent = event;
-    clientEvent(event, {reason:STATE.note, run_generation:STATE.runGeneration});
+    clientEvent(event, {
+      reason:STATE.note,
+      run_generation:STATE.runGeneration,
+      failure_class:STATE.lastTransportFailureClass || ""
+    });
     render();
   }
 
@@ -1287,9 +1373,11 @@ async function sendPromptNative(prompt) {
     const mission = STATE.mission;
     if (!mission || STATE.running) return false;
     if (mission.execution_mode !== "LIVE" || mission.run_mode !== "FULL_AUTO") return false;
-    // Task-first desktop missions currently use both "Task · <id>" and "E2E · <id>" titles.
-    // The explicit durable start-request + mission identity is the authority; do not reject E2E acceptance missions by presentation title.
-    if (!/^(Task|E2E) · /.test(String(mission.title || ""))) return false;
+    // Task-first desktop missions use the "Task · <id>", "E2E · <id>", or
+    // "Standard · <label>" title families. The explicit durable start-request
+    // and mission identity remain the authority; this guard only excludes
+    // unrelated expert missions from the task-first autostart path.
+    if (!/^(Task|E2E|Standard) · /.test(String(mission.title || ""))) return false;
     if (!mission.mission_id) return false;
     if (AGP_TASK_FIRST_AUTOSTART_MISSION_ID === mission.mission_id) return false;
     const terminal = new Set(["DONE","COMPLETED","FAILED","ERROR","STOPPED","CANCELLED"]);
@@ -1479,10 +1567,17 @@ async function sendPromptNative(prompt) {
       if (commandFiles.length !== 1) {
         throw new Error(`expected exactly one assistant .py attachment; observed ${commandFiles.length}`);
       }
-      await submitAssistantCommandFile();
+      const commandResult = await submitAssistantCommandFile();
       if (!STATE.running || STATE.runGeneration !== runGeneration) return;
       STATE.turns += 1;
-      STATE.lastEvent = "K07_COMMAND_FILE_TURN_COMPLETE";
+      const failed = commandResult.result_status === "failed" || commandResult.artifact_kind === "execution_diagnostic";
+      STATE.lastEvent = failed ? "K07_COMMAND_FILE_TURN_FAILED" : "K07_COMMAND_FILE_TURN_COMPLETE";
+      STATE.note = failed
+        ? String(commandResult.failure_reason || "local command execution failed; recovery requested")
+        : "local command completed; continuation requested";
+      STATE.waitingForAssistant = true;
+      STATE.assistantWaitStartedAt = Date.now();
+      resetCandidate();
       render();
       return;
     }
@@ -1494,10 +1589,11 @@ async function sendPromptNative(prompt) {
     }
 
     // AGP_TURN_ACCOUNTING_064_R1
-    STATE.turns += 1;
-    render();
-
     if (result.action !== "continue" || !result.prompt) {
+      // Count a terminal assistant response only after its result has been
+      // accepted. A failed prompt insertion is not a completed turn.
+      STATE.turns += 1;
+      render();
       stop(
         `${result.state}: ${result.note || ""}`,
         result.state || "AUTO_STOPPED"
@@ -1506,13 +1602,14 @@ async function sendPromptNative(prompt) {
       return;
     }
 
-    STATE.assistantBaselineCount = assistantMessageNodes().length;
-    STATE.assistantBaselineMessageId = lastAssistantMessageId();
-    STATE.observedAssistantMessageId = "";
-    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    captureAssistantBaseline();
     k07DebugTrace("PROMPT_SEND_REQUESTED",{chars:String(result.prompt||"").length});
     await sendPrompt(result.prompt);
     k07DebugTrace("PROMPT_SENT");
+    // The turn is committed only after native transport has acknowledged the
+    // next prompt. INSERT_NOT_VERIFIED must not advance the counter.
+    STATE.turns += 1;
+    render();
 
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
@@ -1549,11 +1646,7 @@ async function sendPromptNative(prompt) {
     // total assistant-node count. Prefer stable message identity over
     // node-count growth. Count remains only as a fallback when ChatGPT
     // does not expose message IDs.
-    if (
-      STATE.assistantBaselineMessageId &&
-      newestMessageId &&
-      newestMessageId === STATE.assistantBaselineMessageId
-    ) {
+    if (newestMessageId && assistantBaselineIds().has(newestMessageId)) {
       return "";
     }
 
@@ -1713,7 +1806,7 @@ async function sendPromptNative(prompt) {
           STATE.note = `Antwortformat wird automatisch repariert · ${repairAttempt}/${AGP_MAX_FORMAT_REPAIR_ATTEMPTS}`;
           await clientEvent("ASSISTANT_FORMAT_REPAIR", {attempt:repairAttempt, max_attempts:AGP_MAX_FORMAT_REPAIR_ATTEMPTS, chars:text.length});
           STATE.lastAssistantHash = await digest(text);
-          STATE.assistantBaselineCount = assistantMessageNodes().length;
+          captureAssistantBaseline();
           /* K07_POST_REPAIR_COMPLETION_RESET */
           STATE.assistantCandidateText = "";
           STATE.assistantCandidateStablePolls = 0;
@@ -2156,10 +2249,7 @@ async function sendPromptNative(prompt) {
     }
 
     STATE.lastAssistantHash = await digest(lastAssistantText());
-    STATE.assistantBaselineCount = assistantMessageNodes().length;
-    STATE.assistantBaselineMessageId = lastAssistantMessageId();
-    STATE.observedAssistantMessageId = "";
-    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    captureAssistantBaseline();
     resetCandidate();
     await sendPrompt(pending);
 
@@ -2219,6 +2309,7 @@ async function sendPromptNative(prompt) {
     STATE.errors = 0;
     STATE.startedAt = Date.now();
     STATE.lastPrompt = "";
+    STATE.lastTransportFailureClass = "";
     PENDING_SEND_TRANSPORT = null;
     AGP_FORMAT_REPAIR_ATTEMPTS = 0;
     STATE.waitingForAssistant = false;
@@ -2227,10 +2318,7 @@ async function sendPromptNative(prompt) {
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
     }
-    STATE.assistantBaselineCount = assistantMessageNodes().length;
-    STATE.assistantBaselineMessageId = lastAssistantMessageId();
-    STATE.observedAssistantMessageId = "";
-    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    captureAssistantBaseline();
     resetCandidate();
 
     const bootstrap = missionBootstrapPrompt(mission);
