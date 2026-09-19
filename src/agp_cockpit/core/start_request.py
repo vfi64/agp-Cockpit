@@ -18,3 +18,12 @@ class StartRequestStore:
         }
         tmp=self.path.with_suffix('.tmp'); tmp.write_text(json.dumps(data)+'\n',encoding='utf-8'); tmp.replace(self.path); return data
     def current(self)->dict: return self._read()
+    def invalidate_pending(self)->dict:
+        """Invalidate a request from an earlier bridge lifetime or stopped run."""
+        cur=self._read()
+        data={
+            'generation':int(cur.get('generation',0)),
+            'mission_id':'',
+            'task_id':'',
+        }
+        tmp=self.path.with_suffix('.tmp'); tmp.write_text(json.dumps(data)+'\n',encoding='utf-8'); tmp.replace(self.path); return data
