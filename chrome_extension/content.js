@@ -432,17 +432,17 @@
         })
       }
     );
+    const terminal = Boolean(result && result.terminal === true);
     if (
       !result ||
-      result.state !== "COMMAND_FILE" ||
+      (result.state !== "COMMAND_FILE" && !terminal) ||
       typeof result.result_file !== "string" ||
       !result.result_file ||
-      typeof result.prompt !== "string" ||
-      !result.prompt
+      (!terminal && (typeof result.prompt !== "string" || !result.prompt))
     ) {
       throw new Error("K07 command-file bridge response incomplete");
     }
-    if (result.replayed === true) {
+    if (result.replayed === true || terminal) {
       return result;
     }
     // AGP_K07_RESULT_CONTINUATION_CALL_991

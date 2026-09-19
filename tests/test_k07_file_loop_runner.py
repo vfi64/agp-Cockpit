@@ -14,7 +14,19 @@ def test_step():
     assert step_from_command_file(Path("936_probe.py"))==936
     with pytest.raises(ValueError): step_from_command_file(Path("probe.py"))
 def make(tmp_path,body):
-    dl=tmp_path/"Download"; dl.mkdir(); (dl/"run_next.py").write_text(body); cmd=dl/"001_probe.py"; cmd.write_text("x=1\n"); return cmd
+    dl=tmp_path/"Download"; dl.mkdir(); (dl/"run_next.py").write_text(body)
+    cmd=dl/"001_probe.py"; cmd.write_text(
+        'import argparse\nfrom pathlib import Path\n'
+        'COMMAND = ["agentic-kit", "check"]\n'
+        'RETURN_BUNDLE = "return_bundle.json"\n'
+        'def main():\n'
+        '    parser = argparse.ArgumentParser()\n'
+        '    parser.add_argument("--self-test", action="store_true")\n'
+        '    parser.parse_args()\n'
+        '    Path(RETURN_BUNDLE).write_text("{}")\n'
+        'if __name__ == "__main__":\n'
+        '    main()\n'
+    ); return cmd
 def test_one(tmp_path):
     cmd=make(tmp_path,"import sys\nfrom pathlib import Path\nn=int(sys.argv[1]); d=Path(__file__).parent\n(d/f'{n:03d}_probe_return_bundle.json').write_text('{}')\n")
     r=execute_with_run_next(tmp_path,cmd); assert r.return_bundle.name=="001_probe_return_bundle.json"

@@ -86,3 +86,17 @@ prefix as owned while retaining the fail-closed refusal for unrelated non-empty
 composer text. The local-run failure was not an autostart failure; it was an
 attachment-integrity failure followed by a recovery-transport classification
 failure.
+
+## 2026-09-19 K07 — syntactically valid truncated command file
+
+Informative failure: command file `1438` passed `py_compile`, accepted the
+unknown `--self-test` argument by simply ignoring it, and ended its real run
+with exit code 0 without a main guard, Kit invocation, or return-bundle writer.
+`run_next.py` detected the missing result only after the real-run phase. The
+first proven divergence was therefore semantic command-file completeness, not
+local Python startup or Hermes availability. Repair: add deterministic
+semantic work-order preflight, attach command-file size/line/hash and
+interpreter/CWD/argv evidence, and block the file loop after three consecutive
+same-signature failures without proven progress. Transport hashes remain
+limited to transport-integrity evidence; they cannot prove that the remote
+model originally generated a complete file.

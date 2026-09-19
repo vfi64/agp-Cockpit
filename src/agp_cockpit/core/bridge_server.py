@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 import json
 import secrets
 import threading
+from dataclasses import asdict, dataclass
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import urlparse
 
 from agp_cockpit.core.bridge_engine import BridgeEngine
@@ -14,12 +14,16 @@ from agp_cockpit.core.bridge_protocol import (
     parse_turn_request,
 )
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
-from agp_cockpit.core.transport_protocol_v1 import ActionRegistry, parse_action_frame, parse_result_frame
+from agp_cockpit.core.file_loop_orchestrator import consume_command_file
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
-from agp_cockpit.core.work_order import parse_work_order_json
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_contract import LocalTaskContract
-from agp_cockpit.core.file_loop_orchestrator import consume_command_file
+from agp_cockpit.core.transport_protocol_v1 import (
+    ActionRegistry,
+    parse_action_frame,
+    parse_result_frame,
+)
+from agp_cockpit.core.work_order import parse_work_order_json
 
 
 @dataclass(frozen=True)
@@ -317,7 +321,8 @@ class CockpitBridgeServer:
                             state_file,
                             stem=Path(filename).stem,
                         )
-                        if outcome.run is None or outcome.continuation_text is None:
+                        terminal_loop = outcome.state.value in {"BLOCKED", "NEEDS_HUMAN", "DONE"}
+                        if outcome.run is None or (outcome.continuation_text is None and not terminal_loop):
                             raise RuntimeError("command-file execution produced no return bundle")
                         result_path = Path(outcome.run.return_bundle)
                         result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
@@ -350,6 +355,8 @@ class CockpitBridgeServer:
                                 "step": outcome.run.step,
                                 "result_file": str(outcome.run.return_bundle),
                                 "prompt": outcome.continuation_text,
+                                "terminal": terminal_loop,
+                                "human_reason": outcome.human_reason,
                                 "cycle_id": cycle_id,
                                 "result_sha256": result_sha256,
                                 "output_file": str(output_path),

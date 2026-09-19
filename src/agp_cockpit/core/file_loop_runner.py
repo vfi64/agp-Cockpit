@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ast
+import hashlib
 import json
 import subprocess
 import sys
@@ -24,6 +26,52 @@ def step_from_command_file(path:Path)->int:
     return int(prefix)
 
 
+def command_contract_violations(command_file: Path) -> list[str]:
+    """Reject syntactically valid but incomplete remote work-order files."""
+    source = command_file.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(command_file))
+    functions = {node.name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    strings = {node.value for node in ast.walk(tree) if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+    has_self_test_argument = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "add_argument"
+        and any(isinstance(argument, ast.Constant) and argument.value == "--self-test" for argument in node.args)
+        for node in ast.walk(tree)
+    )
+    has_bundle_writer = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"write_text", "write_bytes"}
+        for node in ast.walk(tree)
+    ) or any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"dump", "dump_json"}
+        for node in ast.walk(tree)
+    )
+    has_main_guard = any(
+        isinstance(node, ast.If)
+        and isinstance(node.test, ast.Compare)
+        and isinstance(node.test.left, ast.Name)
+        and node.test.left.id == "__name__"
+        and any(isinstance(value, ast.Constant) and value.value == "__main__" for value in node.test.comparators)
+        for node in ast.walk(tree)
+    )
+    violations: list[str] = []
+    if "main" not in functions:
+        violations.append("missing main() entry point")
+    if not has_main_guard:
+        violations.append("missing __main__ execution guard")
+    if "--self-test" not in strings or not has_self_test_argument:
+        violations.append("missing --self-test contract")
+    if "agentic-kit" not in strings:
+        violations.append("missing declared agentic-kit command")
+    if not any("return_bundle" in value for value in strings) or not has_bundle_writer:
+        violations.append("missing return-bundle contract")
+    return violations
+
+
 def _contains_command_output(stdout: str) -> bool:
     """Distinguish command output from the fixed run_next progress banners."""
     noise = (
@@ -43,6 +91,30 @@ def _contains_command_output(stdout: str) -> bool:
         and not line.strip().startswith(noise)
         for line in stdout.splitlines()
     )
+
+
+def _execution_identity(root: Path, command_file: Path, step: int, argv: list[str], returncode: int) -> dict:
+    content = command_file.read_bytes()
+    return {
+        "command_file_sha256": hashlib.sha256(content).hexdigest(),
+        "command_file_bytes": len(content),
+        "command_file_lines": content.count(b"\n") + (1 if content and not content.endswith(b"\n") else 0),
+        "interpreter": sys.executable,
+        "cwd": str(root.resolve()),
+        "argv": [str(item) for item in argv],
+        "returncode": returncode,
+    }
+
+
+def _attach_execution_identity(path: Path, identity: dict) -> None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return
+    if not isinstance(payload, dict):
+        return
+    payload["execution_identity"] = identity
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _materialize_command_failure(
@@ -158,8 +230,27 @@ def execute_with_run_next(root:Path,command_file:Path,timeout_seconds:int=300)->
     if command_file.parent.resolve()!=download.resolve(): raise ValueError("command file must be in repository Download directory")
     step=step_from_command_file(command_file)
     output_log.write_text("RUN_NEXT_OUTPUT_PENDING\n", encoding="utf-8")
+    runner_argv = [sys.executable, str(runner), str(step)]
+    try:
+        violations = command_contract_violations(command_file)
+    except (OSError, UnicodeDecodeError, SyntaxError) as exc:
+        violations = [f"command contract could not be inspected: {type(exc).__name__}: {exc}"]
+    if violations:
+        message = "RUN_NEXT_PRECHECK_FAILED\n" + "\n".join(f"- {item}" for item in violations) + "\n"
+        output_log.write_text(message, encoding="utf-8")
+        cp = subprocess.CompletedProcess(runner_argv, 2, stdout=message, stderr="")
+        result = _materialize_command_failure(
+            download,
+            step,
+            command_file,
+            cp,
+            "command file semantic contract rejected: " + "; ".join(violations),
+            output_log,
+        ).resolve()
+        _attach_execution_identity(result, _execution_identity(root, command_file, step, runner_argv, 2))
+        return FileLoopRun(step, command_file, result, output_log, 2, message, "", "execution_diagnostic")
     before={p.resolve() for p in download.glob(f"{step:03d}_*_return_bundle.json")}
-    cp=subprocess.run([sys.executable,str(runner),str(step)],cwd=root,text=True,capture_output=True,timeout=timeout_seconds,check=False)
+    cp=subprocess.run(runner_argv,cwd=root,text=True,capture_output=True,timeout=timeout_seconds,check=False)
     snapshots=sorted(download.glob(f"{step}_run_next_output*.txt"), key=lambda p: p.stat().st_mtime_ns)
     if snapshots:
         output_log=snapshots[-1].resolve()
@@ -183,6 +274,10 @@ def execute_with_run_next(root:Path,command_file:Path,timeout_seconds:int=300)->
     if len(created) != 1:
         raise RuntimeError(f"expected exactly one new return bundle for step {step}, got {len(created)}")
     candidate = created[0]
+    _attach_execution_identity(
+        candidate,
+        _execution_identity(root, command_file, step, runner_argv, cp.returncode),
+    )
     try:
         parsed = json.loads(candidate.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:

@@ -10,6 +10,21 @@ from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+def valid_command_file(label: str) -> str:
+    return (
+        "import argparse\nfrom pathlib import Path\n"
+        f'COMMAND = ["agentic-kit", "{label}"]\n'
+        'RETURN_BUNDLE = "return_bundle.json"\n'
+        "def main():\n"
+        "    parser = argparse.ArgumentParser()\n"
+        '    parser.add_argument("--self-test", action="store_true")\n'
+        "    parser.parse_args()\n"
+        '    Path(RETURN_BUNDLE).write_text("{}")\n'
+        'if __name__ == "__main__":\n'
+        "    main()\n"
+    )
+
 def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     manifest = json.loads((ROOT / "chrome_extension/manifest.json").read_text())
     assert "debugger" in manifest["permissions"]
@@ -50,7 +65,7 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
     try:
         payload = {
             "filename": "next_command.py",
-            "content": "print('safe fixture')\n",
+            "content": valid_command_file("check"),
             "href": "https://chatgpt.com/backend-api/files/x",
             "message_id": "m1",
         }
@@ -75,7 +90,7 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         assert "Return exactly one Python command file" in data["prompt"]
         commands = list(download.glob("*_next_command.py"))
         assert len(commands) == 1
-        assert commands[0].read_text(encoding="utf-8") == "print('safe fixture')\n"
+        assert commands[0].read_text(encoding="utf-8") == valid_command_file("check")
         assert json.loads((download / "runner_invoked.json").read_text(encoding="utf-8"))["argv"] == ["1"]
         assert Path(data["result_file"]).parent == download
     finally:
@@ -103,7 +118,7 @@ def test_concurrent_duplicate_command_file_is_executed_once(tmp_path):
     info = runtime.start()
     payload = {
         "filename": "concurrent_command.py",
-        "content": "print('safe fixture')\n",
+        "content": valid_command_file("check"),
         "href": "https://chatgpt.com/backend-api/files/concurrent",
         "message_id": "concurrent-message",
     }
@@ -164,9 +179,11 @@ def test_nonconsecutive_duplicate_command_file_is_replayed(tmp_path):
             return json.loads(response.read().decode("utf-8"))
 
     try:
-        first = submit("print('first')\n", "first")
-        submit("print('different')\n", "different")
-        replay = submit("print('first')\n", "repeated-first")
+        first_content = valid_command_file("first")
+        different_content = valid_command_file("different")
+        first = submit(first_content, "first")
+        submit(different_content, "different")
+        replay = submit(first_content, "repeated-first")
         assert first["replayed"] is False
         assert replay["replayed"] is True
         assert replay["result_file"] == first["result_file"]
