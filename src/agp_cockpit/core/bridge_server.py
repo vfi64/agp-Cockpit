@@ -749,7 +749,17 @@ class CockpitBridgeServer:
                             OperatorControlStore,
                         )
                         action = str(data.get("action", "")).strip()
-                        self._json(200, OperatorControlStore(runtime_root).request(action))
+                        control = OperatorControlStore(runtime_root).request(action)
+                        if action.upper() == "STOP" and engine.runtime.state is not None:
+                            engine.runtime.stop("Stopped by operator control")
+                        self._json(200, {
+                            **control,
+                            "mission_state": (
+                                None
+                                if engine.runtime.state is None
+                                else engine.runtime.state.state
+                            ),
+                        })
                         return
 
                     if path == "/v1/task/start-request":
