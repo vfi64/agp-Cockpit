@@ -1,7 +1,9 @@
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox,ttk
+from tkinter import messagebox, ttk
+
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
+
 
 class TaskOperatorPanel(ttk.Frame):
     def __init__(self,master:tk.Misc,*,repository_root:Path)->None:
@@ -29,7 +31,8 @@ class TaskOperatorPanel(ttk.Frame):
         self.refresh_button.focus_set(); self.refresh()
     def _act(self,fn):
         try: fn(); self.refresh()
-        except Exception as exc: messagebox.showerror("Task Operator",str(exc),parent=self.winfo_toplevel())
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces operator failures.
+            messagebox.showerror("Task Operator",str(exc),parent=self.winfo_toplevel())
     def pause(self): self._act(self.api.pause)
     def resume(self): self._act(self.api.resume)
     def approve(self): self._act(self.api.approve_checkpoint)

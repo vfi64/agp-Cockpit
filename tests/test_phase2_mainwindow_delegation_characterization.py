@@ -1,8 +1,11 @@
 """Headless Phase-2 characterization of MainWindow delegation."""
 from __future__ import annotations
+
 from types import SimpleNamespace
+
 from agp_cockpit.core.startup import StartupAction
 from agp_cockpit.ui import main_window
+
 
 class Var:
     def __init__(self,value=""): self.value=value

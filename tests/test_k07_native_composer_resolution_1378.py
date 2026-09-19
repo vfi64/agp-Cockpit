@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_native_transport_uses_canonical_composer_fallbacks():
  s=(ROOT/'chrome_extension/browser_native_transport.js').read_text()

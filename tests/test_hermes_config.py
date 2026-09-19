@@ -3,6 +3,7 @@ from agp_cockpit.core.hermes_config import (
     read_hermes_config,
 )
 
+
 def test_detect_top_level_model():
     path, value = detect_model_path({"model": "qwen3.5:9b-mlx"})
     assert path == ("model",)

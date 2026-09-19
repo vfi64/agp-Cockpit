@@ -155,7 +155,7 @@ class MissionOperatorWindow(tk.Toplevel):
                 run_mode=self.run_var.get(),
             )
             self._show(str(result))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces mission failures.
             messagebox.showerror(
                 "Mission",
                 str(exc),
@@ -166,7 +166,7 @@ class MissionOperatorWindow(tk.Toplevel):
         try:
             result = self.api.resume_next_step()
             self._show(str(result))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces resume failures.
             messagebox.showerror(
                 "Next Step",
                 str(exc),

@@ -1,4 +1,5 @@
 from pathlib import Path
+
 R=Path(__file__).resolve().parents[1]
 C=(R/'chrome_extension/content.js').read_text(); P=(R/'chrome_extension/phase7_single_round.js').read_text()
 def test_atomic_ui():

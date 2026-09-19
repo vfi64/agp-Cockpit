@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_initial_handshake_absence_is_connecting_not_immediate_warning():
     s = Path("src/agp_cockpit/app_bootstrap.py").read_text(encoding="utf-8")
     assert "AGP_INITIAL_HANDSHAKE_ASYNC_063R2" in s

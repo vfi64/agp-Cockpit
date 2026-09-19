@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import json
 import urllib.request
+
 from agp_cockpit.adapters.macos_settings import bridge_token_path
 
 DEFAULT_BASE_URL = "http://127.0.0.1:9876"

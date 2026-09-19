@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-
 ALLOWED_CHAT_HOSTS = {
     "chatgpt.com",
     "www.chatgpt.com",

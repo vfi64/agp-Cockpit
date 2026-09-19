@@ -1,4 +1,5 @@
 from pathlib import Path
+
 N=Path("chrome_extension/background.js").read_text(encoding="utf-8")
 def test_trace_only():
  assert N.count("agpK07NativeTrace1165({event:") == 4

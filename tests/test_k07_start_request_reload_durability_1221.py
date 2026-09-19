@@ -1,4 +1,5 @@
 from pathlib import Path
+
 C=Path('chrome_extension/content.js').read_text()
 def test_reload_does_not_discard_pending_explicit_start():
  b=C[C.index('async function pollExplicitTaskStartRequest()'):C.index('async function refreshStatus()')]

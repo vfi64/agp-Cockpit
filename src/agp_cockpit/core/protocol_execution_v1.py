@@ -1,7 +1,14 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 from agp_cockpit.core.bridge_execution import execute_structured_work_order
-from agp_cockpit.core.transport_protocol_v1 import ActionEnvelope, ResultEnvelope, encode_result_frame
+from agp_cockpit.core.transport_protocol_v1 import (
+    ActionEnvelope,
+    ResultEnvelope,
+    encode_result_frame,
+)
+
 
 def execute_direct_action(action: ActionEnvelope, *, repository_root: Path, kit_binary: Path, allowed_tools: frozenset[str] | None = None, allow_network: bool = True) -> str:
     if action.mode not in {"DIRECT_EXECUTION", "FILE_TRANSFER"}:

@@ -1,6 +1,6 @@
 import json
-import time
 import subprocess
+import time
 
 import pytest
 
@@ -86,9 +86,10 @@ def test_browser_navigation_failure_is_bounded_and_reported(monkeypatch, failure
 
 @pytest.mark.parametrize("handshake", [None, {"version": "0.3.0"}])
 def test_navigation_failure_keeps_desktop_and_runtime_available(monkeypatch, tmp_path, handshake):
+    import threading
+
     from agp_cockpit import app_bootstrap as boot
     from agp_cockpit.adapters import macos_extension
-    import threading
 
     events = []
 

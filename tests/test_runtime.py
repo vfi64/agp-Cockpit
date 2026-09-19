@@ -1,5 +1,11 @@
 import pytest
-from agp_cockpit.core.runtime import find_executable, process_name_present, probe_tcp_port
+
+from agp_cockpit.core.runtime import (
+    find_executable,
+    probe_tcp_port,
+    process_name_present,
+)
+
 
 def test_missing_executable_is_not_installed(monkeypatch) -> None:
     monkeypatch.setattr("shutil.which", lambda _: None)

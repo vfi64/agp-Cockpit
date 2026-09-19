@@ -1,8 +1,12 @@
 import json
+
 import pytest
+
 from agp_cockpit.core.transport_protocol_v1 import *
+
+
 def action(**kw):
-    d=dict(protocol_version=1,session_id="s1",round_id="r1",action_id="a1",mode="DIRECT_EXECUTION",target={"repository_path_hint":"/repo"},work_order={"opaque":["x",1]}); d.update(kw); return ActionEnvelope(**d)
+    d={"protocol_version": 1,"session_id": "s1","round_id": "r1","action_id": "a1","mode": "DIRECT_EXECUTION","target": {"repository_path_hint":"/repo"},"work_order": {"opaque":["x",1]}}; d.update(kw); return ActionEnvelope(**d)
 def test_action_roundtrip_preserves_opaque_work_order():
     a=action(work_order={"anything":{"nested":[1,True,None]}}); assert parse_action_frame(encode_action_frame(a))==a
 def test_result_roundtrip():

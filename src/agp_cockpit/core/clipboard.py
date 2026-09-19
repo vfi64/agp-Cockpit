@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import tkinter as tk
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

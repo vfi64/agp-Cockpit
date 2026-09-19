@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 TEXT=(ROOT/"chrome_extension/background.js").read_text(encoding="utf-8")
 def native(): return TEXT[TEXT.index("// AGP_BROWSER_NATIVE_TRANSPORT_V1"):]

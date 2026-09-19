@@ -268,10 +268,10 @@ class BridgeEngine:
                 note=f"turn={self.guard.turns}",
             )
 
-        except Exception as exc:
+        except Exception:  # noqa: BLE001 - engine boundary converts failures to protocol state.
             try:
                 self.guard.error()
-            except Exception as guard_exc:
+            except Exception as guard_exc:  # noqa: BLE001 - preserve original failure path.
                 exc = guard_exc
 
             try:
@@ -279,8 +279,8 @@ class BridgeEngine:
                     "FAILED",
                     f"{type(exc).__name__}: {exc}",
                 )
-            except Exception:
-                pass
+            except Exception as persistence_exc:  # noqa: BLE001 - failure reporting is best-effort.
+                exc = persistence_exc
 
             return BrowserTurnResponse(
                 action="stop",

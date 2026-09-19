@@ -1,13 +1,13 @@
-from pathlib import Path
 import json
 import subprocess
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 P8=(ROOT/"chrome_extension/phase8_multi_round.js").read_text()
 UI=(ROOT/"chrome_extension/content.js").read_text()
 
 def node(script):
-    p=subprocess.run(["node","-e",script],cwd=ROOT,text=True,capture_output=True)
+    p=subprocess.run(["node","-e",script],cwd=ROOT,text=True,capture_output=True,check=False)
     assert p.returncode==0,p.stdout+p.stderr
     return p.stdout.strip()
 

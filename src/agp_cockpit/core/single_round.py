@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+
 
 class RoundState(str, Enum):
     WAITING_FOR_LLM="WAITING_FOR_LLM"
@@ -38,7 +40,7 @@ class SingleDirectExecutionRound:
         if self._stop(): return SingleRoundOutcome(self.state)
         self.state=RoundState.VALIDATING_TRANSPORT_ENVELOPE
         try: action=self.parse_action(text)
-        except Exception:
+        except Exception:  # noqa: BLE001 - protocol parsing maps to a blocked state.
             self.state=RoundState.BLOCKED_TRANSPORT
             return SingleRoundOutcome(self.state)
         aid=getattr(action,"action_id",None)
@@ -56,7 +58,7 @@ class SingleDirectExecutionRound:
             if self._stop(): return SingleRoundOutcome(self.state,aid,framed)
             self.state=RoundState.SENDING_RESULT_TO_BROWSER
             self.submit_result(framed)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - transport failures are reported in the outcome.
             self.state=RoundState.FAIL_TRANSPORT
             return SingleRoundOutcome(self.state,aid,exc)
         self.state=RoundState.DONE

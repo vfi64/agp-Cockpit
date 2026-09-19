@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_production_root():
  from agp_cockpit.adapters.macos_settings import bridge_runtime_root
  from agp_cockpit.core.start_request import StartRequestStore

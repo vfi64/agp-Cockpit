@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_deterministic_startup_wakeup_contract():
     source = Path("src/agp_cockpit/app_bootstrap.py").read_text(encoding="utf-8")
     assert "AGP_DETERMINISTIC_STARTUP_WAKE_063V" in source

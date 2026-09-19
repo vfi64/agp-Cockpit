@@ -1,16 +1,25 @@
 from __future__ import annotations
+
 import os
 import signal
 import subprocess
 from dataclasses import dataclass
-from agp_cockpit.core.process_control import ProcessInfo, PortOwner, parse_ps_lines, ollama_processes, port_owner
+
+from agp_cockpit.core.process_control import (
+    PortOwner,
+    ProcessInfo,
+    ollama_processes,
+    parse_ps_lines,
+    port_owner,
+)
+
 
 def list_processes() -> tuple[ProcessInfo, ...]:
-    cp=subprocess.run(["ps","-axo","pid=,command="],text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False)
+    cp=subprocess.run(["ps","-axo","pid=,command="],text=True,capture_output=True,check=False)
     return parse_ps_lines(cp.stdout.splitlines()) if cp.returncode == 0 else ()
 
 def pids_listening_on_port(port: int) -> tuple[int, ...]:
-    cp=subprocess.run(["lsof","-nP",f"-iTCP:{port}","-sTCP:LISTEN","-t"],text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False)
+    cp=subprocess.run(["lsof","-nP",f"-iTCP:{port}","-sTCP:LISTEN","-t"],text=True,capture_output=True,check=False)
     if cp.returncode != 0: return ()
     result=[]
     for line in cp.stdout.splitlines():

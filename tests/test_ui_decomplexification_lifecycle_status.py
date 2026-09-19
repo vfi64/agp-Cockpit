@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
+
 
 def test_visible_file_loop_status_tracks_shared_operator_control(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))

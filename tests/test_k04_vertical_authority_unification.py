@@ -1,10 +1,14 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+
 import pytest
+
 from agp_cockpit.core.bridge_server import BridgeServerConfig, CockpitBridgeServer
+
 
 def _post(server,path,body):
     port=server._server.server_address[1]

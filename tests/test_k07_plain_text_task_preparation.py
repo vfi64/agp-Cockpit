@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
+
 
 def test_minimal_plain_text_payload_is_prepared_without_semantic_rewrite(tmp_path: Path):
     api=TaskOperatorAPI(tmp_path)

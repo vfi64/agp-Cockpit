@@ -1,5 +1,6 @@
 from agp_cockpit.core.browser_transport import focus_chrome, open_url_in_chrome
 
+
 class FakeBrowserPort:
     def __init__(self, installed=True):
         self._installed=installed; self.focused=False; self.urls=[]

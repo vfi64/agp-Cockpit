@@ -1,4 +1,5 @@
 from pathlib import Path
+
 R=Path(__file__).resolve().parents[1]
 S=(R/'chrome_extension/content.js').read_text()
 def test_migration():

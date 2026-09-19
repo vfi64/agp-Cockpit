@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+
 class OperatorControlStore:
     """Monotonic bridge authority for live browser-loop controls."""
     def __init__(self, runtime_root: Path) -> None:
@@ -11,7 +12,8 @@ class OperatorControlStore:
     def current(self) -> dict:
         if not self.path.exists(): return {"generation": 0, "action": ""}
         try: data=json.loads(self.path.read_text(encoding="utf-8"))
-        except Exception: return {"generation": 0, "action": ""}
+        except Exception:  # noqa: BLE001 - invalid control state fails closed.
+            return {"generation": 0, "action": ""}
         return {"generation": int(data.get("generation",0)), "action": str(data.get("action",""))}
 
     def request(self, action: str) -> dict:

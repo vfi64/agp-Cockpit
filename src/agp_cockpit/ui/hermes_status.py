@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from agp_cockpit.core.hermes_runtime import HermesRuntimeInfo
 
+
 def format_hermes_status(info: HermesRuntimeInfo) -> str:
     executable = (
         str(info.executable.path)

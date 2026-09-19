@@ -1,4 +1,5 @@
 from pathlib import Path
+
 B=Path("chrome_extension/background.js").read_text()
 C=Path("chrome_extension/content.js").read_text()
 def test_sink():

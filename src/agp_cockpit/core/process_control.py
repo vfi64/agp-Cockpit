@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import time
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-import time
-from typing import Callable, Iterable
 
-from agp_cockpit.core.runtime import OLLAMA_DEFAULT_HOST, OLLAMA_DEFAULT_PORT, probe_tcp_port
+from agp_cockpit.core.runtime import (
+    OLLAMA_DEFAULT_HOST,
+    OLLAMA_DEFAULT_PORT,
+    probe_tcp_port,
+)
 
 
 @dataclass(frozen=True)
@@ -73,7 +77,9 @@ def ollama_processes(*, processes: Iterable[ProcessInfo] | None = None) -> tuple
 
 
 def pids_listening_on_port(port: int) -> tuple[int, ...]:
-    from agp_cockpit.adapters.macos_process_control import pids_listening_on_port as impl
+    from agp_cockpit.adapters.macos_process_control import (
+        pids_listening_on_port as impl,
+    )
     return impl(port)
 
 def port_owner(
@@ -150,7 +156,7 @@ def stop_ollama_processes(
         targeted_pids=target_pids,
         terminated_pids=tuple(pid for pid in target_pids if pid not in remaining),
         remaining_pids=tuple(sorted(remaining)),
-        port_free=not bool(getattr(probe, "accepting_connections")),
+        port_free=not bool(probe.accepting_connections),
     )
 
 
@@ -164,7 +170,7 @@ def start_ollama(
     port_probe: Callable[..., object] = probe_tcp_port,
 ) -> StartResult:
     before = port_probe(OLLAMA_DEFAULT_HOST, OLLAMA_DEFAULT_PORT)
-    if bool(getattr(before, "accepting_connections")):
+    if bool(before.accepting_connections):
         raise RuntimeError(f"refusing to start Ollama: port {OLLAMA_DEFAULT_PORT} is already in use")
 
     if popen_factory is None:
@@ -177,7 +183,7 @@ def start_ollama(
     ready = False
     while monotonic() < deadline:
         probe = port_probe(OLLAMA_DEFAULT_HOST, OLLAMA_DEFAULT_PORT)
-        if bool(getattr(probe, "accepting_connections")):
+        if bool(probe.accepting_connections):
             ready = True
             break
         sleep(0.1)

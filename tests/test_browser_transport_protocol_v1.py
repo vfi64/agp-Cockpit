@@ -1,5 +1,7 @@
-from pathlib import Path
 import json
+from pathlib import Path
+
+
 def test_protocol_v1_loaded_before_conversation_contract():
     m=json.loads(Path("chrome_extension/manifest.json").read_text()); js=m["content_scripts"][0]["js"]
     assert "transport_protocol_v1.js" in js

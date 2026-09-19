@@ -1,4 +1,5 @@
 from pathlib import Path
+
 MISSION_CLIENT = Path("src/agp_cockpit/core/mission_http_client.py").read_text()
 
 ROOT=Path(__file__).resolve().parents[1]

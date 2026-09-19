@@ -1,4 +1,5 @@
 from pathlib import Path
+
 TEXT=Path("chrome_extension/background.js").read_text(encoding="utf-8")
 N=TEXT[TEXT.index("// AGP_BROWSER_NATIVE_TRANSPORT_V1"):]
 

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+
 import pytest
 
 from agp_cockpit.settings import (
-    AppSettings,
     SETTINGS_SCHEMA_VERSION,
+    AppSettings,
     SettingsError,
     load_and_migrate_settings,
     load_settings,

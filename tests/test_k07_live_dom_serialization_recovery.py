@@ -1,4 +1,5 @@
 from pathlib import Path
+
 C=Path('chrome_extension/content.js').read_text(encoding='utf-8')
 
 def test_wired():

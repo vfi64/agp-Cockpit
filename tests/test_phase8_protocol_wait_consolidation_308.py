@@ -1,4 +1,5 @@
 from pathlib import Path
+
 R=Path(__file__).resolve().parents[1]
 C=(R/"chrome_extension/conversation_contract.js").read_text()
 P=(R/"chrome_extension/phase8_multi_round.js").read_text()

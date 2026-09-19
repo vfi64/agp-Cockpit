@@ -1,6 +1,10 @@
 from __future__ import annotations
-import json,urllib.request
+
+import json
+import urllib.request
+
 from agp_cockpit.adapters.macos_settings import bridge_token_path
+
 
 def request_task_start(mission_id:str,*,task_id:str='',base_url:str='http://127.0.0.1:9876')->dict:
     token=bridge_token_path().read_text(encoding='utf-8').strip()

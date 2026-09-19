@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
-from hashlib import sha256
-from pathlib import Path
 import json
 import platform
 import subprocess
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
+from hashlib import sha256
+from pathlib import Path
 from typing import Any
 
 
@@ -50,8 +50,7 @@ def _git(root: Path, *args: str) -> str:
         ["/usr/bin/git", *args],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     return cp.stdout.strip() if cp.returncode == 0 else ""
@@ -65,8 +64,7 @@ def _kit_version(root: Path) -> str:
         [str(binary), "--version"],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     text = (cp.stdout or cp.stderr).strip()
@@ -92,7 +90,7 @@ def build_kit_error_report(
     notes: list[str] | None = None,
 ) -> KitErrorReport:
     root = repository_root.resolve()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     seed = "|".join([
         now.isoformat(),
         classification,

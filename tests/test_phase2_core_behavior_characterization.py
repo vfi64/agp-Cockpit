@@ -1,11 +1,13 @@
 from pathlib import Path
-from agp_cockpit.core.startup import StartupAction, StartupObservation, decide_startup
+
+from agp_cockpit.core import hermes_runtime
 from agp_cockpit.core.hermes_config import detect_model_path
 from agp_cockpit.core.hermes_runtime import discover_hermes_runtime
-from agp_cockpit.core import hermes_runtime
+from agp_cockpit.core.startup import StartupAction, StartupObservation, decide_startup
+
 
 def obs(**kw):
-    base=dict(ollama_installed=True,port_busy=False,port_owner_is_ollama=False,api_reachable=False,models=())
+    base={"ollama_installed": True,"port_busy": False,"port_owner_is_ollama": False,"api_reachable": False,"models": ()}
     base.update(kw)
     return StartupObservation(**base)
 

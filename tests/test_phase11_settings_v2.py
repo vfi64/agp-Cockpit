@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 
-from agp_cockpit.settings import SETTINGS_SCHEMA_VERSION, AppSettings, load_and_migrate_settings
+from agp_cockpit.settings import (
+    SETTINGS_SCHEMA_VERSION,
+    AppSettings,
+    load_and_migrate_settings,
+)
 
 
 def test_v1_settings_migrate_to_v2_with_repository_root(tmp_path):
@@ -30,7 +34,7 @@ def test_repository_root_round_trip(tmp_path):
     path = tmp_path / "settings.json"
     root = tmp_path / "repo"
     settings = AppSettings(repository_root=str(root))
-    from agp_cockpit.settings import save_settings, load_settings
+    from agp_cockpit.settings import load_settings, save_settings
     save_settings(path, settings)
     loaded, migrated = load_settings(path)
     assert migrated is False

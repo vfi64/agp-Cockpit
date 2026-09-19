@@ -1,7 +1,8 @@
-from pathlib import Path
 import pytest
+
 from agp_cockpit.core.terminal_exec import TerminalCommand
 from agp_cockpit.core.terminal_policy import ExecutionPolicy
+
 
 def test_unlisted_tool_denied(tmp_path):
  p=ExecutionPolicy(repository_root=tmp_path,allowed_tools=frozenset({'python'}),allow_network=False)

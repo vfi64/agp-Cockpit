@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from agp_cockpit.core.terminal_exec import TerminalCommand, TerminalResult
 
 
 class TerminalPort(Protocol):
-    def preview(self, command: "TerminalCommand") -> str:
+    def preview(self, command: TerminalCommand) -> str:
         """Render one already-authorized local command without executing it."""
 
-    def execute(self, command: "TerminalCommand") -> "TerminalResult":
+    def execute(self, command: TerminalCommand) -> TerminalResult:
         """Execute one already-authorized local command."""
 
 

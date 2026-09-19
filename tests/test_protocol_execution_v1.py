@@ -1,7 +1,10 @@
 from types import SimpleNamespace
+
 import pytest
+
 import agp_cockpit.core.protocol_execution_v1 as m
 from agp_cockpit.core.transport_protocol_v1 import ActionEnvelope, parse_result_frame
+
 
 def action(content='{"kind":"noop"}'):
     return ActionEnvelope(1,"s","r","a","DIRECT_EXECUTION",{"repository_path_hint":"/repo"},{"type":"terminal_payload","content":content})

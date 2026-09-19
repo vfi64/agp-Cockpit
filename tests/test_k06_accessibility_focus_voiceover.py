@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 MAIN=(ROOT/'src/agp_cockpit/ui/main_window.py').read_text()
 WORK=(ROOT/'src/agp_cockpit/ui/work_order_panel.py').read_text()

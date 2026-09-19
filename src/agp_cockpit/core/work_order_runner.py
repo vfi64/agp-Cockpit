@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 from agp_cockpit.core.kit_carrier import (
@@ -10,9 +10,9 @@ from agp_cockpit.core.kit_carrier import (
     require_kit_authority,
 )
 from agp_cockpit.core.ports import TerminalPort
+from agp_cockpit.core.task_models import KitResultEvidence
 from agp_cockpit.core.terminal_exec import TerminalResult
 from agp_cockpit.core.terminal_policy import ExecutionPolicy
-from agp_cockpit.core.task_models import KitResultEvidence
 from agp_cockpit.core.work_order import (
     LocalWorkOrder,
     format_result_block,

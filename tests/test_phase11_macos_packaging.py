@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from agp_cockpit.adapters.macos_context import looks_like_repository_context, resolve_repository_root
+from agp_cockpit.adapters.macos_context import (
+    looks_like_repository_context,
+    resolve_repository_root,
+)
 from agp_cockpit.settings import AppSettings
 from scripts.build_macos_app import verify_bundle
 

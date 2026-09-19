@@ -1,5 +1,7 @@
+import json
+import subprocess
 from pathlib import Path
-import json, subprocess
+
 ROOT=Path(__file__).resolve().parents[1]
 JS=ROOT/"chrome_extension/phase8_multi_round.js"
 
@@ -12,7 +14,7 @@ def run_case(tmp_path, body):
         "window.AGPCockpitTransportProtocolV1={parseControl:t=>{if(t.startsWith('CONTROL|'))return {control:'DONE',session_id:'s',round_id:'done'};throw Error('not control')}};"
     )
     h.write_text(pre+"require("+json.dumps(str(JS))+");(async()=>{"+body+"})().catch(e=>{console.error(e);process.exit(9)});")
-    return subprocess.run(["node",str(h)],capture_output=True,text=True)
+    return subprocess.run(["node",str(h)],capture_output=True,text=True,check=False)
 
 def test_default_browser_wait_timeout_is_120_seconds(tmp_path):
     p=run_case(tmp_path,"let o=await window.AGPCockpitPhase8MultiRound.run({maxRounds:2,pausePollMs:1});if(o.state!=='DONE'||seen.length!==2||seen.some(x=>x.timeoutMs!==120000))process.exit(2);")

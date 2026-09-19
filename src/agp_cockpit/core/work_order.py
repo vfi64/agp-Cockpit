@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
-import json
 from typing import Any
 
 from agp_cockpit.core.terminal_exec import TerminalCommand, TerminalResult
@@ -31,7 +31,7 @@ def parse_work_order_json(text: str) -> LocalWorkOrder:
         raise ValueError(f"Ungültiges JSON: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise ValueError("Work Order muss ein JSON-Objekt sein")
+        raise TypeError("Work Order muss ein JSON-Objekt sein")
 
     argv = data.get("argv")
     cwd = data.get("cwd")
@@ -48,7 +48,7 @@ def parse_work_order_json(text: str) -> LocalWorkOrder:
     if not isinstance(timeout, (int, float)) or timeout <= 0:
         raise ValueError("timeout_seconds muss positiv sein")
     if not isinstance(label, str):
-        raise ValueError("label muss ein String sein")
+        raise TypeError("label muss ein String sein")
     if kind not in {"generic", "kit"}:
         raise ValueError("kind muss 'generic' oder 'kit' sein")
 

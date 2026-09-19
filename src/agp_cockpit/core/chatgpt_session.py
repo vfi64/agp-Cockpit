@@ -5,7 +5,6 @@ from urllib.parse import urlparse
 
 from agp_cockpit.core.browser_transport import discover_chrome
 
-
 CHATGPT_HOSTS = {
     "chatgpt.com",
     "www.chatgpt.com",

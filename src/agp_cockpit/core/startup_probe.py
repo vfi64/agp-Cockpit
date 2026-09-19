@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 import json
 import shutil
 import socket
 import subprocess
 import urllib.request
+
 from .startup import StartupObservation, decide_startup, format_startup_status
+
 
 def _busy(port=11434):
     with socket.socket() as s:
@@ -15,7 +18,7 @@ def _owner_is_ollama(port=11434):
     lsof = shutil.which("lsof") or "/usr/sbin/lsof"
     try:
         cp = subprocess.run([lsof, "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"],
-                            capture_output=True, text=True, timeout=2)
+                            capture_output=True, text=True, timeout=2, check=False)
         return cp.returncode == 0 and "ollama" in cp.stdout.lower()
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -25,7 +28,7 @@ def _models():
         with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=1) as r:
             data = json.load(r)
         return True, tuple(x["name"] for x in data.get("models", []) if x.get("name"))
-    except Exception:
+    except Exception:  # noqa: BLE001 - local runtime probe is best-effort.
         return False, ()
 
 def observe_live_read_only():

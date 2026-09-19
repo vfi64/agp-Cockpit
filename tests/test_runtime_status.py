@@ -1,7 +1,9 @@
 from pathlib import Path
+
 from agp_cockpit.adapters.macos_runtime import MacOSRuntimeSnapshot
 from agp_cockpit.core.runtime import ExecutableInfo, PortStatus, RuntimeStatus
 from agp_cockpit.ui.runtime_status import format_runtime_status
+
 
 def test_runtime_status_text() -> None:
     snapshot = MacOSRuntimeSnapshot(

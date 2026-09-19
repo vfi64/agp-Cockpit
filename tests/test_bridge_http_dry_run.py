@@ -1,7 +1,7 @@
 import json
+from urllib.request import Request, urlopen
 
 import pytest
-from urllib.request import Request, urlopen
 
 from agp_cockpit.core.bridge_runtime_server import (
     BridgeRuntimeServer,

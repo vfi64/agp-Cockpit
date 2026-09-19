@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from pathlib import Path
 import json
 import uuid
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
-
 
 VALID_EXECUTION_MODES = {"DRY_RUN", "LIVE"}
 VALID_RUN_MODES = {"FULL_AUTO", "SINGLE_STEP"}
@@ -24,7 +23,7 @@ VALID_STATES = {
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 
@@ -91,7 +90,7 @@ class MissionState:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "MissionState":
+    def from_dict(cls, data: dict[str, Any]) -> MissionState:
         state = cls(**data)
         state.validate()
         return state

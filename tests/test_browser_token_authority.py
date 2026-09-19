@@ -1,6 +1,8 @@
 from pathlib import Path
+
 from agp_cockpit.adapters import macos_settings
 from agp_cockpit.app_bootstrap import build_extension_guidance
+
 
 def test_production_bridge_token_path_is_application_support(monkeypatch, tmp_path):
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))

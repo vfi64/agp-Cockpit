@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import signal
-import sys
 import threading
+from pathlib import Path
 
 from agp_cockpit.core.bridge_runtime_server import (
     BridgeRuntimeServer,

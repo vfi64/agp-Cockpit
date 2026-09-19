@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from urllib.request import Request, urlopen
 
 from agp_cockpit.core.bridge_server import (

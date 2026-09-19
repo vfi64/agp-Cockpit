@@ -1,7 +1,10 @@
 from pathlib import Path
+
 import pytest
+
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
+
 
 def test_deny_default(tmp_path):
     c=LocalTaskContract(tmp_path)

@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from agp_cockpit.core.terminal_policy import ExecutionPolicy
 from agp_cockpit.core.work_order import parse_work_order_json
 from agp_cockpit.core.work_order_runner import (
     execute_work_order,
     preview_work_order,
 )
-from agp_cockpit.core.terminal_policy import ExecutionPolicy
 
 
 @dataclass(frozen=True)
@@ -48,7 +48,7 @@ def order_argv(order: Any) -> tuple[str, ...]:
     if value is None:
         raise ValueError("work order exposes no argv")
     if isinstance(value, str):
-        raise ValueError("work order command must be argv-like")
+        raise TypeError("work order command must be argv-like")
     return tuple(str(x) for x in value)
 
 

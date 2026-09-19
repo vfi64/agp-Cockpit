@@ -1,4 +1,5 @@
 from pathlib import Path
+
 C=Path("chrome_extension/content.js").read_text()
 def test_default_off_and_control():
  assert "k07DebugTraceEnabled: false" in C and "__AGP_K07_TRACE__" in C

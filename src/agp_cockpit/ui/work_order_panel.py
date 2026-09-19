@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import tkinter as tk
-from tkinter import messagebox, ttk
 from pathlib import Path
+from tkinter import messagebox, ttk
 
 from agp_cockpit.core.clipboard import copy_text
 from agp_cockpit.core.terminal_policy import ExecutionPolicy
@@ -180,7 +180,7 @@ class WorkOrderPanel(ttk.Frame):
                 policy=self.policy,
                 kit_binary=self.kit_binary,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces preview failures.
             self.execute_button.configure(state="disabled")
             self.copy_button.configure(state="disabled")
             self._approved_input = None
@@ -199,7 +199,7 @@ class WorkOrderPanel(ttk.Frame):
     def execute(self) -> None:
         try:
             raw, order = self._parse_current()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces parse failures.
             self.execute_button.configure(state="disabled")
             self.copy_button.configure(state="disabled")
             self._approved_input = None
@@ -231,7 +231,7 @@ class WorkOrderPanel(ttk.Frame):
                 policy=self.policy,
                 kit_binary=self.kit_binary,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces execution failures.
             self.copy_button.configure(state="disabled")
             self._set_output(f"FAIL: {exc}")
             return

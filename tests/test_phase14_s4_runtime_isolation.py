@@ -1,7 +1,13 @@
 from pathlib import Path
+
 import pytest
+
 from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
-from agp_cockpit.core.runtime_root_policy import UnsafeRuntimeRoot, require_stable_production_runtime_root
+from agp_cockpit.core.runtime_root_policy import (
+    UnsafeRuntimeRoot,
+    require_stable_production_runtime_root,
+)
+
 
 def test_injected_runtime_root_is_separate_from_repo(tmp_path):
     repo=tmp_path/"repo"; repo.mkdir(); rr=tmp_path/"runtime"

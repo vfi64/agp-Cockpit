@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import json
 import subprocess
+from dataclasses import dataclass
+from pathlib import Path
 
 from agp_cockpit.core.work_order import LocalWorkOrder
 
@@ -54,8 +54,7 @@ def inspect_kit_authority(
         ],
         cwd=order.cwd,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 

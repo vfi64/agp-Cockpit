@@ -1,5 +1,6 @@
 from pathlib import Path
-from agp_cockpit.settings import AppSettings, save_settings, load_settings
+
+from agp_cockpit.settings import AppSettings, load_settings, save_settings
 
 ROOT=Path(__file__).resolve().parents[1]
 

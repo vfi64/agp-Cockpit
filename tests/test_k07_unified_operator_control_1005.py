@@ -1,5 +1,8 @@
 from pathlib import Path
+
 from agp_cockpit.core.operator_control import OperatorControlStore
+
+
 def test_store_monotonic(tmp_path: Path):
  s=OperatorControlStore(tmp_path); assert s.current()=={"generation":0,"action":""}; assert s.request("PAUSE")=={"generation":1,"action":"PAUSE"}; assert s.request("RESUME")=={"generation":2,"action":"RESUME"}; assert s.request("STOP")=={"generation":3,"action":"STOP"}
 def test_browser_contract():

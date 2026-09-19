@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import yaml
-
 
 DEFAULT_HERMES_CONFIG = Path("~/.hermes/config.yaml").expanduser()
 
@@ -171,7 +171,7 @@ def read_hermes_config(
         data = yaml.safe_load(
             path.read_text(encoding="utf-8")
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - parser diagnostics are returned to the UI.
         return HermesConfigInfo(
             path=path,
             exists=True,

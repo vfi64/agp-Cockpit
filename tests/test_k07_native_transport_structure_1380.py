@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 def test_native_transport_has_single_clean_resolver():
  s=(ROOT/'chrome_extension/browser_native_transport.js').read_text()
