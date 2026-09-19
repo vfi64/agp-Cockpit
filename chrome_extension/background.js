@@ -215,6 +215,10 @@ async function agpNativeTransportV1(message, sender) {
         const buttons = Array.from(document.querySelectorAll(
           'button[data-testid="send-button"], button[aria-label*="Send"], button[aria-label*="Senden"], form button[type="submit"]'
         ));
+        const normalize = value => String(value || "")
+          .replace(/\\u00a0/g, " ")
+          .replace(/\\s+/g, " ")
+          .trim();
         const send = buttons.find(button => {
           const rect = button.getBoundingClientRect();
           const style = getComputedStyle(button);
@@ -223,12 +227,17 @@ async function agpNativeTransportV1(message, sender) {
             style.visibility !== "hidden" && style.pointerEvents !== "none";
         });
         return {
-          stage: composer && active === composer && value.trim() === ${JSON.stringify(normalize(text))} && Boolean(send)
+          // Focus is useful evidence for refocusing, but it is not proof of
+          // the editor model. ChatGPT may move focus while React/ProseMirror
+          // has already accepted the inserted value. The stable boundary is
+          // the canonical composer value plus an actionable send control.
+          stage: composer && normalize(value) === ${JSON.stringify(normalize(text))} && Boolean(send)
             ? "COMPOSER_MODEL_VERIFIED"
             : "COMPOSER_MODEL_NOT_VERIFIED",
           value,
           active_tag: active ? active.tagName : "",
           active_id: active ? active.id : "",
+          focused: active === composer,
           composer_id: composer ? composer.id : "",
           send_available: Boolean(send)
         };

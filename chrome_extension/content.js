@@ -619,7 +619,9 @@
   }
 
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (chrome.runtime && chrome.runtime.onMessage &&
+      typeof chrome.runtime.onMessage.addListener === "function") {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message && message.type === "AGP_K07_NATIVE_TRACE_1165") {
       void clientEvent("K07_NATIVE_TRACE", message.payload || {});
       return false;
@@ -635,7 +637,8 @@
       return true;
     }
     return false;
-  });
+    });
+  }
 
   async function clientEvent(event, details={}) {
     try {
