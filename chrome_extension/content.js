@@ -1318,7 +1318,7 @@
     return {text: unique[0].text, value: unique[0].value, source: "embedded-json"};
   }
 
-  function stop(reason, event="AUTO_STOPPED") {
+  async function stop(reason, event="AUTO_STOPPED") {
     STATE.runGeneration += 1;
     STATE.running = false;
     STATE.waitingForAssistant = false;
@@ -1331,7 +1331,20 @@
     STATE.timer = null;
     STATE.note = reason || "";
     STATE.lastEvent = event;
-    clientEvent(event, {
+    // Stop must reach the durable bridge authority as well as this content
+    // script. Otherwise polling can recreate the run after the overlay stops.
+    try {
+      await api("/v1/file-loop/control", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action:"STOP"})
+      });
+    } catch (error) {
+      await clientEvent("OPERATOR_STOP_REQUEST_FAILED", {
+        reason:String(error && error.message ? error.message : error)
+      });
+    }
+    await clientEvent(event, {
       reason:STATE.note,
       run_generation:STATE.runGeneration,
       failure_class:STATE.lastTransportFailureClass || ""
@@ -1594,7 +1607,7 @@
       // accepted. A failed prompt insertion is not a completed turn.
       STATE.turns += 1;
       render();
-      stop(
+      await stop(
         `${result.state}: ${result.note || ""}`,
         result.state || "AUTO_STOPPED"
       );
@@ -1891,7 +1904,7 @@
       });
 
       if (STATE.errors >= LIMITS.maxErrors) {
-        stop(String(err), "AUTO_ERROR");
+        await stop(String(err), "AUTO_ERROR");
       } else if (STATE.runGeneration === runGeneration && STATE.running) {
         STATE.waitingForAssistant = true;
     STATE.assistantWaitStartedAt = Date.now();
@@ -2334,7 +2347,7 @@
       await sendPrompt(bootstrap);
     } catch (err) {
       if (STATE.runGeneration === runGeneration) {
-        stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");
+        await stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");
       }
       // Keep the durable explicit start request retryable. A stopped run is
       // not a successfully accepted request.

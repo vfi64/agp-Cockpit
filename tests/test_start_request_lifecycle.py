@@ -99,3 +99,50 @@ def test_stop_discards_pending_start_request(tmp_path: Path) -> None:
         assert StartRequestStore(runtime_root).current()["mission_id"] == ""
     finally:
         server.stop()
+
+
+def test_accepted_start_request_is_consumed_once(tmp_path: Path) -> None:
+    runtime_root = tmp_path / "runtime"
+    server = CockpitBridgeServer(
+        tmp_path,
+        runtime_root=runtime_root,
+        config=BridgeServerConfig(host="127.0.0.1", port=0, token="test-token"),
+    )
+    server.start()
+    try:
+        port = server._server.server_address[1]
+        base = f"http://127.0.0.1:{port}"
+        created = _post(
+            base,
+            "test-token",
+            "/v1/mission",
+            {
+                "title": "Standard · Chat wechseln",
+                "mission_text": "test",
+                "execution_mode": "LIVE",
+                "run_mode": "FULL_AUTO",
+            },
+        )
+        mission_id = created["mission"]["mission_id"]
+        request = StartRequestStore(runtime_root).request(
+            mission_id,
+            task_id="task-1",
+        )
+
+        accepted = _post(
+            base,
+            "test-token",
+            "/v1/client-event",
+            {
+                "event": "TASK_START_REQUEST_ACCEPTED",
+                "details": {
+                    "generation": request["generation"],
+                    "request_mission_id": mission_id,
+                },
+            },
+        )
+
+        assert accepted["task_start_request"] == "CONSUMED"
+        assert StartRequestStore(runtime_root).current()["mission_id"] == ""
+    finally:
+        server.stop()

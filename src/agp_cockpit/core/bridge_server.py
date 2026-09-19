@@ -592,6 +592,33 @@ class CockpitBridgeServer:
 
                         engine.runtime.record_browser_transport(event_name, details)
 
+                        if event_name == "TASK_START_REQUEST_ACCEPTED":
+                            # A start request is a one-shot trigger.  The
+                            # browser may continue polling while bootstrap
+                            # transport is being reconciled; leaving the
+                            # request populated would replay the same mission
+                            # after every failed attempt.
+                            from agp_cockpit.core.start_request import StartRequestStore
+
+                            pending = StartRequestStore(runtime_root).current()
+                            requested_generation = int(details.get("generation", 0) or 0)
+                            requested_mission = str(
+                                details.get("request_mission_id", "")
+                            ).strip()
+                            if (
+                                requested_generation > 0
+                                and requested_generation == int(pending.get("generation", 0) or 0)
+                                and requested_mission == str(pending.get("mission_id", "")).strip()
+                            ):
+                                StartRequestStore(runtime_root).invalidate_pending()
+                                client_response["task_start_request"] = "CONSUMED"
+                                diag.event(
+                                    "TASK_START_REQUEST_CONSUMED",
+                                    mission_id=requested_mission,
+                                    component="http",
+                                    details={"generation": requested_generation},
+                                )
+
                         if event_name == "RESULT_DELIVERED":
                             session_id = str(details.get("session_id", "")).strip()
                             action_id = str(details.get("action_id", "")).strip()
