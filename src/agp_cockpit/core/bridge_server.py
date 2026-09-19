@@ -90,6 +90,11 @@ class CockpitBridgeServer:
         if self._server is not None:
             return
 
+        # A desktop start request is a one-shot signal for the current bridge
+        # lifetime. Never replay a request left behind by a previous process.
+        from agp_cockpit.core.start_request import StartRequestStore
+        StartRequestStore(self.runtime_root).invalidate_pending()
+
         engine = self.engine
         token = self.config.token
         diag = self.diag
@@ -748,10 +753,12 @@ class CockpitBridgeServer:
                         from agp_cockpit.core.operator_control import (
                             OperatorControlStore,
                         )
+                        from agp_cockpit.core.start_request import StartRequestStore
                         action = str(data.get("action", "")).strip()
                         control = OperatorControlStore(runtime_root).request(action)
                         if action.upper() == "STOP" and engine.runtime.state is not None:
                             engine.runtime.stop("Stopped by operator control")
+                            StartRequestStore(runtime_root).invalidate_pending()
                         self._json(200, {
                             **control,
                             "mission_state": (
