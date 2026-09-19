@@ -47,3 +47,6 @@ applicable F01-F10/K01-K07 contracts are proven at the correct revision.
 
 Generated handoff projections are continuation aids, not primary semantic
 authority.
+## Operational documentation refresh state after PR #133
+
+Current administrative handoff refresh state is `574a4c47` (`Invalidate stale task start requests (#133)`). Continue next only after this post-PR133 refresh is committed and merged; the next substantive slice must be created from fresh main.

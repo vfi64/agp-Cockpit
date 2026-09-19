@@ -63,3 +63,20 @@ oder:
 Beginne erst nach dieser Statusentscheidung mit neuer Arbeit.
 
 In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-Gates keine Pflichtstart-Gates. Nutze `transfer post-merge-check` erst nach einem tatsächlichen PR-Merge auf `main`.
+## Operational documentation refresh state after PR #133
+
+Current administrative handoff refresh state is `574a4c47` (`Invalidate stale task start requests (#133)`). Continue next only after this post-PR133 refresh is committed and merged; the next substantive slice must be created from fresh main.
+
+Command manifest entrypoint:
+- MANDATORY FIRST READ: docs/reference/agentic-kit-commands.json (manifest_sha: ce455b7df8c5). Every reply containing commands MUST start with: COMMAND_MANIFEST_ACK ce455b7df8c5. Consult `agentic-kit command-for` before proposing commands and choose the most specific available Kit workflow command.
+- Before proposing ANY command run/consult `agentic-kit command-for` and choose the most specific available Kit workflow command.
+- raw git/gh commands with a mapped wrapper are rejected by instruction lint.
+
+Command reference contract:
+- Read `docs/reference/agentic-kit-commands.json` before composing agentic-kit commands.
+- Read `docs/reference/AGENTIC_KIT_COMMANDS.md` before composing agentic-kit commands.
+- `must_not_reconstruct_commands_from_memory: true`.
+- Treat `source_hashes` as freshness evidence.
+source_hashes:
+- docs/reference/AGENTIC_KIT_COMMANDS.md: 34ab97377109d83b6961ca26c837a2d6cd022265e74539113b313076d2fbc384
+- docs/reference/agentic-kit-commands.json: 2d410a602009389079669823b084d1b229a5be691f7b649ab2118cfd7627d60b
