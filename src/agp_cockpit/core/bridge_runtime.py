@@ -148,6 +148,13 @@ class BridgeRuntime:
         self.store.save(state)
         return state
 
+    def stop(self, note: str = "Stopped by operator") -> MissionState:
+        """Persist an operator stop so a reconnect cannot restart this mission."""
+        state = self.require_state()
+        if state.state in TERMINAL_STATES:
+            return state
+        return self.final("STOPPED", note)
+
     def resume_next_step(self) -> MissionState:
         state = self.require_state()
         if state.run_mode != "SINGLE_STEP":

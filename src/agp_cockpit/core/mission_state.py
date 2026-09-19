@@ -29,9 +29,9 @@ def utc_now() -> str:
 
 TERMINAL_STATES = frozenset({'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'})
 ALLOWED_STATE_TRANSITIONS = {
-    'READY': frozenset({'RUNNING', 'DONE', 'FAILED', 'NEEDS_HUMAN'}),
+    'READY': frozenset({'RUNNING', 'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'}),
     'RUNNING': frozenset({'RUNNING', 'WAITING_NEXT_STEP', 'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'}),
-    'WAITING_NEXT_STEP': frozenset({'RUNNING'}),
+    'WAITING_NEXT_STEP': frozenset({'RUNNING', 'STOPPED'}),
 }
 
 

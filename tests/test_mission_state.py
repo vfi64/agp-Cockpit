@@ -38,7 +38,6 @@ def test_canonical_state_transition_contract_rejects_illegal_edges():
     from agp_cockpit.core.mission_state import validate_state_transition
     for next_state in ('DONE', 'FAILED', 'NEEDS_HUMAN'):
         validate_state_transition('READY', next_state)
-    with pytest.raises(ValueError, match='READY -> STOPPED'):
-        validate_state_transition('READY', 'STOPPED')
+    validate_state_transition('READY', 'STOPPED')
     with pytest.raises(ValueError, match='DONE -> RUNNING'):
         validate_state_transition('DONE', 'RUNNING')
