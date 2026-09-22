@@ -13,6 +13,22 @@ def test_cdp_verifies_inserted_text_before_submit():
     assert 'stage:"COMPOSER_MODEL_NOT_VERIFIED"' in BACKGROUND
     assert "active === composer" in BACKGROUND
 
+
+def test_cdp_refuses_insert_when_composer_focus_is_not_verified():
+    assert 'stage:"COMPOSER_FOCUS_NOT_VERIFIED"' in BACKGROUND
+    assert "focusVerification" in BACKGROUND
+    assert BACKGROUND.index('stage:"COMPOSER_FOCUS_NOT_VERIFIED"') < BACKGROUND.index('"Input.insertText"')
+
+
+def test_cdp_dismisses_only_the_duplicate_upload_dialog_before_focus_verification():
+    assert "Du hast diese Datei bereits hochgeladen" in BACKGROUND
+    assert "You have already uploaded this file" in BACKGROUND
+    assert "duplicate_upload_dialog" in BACKGROUND
+    assert "ok_button_not_found" in BACKGROUND
+    assert "shadowRoot" in BACKGROUND
+    assert "active_text" in BACKGROUND
+    assert "attempt < 12" in BACKGROUND
+
 def test_cdp_requires_exact_persistent_user_turn_commit():
     assert 'stage:"USER_TURN_COMMITTED"' in BACKGROUND
     assert '"USER_TURN_INDETERMINATE"' in BACKGROUND
@@ -56,3 +72,17 @@ def test_native_acceptance_is_only_user_message_commit():
     assert 'via:"user_message"' in fn
     assert "NATIVE_USER_TURN_COMMITTED" in fn
     assert 'native_stage:"USER_TURN_COMMITTED"' in fn
+
+def test_rendered_user_turn_projection_is_shared_and_debugger_safe():
+    evidence = (ROOT / "chrome_extension" / "native_message_evidence.js").read_text()
+    background = (ROOT / "chrome_extension" / "background.js").read_text()
+    assert "function agpNormalizeUserTurnText" in evidence
+    assert "normalizeRenderedUserTurn" in background
+    snapshot = evidence[evidence.index("function agpNativeMessageSnapshot") :]
+    assert "agpNormalizeUserTurnText(value)" not in snapshot
+    assert ".replace(/`/g, \"\")" in snapshot
+
+def test_raw_composer_verification_remains_separate_from_rendered_turn_projection():
+    background = (ROOT / "chrome_extension" / "background.js").read_text()
+    assert "normalize(inserted && inserted.value) !== normalize(text)" in background
+    assert "normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text)" in background

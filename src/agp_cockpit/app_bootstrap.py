@@ -8,6 +8,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from agp_cockpit.adapters.macos_browser import run_chrome_automation
+from agp_cockpit.adapters.macos_extension import (
+    _manifest_build_id,
+    _manifest_version,
+    local_extension_root,
+)
 from agp_cockpit.adapters.macos_settings import bridge_runtime_root, bridge_token_path
 from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
 from agp_cockpit.core.browser_refresh import (
@@ -91,18 +96,19 @@ def _read_json(path: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def _stage_marker(path: Path) -> dict:
+    data = _read_json(path / ".agp-stage.json")
+    return data or {}
+
+
 def recent_extension_handshake(
     repository_root: Path,
     *,
+    runtime_root: Path | None = None,
     max_age_seconds: float = 15.0,
 ) -> dict | None:
-    path = (
-        repository_root
-        / ".local"
-        / "agp-cockpit"
-        / "bridge"
-        / "extension.json"
-    )
+    del repository_root  # retained for the public startup helper API
+    path = (runtime_root or bridge_runtime_root()).expanduser().resolve() / "extension.json"
     data = _read_json(path)
     if not data:
         return None
@@ -120,6 +126,7 @@ def recent_extension_handshake(
 def wait_for_extension(
     repository_root: Path,
     *,
+    runtime_root: Path | None = None,
     timeout_seconds: float = 20.0,
     poll_seconds: float = 0.5,
 ) -> dict | None:
@@ -127,6 +134,7 @@ def wait_for_extension(
     while time.monotonic() < deadline:
         handshake = recent_extension_handshake(
             repository_root,
+            runtime_root=runtime_root,
             max_age_seconds=max(
                 5.0,
                 timeout_seconds + 2.0,
@@ -136,6 +144,43 @@ def wait_for_extension(
             return handshake
         time.sleep(poll_seconds)
     return None
+
+
+def wait_for_matching_extension(
+    repository_root: Path,
+    extension_path: Path,
+    *,
+    runtime_root: Path | None = None,
+    timeout_seconds: float = 30.0,
+    poll_seconds: float = 0.5,
+) -> dict | None:
+    """Wait for a fresh handshake from the staged extension build."""
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        handshake = recent_extension_handshake(
+            repository_root,
+            runtime_root=runtime_root,
+            max_age_seconds=max(5.0, timeout_seconds + 2.0),
+        )
+        if extension_matches_staged_build(handshake, extension_path):
+            return handshake
+        time.sleep(poll_seconds)
+    return None
+
+
+def extension_matches_staged_build(handshake: dict | None, extension_path: Path) -> bool:
+    """Accept only a handshake emitted by the currently staged extension."""
+    if not handshake:
+        return False
+    try:
+        expected = _manifest_version(extension_path)
+        expected_build_id = _manifest_build_id(extension_path)
+    except Exception:  # noqa: BLE001 - readiness must fail closed.
+        return False
+    return (
+        str(handshake.get("version", "")).strip() == expected
+        and str(handshake.get("build_id", "")).strip() == expected_build_id
+    )
 
 
 def write_startup_status(
@@ -275,6 +320,27 @@ end tell
     return False, result or "Chrome did not confirm a tab reload."
 
 
+def reload_active_chatgpt_tab() -> tuple[bool, str]:
+    """Reload the already selected ChatGPT tab without guessing among tabs."""
+    script = r'''
+tell application "Google Chrome"
+    if not running then return "CHROME_NOT_RUNNING"
+    if (count of windows) = 0 then return "NO_CHROME_WINDOW"
+    set w to front window
+    if (count of tabs of w) = 0 then return "NO_CHROME_TAB"
+    set t to active tab of w
+    set u to URL of t
+    if u does not start with "https://chatgpt.com/" then return "ACTIVE_TAB_NOT_CHATGPT"
+    reload t
+    return "RELOADED:" & u
+end tell
+'''
+    ok, result = run_chrome_automation(script)
+    if ok and result.startswith("RELOADED:"):
+        return True, result
+    return False, result or "Chrome did not confirm the active ChatGPT tab reload."
+
+
 def run(
     repository_root: Path | None = None,
     *,
@@ -309,6 +375,7 @@ def run(
         stage_extension,
     )
 
+    stage_before = _stage_marker(local_extension_root())
     try:
         extension_path = stage_extension(root)
     except ExtensionStagingError as exc:
@@ -316,16 +383,19 @@ def run(
         extension_staging_note = f" Extension staging failed: {exc}"
     else:
         extension_staging_note = ""
+    stage_after = _stage_marker(extension_path)
+    stage_changed = stage_before != stage_after
 
     runtime: BridgeRuntimeServer | None = None
     owns_runtime = False
 
     try:
+        runtime_root = require_stable_production_runtime_root(bridge_runtime_root())
         runtime = BridgeRuntimeServer(
             root,
             host=bridge_host,
             port=bridge_port,
-            runtime_root=require_stable_production_runtime_root(bridge_runtime_root()),
+            runtime_root=runtime_root,
             local_task_contract=local_contract,
         )
         runtime.start()
@@ -361,22 +431,27 @@ def run(
     chatgpt_requested, browser_navigation_note = request_chatgpt_tab()
 
     # AGP_DETERMINISTIC_STARTUP_WAKE_063V
-    handshake = wait_for_extension(
-        root,
-        timeout_seconds=5.0,
-        poll_seconds=0.25,
-    )
-    extension_ready = handshake is not None
+    handshake = None
+    extension_ready = False
+    if not stage_changed:
+        handshake = wait_for_extension(
+            root,
+            runtime_root=runtime_root,
+            timeout_seconds=5.0,
+            poll_seconds=0.25,
+        )
+        extension_ready = extension_matches_staged_build(handshake, extension_path)
 
     if not extension_ready:
         wake_ok, wake_note = reload_exactly_one_chatgpt_tab()
         if wake_ok:
             handshake = wait_for_extension(
                 root,
+                runtime_root=runtime_root,
                 timeout_seconds=12.0,
                 poll_seconds=0.25,
             )
-            extension_ready = handshake is not None
+            extension_ready = extension_matches_staged_build(handshake, extension_path)
         else:
             handshake = None
             extension_staging_note += f" Wake-up not confirmed: {wake_note}."
@@ -415,6 +490,7 @@ def run(
     def _browser_readiness_worker() -> None:
         first = wait_for_extension(
             root,
+            runtime_root=runtime_root,
             timeout_seconds=180.0,
             poll_seconds=0.5,
         )
@@ -435,10 +511,67 @@ def run(
             write_startup_status(root, failed)
             return
 
-        refresh_request = request_browser_refresh(
-            root,
-            reason="cockpit-startup",
-        )
+        refresh_request = None
+        if not extension_matches_staged_build(first, extension_path):
+            refresh_request = request_browser_refresh(
+                root,
+                reason="staged-extension-version-mismatch",
+            )
+            wake_ok, wake_note = reload_active_chatgpt_tab()
+            if not wake_ok:
+                failed = StartupStatus(
+                    chrome_installed=True,
+                    chrome_started_or_reused=True,
+                    chatgpt_requested=chatgpt_requested,
+                    bridge_ready=bridge_ready,
+                    extension_ready=False,
+                    message=(
+                        "Die installierte Browser-Erweiterung ist veraltet; "
+                        f"der automatische Tab-Refresh wurde nicht bestätigt: {wake_note}"
+                    ),
+                )
+                write_startup_status(root, failed)
+                return
+
+            refresh_confirmed = wait_for_refresh_handled(
+                root,
+                refresh_request.generation,
+                timeout_seconds=60.0,
+            )
+            if not refresh_confirmed:
+                # The extension can reload successfully but report the
+                # handled-generation marker after the first wait window. A
+                # current matching handshake is stronger evidence than an
+                # expired marker wait and must reconcile startup safely.
+                refresh_confirmed = (
+                    wait_for_matching_extension(
+                        root,
+                        extension_path,
+                        runtime_root=runtime_root,
+                        timeout_seconds=120.0,
+                    )
+                    is not None
+                )
+            if not refresh_confirmed:
+                failed = StartupStatus(
+                    chrome_installed=True,
+                    chrome_started_or_reused=True,
+                    chatgpt_requested=chatgpt_requested,
+                    bridge_ready=bridge_ready,
+                    extension_ready=False,
+                    message=(
+                        "Der automatische Extension-Refresh wurde nicht bestätigt; "
+                        "kein Task-Start freigegeben."
+                    ),
+                )
+                write_startup_status(root, failed)
+                return
+
+        if refresh_request is None:
+            refresh_request = request_browser_refresh(
+                root,
+                reason="cockpit-startup",
+            )
 
         connecting = StartupStatus(
             chrome_installed=True,
@@ -459,6 +592,16 @@ def run(
             timeout_seconds=180.0,
         )
         if not handled:
+            handled = (
+                wait_for_matching_extension(
+                    root,
+                    extension_path,
+                    runtime_root=runtime_root,
+                    timeout_seconds=30.0,
+                )
+                is not None
+            )
+        if not handled:
             delayed = StartupStatus(
                 chrome_installed=True,
                 chrome_started_or_reused=True,
@@ -475,10 +618,11 @@ def run(
 
         fresh = wait_for_extension(
             root,
+            runtime_root=runtime_root,
             timeout_seconds=30.0,
             poll_seconds=0.5,
         )
-        if fresh is None:
+        if fresh is None or not extension_matches_staged_build(fresh, extension_path):
             delayed = StartupStatus(
                 chrome_installed=True,
                 chrome_started_or_reused=True,

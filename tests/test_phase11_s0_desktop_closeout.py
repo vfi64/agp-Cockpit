@@ -8,10 +8,19 @@ def _make_extension(root: Path, *, version: str = "0.3.0") -> Path:
     ext = root / "chrome_extension"
     ext.mkdir(parents=True)
     (ext / "manifest.json").write_text(
-        json.dumps({"manifest_version": 3, "name": "AGP Cockpit Bridge", "version": version}),
+        json.dumps(
+            {
+                "manifest_version": 3,
+                "name": "AGP Cockpit Bridge",
+                "version": version,
+            }
+        ),
         encoding="utf-8",
     )
     (ext / "background.js").write_text("console.log('agp');\n", encoding="utf-8")
+    (ext / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "test-build";\n', encoding="utf-8"
+    )
     (ext / "ignored.bak").write_text("do not stage\n", encoding="utf-8")
     return ext
 
@@ -33,7 +42,10 @@ def test_stage_extension_uses_application_support_not_repository(monkeypatch, tm
     assert not (staged / "ignored.bak").exists()
     marker = json.loads((staged / ".agp-stage.json").read_text(encoding="utf-8"))
     assert marker["version"] == "0.3.0"
+    assert marker["build_id"] == "test-build"
     assert len(marker["sha256"]) == 64
+    assert marker["download_directory"].endswith("/repo/Download")
+    assert marker["run_next"].endswith("/repo/Download/run_next.py")
 
 
 def test_stage_extension_reuses_identical_stage(monkeypatch, tmp_path):

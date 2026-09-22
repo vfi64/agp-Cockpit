@@ -30,7 +30,7 @@ app = BUNDLE(
     name="AGP Cockpit.app",
     icon=None,
     bundle_identifier="de.vfi64.agp-cockpit",
-    version="0.1.0.dev0",
+    version="0.1.0.dev3",
     info_plist={
         "CFBundleDisplayName": "AGP Cockpit",
         "CFBundleName": "AGP Cockpit",

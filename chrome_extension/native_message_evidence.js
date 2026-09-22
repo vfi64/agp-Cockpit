@@ -1,8 +1,51 @@
 // Shared by the content script and the serialized CDP observation.
 // Keep this function self-contained: toString() preserves regex escapes in CDP.
+function agpNormalizeUserTurnText(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
+    .replace(/\u00a0/g, " ")
+    // ChatGPT exposes the rendered user Markdown, not the raw composer text.
+    .replace(/```[^\n]*\n?/g, "")
+    .replace(/`/g, "")
+    .replace(/\\([\\`*_{}\[\]()#+.!>~-])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function agpNativeMessageSnapshot() {
-  const norm = value => String(value || "").replace(/\s+/g, " ").trim();
-  const nodes = Array.from(document.querySelectorAll('[data-message-author-role="user"]'))
+  // Keep the snapshot self-contained: background.js serializes this function
+  // into the page through Runtime.evaluate(...toString()).
+  const norm = value => String(value || "")
+    .normalize("NFKC")
+    .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/```[^\n]*\n?/g, "")
+    .replace(/`/g, "")
+    .replace(/\\([\\`*_{}\[\]()#+.!>~-])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+  // ChatGPT has used several equivalent user-turn wrappers. Prefer the
+  // semantic role selector, then fall back to the turn/test-id wrappers. Do
+  // not combine selector results: nested wrappers would double-count a turn.
+  const userSelectors = [
+    '[data-message-author-role="user"]',
+    'article[data-testid^="conversation-turn-user"]',
+    '[data-testid*="conversation-turn"][data-testid*="user"]'
+  ];
+  let nodes = [];
+  for (const selector of userSelectors) {
+    const candidates = Array.from(document.querySelectorAll(selector))
+      .filter(node => {
+        const r = node.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+    if (candidates.length) {
+      nodes = candidates;
+      break;
+    }
+  }
+  nodes = nodes
     .filter(node => {
       const r = node.getBoundingClientRect();
       return r.width > 0 && r.height > 0;

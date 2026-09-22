@@ -95,3 +95,30 @@ for (const html of [
     expect(result.messages[0].text).toBe('mission status Steps: tests passed');
   });
 }
+
+test('user-turn evidence accepts current conversation-turn test-id wrappers', async ({page}) => {
+  await page.setContent(
+    '<article data-testid="conversation-turn-user-42">' +
+    '<div><p>mission&nbsp;status</p><p>Steps: tests passed</p></div>' +
+    '<button>Mehr anzeigen</button></article>'
+  );
+  await page.addScriptTag({path:path.join(extension, 'native_message_evidence.js')});
+  const result = await page.evaluate(() => agpNativeMessageSnapshot());
+  expect(result.user_message_count).toBe(1);
+  expect(result.messages[0].text).toBe('mission status Steps: tests passed');
+});
+
+test('user-turn evidence matches rendered Markdown to the raw prompt', async ({page}) => {
+  await page.setContent(
+    '<article data-message-author-role="user">' +
+    '<div data-testid="collapsible-user-message-content">' +
+    'Use <code>agentic-kit transfer chat-switch-complete --json</code>.' +
+    '<p>- execution_contract.json</p>' +
+    '</div></article>'
+  );
+  await page.addScriptTag({path:path.join(extension, 'native_message_evidence.js')});
+  const result = await page.evaluate(() => agpNativeMessageSnapshot());
+  const rawPrompt = 'Use `agentic-kit transfer chat-switch-complete --json`.\n\n- execution_contract.json';
+  const expected = await page.evaluate(raw => agpNormalizeUserTurnText(raw), rawPrompt);
+  expect(result.messages[0].text).toBe(expected);
+});

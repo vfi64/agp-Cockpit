@@ -4,6 +4,66 @@ importScripts("native_message_evidence.js");
 const ALARM_NAME = "agp-browser-refresh-tabs";
 const LAST_HANDLED = "agpLastHandledRefreshGeneration";
 const PENDING = "agpPendingRefreshTabs";
+const K07_DOWNLOAD_ARMS = new Map();
+
+function k07DownloadNameMatches(actual, expected) {
+  const actualName = String(actual || "").split(/[\\/]/).pop();
+  const expectedName = String(expected || "").trim();
+  if (actualName === expectedName) return true;
+  const stem = expectedName.replace(/\.py$/i, "");
+  return actualName.startsWith(`${stem} (`) && actualName.endsWith(".py");
+}
+
+async function k07RecentDownloads() {
+  return chrome.downloads.search({orderBy:["-startTime"], limit:100});
+}
+
+async function agpArmCommandFileDownload(message, sender) {
+  const filename = String(message && message.filename || "").trim();
+  const tabId = sender && sender.tab ? sender.tab.id : null;
+  if (!Number.isInteger(tabId) || !/^[^\\/]+\.py$/i.test(filename)) {
+    throw new Error("K07 download arm requires one safe .py filename");
+  }
+  const known = await k07RecentDownloads();
+  K07_DOWNLOAD_ARMS.set(`${tabId}:${filename}`, {
+    knownIds: new Set(known.filter(item => k07DownloadNameMatches(item.filename, filename)).map(item => item.id)),
+    armedAt: Date.now(),
+  });
+  return {ok:true, stage:"COMMAND_FILE_DOWNLOAD_ARMED", filename};
+}
+
+async function agpWaitForCommandFileDownload(message, sender) {
+  const filename = String(message && message.filename || "").trim();
+  const tabId = sender && sender.tab ? sender.tab.id : null;
+  const key = `${tabId}:${filename}`;
+  const arm = K07_DOWNLOAD_ARMS.get(key);
+  if (!arm) throw new Error("K07 command-file download was not armed");
+  const deadline = Date.now() + 45000;
+  try {
+    while (Date.now() < deadline) {
+      const items = await k07RecentDownloads();
+      const candidate = items.find(item =>
+        !arm.knownIds.has(item.id) &&
+        k07DownloadNameMatches(item.filename, filename) &&
+        item.state === "complete" &&
+        item.filename
+      );
+      if (candidate) {
+        return {ok:true, stage:"COMMAND_FILE_DOWNLOADED", filename, download_path:candidate.filename, download_id:candidate.id};
+      }
+      const interrupted = items.find(item =>
+        !arm.knownIds.has(item.id) &&
+        k07DownloadNameMatches(item.filename, filename) &&
+        item.state === "interrupted"
+      );
+      if (interrupted) throw new Error(`browser download interrupted: ${interrupted.error || "unknown error"}`);
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    throw new Error("K07 command-file browser download timed out");
+  } finally {
+    K07_DOWNLOAD_ARMS.delete(key);
+  }
+}
 
 async function performRefresh(generation) {
   const state = await chrome.storage.local.get([LAST_HANDLED]);
@@ -34,9 +94,11 @@ async function performRefresh(generation) {
     {when:Date.now() + 1500}
   );
 
-  setTimeout(() => {
-    chrome.runtime.reload();
-  }, 100);
+  // A Manifest-V3 service worker may be suspended as soon as the message
+  // event finishes.  A delayed runtime.reload() is therefore not reliable:
+  // the worker can disappear before the timer fires.  Persist the tab work
+  // first, then reload the extension while this event is still alive.
+  chrome.runtime.reload();
 
   return {
     accepted:true,
@@ -47,6 +109,18 @@ async function performRefresh(generation) {
 
 chrome.runtime.onMessage.addListener(
   (message, sender, sendResponse) => {
+    if (message && message.type === "AGP_K07_ARM_COMMAND_FILE_DOWNLOAD") {
+      agpArmCommandFileDownload(message, sender)
+        .then(sendResponse)
+        .catch(error => sendResponse({ok:false, stage:"COMMAND_FILE_DOWNLOAD_ARM_FAILED", error:String(error && error.message ? error.message : error)}));
+      return true;
+    }
+    if (message && message.type === "AGP_K07_WAIT_COMMAND_FILE_DOWNLOAD") {
+      agpWaitForCommandFileDownload(message, sender)
+        .then(sendResponse)
+        .catch(error => sendResponse({ok:false, stage:"COMMAND_FILE_DOWNLOAD_FAILED", error:String(error && error.message ? error.message : error)}));
+      return true;
+    }
     if (!message || message.type !== "AGP_REFRESH_INTEGRATION") {
       return false;
     }
@@ -124,9 +198,12 @@ async function agpNativeTransportV1(message, sender) {
   };
 
   const normalize = value => String(value || "")
+    .normalize("NFKC")
+    .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  const normalizeRenderedUserTurn = value => agpNormalizeUserTurnText(value);
 
   try {
     await chrome.debugger.attach(target, "1.3");
@@ -150,15 +227,119 @@ async function agpNativeTransportV1(message, sender) {
       };
     })()`);
 
+    // ChatGPT can leave a duplicate-upload alert open after the result
+    // evidence was accepted into the composer. The alert may be rendered in
+    // an open shadow root and can appear shortly after the file input settles.
+    // Dismiss only this exact, visible alert before verifying editor focus;
+    // never click arbitrary OK buttons.
+    let duplicateUploadDialog = null;
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      duplicateUploadDialog = await evaluate(`(() => {
+        const duplicatePhrases = [
+          "Du hast diese Datei bereits hochgeladen",
+          "You have already uploaded this file"
+        ];
+        const textOf = node => String(
+          node && (node.innerText || node.textContent || "")
+        );
+        const visible = node => {
+          if (!node || typeof node.getBoundingClientRect !== "function") return false;
+          const rect = node.getBoundingClientRect();
+          const style = getComputedStyle(node);
+          return rect.width > 0 && rect.height > 0 &&
+            style.visibility !== "hidden" && style.display !== "none";
+        };
+        const roots = [];
+        const visit = root => {
+          if (!root || roots.includes(root)) return;
+          roots.push(root);
+          for (const element of root.querySelectorAll
+            ? root.querySelectorAll("*") : []) {
+            if (element.shadowRoot) visit(element.shadowRoot);
+          }
+        };
+        visit(document);
+        const elements = roots.flatMap(root => Array.from(
+          root.querySelectorAll ? root.querySelectorAll("*") : []
+        ));
+        const bodyText = textOf(document.body);
+        const duplicateText = duplicatePhrases.some(phrase =>
+          bodyText.includes(phrase) || elements.some(element =>
+            visible(element) && textOf(element).includes(phrase)
+          )
+        );
+        if (!duplicateText) return {present:false, dismissed:false};
+
+        const controls = elements.filter(element => {
+          const tag = String(element.tagName || "").toLowerCase();
+          return tag === "button" || element.getAttribute("role") === "button";
+        });
+        const active = document.activeElement;
+        if (active && !controls.includes(active)) controls.unshift(active);
+        const ok = controls.find(button => visible(button) &&
+          /^(OK|Ok)$/i.test(textOf(button).trim()));
+        if (!ok) return {
+          present:true,
+          dismissed:false,
+          reason:"ok_button_not_found",
+          active_tag:active ? active.tagName : "",
+          active_text:textOf(active).trim()
+        };
+        ok.click();
+        return {
+          present:true,
+          dismissed:true,
+          control_tag:String(ok.tagName || ""),
+          control_role:String(ok.getAttribute("role") || "")
+        };
+      })()`);
+      if (!duplicateUploadDialog || !duplicateUploadDialog.present) break;
+      if (duplicateUploadDialog.dismissed) {
+        await new Promise(resolve => setTimeout(resolve, 150));
+        continue;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
     // Re-focus the canonical editor inside the debugger context. The page
     // may still have focus on a dialog button even when the composer exists.
-    await evaluate(`(() => {
-      const composer = document.querySelector('#prompt-textarea') ||
-        document.querySelector('[contenteditable="true"][role="textbox"]') ||
-        document.querySelector('textarea[data-id="root"]');
-      if (composer && typeof composer.focus === "function") composer.focus();
-      return Boolean(composer && document.activeElement === composer);
-    })()`);
+    // Do not insert text until ownership of focus is observable.
+    let focusVerification = null;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      focusVerification = await evaluate(`(() => {
+        const composer = document.querySelector('#prompt-textarea') ||
+          document.querySelector('[contenteditable="true"][role="textbox"]') ||
+          document.querySelector('textarea[data-id="root"]');
+        const activeBefore = document.activeElement;
+        if (activeBefore && activeBefore !== composer && typeof activeBefore.blur === "function") {
+          activeBefore.blur();
+        }
+        if (composer && typeof window.focus === "function") window.focus();
+        if (composer && typeof composer.focus === "function") composer.focus();
+        const active = document.activeElement;
+        return {
+          ok:Boolean(composer && active === composer),
+          active_tag:active ? active.tagName : "",
+          active_id:active ? active.id : "",
+          composer_tag:composer ? composer.tagName : "",
+          composer_id:composer ? composer.id : ""
+        };
+      })()`);
+      if (focusVerification && focusVerification.ok === true) break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    if (!focusVerification || focusVerification.ok !== true) {
+      return {
+        ok:false,
+        request_id:requestId,
+        tab_id:tabId,
+        stage:"COMPOSER_FOCUS_NOT_VERIFIED",
+        before,
+        duplicate_upload_dialog:duplicateUploadDialog,
+        focus:focusVerification
+      };
+    }
 
     await chrome.debugger.sendCommand(
       target,
@@ -193,6 +374,7 @@ async function agpNativeTransportV1(message, sender) {
         tab_id:tabId,
         stage:"INSERT_NOT_VERIFIED",
         before,
+        focus:focusVerification,
         inserted
       };
     }
@@ -369,7 +551,7 @@ async function agpNativeTransportV1(message, sender) {
       const observed = await observeMessages();
       const exactIndex = observed.url === beforeMessages.url
         ? observed.messages.findIndex((message, index) =>
-          message.text === normalize(text) &&
+          normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text) &&
           (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
         : -1;
       observed.exact_user_message_index = exactIndex;
@@ -405,7 +587,7 @@ async function agpNativeTransportV1(message, sender) {
           const observed = await observeMessages();
           const exactIndex = observed.url === beforeMessages.url
             ? observed.messages.findIndex((message, index) =>
-              message.text === normalize(text) &&
+              normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text) &&
               (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
             : -1;
           observed.exact_user_message_index = exactIndex;
@@ -442,7 +624,7 @@ async function agpNativeTransportV1(message, sender) {
             const observed = await observeMessages();
             const exactIndex = observed.url === beforeMessages.url
               ? observed.messages.findIndex((message, index) =>
-                message.text === normalize(text) &&
+                normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text) &&
                 (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
               : -1;
             observed.exact_user_message_index = exactIndex;
@@ -469,7 +651,17 @@ async function agpNativeTransportV1(message, sender) {
         inserted,
         model:modelVerification,
         send_target:sendTarget,
-        after:lastObserved
+        after:lastObserved,
+        diagnostics: {
+          before_user_message_count:Number(beforeMessages.user_message_count || 0),
+          before_latest_user_message_chars:String(beforeMessages.latest_user_message || "").length,
+          after_user_message_count:Number(lastObserved && lastObserved.user_message_count || 0),
+          after_latest_user_message_chars:String(lastObserved && lastObserved.latest_user_message || "").length,
+          after_exact_user_message_found:Boolean(lastObserved && lastObserved.exact_user_message_found),
+          after_composer_chars:String(lastObserved && lastObserved.composer_text || "").length,
+          after_generation_active:Boolean(lastObserved && lastObserved.generation_active),
+          selector_url:String(lastObserved && lastObserved.url || "")
+        }
       };
     }
 

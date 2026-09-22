@@ -5,6 +5,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.mission_http_client import create_live_full_auto
 from agp_cockpit.core.mission_http_client import status as mission_status
 from agp_cockpit.core.start_request_client import request_task_start
@@ -187,11 +188,13 @@ class SimpleTaskPanel(ttk.Frame):
             return
         try:
             status = self.api.start_task_from_contract(self.contract)
+            conversation_url = require_allowed_active_chat().url
             mission_response = create_live_full_auto(
                 title="Task · " + str(
                     self.contract.get("title") or self.contract.get("task_id") or "AGP Task"
                 ),
                 mission_text=self._remote_mission_text(),
+                conversation_url=conversation_url,
             )
             mission = mission_response["mission"]
             request_task_start(

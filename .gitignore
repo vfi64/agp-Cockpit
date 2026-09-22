@@ -1,5 +1,8 @@
-# Local maintainer execution history; never commit.
+# Local maintainer execution history; the canonical runner is versioned.
 /Download/
+!/Download/
+/Download/*
+!/Download/run_next.py
 
 # Local runtime/bootstrap evidence.
 /.local/

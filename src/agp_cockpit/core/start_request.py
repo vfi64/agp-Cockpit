@@ -18,6 +18,12 @@ class StartRequestStore:
         }
         tmp=self.path.with_suffix('.tmp'); tmp.write_text(json.dumps(data)+'\n',encoding='utf-8'); tmp.replace(self.path); return data
     def current(self)->dict: return self._read()
+    def pending(self)->dict:
+        """Expose only an actionable request to browser pollers."""
+        data=self._read()
+        if not str(data.get('mission_id') or '').strip():
+            return {'generation':0,'mission_id':'','task_id':''}
+        return data
     def invalidate_pending(self)->dict:
         """Invalidate a request from an earlier bridge lifetime or stopped run."""
         cur=self._read()

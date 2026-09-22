@@ -20,3 +20,10 @@ def test_runtime_diagnostics_are_part_of_visible_system_build():
 def test_simplified_header_is_not_pending():
     s=Path("src/agp_cockpit/ui/main_window.py").read_text()
     assert 'value="Lokale Laufzeit bereit"' in s
+
+def test_desktop_identity_is_visible_in_window_and_bridge():
+    app = Path("src/agp_cockpit/app.py").read_text()
+    window = Path("src/agp_cockpit/ui/main_window.py").read_text()
+    assert "root.title(f'AGP Cockpit v{__version__}')" in app
+    assert 'text=f"AGP Cockpit v{__version__}"' in window
+    assert "BRIDGE_BUILD_ID" in window

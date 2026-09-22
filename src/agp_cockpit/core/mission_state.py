@@ -27,11 +27,11 @@ def utc_now() -> str:
 
 
 
-TERMINAL_STATES = frozenset({'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'})
+TERMINAL_STATES = frozenset({'DONE', 'FAILED', 'NEEDS_HUMAN', 'BLOCKED', 'STOPPED'})
 ALLOWED_STATE_TRANSITIONS = {
-    'READY': frozenset({'RUNNING', 'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'}),
-    'RUNNING': frozenset({'RUNNING', 'WAITING_NEXT_STEP', 'DONE', 'FAILED', 'NEEDS_HUMAN', 'STOPPED'}),
-    'WAITING_NEXT_STEP': frozenset({'RUNNING', 'STOPPED'}),
+    'READY': frozenset({'RUNNING', 'DONE', 'FAILED', 'NEEDS_HUMAN', 'BLOCKED', 'STOPPED'}),
+    'RUNNING': frozenset({'RUNNING', 'WAITING_NEXT_STEP', 'DONE', 'FAILED', 'NEEDS_HUMAN', 'BLOCKED', 'STOPPED'}),
+    'WAITING_NEXT_STEP': frozenset({'RUNNING', 'BLOCKED', 'STOPPED'}),
 }
 
 
@@ -51,6 +51,7 @@ class MissionState:
     repository_root: str = ""
     title: str = ""
     mission_text: str = ""
+    conversation_url: str = ""
     execution_mode: str = "DRY_RUN"
     run_mode: str = "SINGLE_STEP"
     state: str = "IDLE"
@@ -140,11 +141,19 @@ class MissionStore:
         )
         return MissionState.from_dict(data)
 
+    def clear_current(self) -> None:
+        """Remove only the current pointer; keep the mission evidence file."""
+        try:
+            self.current_path.unlink()
+        except FileNotFoundError:
+            pass
+
     def create(
         self,
         *,
         title: str,
         mission_text: str,
+        conversation_url: str = "",
         execution_mode: str = "DRY_RUN",
         run_mode: str = "SINGLE_STEP",
     ) -> MissionState:
@@ -152,6 +161,7 @@ class MissionStore:
             repository_root=str(self.repository_root),
             title=title.strip(),
             mission_text=mission_text.strip(),
+            conversation_url=conversation_url.strip(),
             execution_mode=execution_mode,
             run_mode=run_mode,
             state="READY",

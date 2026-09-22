@@ -5,6 +5,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
 
+from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.mission_http_client import create_live_full_auto
 from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
@@ -65,9 +66,11 @@ class StandardTasksPanel(ttk.Frame):
         try:
             prepared = self.api.prepare_task_contract(contract)
             status = self.api.start_task_from_contract(prepared)
+            conversation_url = require_allowed_active_chat().url
             mission = create_live_full_auto(
                 title=f"Standard · {task.label}",
                 mission_text=task.prompt(self.repository_root),
+                conversation_url=conversation_url,
             )["mission"]
             request_task_start(
                 str(mission["mission_id"]),

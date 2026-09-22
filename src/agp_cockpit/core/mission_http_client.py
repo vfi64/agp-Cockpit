@@ -22,12 +22,13 @@ def _request(path: str, *, payload: dict | None = None, base_url: str = DEFAULT_
     with urllib.request.urlopen(req, timeout=5) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
-def create_live_full_auto(*, title: str, mission_text: str, base_url: str = DEFAULT_BASE_URL) -> dict:
+def create_live_full_auto(*, title: str, mission_text: str, conversation_url: str = "", base_url: str = DEFAULT_BASE_URL) -> dict:
     return _request(
         "/v1/mission",
         payload={
             "title": title,
             "mission_text": mission_text,
+            "conversation_url": conversation_url,
             "execution_mode": "LIVE",
             "run_mode": "FULL_AUTO",
         },

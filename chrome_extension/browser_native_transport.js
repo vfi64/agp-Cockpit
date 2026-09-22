@@ -116,6 +116,7 @@
         inserted: response.inserted || null,
         submit_attempts: response.submit_attempts || [],
         after: response.after || null
+        ,diagnostics: response.diagnostics || null
       };
     }
     if (response.stage === "COMPOSER_MODEL_NOT_VERIFIED") {
@@ -140,7 +141,8 @@
       stage: response.stage,
       tab_id: response.tab_id,
       commit: response.commit || null,
-      inserted: response.inserted || null
+      inserted: response.inserted || null,
+      diagnostics: response.diagnostics || null
     };
   }
 

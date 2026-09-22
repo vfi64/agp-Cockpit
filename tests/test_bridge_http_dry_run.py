@@ -48,6 +48,7 @@ def test_http_end_to_end_dry_run(tmp_path):
             body={
                 "title": "http dry run",
                 "mission_text": "preview one command",
+                "conversation_url": "https://chatgpt.com/c/test",
                 "execution_mode": "DRY_RUN",
                 "run_mode": "SINGLE_STEP",
             },
@@ -57,6 +58,7 @@ def test_http_end_to_end_dry_run(tmp_path):
             created["mission"]["state"]
             == "READY"
         )
+        assert created["mission"]["conversation_url"] == "https://chatgpt.com/c/test"
 
         order = json.dumps({
             "kind": "generic",

@@ -30,6 +30,7 @@ def test_chat_switch_prompt_is_plain_text_and_carries_file_loop_contract():
     assert "exactly one newly numbered Download/*.py" in prompt
     assert "validation_report.json" in prompt
     assert str(ROOT.resolve()) in prompt
+    assert "at most 80 source lines and 16 KiB" in prompt
 
 
 def test_standard_task_panel_uses_existing_mission_and_start_request_routes():

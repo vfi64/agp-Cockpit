@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from agp_cockpit.core.mission_state import (
@@ -14,6 +15,14 @@ from .mission_state import TERMINAL_STATES, validate_state_transition
 @dataclass
 class BridgeRuntime:
     repository_root: Path
+    _execution_stop: Callable[[], dict[str, object]] | None = field(
+        default=None,
+        repr=False,
+    )
+    last_execution_stop: dict[str, object] | None = field(
+        default=None,
+        init=False,
+    )
 
     def __post_init__(self) -> None:
         self.repository_root = self.repository_root.resolve()
@@ -30,12 +39,14 @@ class BridgeRuntime:
         *,
         title: str,
         mission_text: str,
+        conversation_url: str = "",
         execution_mode: str = "DRY_RUN",
         run_mode: str = "SINGLE_STEP",
     ) -> MissionState:
         self.state = self.store.create(
             title=title,
             mission_text=mission_text,
+            conversation_url=conversation_url.strip(),
             execution_mode=execution_mode,
             run_mode=run_mode,
         )
@@ -102,6 +113,13 @@ class BridgeRuntime:
         self.store.save(state)
         return state
 
+    def bind_execution_stop(
+        self,
+        stop_callback: Callable[[], dict[str, object]],
+    ) -> None:
+        """Bind the process authority used before a mission is marked stopped."""
+        self._execution_stop = stop_callback
+
     def record_assistant(self, text: str) -> MissionState:
         state = self.require_state()
         state.last_assistant_text = text
@@ -149,11 +167,37 @@ class BridgeRuntime:
         return state
 
     def stop(self, note: str = "Stopped by operator") -> MissionState:
-        """Persist an operator stop so a reconnect cannot restart this mission."""
+        """Stop owned execution, then persist the operator stop.
+
+        Standalone state-only runtimes may omit the callback. The production
+        Bridge binds it to ``RunNextProcessController.stop`` so this method
+        cannot claim a K07 stop before the local process authority has acted.
+        """
         state = self.require_state()
+        self.last_execution_stop = (
+            self._execution_stop() if self._execution_stop is not None else None
+        )
         if state.state in TERMINAL_STATES:
             return state
         return self.final("STOPPED", note)
+
+    def stop_stale_on_desktop_start(self) -> MissionState | None:
+        """Start without an active mission from an older app run.
+
+        Mission evidence remains persisted in its per-mission state file. The
+        current pointer is cleared so a browser reconnect cannot present an
+        old STOPPED/READY mission as the fresh desktop state.
+        """
+        state = self.state
+        if state is None or state.state in TERMINAL_STATES:
+            self.store.clear_current()
+            self.state = None
+            return state
+
+        stopped = self.stop("Stopped during desktop startup; explicit restart required")
+        self.store.clear_current()
+        self.state = None
+        return stopped
 
     def resume_next_step(self) -> MissionState:
         state = self.require_state()

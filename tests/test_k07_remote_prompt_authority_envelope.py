@@ -10,6 +10,8 @@ def test_status_exposes_non_secret_local_authority_envelope():
     assert '"allowed_effects": sorted(local_task_contract.allowed_effects)' in BRIDGE
     assert '"allowed_tools": sorted(local_task_contract.allowed_tools)' in BRIDGE
     assert '"allow_network": bool(local_task_contract.allow_network)' in BRIDGE
+    assert '"next_local_step": (' in BRIDGE
+    assert '"next_step": next_step_number(' in BRIDGE
 
 def test_extension_captures_local_authority():
     assert "localAuthority: null" in CONTENT

@@ -84,6 +84,10 @@ class BridgeRuntimeServer:
         self.server.start()
         info = self.info
 
+        # A desktop restart is a new authority boundary. Do not let a stale
+        # browser reconnect revive the previous mission automatically.
+        self.server.engine.runtime.stop_stale_on_desktop_start()
+
         runtime_path = self.local_root / "runtime.json"
         runtime_path.write_text(
             json.dumps(

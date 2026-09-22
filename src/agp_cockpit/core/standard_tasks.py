@@ -67,6 +67,8 @@ Pass on the communication contract: exactly one newly numbered Download/*.py wor
 
 The attached Python file is the executable local work order. It must execute the authorized Kit command during its real run (for this task: `agentic-kit transfer chat-switch-complete --json`), capture its return code/stdout/stderr, validate the required handoff files and validation report, and write exactly one canonical return bundle into Download/. Printing a JSON object that merely describes an argv/cwd command is not execution evidence and is an invalid work order. `--self-test` must validate structure without running the Kit command or mutating the repository.
 
+Keep the attached Python work order deliberately small: at most 80 source lines and 16 KiB, with no long comments, embedded logs, recursive Download scans, or prose outside the attachment. Before attaching it, verify that the complete file parses, has a `main()` plus `if __name__ == "__main__"`, accepts `--self-test`, executes the Kit command during the real run, and writes the one return bundle. A truncated or incomplete attachment is worse than a short diagnostic response and must not be submitted.
+
 Produce exactly one canonical JSON completion result for this standard task. It must include PASS, BLOCKED, or FAIL; package path; validation status; continuation-brief path; detailed-start-prompt path; and next action. On PASS, do not start further development in this chat.
 """
 

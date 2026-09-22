@@ -15,7 +15,7 @@ def build_root(repository_root: Path | None = None, local_contract=None):
     from agp_cockpit.ui.main_window import MainWindow
 
     root = tk.Tk()
-    root.title('AGP Cockpit')
+    root.title(f'AGP Cockpit v{__version__}')
     root.geometry('1020x600')
     root.minsize(820, 520)
     MainWindow(root, repository_root=repository_root, local_contract=local_contract)

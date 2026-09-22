@@ -10,4 +10,5 @@ def test_production_root():
 
 def test_bootstrap_root():
  s=Path("src/agp_cockpit/app_bootstrap.py").read_text()
- assert "runtime_root=require_stable_production_runtime_root(bridge_runtime_root())" in s
+ assert "runtime_root = require_stable_production_runtime_root(bridge_runtime_root())" in s
+ assert "runtime_root=runtime_root" in s

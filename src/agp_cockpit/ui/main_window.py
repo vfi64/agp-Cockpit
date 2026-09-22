@@ -4,6 +4,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
+from agp_cockpit import __version__
 from agp_cockpit.core.hermes_config import DEFAULT_HERMES_CONFIG
 from agp_cockpit.core.hermes_runtime import discover_hermes_runtime
 from agp_cockpit.core.hermes_writer import update_hermes_model
@@ -13,6 +14,7 @@ from agp_cockpit.core.startup_probe import observe_live_read_only
 from agp_cockpit.ui.hermes_status import format_hermes_status
 from agp_cockpit.ui.simple_task_panel import SimpleTaskPanel
 from agp_cockpit.ui.standard_tasks_panel import StandardTasksPanel
+from agp_cockpit.version import BRIDGE_BUILD_ID, BRIDGE_PROTOCOL_VERSION
 
 
 class MainWindow(ttk.Frame):
@@ -56,7 +58,7 @@ class MainWindow(ttk.Frame):
 
         ttk.Label(
             header,
-            text="AGP Cockpit",
+            text=f"AGP Cockpit v{__version__}",
             font=("TkDefaultFont", 16, "bold"),
         ).grid(
             row=0,
@@ -79,7 +81,10 @@ class MainWindow(ttk.Frame):
         ttk.Label(context, textvariable=self.context_var).grid(row=0, column=0, sticky="w")
         ttk.Label(
             context,
-            text="Desktop hardening · deterministic transport",
+            text=(
+                f"Bridge protocol v{BRIDGE_PROTOCOL_VERSION} · "
+                f"build {BRIDGE_BUILD_ID}"
+            ),
         ).grid(row=0, column=1, sticky="e")
 
         ttk.Separator(

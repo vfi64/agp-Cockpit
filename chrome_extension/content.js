@@ -14,6 +14,7 @@
     note: "",
     mission: null,
     localAuthority: null,
+    nextLocalStep: 0,
     state: "IDLE",
     connected: false,
     lastRefresh: null,
@@ -30,7 +31,9 @@
     assistantBaselineCount: 0,
     assistantBaselineMessageIds: [],
     assistantBaselineMessageId: "",
+    assistantBaselineAttachmentNames: [],
     observedAssistantMessageId: "",
+    lastProcessedAssistantAttachmentKey: "",
     assistantBaselineText: "",
     k07DebugTraceEnabled: false
   };
@@ -242,6 +245,11 @@
     STATE.assistantBaselineMessageId = lastAssistantMessageId();
     STATE.observedAssistantMessageId = "";
     STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    STATE.assistantBaselineAttachmentNames = nodes.flatMap(node => {
+      const text = String(node.innerText || node.textContent || "");
+      return Array.from(text.matchAll(/(?:^|[\s/])([^\s/]+\.py)(?:$|[\s?#])/gim))
+        .map(match => match[1]);
+    });
   }
 
   // AGP_K07_IDENTITY_AWARE_ASSISTANT_SELECTION_1212
@@ -316,6 +324,7 @@
   function assistantPythonAttachmentCandidates() {
     const nodes = assistantMessageNodes();
     if (!nodes.length) return [];
+    const baselineNames = new Set(STATE.assistantBaselineAttachmentNames || []);
     // Use the same identity-aware selection as assistant text extraction. The
     // ChatGPT DOM can contain virtualized or stale assistant nodes alongside
     // the currently observed response.
@@ -323,20 +332,33 @@
     const assistant = [...nodes].reverse().find(node => {
       const id = String(node.getAttribute("data-message-id") || "");
       if (id && baselineIds.has(id)) return false;
-      return node.querySelector('a[href$=".py"], button[aria-label$=".py"]');
+      return node.querySelector('a[href$=".py"], button[aria-label$=".py"], button, [role="button"]');
     }) || selectedAssistantMessageNode();
     if (!assistant) return [];
-    const rows = Array.from(assistant.querySelectorAll("a[href], button[aria-label]"))
+    // ChatGPT currently renders the attachment card as a plain button with
+    // visible filename text. Keep links and labelled controls supported, but
+    // also inspect ordinary buttons so the real file-card DOM is covered.
+    const rows = Array.from(assistant.querySelectorAll(
+      "a[href], button[aria-label$=\".py\"], button, [role=\"button\"]"
+    ))
       .map(anchor => {
         const href = String(anchor.href || anchor.getAttribute("href") || "").trim();
         const label = String(
           anchor.getAttribute("download") ||
           anchor.getAttribute("aria-label") ||
+          anchor.getAttribute("title") ||
           anchor.textContent ||
           ""
         ).trim();
-        const name = label.split("/").pop().trim();
-        return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor};
+        const match = label.match(/(?:^|[\s/])([^\s/]+\.py(?:[?#][^\s]*)?)/i);
+        const name = match ? match[1] : label.split("/").pop().trim();
+        let row = anchor;
+        let downloadNode = null;
+        for (let depth = 0; depth < 8 && row; depth += 1, row = row.parentElement) {
+          downloadNode = row.querySelector('button[aria-label="Datei herunterladen"], button[aria-label="Download"]');
+          if (downloadNode) break;
+        }
+        return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor, downloadNode};
       })
       .filter(item => (
         /\.py(?:$|[?#\s])/i.test(item.name || "") ||
@@ -347,13 +369,47 @@
       );
     const unique = new Map();
     for (const row of rows) unique.set(`${row.href}\n${row.name}`, row);
-    return Array.from(unique.values());
+    const candidates = Array.from(unique.values());
+    const expectedStep = Number(STATE.nextLocalStep || 0);
+    if (expectedStep > 0) {
+      return candidates.filter(item => {
+        const match = String(item.name || "").match(/^(\d+)_/);
+        return match && Number(match[1]) === expectedStep;
+      });
+    }
+    // A stable message id does not prove that the attachment is new: an
+    // in-flight assistant response can materialize after the baseline was
+    // captured, and ChatGPT may recycle or expose that old response again.
+    // The filename is therefore a second, mandatory turn boundary. A remote
+    // retry must receive a new filename instead of being executed locally as
+    // a fresh step.
+    if (baselineNames.size) {
+      return candidates.filter(item => !baselineNames.has(item.name));
+    }
+    return candidates;
+  }
+
+  function assistantAttachmentKey(candidates) {
+    const attachment = candidates && candidates[0];
+    if (!attachment) return "";
+    const messageId = lastAssistantMessageId();
+    const responseText = normalizeObservedMessageText(lastAssistantText());
+    return [messageId, attachment.name, attachment.href, responseText].join("\n");
   }
 
   async function readAssistantButtonAttachment(attachment) {
     const button = attachment && attachment.node;
     if (!button || !button.isConnected) {
       throw new Error("K07 assistant attachment button is no longer connected");
+    }
+    if (attachment.downloadNode && attachment.downloadNode.isConnected) {
+      const armed = await chrome.runtime.sendMessage({
+        type:"AGP_K07_ARM_COMMAND_FILE_DOWNLOAD",
+        filename:attachment.name
+      });
+      if (!armed || armed.ok !== true) {
+        throw new Error(armed && armed.error ? String(armed.error) : "K07 browser download could not be armed");
+      }
     }
     button.click();
     const deadline = Date.now() + 45000;
@@ -372,14 +428,138 @@
       ? String(preview.innerText || preview.textContent || "")
       : "";
     if (!preview || !content.trim()) {
-      throw new Error("K07 assistant attachment preview did not become readable");
+      const unavailableDialog = document.querySelector('[role="dialog"], [aria-modal="true"]');
+      const closeUnavailable = unavailableDialog && Array.from(unavailableDialog.querySelectorAll('button')).find(candidate => {
+        const label = String(candidate.getAttribute("aria-label") || candidate.textContent || "").trim().toLowerCase();
+        return label === "schließen" || label === "close";
+      });
+      if (closeUnavailable) closeUnavailable.click();
+      else if (unavailableDialog) {
+        document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", code:"Escape", bubbles:true, cancelable:true}));
+      }
+      if (!attachment.downloadNode || !attachment.downloadNode.isConnected) {
+        throw new Error("K07 assistant attachment preview did not become readable");
+      }
+      attachment.downloadNode.click();
+      const downloaded = await chrome.runtime.sendMessage({
+        type:"AGP_K07_WAIT_COMMAND_FILE_DOWNLOAD",
+        filename:attachment.name
+      });
+      if (!downloaded || downloaded.ok !== true || !downloaded.download_path) {
+        throw new Error(downloaded && downloaded.error ? String(downloaded.error) : "K07 browser download did not complete");
+      }
+      const fetched = await api("/v1/file-loop/download", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({filename:attachment.name, download_path:downloaded.download_path})
+      });
+      if (!fetched || fetched.ok !== true || fetched.stage !== "COMMAND_FILE_FETCHED" || typeof fetched.content !== "string" || !fetched.content.trim()) {
+        throw new Error("K07 downloaded command file could not be materialized");
+      }
+      await clientEvent("K07_ATTACHMENT_DOWNLOAD_FALLBACK", {
+        filename:attachment.name,
+        download_path:downloaded.download_path,
+        chars:fetched.content.length
+      });
+      return {
+        ok:true,
+        stage:"COMMAND_FILE_FETCHED",
+        filename:attachment.name,
+        href:`chatgpt://assistant-download/${encodeURIComponent(attachment.name)}`,
+        content:fetched.content,
+        content_type:String(fetched.content_type || "text/x-python"),
+        chars:fetched.content.length
+      };
     }
-    const close = document.querySelector(
-      '[role="dialog"] [data-testid="close-button"], ' +
-      '[role="dialog"] button[aria-label="Vollbildmodus beenden"], ' +
-      '[role="dialog"] button[aria-label="Exit full screen"]'
-    );
-    if (close) close.click();
+    const dialog = preview.closest('[role="dialog"], [aria-modal="true"]');
+    const normalizedLabel = value => String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    const closeCandidates = dialog
+      ? Array.from(dialog.querySelectorAll(
+        '[data-testid="close-button"], ' +
+        'button[aria-label="Vollbildmodus beenden"], ' +
+        'button[aria-label="Exit full screen"], ' +
+        'button[aria-label="Schließen"], button[aria-label="Close"], button'
+      ))
+      : [];
+    const active = document.activeElement;
+    if (active && active.tagName === "BUTTON" && dialog && dialog.contains(active)) {
+      closeCandidates.unshift(active);
+    }
+    const close = closeCandidates.find(button => {
+      const label = normalizedLabel(
+        button.getAttribute("aria-label") || button.textContent || button.title
+      );
+      return label === "ok" || label === "close" || label === "schließen" ||
+        label === "exit full screen" || label === "vollbildmodus beenden" ||
+        button.getAttribute("data-testid") === "close-button";
+    });
+    let closeMethod = "none";
+    if (close) {
+      close.click();
+      closeMethod = normalizedLabel(close.textContent) === "ok" ? "dialog_ok" : "dialog_control";
+    } else {
+      document.dispatchEvent(new KeyboardEvent("keydown", {
+        key:"Escape", code:"Escape", bubbles:true, cancelable:true
+      }));
+      closeMethod = "escape";
+    }
+    const closeDeadline = Date.now() + 3000;
+    while (Date.now() < closeDeadline) {
+      const stillOpen = dialog && dialog.isConnected && (() => {
+        const rect = dialog.getBoundingClientRect();
+        const style = getComputedStyle(dialog);
+        return rect.width > 0 && rect.height > 0 &&
+          style.display !== "none" && style.visibility !== "hidden";
+      })();
+      if (!stillOpen) break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    const stillOpen = dialog && dialog.isConnected && (() => {
+      const rect = dialog.getBoundingClientRect();
+      const style = getComputedStyle(dialog);
+      return rect.width > 0 && rect.height > 0 &&
+        style.display !== "none" && style.visibility !== "hidden";
+    })();
+    if (stillOpen) {
+      throw new Error("K07 assistant attachment preview did not close");
+    }
+
+    // Closing the preview can leave focus on its now-detached OK button.
+    // Restore and verify composer ownership before the background transport
+    // attaches the result files and sends the recovery prompt.
+    const focusDeadline = Date.now() + 1500;
+    let focusEvidence = null;
+    while (Date.now() < focusDeadline) {
+      const target = composer();
+      if (target && target.isConnected) {
+        const activeBefore = document.activeElement;
+        if (activeBefore && activeBefore !== target && typeof activeBefore.blur === "function") {
+          activeBefore.blur();
+        }
+        if (typeof window.focus === "function") window.focus();
+        if (typeof target.focus === "function") target.focus();
+        focusEvidence = {
+          focused: document.activeElement === target,
+          active_tag: document.activeElement ? document.activeElement.tagName : "",
+          active_id: document.activeElement ? document.activeElement.id : "",
+          composer_tag: target.tagName,
+          composer_id: target.id || ""
+        };
+        if (focusEvidence.focused) break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    if (!focusEvidence || !focusEvidence.focused) {
+      throw new Error("K07 composer focus could not be restored after attachment preview");
+    }
+    await clientEvent("K07_ATTACHMENT_PREVIEW_CLOSED", {
+      filename:attachment.name,
+      method:closeMethod,
+      composer_focus:focusEvidence
+    });
     return {
       ok: true,
       stage: "COMMAND_FILE_FETCHED",
@@ -418,7 +598,15 @@
   }
 
   async function submitAssistantCommandFile() {
+    await clientEvent("K07_FILE_INGRESS_REQUESTED", {
+      stage:"FETCH_ATTACHMENT",
+      message_id:lastAssistantMessageId()
+    });
     const fetched = await fetchSingleAssistantPythonAttachment();
+    await clientEvent("K07_FILE_INGRESS_ATTACHMENT_FETCHED", {
+      filename:fetched.filename,
+      chars:Number(fetched.chars || String(fetched.content || "").length)
+    });
     const result = await api(
       "/v1/file-loop/command",
       {
@@ -441,6 +629,16 @@
       (!terminal && (typeof result.prompt !== "string" || !result.prompt))
     ) {
       throw new Error("K07 command-file bridge response incomplete");
+    }
+    await clientEvent("K07_FILE_INGRESS_ACCEPTED", {
+      filename:fetched.filename,
+      state:String(result.state || ""),
+      step:Number(result.step || 0),
+      terminal,
+      replayed:Boolean(result.replayed)
+    });
+    if (Number(result.next_step || 0) > 0) {
+      STATE.nextLocalStep = Number(result.next_step);
     }
     if (result.replayed === true || terminal) {
       return result;
@@ -578,6 +776,7 @@
             event:"EXTENSION_HANDSHAKE",
             details:{
               version:chrome.runtime.getManifest().version,
+              build_id:globalThis.AGP_EXTENSION_BUILD_ID || "",
               page_url:url,
               handled_refresh_generation:Number(
                 (
@@ -647,7 +846,15 @@
         {
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({event, details:{...details, mission_id:STATE.mission ? STATE.mission.mission_id : ""}})
+          body:JSON.stringify({event, details:{
+            ...details,
+            mission_id:STATE.mission ? STATE.mission.mission_id : "",
+            extension_version:chrome.runtime.getManifest().version,
+            extension_build_id:globalThis.AGP_EXTENSION_BUILD_ID || "",
+            conversation_url:location.href,
+            run_generation:Number(STATE.runGeneration || 0),
+            client_turn:Number(STATE.turns || 0)
+          }})
         }
       );
     } catch (_) {}
@@ -684,9 +891,17 @@
     // AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11
   function normalizeObservedMessageText(text) {
     return String(text || "")
+      .normalize("NFKC")
+      .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
       .replace(/\u00a0/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  function normalizeRenderedUserTurnText(text) {
+    return typeof agpNormalizeUserTurnText === "function"
+      ? agpNormalizeUserTurnText(text)
+      : normalizeObservedMessageText(text);
   }
 
 
@@ -734,7 +949,7 @@
     beforeGenerationActive=false
   ) {
     const beforeCount = beforeMessages.length;
-    const expected = normalizeObservedMessageText(prompt);
+    const expected = normalizeRenderedUserTurnText(prompt);
     const assistantBefore = normalizeObservedMessageText(beforeAssistantText);
     const composerBefore = normalizeObservedMessageText(beforeComposerText);
     let provisionalComposerEvidence = "";
@@ -745,7 +960,7 @@
 
       const after = visibleUserMessages();
       if (after.length > beforeCount) {
-        const newest = normalizeObservedMessageText(after[after.length - 1]);
+        const newest = normalizeRenderedUserTurnText(after[after.length - 1]);
         if (newest === expected) {
           return {confirmed:true, via:"user_message"};
         }
@@ -986,7 +1201,14 @@
       }
       await clientEvent("SEND_INDETERMINATE", {
         reconciliation:"not_confirmed",
-        provisional:reconciliation.provisional || ""
+        provisional:reconciliation.provisional || "",
+        generation_started_observed:Boolean(reconciliation.generation_started_observed),
+        native_after_summary:nativeAck.after && {
+          user_message_count:Number(nativeAck.after.user_message_count || 0),
+          exact_user_message_found:Boolean(nativeAck.after.exact_user_message_found),
+          composer_chars:String(nativeAck.after.composer_text || "").length,
+          generation_active:Boolean(nativeAck.after.generation_active)
+        }
       });
       STATE.lastEvent = "SEND_INDETERMINATE";
       STATE.note = "Prompt nicht reconcilierbar bestätigt; kein weiterer Turn";
@@ -1344,15 +1566,45 @@
         reason:String(error && error.message ? error.message : error)
       });
     }
-    await clientEvent(event, {
-      reason:STATE.note,
-      run_generation:STATE.runGeneration,
-      failure_class:STATE.lastTransportFailureClass || ""
-    });
+    try {
+      await clientEvent(event, {
+        reason:STATE.note,
+        run_generation:STATE.runGeneration,
+        failure_class:STATE.lastTransportFailureClass || ""
+      });
+    } catch (error) {
+      // A failed diagnostic report must never turn a completed stop into an
+      // unhandled promise rejection or leave the local state ambiguous.
+      STATE.lastEvent = "STOP_EVENT_REPORT_FAILED";
+      STATE.note = `${reason || ""} · ${String(error)}`.trim();
+    }
     render();
   }
 
+  function scheduleTick() {
+    if (STATE.timer) clearInterval(STATE.timer);
+    STATE.timer = setInterval(() => {
+      void tick().catch(error => {
+        // setInterval does not observe rejected promises. Keep the browser
+        // console clean and preserve a durable diagnostic when an unexpected
+        // error escapes the tick-level recovery path.
+        STATE.processingAssistant = false;
+        STATE.errors += 1;
+        STATE.lastEvent = "TICK_UNHANDLED_ERROR";
+        STATE.note = String(error);
+        try {
+          render();
+        } catch (_) {}
+        void clientEvent("TICK_UNHANDLED_ERROR", {
+          message:String(error),
+          error_count:STATE.errors
+        }).catch(() => {});
+      });
+    }, LIMITS.pollMs);
+  }
+
   function missionBootstrapPrompt(mission) {
+    const nextStep = Number(STATE.nextLocalStep || 0);
     return [
       "AGP COCKPIT MISSION — FIRST SINGLE STEP",
       "",
@@ -1361,6 +1613,10 @@
       "",
       "Return exactly ONE executable Python command file as a .py attachment.",
       "The Python file is the only non-terminal command artifact for the normal K07 file loop.",
+      ...(nextStep > 0 ? [
+        "The local bridge is the numbering authority for this run.",
+        `The next local work-order number is ${nextStep}. Use exactly ${nextStep}_...py as the attachment filename and use ${nextStep} in the embedded STEP constant and all step-scoped output names. Never reuse an older number; if you cannot produce this exact new number, respond with AGP_NEEDS_HUMAN and the exact reason.`
+      ] : []),
       "",
       "Use the repository and Agentic Project Kit contracts from the mission.",
       ...(STATE.mission && STATE.mission.execution_mode === "LIVE" ? [
@@ -1451,6 +1707,9 @@
       const req = await api("/v1/task/start-request");
       const generation = Number(req.generation || 0);
       const missionId = String(req.mission_id || "");
+      // An invalidated request keeps its counter internally, but is not an
+      // actionable browser start signal.
+      if (!generation || !missionId) return;
       const requestKey = taskStartRequestKey(missionId, generation);
       if (!AGP_TASK_FIRST_START_REQUEST_PRIMED) {
         AGP_TASK_FIRST_START_REQUEST_PRIMED = true;
@@ -1516,6 +1775,7 @@
     STATE.state = result.state || "IDLE";
     STATE.mission = result.mission || null;
     STATE.localAuthority = result.local_authority || null;
+    STATE.nextLocalStep = Number(result.next_local_step || 0);
     // K07: status refresh is observational only. A persisted READY/FULL_AUTO task
     // must not execute merely because the desktop app/bridge reconnects.
     STATE.lastRefresh = new Date();
@@ -1582,6 +1842,32 @@
       }
       const commandResult = await submitAssistantCommandFile();
       if (!STATE.running || STATE.runGeneration !== runGeneration) return;
+      const replayed = commandResult.replayed === true;
+      const terminal = commandResult.terminal === true;
+      if (terminal) {
+        STATE.turns += replayed ? 0 : 1;
+        STATE.lastEvent = "K07_COMMAND_FILE_TERMINAL";
+        STATE.note = String(
+          commandResult.human_reason || commandResult.failure_reason ||
+          "command-file loop reached a terminal state"
+        );
+        await stop(STATE.note, String(commandResult.state || "AUTO_STOPPED"));
+        await refreshStatus();
+        return;
+      }
+      if (replayed) {
+        // The server returned the preserved result without sending a new
+        // continuation. Mark the visible response as consumed so a polling
+        // tick cannot submit the same attachment once per second.
+        captureAssistantBaseline();
+        STATE.lastEvent = "K07_DUPLICATE_ATTACHMENT_SUPPRESSED";
+        STATE.note = "Doppelter Python-Anhang unterdrueckt; warte auf neue Antwort";
+        STATE.waitingForAssistant = true;
+        STATE.assistantWaitStartedAt = Date.now();
+        resetCandidate();
+        render();
+        return;
+      }
       STATE.turns += 1;
       const failed = commandResult.result_status === "failed" || commandResult.artifact_kind === "execution_diagnostic";
       STATE.lastEvent = failed ? "K07_COMMAND_FILE_TURN_FAILED" : "K07_COMMAND_FILE_TURN_COMPLETE";
@@ -1590,6 +1876,9 @@
         : "local command completed; continuation requested";
       STATE.waitingForAssistant = true;
       STATE.assistantWaitStartedAt = Date.now();
+      // The continuation was sent by the background transport. The current
+      // assistant response is now the completed baseline for the next turn.
+      captureAssistantBaseline();
       resetCandidate();
       render();
       return;
@@ -1663,6 +1952,28 @@
       return "";
     }
 
+    // A long-lived conversation can materialize a historical assistant node
+    // after the baseline was captured.  In the file loop that node is not a
+    // response: its old numbered attachment must not start the 15-second
+    // attachment grace timer for the current local step.
+    const expectedStep = Number(STATE.nextLocalStep || 0);
+    if (expectedStep > 0) {
+      const stalePythonAttachment = Array.from(
+        newest.querySelectorAll("a[href], button, [role=\"button\"]")
+      ).some(node => {
+        const label = String(
+          node.getAttribute("download") ||
+          node.getAttribute("aria-label") ||
+          node.getAttribute("title") ||
+          node.textContent ||
+          ""
+        ).trim();
+        const match = label.match(/(?:^|[\s/])(\d+)_[^\s/]+\.py(?:$|[?#\s])/i);
+        return Boolean(match) && Number(match[1]) !== expectedStep;
+      });
+      if (stalePythonAttachment) return "";
+    }
+
     const newestText = lastAssistantText();
     k07DebugTrace("ASSISTANT_OBSERVED",{chars:String(newestText||"").length,message_id:String(newestMessageId||""),node_count:nodes.length});
     const normalizedNewestText = normalizeObservedMessageText(newestText);
@@ -1685,21 +1996,84 @@
   }
 
   async function tick() {
+    // The catch block is a sibling lexical scope of try. Keep the generation
+    // fence outside try so polling failures can never turn into a ReferenceError.
+    const runGeneration = STATE.runGeneration;
+    try {
     // AGP_K07_ASSISTANT_WAIT_TIMEOUT_1360
     if (STATE.running && STATE.waitingForAssistant &&
         STATE.assistantWaitStartedAt > 0 &&
         Date.now() - STATE.assistantWaitStartedAt > 180000) {
       STATE.waitingForAssistant = false;
       STATE.assistantWaitStartedAt = 0;
-      throw new Error("K07_ASSISTANT_RESPONSE_TIMEOUT after 180s");
+      const message = "K07_ASSISTANT_RESPONSE_TIMEOUT after 180s";
+      STATE.lastEvent = "K07_ASSISTANT_WAIT_TIMEOUT";
+      STATE.note = message;
+      await clientEvent("K07_ASSISTANT_WAIT_TIMEOUT", {timeout_ms:180000});
+      await stop(message, "K07_ASSISTANT_WAIT_TIMEOUT");
+      return;
     }
     await pollOperatorControl();
     if (STATE.paused) return;
     await pollExplicitTaskStartRequest();
     if (!STATE.running || !STATE.waitingForAssistant) return;
-    const runGeneration = STATE.runGeneration;
-
-    try {
+      // A historical attachment can briefly be the only visible Python card
+      // while ChatGPT is still materializing the new assistant response. Do
+      // not submit any card until the response boundary is observable.
+      const newResponseText = newAssistantTextAfterBaseline();
+      if (!newResponseText) return;
+      // ChatGPT can render the file card before the assistant has finished
+      // generating the attachment. Reading it at that point produces a
+      // syntactically truncated Python file (the observed 1458-1462 failure
+      // pattern). The response is not complete until generation is idle.
+      if (chatgptGenerationActive()) {
+        STATE.lastEvent = "ASSISTANT_STREAMING";
+        STATE.note = "Python-Anhang wird noch vollständig erzeugt…";
+        render();
+        return;
+      }
+      // A visible .py file card is the authoritative terminal signal for the
+      // task-first K07 response. It must not wait for prose stability: the
+      // file card is exactly what the local file loop consumes.
+      const directCommandFiles = assistantPythonAttachmentCandidates();
+      if (directCommandFiles.length === 1) {
+        if (STATE.processingAssistant) return;
+        const attachmentKey = assistantAttachmentKey(directCommandFiles);
+        if (
+          attachmentKey &&
+          attachmentKey === STATE.lastProcessedAssistantAttachmentKey
+        ) {
+          if (STATE.lastEvent !== "K07_DUPLICATE_ATTACHMENT_SUPPRESSED") {
+            STATE.lastEvent = "K07_DUPLICATE_ATTACHMENT_SUPPRESSED";
+            STATE.note = "Doppelter Python-Anhang unterdrueckt; warte auf neue Antwort";
+            render();
+            await clientEvent("K07_DUPLICATE_ATTACHMENT_SUPPRESSED", {
+              filename:directCommandFiles[0].name
+            });
+          }
+          return;
+        }
+        STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
+        STATE.processingAssistant = true;
+        STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
+        STATE.lastEvent = "K07_ASSISTANT_ATTACHMENT_OBSERVED";
+        STATE.note = `Python-Anhang erkannt: ${directCommandFiles[0].name}`;
+        await clientEvent("K07_ASSISTANT_ATTACHMENT_OBSERVED", {
+          filename:directCommandFiles[0].name,
+          href:directCommandFiles[0].href || null
+        });
+        render();
+        try {
+          await processCompletedAssistant(lastAssistantText(), runGeneration);
+        } finally {
+          STATE.processingAssistant = false;
+        }
+        return;
+      }
+      if (directCommandFiles.length > 1) {
+        throw new Error(`expected exactly one assistant .py attachment; observed ${directCommandFiles.length}`);
+      }
       const text = newAssistantTextAfterBaseline();
       if (!text) return;
 
@@ -1752,6 +2126,22 @@
       // before legacy Protocol-v1 JSON compatibility parsing.
       const k07CommandFiles = assistantPythonAttachmentCandidates();
       if (k07CommandFiles.length === 1) {
+        const attachmentKey = assistantAttachmentKey(k07CommandFiles);
+        if (
+          attachmentKey &&
+          attachmentKey === STATE.lastProcessedAssistantAttachmentKey
+        ) {
+          if (STATE.lastEvent !== "K07_DUPLICATE_ATTACHMENT_SUPPRESSED") {
+            STATE.lastEvent = "K07_DUPLICATE_ATTACHMENT_SUPPRESSED";
+            STATE.note = "Doppelter Python-Anhang unterdrueckt; warte auf neue Antwort";
+            render();
+            await clientEvent("K07_DUPLICATE_ATTACHMENT_SUPPRESSED", {
+              filename:k07CommandFiles[0].name
+            });
+          }
+          return;
+        }
+        STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
         STATE.attachmentWaitStartedAt = 0;
         STATE.processingAssistant = true;
         STATE.lastAssistantHash = STATE.candidateHash;
@@ -1787,7 +2177,12 @@
           render();
           return;
         }
-        throw new Error("K07_FILE_TRANSFER_ATTACHMENT_REQUIRED: expected exactly one assistant .py attachment; observed 0");
+        const expectedStep = Number(STATE.nextLocalStep || 0);
+        throw new Error(
+          expectedStep > 0
+            ? `K07_FILE_TRANSFER_ATTACHMENT_REQUIRED: expected exactly one assistant .py attachment for local step ${expectedStep}; observed 0`
+            : "K07_FILE_TRANSFER_ATTACHMENT_REQUIRED: expected exactly one assistant .py attachment; observed 0"
+        );
       }
 
       // Legacy compatibility only: non-task-first probes may still use structured text.
@@ -1899,6 +2294,12 @@
       STATE.errors += 1;
       STATE.note = String(err);
       STATE.lastEvent = "TICK_ERROR";
+      if (String(err).includes("K07") || String(err).includes("command-file")) {
+        await clientEvent("K07_FILE_INGRESS_FAILED", {
+          message:String(err),
+          error_count:STATE.errors
+        });
+      }
       await clientEvent("TICK_ERROR", {
         message:String(err)
       });
@@ -2052,6 +2453,7 @@
         body:JSON.stringify({
           title:LIVE_PROBE.title,
           mission_text:LIVE_PROBE.missionText,
+          conversation_url:location.href,
           execution_mode:"LIVE",
           run_mode:"SINGLE_STEP"
         })
@@ -2087,6 +2489,7 @@
         body:JSON.stringify({
           title:MULTITURN_LIVE_PROBE.title,
           mission_text:MULTITURN_LIVE_PROBE.missionText,
+          conversation_url:location.href,
           execution_mode:"LIVE",
           run_mode:"FULL_AUTO"
         })
@@ -2223,6 +2626,7 @@
         body:JSON.stringify({
           title:document.title || "Chrome mission",
           mission_text:text,
+          conversation_url:location.href,
           execution_mode:"DRY_RUN",
           run_mode:"SINGLE_STEP"
         })
@@ -2275,8 +2679,7 @@
     });
     render();
 
-    if (STATE.timer) clearInterval(STATE.timer);
-    STATE.timer = setInterval(tick, LIMITS.pollMs);
+    scheduleTick();
   }
 
   async function startAuto() {
@@ -2331,6 +2734,20 @@
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
     }
+
+    // Do not start a task while ChatGPT is still finishing a previous answer.
+    // Otherwise that answer can cross the new baseline and be mistaken for
+    // the first response of this mission.
+    const generationDeadline = Date.now() + 180000;
+    while (chatgptGenerationActive() && Date.now() < generationDeadline) {
+      STATE.note = "Warte auf Abschluss der vorherigen ChatGPT-Antwort";
+      STATE.lastEvent = "WAITING_FOR_PREVIOUS_RESPONSE";
+      render();
+      await sleep(250);
+    }
+    if (chatgptGenerationActive()) {
+      throw new Error("K07_PREVIOUS_ASSISTANT_RESPONSE_STILL_ACTIVE");
+    }
     captureAssistantBaseline();
     resetCandidate();
 
@@ -2366,8 +2783,7 @@
     });
     render();
 
-    if (STATE.timer) clearInterval(STATE.timer);
-    STATE.timer = setInterval(tick, LIMITS.pollMs);
+    scheduleTick();
   }
 
   // AGP_START_AUTO_CLICK_PATH_077
@@ -2531,6 +2947,13 @@
     const title = document.createElement("span");
     title.textContent = "AGP Cockpit Bridge";
     head.appendChild(title);
+
+    const extensionVersion = document.createElement("span");
+    extensionVersion.style.fontSize = "11px";
+    extensionVersion.style.color = "#b6c8d4";
+    extensionVersion.textContent = `v${chrome.runtime.getManifest().version}`;
+    extensionVersion.title = `Build ${globalThis.AGP_EXTENSION_BUILD_ID || "unknown"}`;
+    head.appendChild(extensionVersion);
 
     const dot = document.createElement("span");
     dot.className = `agp-dot ${STATE.connected ? "on" : ""}`;

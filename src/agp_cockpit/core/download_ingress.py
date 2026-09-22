@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+MAX_DOWNLOAD_BYTES = 2_000_000
+
+
+def _allowed_download_roots(repository_root: Path) -> tuple[Path, ...]:
+    roots = [repository_root.expanduser().resolve() / "Download"]
+    home_downloads = Path.home() / "Downloads"
+    if home_downloads.exists():
+        roots.append(home_downloads.resolve())
+    return tuple(roots)
+
+
+def _matches_download_name(actual: str, expected: str) -> bool:
+    if actual == expected:
+        return True
+    expected_stem = Path(expected).stem
+    return actual.startswith(expected_stem + " (") and actual.endswith(Path(expected).suffix)
+
+
+def read_downloaded_command(
+    download_path: str | Path,
+    expected_filename: str,
+    repository_root: Path,
+) -> tuple[str, str, str]:
+    """Read one browser download without granting arbitrary file access."""
+    expected = str(expected_filename).strip()
+    if (
+        not expected
+        or not expected.lower().endswith(".py")
+        or Path(expected).name != expected
+    ):
+        raise ValueError("exactly one safe .py filename required")
+
+    path = Path(download_path).expanduser().resolve()
+    if not _matches_download_name(path.name, expected):
+        raise ValueError("download filename does not match expected command file")
+    if not any(path.parent == root for root in _allowed_download_roots(repository_root)):
+        raise ValueError("download path is outside the allowed download directories")
+    if not path.is_file():
+        raise ValueError("downloaded command file is not readable")
+    if path.stat().st_size < 1 or path.stat().st_size > MAX_DOWNLOAD_BYTES:
+        raise ValueError("downloaded command file size outside bounded range")
+    content = path.read_text(encoding="utf-8")
+    return expected, content, "text/x-python"

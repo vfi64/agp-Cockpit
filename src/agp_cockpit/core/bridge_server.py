@@ -8,13 +8,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from agp_cockpit import __version__
+from agp_cockpit.adapters.macos_extension import (
+    _manifest_build_id,
+    _manifest_version,
+    local_extension_root,
+)
 from agp_cockpit.core.bridge_engine import BridgeEngine
 from agp_cockpit.core.bridge_protocol import (
     encode_turn_response,
     parse_turn_request,
 )
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
+from agp_cockpit.core.download_ingress import read_downloaded_command
 from agp_cockpit.core.file_loop_orchestrator import consume_command_file
+from agp_cockpit.core.file_loop_protocol import next_step_number
+from agp_cockpit.core.file_loop_runner import RunNextProcessController
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
@@ -24,6 +33,7 @@ from agp_cockpit.core.transport_protocol_v1 import (
     parse_result_frame,
 )
 from agp_cockpit.core.work_order import parse_work_order_json
+from agp_cockpit.version import BRIDGE_BUILD_ID, BRIDGE_PROTOCOL_VERSION
 
 
 @dataclass(frozen=True)
@@ -31,6 +41,25 @@ class BridgeServerConfig:
     host: str = "127.0.0.1"
     port: int = 8765
     token: str = ""
+
+
+def _runtime_identity_payload() -> dict[str, str | int]:
+    payload: dict[str, str | int] = {
+        "application_version": __version__,
+        "bridge_build_id": BRIDGE_BUILD_ID,
+        "bridge_protocol_version": BRIDGE_PROTOCOL_VERSION,
+        "extension_expected_version": "",
+        "extension_expected_build_id": "",
+    }
+    try:
+        staged = local_extension_root()
+        payload["extension_expected_version"] = _manifest_version(staged)
+        payload["extension_expected_build_id"] = _manifest_build_id(staged)
+    except Exception as exc:  # noqa: BLE001 - status remains useful while staging is repaired.
+        payload["extension_identity_error"] = (
+            f"{type(exc).__name__}: {str(exc)[:240]}"
+        )
+    return payload
 
 
 class CockpitBridgeServer:
@@ -55,7 +84,9 @@ class CockpitBridgeServer:
         self.config = cfg
         self.runtime_root = (runtime_root.expanduser().resolve() if runtime_root is not None else (self.repository_root / ".local" / "agp-cockpit" / "bridge"))
         self.runtime_root.mkdir(parents=True, exist_ok=True)
+        self._run_next_controller = RunNextProcessController()
         self.engine = BridgeEngine(self.repository_root)
+        self.engine.runtime.bind_execution_stop(self._run_next_controller.stop)
         self.diag = DiagnosticLogger(self.repository_root)
         self.protocol_v1_actions = ActionRegistry()
         self.protocol_v1_results: dict[str, str] = {}
@@ -63,7 +94,6 @@ class CockpitBridgeServer:
         self.local_task_contract = local_task_contract
         self._durable_controllers: dict[str, DurableTaskController] = {}
         self._file_loop_lock = threading.Lock()
-
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -106,6 +136,7 @@ class CockpitBridgeServer:
         runtime_root = self.runtime_root
         local_task_contract = self.local_task_contract
         file_loop_lock = self._file_loop_lock
+        run_next_controller = self._run_next_controller
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -192,7 +223,7 @@ class CockpitBridgeServer:
 
                 if path == "/v1/task/start-request":
                     from agp_cockpit.core.start_request import StartRequestStore
-                    request = StartRequestStore(runtime_root).current()
+                    request = StartRequestStore(runtime_root).pending()
                     state = engine.runtime.state
                     diag.event("TASK_START_REQUEST_POLLED", mission_id=(None if state is None else state.mission_id), state_after=("IDLE" if state is None else state.state), component="http", details={"generation": request.get("generation"), "request_mission_id": request.get("mission_id"), "request_task_id": request.get("task_id")})
                     self._json(200, request)
@@ -213,6 +244,15 @@ class CockpitBridgeServer:
                     self._json(
                         200,
                         {
+                            **_runtime_identity_payload(),
+                            "diagnostics_log_path": str(diag.log_path),
+                            "repository_root": str(repo_root),
+                            "runtime_root": str(runtime_root),
+                            "next_local_step": (
+                                next_step_number(repo_root / "Download")
+                                if (repo_root / "Download").is_dir()
+                                else 1
+                            ),
                             "state": (
                                 "IDLE"
                                 if state is None
@@ -293,6 +333,17 @@ class CockpitBridgeServer:
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
 
+                        from agp_cockpit.core.operator_control import (
+                            OperatorControlStore,
+                        )
+                        operator_action = str(
+                            OperatorControlStore(runtime_root).current().get("action") or ""
+                        ).upper()
+                        if operator_action in {"PAUSE", "STOP"}:
+                            raise RuntimeError(
+                                f"file-loop admission blocked by operator control: {operator_action}"
+                            )
+
                         from agp_cockpit.core.start_request import StartRequestStore
                         current_start = StartRequestStore(runtime_root).current()
                         current_task_id = str(current_start.get("task_id") or "").strip()
@@ -325,10 +376,41 @@ class CockpitBridgeServer:
                             repo_root,
                             state_file,
                             stem=Path(filename).stem,
+                            mission_id=(
+                                None
+                                if engine.runtime.state is None
+                                else engine.runtime.state.mission_id
+                            ),
+                            guard=engine.guard,
+                            process_controller=run_next_controller,
                         )
                         terminal_loop = outcome.state.value in {"BLOCKED", "NEEDS_HUMAN", "DONE"}
+                        if outcome.run is None and terminal_loop:
+                            if outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
+                                engine.runtime.final("BLOCKED", outcome.human_reason or "file-loop guard blocked")
+                            self._json(
+                                200,
+                                {
+                                    "state": outcome.state.value,
+                                    "step": None,
+                                    "result_file": None,
+                                    "prompt": None,
+                                    "terminal": True,
+                                    "human_reason": outcome.human_reason,
+                                    "cycle_id": cycle_id,
+                                    "replayed": outcome.replayed,
+                                },
+                            )
+                            return
                         if outcome.run is None or (outcome.continuation_text is None and not terminal_loop):
                             raise RuntimeError("command-file execution produced no return bundle")
+                        if not outcome.replayed and engine.runtime.state is not None:
+                            engine.runtime.record_assistant(content)
+                        if terminal_loop and outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
+                            engine.runtime.final(
+                                "BLOCKED",
+                                outcome.human_reason or "file-loop reached a terminal blocked state",
+                            )
                         result_path = Path(outcome.run.return_bundle)
                         result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
                         output_path = Path(outcome.run.run_next_output)
@@ -358,6 +440,10 @@ class CockpitBridgeServer:
                             {
                                 "state": outcome.state.value,
                                 "step": outcome.run.step,
+                                "next_step": next_step_number(
+                                    repo_root / "Download",
+                                    minimum_step=outcome.run.step,
+                                ),
                                 "result_file": str(outcome.run.return_bundle),
                                 "prompt": outcome.continuation_text,
                                 "terminal": terminal_loop,
@@ -372,6 +458,27 @@ class CockpitBridgeServer:
                                 "result_execution": parsed_result.get("execution") if isinstance(parsed_result, dict) else None,
                                 "failure_reason": parsed_result.get("failure_reason") if isinstance(parsed_result, dict) else None,
                                 "replayed": outcome.replayed,
+                            },
+                        )
+                        return
+
+                    if path == "/v1/file-loop/download":
+                        data = self._body()
+                        filename, content, content_type = read_downloaded_command(
+                            data.get("download_path", ""),
+                            data.get("filename", ""),
+                            repo_root,
+                        )
+                        self._json(
+                            200,
+                            {
+                                "ok": True,
+                                "stage": "COMMAND_FILE_FETCHED",
+                                "filename": filename,
+                                "href": "chatgpt://assistant-download/" + filename,
+                                "content": content,
+                                "content_type": content_type,
+                                "chars": len(content),
                             },
                         )
                         return
@@ -651,11 +758,7 @@ class CockpitBridgeServer:
                         if event_name == "EXTENSION_HANDSHAKE":
                             import time as _time
                             handshake_path = (
-                                repo_root
-                                / ".local"
-                                / "agp-cockpit"
-                                / "bridge"
-                                / "extension.json"
+                                runtime_root / "extension.json"
                             )
                             handshake_path.parent.mkdir(
                                 parents=True, exist_ok=True
@@ -664,6 +767,7 @@ class CockpitBridgeServer:
                                 json.dumps({
                                     "timestamp_unix": _time.time(),
                                     "version": str(details.get("version", ""))[:80],
+                                    "build_id": str(details.get("build_id", ""))[:120],
                                     "page_url": str(details.get("page_url", ""))[:500],
                                 }, indent=2) + "\n",
                                 encoding="utf-8",
@@ -704,6 +808,9 @@ class CockpitBridgeServer:
                                         "version": str(
                                             details.get("version", "")
                                         )[:80],
+                                        "build_id": str(
+                                            details.get("build_id", "")
+                                        )[:120],
                                         "page_url": str(
                                             details.get("page_url", "")
                                         )[:500],
@@ -783,11 +890,27 @@ class CockpitBridgeServer:
                         from agp_cockpit.core.start_request import StartRequestStore
                         action = str(data.get("action", "")).strip()
                         control = OperatorControlStore(runtime_root).request(action)
-                        if action.upper() == "STOP" and engine.runtime.state is not None:
-                            engine.runtime.stop("Stopped by operator control")
-                            StartRequestStore(runtime_root).invalidate_pending()
+                        if action.upper() == "STOP":
+                            if engine.runtime.state is not None:
+                                engine.runtime.stop("Stopped by operator control")
+                                process_stop = engine.runtime.last_execution_stop or {
+                                    "requested": False,
+                                    "active": False,
+                                    "pid": None,
+                                }
+                                StartRequestStore(runtime_root).invalidate_pending()
+                            else:
+                                process_stop = run_next_controller.stop()
+                        else:
+                            process_snapshot = run_next_controller.snapshot()
+                            process_stop = {
+                                "requested": False,
+                                "active": process_snapshot["active"],
+                                "pid": process_snapshot["pid"],
+                            }
                         self._json(200, {
                             **control,
+                            "process_stop": process_stop,
                             "mission_state": (
                                 None
                                 if engine.runtime.state is None
@@ -797,12 +920,26 @@ class CockpitBridgeServer:
                         return
 
                     if path == "/v1/task/start-request":
+                        from agp_cockpit.core.runtime_identity import (
+                            runtime_identity_status,
+                        )
                         from agp_cockpit.core.start_request import StartRequestStore
                         mission_id=str(data.get("mission_id","")).strip()
                         task_id=str(data.get("task_id","")).strip()
                         state=engine.runtime.state
                         if not mission_id or state is None or state.mission_id != mission_id:
                             raise ValueError("start request must target current mission")
+                        identity = runtime_identity_status(
+                            repo_root,
+                            runtime_root,
+                            expected_conversation_url=state.conversation_url,
+                            max_handshake_age_seconds=engine.limits.max_handshake_age_seconds,
+                        )
+                        if not identity["ready"]:
+                            raise RuntimeError(
+                                "runtime identity is not ready: "
+                                + ", ".join(identity["reasons"])
+                            )
                         if state.browser_transport_blocked:
                             model_recovery = "COMPOSER_MODEL_NOT_VERIFIED" in (
                                 state.browser_transport_block_reason or ""
@@ -837,6 +974,7 @@ class CockpitBridgeServer:
                         mission_text = str(
                             data.get("mission_text", "")
                         ).strip()
+                        conversation_url = str(data.get("conversation_url", "")).strip()
                         execution_mode = str(
                             data.get(
                                 "execution_mode",
@@ -858,6 +996,7 @@ class CockpitBridgeServer:
                         state = engine.runtime.create_mission(
                             title=title,
                             mission_text=mission_text,
+                            conversation_url=conversation_url,
                             execution_mode=execution_mode,
                             run_mode=run_mode,
                         )
@@ -976,6 +1115,10 @@ class CockpitBridgeServer:
         )
 
     def stop(self) -> None:
+        if self.engine.runtime.state is not None:
+            self.engine.runtime.stop("Bridge server stopped")
+        else:
+            self._run_next_controller.stop()
         if self._server is not None:
             self.diag.event(
                 "BRIDGE_SERVER_STOPPING",

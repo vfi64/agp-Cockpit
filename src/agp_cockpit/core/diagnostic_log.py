@@ -3,11 +3,16 @@ from __future__ import annotations
 import json
 import logging
 import secrets
+import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from hashlib import sha256
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
+
+from agp_cockpit import __version__
+from agp_cockpit.version import BRIDGE_BUILD_ID, BRIDGE_PROTOCOL_VERSION
 
 
 @dataclass(frozen=True)
@@ -84,7 +89,12 @@ class DiagnosticLogger:
         details: dict[str, Any] | None = None,
     ) -> None:
         payload = {
+            "timestamp_unix": time.time(),
+            "timestamp_utc": datetime.now(UTC).isoformat(),
             "event": name,
+            "application_version": __version__,
+            "bridge_build_id": BRIDGE_BUILD_ID,
+            "bridge_protocol_version": BRIDGE_PROTOCOL_VERSION,
             "component": component,
             "mission_id": mission_id,
             "turn": turn,

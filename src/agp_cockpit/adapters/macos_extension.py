@@ -26,6 +26,21 @@ def _manifest_version(source: Path) -> str:
     return version.strip()
 
 
+def _manifest_build_id(source: Path) -> str:
+    try:
+        content = (source / "build_identity.js").read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ExtensionStagingError(f"cannot read extension build identity: {exc}") from exc
+    prefix = 'globalThis.AGP_EXTENSION_BUILD_ID = "'
+    suffix = '";'
+    if prefix not in content or suffix not in content:
+        raise ExtensionStagingError("extension build identity file has no valid build id")
+    build_id = content.split(prefix, 1)[1].split(suffix, 1)[0]
+    if not isinstance(build_id, str) or not build_id.strip():
+        raise ExtensionStagingError("extension manifest has no valid AGP build identity")
+    return build_id.strip()
+
+
 def _tree_digest(source: Path) -> str:
     digest = hashlib.sha256()
     files = sorted(
@@ -59,6 +74,7 @@ def local_extension_root() -> Path:
 def stage_extension(repository_root: Path) -> Path:
     source = packaged_extension_source(repository_root)
     version = _manifest_version(source)
+    build_id = _manifest_build_id(source)
     digest = _tree_digest(source)
 
     target = local_extension_root()
@@ -70,6 +86,7 @@ def stage_extension(repository_root: Path) -> Path:
             current = {}
         if (
             current.get("version") == version
+            and current.get("build_id") == build_id
             and current.get("sha256") == digest
             and (target / "manifest.json").is_file()
         ):
@@ -90,7 +107,20 @@ def stage_extension(repository_root: Path) -> Path:
                 shutil.copy2(child, dest)
 
         (tmp / ".agp-stage.json").write_text(
-            json.dumps({"version": version, "sha256": digest}, indent=2, sort_keys=True) + "\n",
+            json.dumps(
+                {
+                    "version": version,
+                    "build_id": build_id,
+                    "sha256": digest,
+                    "repository_root": str(repository_root.expanduser().resolve()),
+                    "source_extension": str(source.resolve()),
+                    "staged_extension": str(target),
+                    "download_directory": str(repository_root.expanduser().resolve() / "Download"),
+                    "run_next": str(repository_root.expanduser().resolve() / "Download" / "run_next.py"),
+                },
+                indent=2,
+                sort_keys=True,
+            ) + "\n",
             encoding="utf-8",
         )
         if not (tmp / "manifest.json").is_file():

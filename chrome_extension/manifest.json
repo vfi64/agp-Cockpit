@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "AGP Cockpit Bridge",
-  "version": "0.3.1",
+  "version": "0.3.9",
   "description": "Experimental automated bridge between ChatGPT and AGP Cockpit.",
   "permissions": [
     "storage",
     "tabs",
     "alarms",
-    "debugger"
+    "debugger",
+    "downloads"
   ],
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -19,6 +20,7 @@
         "https://chatgpt.com/*"
       ],
       "js": [
+        "build_identity.js",
         "protocol_action_contract_v1.js",
         "transport_protocol_v1.js",
         "conversation_contract.js",

@@ -18,6 +18,8 @@ def test_existing_execution_and_task_authorities_remain():
     assert 'outcome = consume_command_file(' in BRIDGE
     assert 'DurableTaskController' in BRIDGE
     assert 'command-file execution produced no return bundle' in BRIDGE
+    assert 'if terminal_loop and outcome.state.value == "BLOCKED"' in BRIDGE
+    assert 'file-loop reached a terminal blocked state' in BRIDGE
 
 def test_browser_result_transport_preserves_existing_cycle_correlation():
     content = Path('chrome_extension/content.js').read_text()
@@ -36,3 +38,10 @@ def test_failed_command_turn_is_visible_without_claiming_completion():
     assert 'K07_COMMAND_FILE_TURN_FAILED' in content
     assert 'commandResult.result_status === "failed"' in content
     assert 'local command execution failed; recovery requested' in content
+
+def test_status_exposes_versioned_runtime_identity_and_log_path():
+    assert '"application_version": __version__' in BRIDGE
+    assert '"bridge_build_id": BRIDGE_BUILD_ID' in BRIDGE
+    assert '"bridge_protocol_version": BRIDGE_PROTOCOL_VERSION' in BRIDGE
+    assert '"diagnostics_log_path": str(diag.log_path)' in BRIDGE
+    assert '"extension_identity_error"' in BRIDGE

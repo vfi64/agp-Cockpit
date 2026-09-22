@@ -28,17 +28,23 @@ def valid_command_file(label: str) -> str:
 def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     manifest = json.loads((ROOT / "chrome_extension/manifest.json").read_text())
     assert "debugger" in manifest["permissions"]
-    assert "downloads" not in manifest["permissions"]
+    assert "downloads" in manifest["permissions"]
     background = (ROOT / "chrome_extension/background.js").read_text()
     assert "AGP_K07_COMMAND_FILE_FETCH_989" in background
     assert '"Runtime.evaluate"' in background
     assert 'fetch(href, {credentials:"include"})' in background
-    assert "chrome.downloads" not in background
+    assert "chrome.downloads.search" in background
+    assert "AGP_K07_ARM_COMMAND_FILE_DOWNLOAD" in background
+    assert "AGP_K07_WAIT_COMMAND_FILE_DOWNLOAD" in background
     content = (ROOT / "chrome_extension/content.js").read_text()
     assert "AGP_K07_COMMAND_FILE_INGRESS_989" in content
     assert "assistantPythonAttachmentCandidates" in content
     assert 'button[aria-label$=".py"]' in content
+    assert 'button, [role="button"]' in content
     assert "readAssistantButtonAttachment" in content
+    assert 'button[aria-label="Datei herunterladen"]' in content
+    assert '"/v1/file-loop/download"' in content
+    assert "K07_ATTACHMENT_DOWNLOAD_FALLBACK" in content
     assert '[role="dialog"] .cm-content[role="textbox"]' in content
     assert 'startsWith("request-placeholder")' in content
     assert "root.appendChild(actions)" in content
@@ -47,6 +53,19 @@ def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     assert "Date.now() + 45000" in content
     assert "expected exactly one assistant .py attachment" in content
     assert '"/v1/file-loop/command"' in content
+    assert 'K07_ASSISTANT_ATTACHMENT_OBSERVED' in content
+    assert 'lastProcessedAssistantAttachmentKey' in content
+    assert 'K07_DUPLICATE_ATTACHMENT_SUPPRESSED' in content
+    assert 'assistantAttachmentKey' in content
+    assert 'captureAssistantBaseline();' in content
+    assert 'candidates.filter(item => !baselineNames.has(item.name))' in content
+    assert 'K07_FILE_INGRESS_ACCEPTED' in content
+    assert 'K07_ASSISTANT_WAIT_TIMEOUT' in content
+    assert 'Python-Anhang wird noch vollständig erzeugt' in content
+    assert 'if (chatgptGenerationActive()) {' in content
+    assert 'WAITING_FOR_PREVIOUS_RESPONSE' in content
+    assert 'matchAll(/(?:^|[\\s/])([^\\s/]+\\.py)' in content
+    assert '[\\\\s/]' not in content
 
 def test_command_file_http_executes_only_through_run_next(tmp_path):
     download = tmp_path / "Download"
@@ -101,6 +120,33 @@ def test_file_loop_handler_uses_server_database_path_closure():
     server = (ROOT / "src/agp_cockpit/core/bridge_server.py").read_text()
     assert "durable_db_path = self._durable_db_path" in server
     assert "DurableTaskController(current_task_id, durable_db_path)" in server
+
+
+def test_download_ingress_materializes_only_allowed_download_file(tmp_path):
+    download = tmp_path / "Download"
+    download.mkdir()
+    command = download / "1464_chat_switch_standard_task.py"
+    command.write_text("print('ok')\n", encoding="utf-8")
+    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    info = runtime.start()
+    try:
+        payload = {
+            "filename": command.name,
+            "download_path": str(command),
+        }
+        req = Request(
+            f"http://127.0.0.1:{info.port}/v1/file-loop/download",
+            method="POST",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"X-AGP-Token": info.token, "Content-Type": "application/json"},
+        )
+        with urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        assert data["stage"] == "COMMAND_FILE_FETCHED"
+        assert data["filename"] == command.name
+        assert data["content"] == "print('ok')\n"
+    finally:
+        runtime.stop()
 
 
 def test_concurrent_duplicate_command_file_is_executed_once(tmp_path):
