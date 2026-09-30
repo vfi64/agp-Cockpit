@@ -27,7 +27,34 @@ function agpRenderedUserTurnMatches(observed, expected) {
     observedText.slice(0, minimumPrefix) === expectedText.slice(0, minimumPrefix);
 }
 
-function agpNativeMessageSnapshot() {
+// AGP_COMPOSER_RESOLVER_V1: one self-contained composer identity for the
+// content script and every serialized CDP expression (toString()).
+// Live 2026-09-30 on a new chat (https://chatgpt.com/): the focus step took
+// the first [contenteditable][role=textbox] in document order, blurred the
+// focused visible composer and could not focus its choice
+// (COMPOSER_FOCUS_NOT_VERIFIED, active element BODY). Only visible, enabled,
+// non-inert candidates count; the focused candidate wins.
+function agpResolveComposer() {
+  const usable = el => {
+    if (!el || el.disabled || el.isConnected === false) return false;
+    if (typeof el.closest === "function" && el.closest('[inert], [aria-hidden="true"]')) return false;
+    const rect = el.getBoundingClientRect();
+    if (!(rect.width > 0 && rect.height > 0)) return false;
+    const style = getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden";
+  };
+  const candidates = Array.from(document.querySelectorAll(
+    '#prompt-textarea, textarea[data-id="root"], [contenteditable="true"][role="textbox"], form [contenteditable="true"]'
+  )).filter(usable);
+  if (!candidates.length) return null;
+  const active = document.activeElement;
+  if (active && candidates.includes(active)) return active;
+  const byId = candidates.find(el => el.id === "prompt-textarea");
+  if (byId) return byId;
+  return candidates.find(el => typeof el.closest === "function" && el.closest("form")) || candidates[0];
+}
+
+function agpNativeMessageSnapshot(resolveComposer) {
   // Keep the snapshot self-contained: background.js serializes this function
   // into the page through Runtime.evaluate(...toString()).
   const norm = value => String(value || "")
@@ -113,7 +140,9 @@ function agpNativeMessageSnapshot() {
       }))
       .filter(message => message.text);
   }
-  const composer = document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
+  const composer = typeof resolveComposer === "function"
+    ? resolveComposer()
+    : document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
   return {
     url:location.href,
     messages,

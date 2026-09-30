@@ -951,3 +951,9 @@ repeat once.
 - Build `terminal-reply-file-20260930`, extension 0.3.17.
 - Tests: `tests/test_k07_terminal_reply.py` (parse, binding, HTTP), `tests/test_handoff_completion.py::test_remote_done_file_cannot_complete_a_contract_task`, `tests/terminal_reply_browser.cjs` (actual tick), Playwright card detection.
 - Live proof pending: whether ChatGPT renders a `.json` attachment as a card with the file name in its label and whether the download path delivers it.
+
+## 2026-09-30 — New-chat send failure: COMPOSER_FOCUS_NOT_VERIFIED
+
+- Live (build terminal-reply-file-20260930, mission d1061326, URL https://chatgpt.com/): bootstrap send rejected with `COMPOSER_FOCUS_NOT_VERIFIED`; before the focus step the visible composer (DIV, role textbox, no id) was already focused, afterwards the active element was BODY. The service worker resolved the composer by first match (`#prompt-textarea` no longer exists; fallback `[contenteditable="true"][role="textbox"]`), blurred the focused composer and focused an element that could not take focus. In the same run step 1480 of the previous chat was reported visible on the new-chat page (reserved, harmless). Both point to a hidden previous-conversation view kept in the DOM.
+- Repair AGP_COMPOSER_RESOLVER_V1: one self-contained `agpResolveComposer()` (native_message_evidence.js) used by every CDP expression in background.js, the native snapshot and the content-side transport: only visible, enabled, non-inert candidates; the focused candidate wins. Focus failure diagnostics now report textbox counts. Expected-step cards inside hidden/inert containers are ignored.
+- Test: `tests/e2e/test_composer_resolver.spec.js` (real Chromium). Build `composer-resolver-20260930`, extension 0.3.18.

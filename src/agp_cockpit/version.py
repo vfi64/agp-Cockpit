@@ -2,4 +2,4 @@
 
 APP_VERSION = "0.1.0.dev4"
 BRIDGE_PROTOCOL_VERSION = 1
-BRIDGE_BUILD_ID = "terminal-reply-file-20260930"
+BRIDGE_BUILD_ID = "composer-resolver-20260930"

@@ -378,6 +378,12 @@
     const unique = new Map();
     for (const anchor of document.querySelectorAll('a[href], button, [role="button"]')) {
       if (anchor.closest('form, [data-message-author-role="user"], [role="dialog"], [aria-modal="true"]')) continue;
+      // AGP_COMPOSER_RESOLVER_V1: ChatGPT can keep a previous conversation in
+      // a hidden/inert container after "new chat" (live 2026-09-30: step 1480
+      // of the old chat was reported visible on https://chatgpt.com/).
+      if (anchor.closest('[inert], [aria-hidden="true"]')) continue;
+      const anchorRect = anchor.getBoundingClientRect();
+      if (!(anchorRect.width > 0 && anchorRect.height > 0)) continue;
       const item = pythonAttachmentRow(anchor);
       if (!pattern.test(String(item.name || ""))) continue;
       if (!(item.href || item.isButton)) continue;
@@ -942,6 +948,8 @@
   }
 
   function composer() {
+    const resolved = typeof agpResolveComposer === "function" ? agpResolveComposer() : null;
+    if (resolved) return resolved;
     return (
       document.querySelector('#prompt-textarea') ||
       document.querySelector('textarea') ||
@@ -1182,7 +1190,7 @@
   }
 
   function visibleUserMessages() {
-    return agpNativeMessageSnapshot().messages.map(message => message.text).filter(Boolean);
+    return agpNativeMessageSnapshot(typeof agpResolveComposer === "function" ? agpResolveComposer : undefined).messages.map(message => message.text).filter(Boolean);
   }
 
     // AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11

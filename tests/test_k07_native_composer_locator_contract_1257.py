@@ -6,7 +6,14 @@ C=Path('chrome_extension/content.js').read_text()
 def test_native_locator_accepts_current_chatgpt_role_textbox():
  assert "'[contenteditable=\"true\"][role=\"textbox\"]'" in N
 def test_native_and_cdp_paths_share_role_textbox_fallback():
- assert 'document.querySelector(\'[contenteditable="true"][role="textbox"]\')' in B
+ # AGP_COMPOSER_RESOLVER_V1: a first-match document.querySelector picked a
+ # hidden textbox on a new chat (live 2026-09-30). Both paths now use the one
+ # visibility-aware resolver; behavior: tests/e2e/test_composer_resolver.spec.js
+ E=Path('chrome_extension/native_message_evidence.js').read_text()
+ assert '[contenteditable="true"][role="textbox"]' in E
+ assert 'document.querySelector(\'[contenteditable="true"][role="textbox"]\')' not in B
+ assert B.count('(${agpResolveComposer.toString()})()') >= 4
+ assert 'globalThis.agpResolveComposer' in N
  assert '[contenteditable="true"][role="textbox"]' in N
 def test_native_still_fails_closed_on_missing_or_nonempty_composer():
  assert 'native transport composer not found' in N

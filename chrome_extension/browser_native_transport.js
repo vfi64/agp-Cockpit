@@ -11,6 +11,11 @@
   }
 
   function resolveComposer() {
+    // AGP_COMPOSER_RESOLVER_V1: same identity as the service worker.
+    if (typeof globalThis.agpResolveComposer === "function") {
+      const resolved = globalThis.agpResolveComposer();
+      if (resolved) return resolved;
+    }
     if (typeof document.querySelector === "function") {
       const canonical = document.querySelector("#prompt-textarea");
       if (canonical && canonical.getBoundingClientRect().width > 0 &&

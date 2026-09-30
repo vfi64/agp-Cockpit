@@ -290,7 +290,7 @@ async function agpNativeTransportV1(message, sender) {
 
     await chrome.debugger.sendCommand(target, "Runtime.enable");
 
-    const observeMessages = () => evaluate(`(${agpNativeMessageSnapshot.toString()})()`);
+    const observeMessages = () => evaluate(`(${agpNativeMessageSnapshot.toString()})(${agpResolveComposer.toString()})`);
 
     // AGP_K07_SEND_COMMIT_NONCE_V1
     // The content script prefixes every prompt with a fresh nonce line. Its
@@ -306,7 +306,7 @@ async function agpNativeTransportV1(message, sender) {
       return evaluate(`(() => {
         const marker = ${JSON.stringify(commitMarker)};
         const count = value => String(value || "").split(marker).length - 1;
-        const composer = document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
+        const composer = (${agpResolveComposer.toString()})();
         const inBody = composer && !(composer instanceof HTMLTextAreaElement)
           ? count(composer.innerText || composer.textContent || "")
           : 0;
@@ -409,9 +409,7 @@ async function agpNativeTransportV1(message, sender) {
     let focusVerification = null;
     for (let attempt = 0; attempt < 10; attempt += 1) {
       focusVerification = await evaluate(`(() => {
-        const composer = document.querySelector('#prompt-textarea') ||
-          document.querySelector('[contenteditable="true"][role="textbox"]') ||
-          document.querySelector('textarea[data-id="root"]');
+        const composer = (${agpResolveComposer.toString()})();
         const activeBefore = document.activeElement;
         if (activeBefore && activeBefore !== composer && typeof activeBefore.blur === "function") {
           activeBefore.blur();
@@ -419,8 +417,14 @@ async function agpNativeTransportV1(message, sender) {
         if (composer && typeof window.focus === "function") window.focus();
         if (composer && typeof composer.focus === "function") composer.focus();
         const active = document.activeElement;
+        const textboxes = Array.from(document.querySelectorAll('[contenteditable="true"][role="textbox"]'));
         return {
           ok:Boolean(composer && active === composer),
+          textboxes:textboxes.length,
+          visible_textboxes:textboxes.filter(el => {
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          }).length,
           active_tag:active ? active.tagName : "",
           active_id:active ? active.id : "",
           composer_tag:composer ? composer.tagName : "",
@@ -451,8 +455,7 @@ async function agpNativeTransportV1(message, sender) {
 
     const inserted = await evaluate(`(() => {
       const active = document.activeElement;
-      const composer = document.querySelector('#prompt-textarea') ||
-        document.querySelector('[contenteditable="true"][role="textbox"]');
+      const composer = (${agpResolveComposer.toString()})();
       const el = composer || active;
       const value = el && "value" in el
         ? String(el.value || "")
@@ -489,9 +492,7 @@ async function agpNativeTransportV1(message, sender) {
     let modelVerification = null;
     for (let attempt = 0; attempt < 60; attempt += 1) {
       modelVerification = await evaluate(`(() => {
-        const composer = document.querySelector('#prompt-textarea') ||
-          document.querySelector('[contenteditable="true"][role="textbox"]') ||
-          document.querySelector('textarea[data-id="root"]');
+        const composer = (${agpResolveComposer.toString()})();
         const active = document.activeElement;
         const value = composer && "value" in composer
           ? String(composer.value || "")
