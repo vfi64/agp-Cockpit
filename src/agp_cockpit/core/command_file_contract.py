@@ -29,8 +29,10 @@ def _embedded_step_number(tree: ast.AST) -> int | None:
 # learned it only from a rejection (live 2026-09-30, step 1486).
 WORK_ORDER_KIT_RULE = (
     "Every work order MUST execute at least one agentic-kit command during its real run; "
-    "the Kit is the command authority (choose the most specific command, e.g. via "
-    "`agentic-kit command-for`). Other allowed tools such as git may only be used in addition."
+    "the Kit is the command authority. Use only commands from the agentic-kit command digest "
+    "attached to the mission start, prefer the most comprehensive orchestrator command, and "
+    "never run git push, git fetch or git pull. Other allowed tools such as git may only be "
+    "used in addition."
 )
 
 
@@ -131,6 +133,7 @@ def validate_command_content(
     *,
     filename: str = "<command-file>",
     expected_step: int | None = None,
+    repository_root: Path | None = None,
 ) -> None:
     try:
         violations = command_content_contract_violations(
@@ -138,6 +141,13 @@ def validate_command_content(
             filename=filename,
             expected_step=expected_step,
         )
+        # AGP_KIT_COMMAND_CATALOG_V1: manifest-based command authority.
+        from agp_cockpit.core.kit_command_catalog import (
+            KitCommandCatalog,
+            command_catalog_violations,
+        )
+        catalog = KitCommandCatalog.load(repository_root) if repository_root is not None else None
+        violations = violations + command_catalog_violations(source, catalog)
     except SyntaxError as exc:
         raise ValueError(
             f"command file is not executable Python: {type(exc).__name__}: {exc}"

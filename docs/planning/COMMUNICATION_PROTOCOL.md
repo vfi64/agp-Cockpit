@@ -283,7 +283,18 @@ This section is normative for the file loop after local execution.
    a task with a local completion contract offer only a work order or
    `NEEDS_HUMAN`; only generic missions are offered a remote `DONE`. The
    bridge still converts an unoffered remote `DONE` on a contract task into
-   `NEEDS_HUMAN`. The wait timeout names
+   `NEEDS_HUMAN`.
+13. Command authority (`AGP_KIT_COMMAND_CATALOG_V1`, `core/kit_command_catalog.py`).
+   `docs/reference/agentic-kit-commands.json` is the command authority
+   (`.agentic/INITIAL_LLM_PROMPT.md`). The remote side cannot read it, so the
+   bridge offers a compact digest (`/v1/status` → `kit_command_digest_path`,
+   orchestrator commands first) and the extension attaches it to the mission
+   start (fail closed if it cannot be attached). Standing rules, stated in the
+   bootstrap and every continuation and enforced on every received work
+   order: at least one agentic-kit command; only commands present in the
+   manifest; no git push / fetch / pull; no raw git/gh command that has a Kit
+   wrapper (`replaces_raw`). Orchestrator commands are preferred (prompt rule;
+   not enforceable). The wait timeout names
    the awaited file names and says that a human must check.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line

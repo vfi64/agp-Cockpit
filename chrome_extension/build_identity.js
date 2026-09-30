@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "kit-authority-20260930";
+globalThis.AGP_EXTENSION_BUILD_ID = "kit-catalog-20260930";

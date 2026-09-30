@@ -891,6 +891,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+// AGP_KIT_COMMAND_CATALOG_V1: attach local files (the Kit command digest)
+// to the composer before the mission start is sent.
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.type !== "AGP_K07_ATTACH_FILES") return false;
+  const tabId = sender && sender.tab ? sender.tab.id : null;
+  const files = Array.isArray(message.files) ? message.files.map(String) : [];
+  if (!Number.isInteger(tabId) || !files.length || files.some(file => !file.startsWith("/"))) {
+    sendResponse({ok:false, error:"absolute file paths and a tab are required"});
+    return false;
+  }
+  globalThis.AGPResultFileAttachment.attachResultFiles(chrome, {tabId}, files)
+    .then(result => sendResponse({ok:result && result.stage === "RESULT_FILES_ATTACHED", evidence:result && result.evidence}))
+    .catch(error => sendResponse({ok:false, error:String(error && error.message ? error.message : error)}));
+  return true;
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.type !== "AGP_K07_COMMAND_FILE_FETCH") return false;
   agpFetchAssistantCommandFile(message, sender)

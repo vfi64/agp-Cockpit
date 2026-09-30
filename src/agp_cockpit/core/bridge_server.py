@@ -60,6 +60,30 @@ class BridgeServerConfig:
     token: str = ""
 
 
+_KIT_DIGEST_CACHE: dict[str, tuple[int, str, str]] = {}
+
+
+def _kit_command_digest(repo_root: Path) -> dict[str, str]:
+    """AGP_KIT_COMMAND_CATALOG_V1: digest of the manifest for the mission start."""
+    from agp_cockpit.core.kit_command_catalog import MANIFEST, KitCommandCatalog
+
+    manifest = repo_root / MANIFEST
+    if not manifest.is_file():
+        return {}
+    mtime = manifest.stat().st_mtime_ns
+    cached = _KIT_DIGEST_CACHE.get(str(repo_root))
+    if cached is None or cached[0] != mtime:
+        catalog = KitCommandCatalog.load(repo_root)
+        if catalog is None:
+            return {}
+        target = catalog.write_digest(
+            repo_root / ".local" / "agp-cockpit" / "kit" / "agentic-kit-command-digest.json"
+        )
+        cached = (mtime, str(target), catalog.manifest_sha)
+        _KIT_DIGEST_CACHE[str(repo_root)] = cached
+    return {"kit_command_digest_path": cached[1], "kit_manifest_sha": cached[2]}
+
+
 def _runtime_identity_payload() -> dict[str, str | int]:
     payload: dict[str, str | int] = {
         "application_version": __version__,
@@ -264,6 +288,7 @@ class CockpitBridgeServer:
                             **_runtime_identity_payload(),
                             "diagnostics_log_path": str(diag.log_path),
                             "repository_root": str(repo_root),
+                            **_kit_command_digest(repo_root),
                             "runtime_root": str(runtime_root),
                             "next_local_step": (
                                 next_step_number(repo_root / "Download")
@@ -354,7 +379,7 @@ class CockpitBridgeServer:
                             raise ValueError("exactly one safe .py filename required")
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
-                        validate_command_content(content, filename=filename)
+                        validate_command_content(content, filename=filename, repository_root=repo_root)
                         # AGP_K07_DOWNLOAD_PROVENANCE_V1: when the browser
                         # materialized the payload through /download, the
                         # submitted content must be byte-identical to it.

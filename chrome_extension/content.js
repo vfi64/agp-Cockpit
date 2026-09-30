@@ -2028,7 +2028,7 @@
       "Local execution authority is a hard limit:",
       JSON.stringify(STATE.localAuthority || {}),
       // AGP_KIT_COMMAND_AUTHORITY_V1: same text as WORK_ORDER_KIT_RULE (Python).
-      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority (choose the most specific command, e.g. via `agentic-kit command-for`). Other allowed tools such as git may only be used in addition.",
+      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority. Use only commands from the agentic-kit command digest attached to the mission start, prefer the most comprehensive orchestrator command, and never run git push, git fetch or git pull. Other allowed tools such as git may only be used in addition.",
       "The proposed effect MUST be present in allowed_effects.",
       "argv[0] MUST name an executable present in allowed_tools.",
       "cwd MUST remain within the authorized repository_root.",
@@ -3309,6 +3309,19 @@
     render();
 
     try {
+      // AGP_KIT_COMMAND_CATALOG_V1: the remote side cannot read the local
+      // command manifest; its digest travels with the mission start.
+      const digestPath = String(status.kit_command_digest_path || "");
+      if (digestPath) {
+        const attached = await chrome.runtime.sendMessage({type:"AGP_K07_ATTACH_FILES", files:[digestPath]});
+        if (!attached || attached.ok !== true) {
+          throw new Error("Kit command digest could not be attached: " + String(attached && attached.error || "unknown"));
+        }
+        await clientEvent("KIT_COMMAND_DIGEST_ATTACHED", {
+          manifest_sha:String(status.kit_manifest_sha || ""),
+          evidence:String(attached.evidence || "")
+        });
+      }
       await sendPrompt(bootstrap);
     } catch (err) {
       if (STATE.runGeneration === runGeneration) {

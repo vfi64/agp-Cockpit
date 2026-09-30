@@ -91,7 +91,41 @@ async function buildMismatchRefusesStart() {
   assert.ok(calls.some(call => call.startsWith("/v1/file-loop/control") && call.includes("Build passt nicht")));
 }
 
+
+async function bootstrapAttachesKitDigest(attachOk) {
+  const calls = [];
+  const context = Object.assign(baseContext(calls), {
+    refreshStatus:async () => ({state:"READY", bridge_build_id:"b", kit_command_digest_path:"/r/.local/agp-cockpit/kit/agentic-kit-command-digest.json",
+      kit_manifest_sha:"ce455b7df8c5", mission:{mission_id:"m", state:"READY", mission_text:"x"}}),
+    sendPrompt:async () => { calls.push("SEND"); },
+    location:{href:"https://chatgpt.com/"},
+    digest:async () => "h", lastAssistantText:() => "", chatgptGenerationActive:() => false,
+    captureAssistantBaseline:() => {}, expectedStepFileVisible:() => false, sleep:async () => {},
+    missionBootstrapPrompt:() => "BOOT", scheduleTick:() => {},
+    chrome:{runtime:{sendMessage:async (message) => {
+      calls.push("ATTACH " + message.type + " " + message.files.join(","));
+      return attachOk ? {ok:true, evidence:"composer"} : {ok:false, error:"not shown"};
+    }}},
+  });
+  context.STATE.running = false;
+  context.globalThis = context;
+  context.AGP_EXTENSION_BUILD_ID = "b";
+  vm.createContext(context);
+  vm.runInContext(stopCode + section("  async function startAuto()", "  function btn(label, cls, handler)"), context);
+  if (attachOk) {
+    await context.startAuto();
+    const attach = calls.findIndex(call => call.startsWith("ATTACH AGP_K07_ATTACH_FILES /r/.local/agp-cockpit/kit/agentic-kit-command-digest.json"));
+    assert.ok(attach >= 0 && attach < calls.indexOf("SEND"));
+    assert.ok(calls.includes("event:KIT_COMMAND_DIGEST_ATTACHED"));
+  } else {
+    await assert.rejects(context.startAuto(), /Kit command digest could not be attached: not shown/);
+    assert.equal(calls.includes("SEND"), false);
+  }
+}
+
 (async () => {
+  await bootstrapAttachesKitDigest(true);
+  await bootstrapAttachesKitDigest(false);
   await rejectionStopsOnFirstError();
   await transientErrorIsRetried();
   await buildMismatchRefusesStart();

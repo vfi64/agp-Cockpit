@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -169,3 +170,16 @@ def test_stop_without_reason_keeps_the_operator_default(bridge):
                          "run_mode": "FULL_AUTO"})
     post("/v1/file-loop/control", {"action": "STOP"})
     assert post.get("/v1/status")["mission"]["last_error"] == "Stopped by operator control"
+
+
+def test_status_offers_the_kit_command_digest(bridge):
+    root, post = bridge
+    manifest = root / "docs/reference/agentic-kit-commands.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(json.dumps({"meta": {"manifest_sha": "abc123"}, "commands": [
+        {"qualified_name": "agentic-kit doctor", "path": ["doctor"], "surface": "diagnostic",
+         "safety": "READ_ONLY", "help": "health", "params": []}]}))
+    status = post.get("/v1/status")
+    assert status["kit_manifest_sha"] == "abc123"
+    digest = json.loads(Path(status["kit_command_digest_path"]).read_text())
+    assert digest["commands"][0]["command"] == "agentic-kit doctor"

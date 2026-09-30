@@ -986,3 +986,10 @@ repeat once.
 - Repair AGP_KIT_COMMAND_AUTHORITY_V1: `WORK_ORDER_KIT_RULE` next to the enforcing check in `command_file_contract.py`; stated verbatim in the bootstrap and every step-assigning continuation (test ties the JS text to the Python constant).
 - Display: tab "Arbeiten" showed "Auftrag läuft" for a STOPPED mission and the overlay kept "READY" (AGP_TASK_PROGRESS_FROM_MISSION_V1: the panel uses the started mission's state; generic DONE is reported as remote-declared; `stop()` re-reads the mission state).
 - Build `kit-authority-20260930`, extension 0.3.22.
+
+## 2026-09-30 — Kit command catalog as enforced command authority (build kit-catalog-20260930, extension 0.3.23)
+
+- User decisions: no git push/fetch as a standing rule; prefer complex (orchestrator) Kit commands; commands are not prescribed per task but taken from `docs/reference/agentic-kit-commands.json`.
+- AGP_KIT_COMMAND_CATALOG_V1: digest of the manifest (254 commands, orchestrators first, ~58 KB) is attached to every mission start; work orders are rejected for unknown agentic-kit commands, git push/fetch/pull, or raw git/gh commands with a Kit wrapper. Checked against all real work orders 1458–1485: no false rejection (1462 is the known truncated file).
+- Open (Kit side): the manifest has no "remote effect" classification; Kit orchestrators that push (e.g. `work finish`, `transfer pr-complete`) cannot yet be distinguished mechanically from local ones.
+- Tests: `tests/test_kit_command_catalog.py`, `test_status_offers_the_kit_command_digest`, `tests/fail_fast_browser.cjs` (digest attached before the bootstrap send; attach failure sends nothing).

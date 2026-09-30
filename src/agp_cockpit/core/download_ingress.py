@@ -53,5 +53,5 @@ def read_downloaded_command(
     if terminal:
         parse_terminal_reply(expected, content)
         return expected, content, "application/json"
-    validate_command_content(content, filename=expected)
+    validate_command_content(content, filename=expected, repository_root=repository_root)
     return expected, content, "text/x-python"
