@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .automation_guard import AutomationGuard
+from .command_file_contract import WORK_ORDER_KIT_RULE
 from .file_loop_protocol import (
     RemoteState,
     accept_command_file,
@@ -96,6 +97,7 @@ def _with_next_local_step(text: str, root: Path, completed_step: int,
         + f"The next remote command file must be new; expected local step: {next_step}. "
         + f"Set its internal STEP constant and all step-scoped output names to {next_step}. "
         + "Do not reuse the previous command-file content or identity.\n"
+        + WORK_ORDER_KIT_RULE + "\n"
         + terminal_reply_instruction(next_step, reply_policy)
     )
 

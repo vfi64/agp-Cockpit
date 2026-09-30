@@ -60,8 +60,8 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
   assert.equal(context.STATE.lastEvent, bridgeState);
   assert.match(context.STATE.note, bridgeState === "DONE" ? /^Fertig \(Remote\)/ : /^Mensch muss eingreifen/);
   const expected = bridgeState === "DONE"
-    ? ["/v1/file-loop/terminal", "refresh"]
-    : ["/v1/file-loop/terminal", "/v1/file-loop/control", "refresh"];
+    ? ["/v1/file-loop/terminal", "/v1/status", "refresh"]
+    : ["/v1/file-loop/terminal", "/v1/file-loop/control", "/v1/status", "refresh"];
   assert.deepEqual(calls, expected);
   assert.ok(events.some(([name]) => name === "K07_TERMINAL_REPLY_OBSERVED"));
 }

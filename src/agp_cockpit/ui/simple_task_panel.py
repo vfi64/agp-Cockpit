@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.mission_http_client import create_live_full_auto
 from agp_cockpit.core.mission_http_client import status as mission_status
+from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
 from agp_cockpit.core.start_request_client import request_task_start
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 
@@ -197,6 +198,7 @@ class SimpleTaskPanel(ttk.Frame):
                 conversation_url=conversation_url,
             )
             mission = mission_response["mission"]
+            self._mission_id = str(mission["mission_id"])
             request_task_start(
                 str(mission["mission_id"]),
                 task_id=str(self.contract.get("task_id") or ""),
@@ -247,6 +249,16 @@ class SimpleTaskPanel(ttk.Frame):
             )
             mission_status_payload = mission_status()
             mission = mission_status_payload.get("mission")
+            # AGP_TASK_PROGRESS_FROM_MISSION_V1: live 2026-09-30 the panel said
+            # "Auftrag läuft" while the mission was STOPPED, because it showed
+            # only the durable task state. The started mission decides.
+            if getattr(self, "_mission_id", "") and not waiting_for_human:
+                self.state_var.set(describe_standard_task_progress(
+                    mission_id=self._mission_id,
+                    task_status=status,
+                    bridge_status=mission_status_payload,
+                    locally_verified=False,
+                ).text)
             if mission is None:
                 self.activity_var.set(
                     "Aktivität: Task ist angelegt; Browser-Mission wurde noch nicht beobachtet."

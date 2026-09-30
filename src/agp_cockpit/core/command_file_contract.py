@@ -23,6 +23,17 @@ def _embedded_step_number(tree: ast.AST) -> int | None:
     return None
 
 
+# AGP_KIT_COMMAND_AUTHORITY_V1: every work order executes at least one
+# agentic-kit command (AGENTS.md: the Kit is the command authority). The rule
+# is enforced below and stated verbatim to the remote side, which previously
+# learned it only from a rejection (live 2026-09-30, step 1486).
+WORK_ORDER_KIT_RULE = (
+    "Every work order MUST execute at least one agentic-kit command during its real run; "
+    "the Kit is the command authority (choose the most specific command, e.g. via "
+    "`agentic-kit command-for`). Other allowed tools such as git may only be used in addition."
+)
+
+
 def command_content_contract_violations(
     source: str,
     *,

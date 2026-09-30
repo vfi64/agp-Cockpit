@@ -978,3 +978,11 @@ repeat once.
 - AGP_K07_FAIL_FAST_REJECTION_V1: a bridge contract rejection (HTTP 400 "ValueError: …") stops the run at the first occurrence with "Vom Cockpit abgelehnt: …"; transient errors keep the existing three-attempt limit. Cause: three downloads of the same rejected file.
 - AGP_STOP_REASON_V1: `/v1/file-loop/control` STOP accepts a `reason`; the extension sends the real cause, the mission records it, the Standard Tasks panel shows it (previously always "Stopped by operator control").
 - Tests: `tests/fail_fast_browser.cjs` (actual tick/startAuto/stop), `tests/test_k07_delivery_http.py::test_stop_records_the_real_reason`.
+
+## 2026-09-30 — Test 3 (tab "Arbeiten", push preparation): work order rejected, rule never stated
+
+- Live (build fail-fast-20260930, step 1486): the remote returned `1486_push_preparation.py` using only git. The bridge rejected it ("missing declared agentic-kit command"); fail-fast worked: one download, immediate stop, mission STOPPED with the real reason. But the rule was stated nowhere in the prompts, which even listed git as an allowed tool; the test task itself (written by the reviewer) asked for git only.
+- Decision (user): the Kit is always the command authority — every work order must execute at least one agentic-kit command; other allowed tools only in addition.
+- Repair AGP_KIT_COMMAND_AUTHORITY_V1: `WORK_ORDER_KIT_RULE` next to the enforcing check in `command_file_contract.py`; stated verbatim in the bootstrap and every step-assigning continuation (test ties the JS text to the Python constant).
+- Display: tab "Arbeiten" showed "Auftrag läuft" for a STOPPED mission and the overlay kept "READY" (AGP_TASK_PROGRESS_FROM_MISSION_V1: the panel uses the started mission's state; generic DONE is reported as remote-declared; `stop()` re-reads the mission state).
+- Build `kit-authority-20260930`, extension 0.3.22.

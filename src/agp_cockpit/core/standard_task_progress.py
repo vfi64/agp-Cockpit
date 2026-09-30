@@ -32,8 +32,15 @@ def _reason(mission: dict) -> str:
 
 
 def describe_standard_task_progress(
-    *, mission_id: str, task_status: dict | None, bridge_status: dict | None
+    *, mission_id: str, task_status: dict | None, bridge_status: dict | None,
+    locally_verified: bool = True,
 ) -> StandardTaskProgress:
+    """Status text for a started task.
+
+    ``locally_verified`` is True for tasks with a local completion contract
+    (Standard Tasks); generic missions (tab "Arbeiten") may be ended by a
+    remote DONE (AGP_TASK_REPLY_POLICY_V1), which is reported as such.
+    """
     task_state = str((task_status or {}).get("state") or "")
     suspension = str((task_status or {}).get("suspension_reason") or "")
     mission = (bridge_status or {}).get("mission") if bridge_status else None
@@ -59,6 +66,10 @@ def describe_standard_task_progress(
         return StandardTaskProgress(
             f"Mensch muss eingreifen — Entscheidung erforderlich. Mission: {mstate} · {local}",
             False, "HUMAN_REQUIRED")
+    if mstate == "DONE" and not locally_verified:
+        return StandardTaskProgress(
+            f"Fertig — von der Remote-Seite gemeldet ({counters}){suffix}. {local}",
+            True, "DONE")
     if mstate == "DONE":
         if task_state == "VERIFIED_COMPLETE":
             return StandardTaskProgress(

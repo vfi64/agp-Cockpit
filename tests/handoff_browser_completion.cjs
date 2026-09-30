@@ -48,11 +48,12 @@ async function scenario({pending=true, delivered=true}={}) {
     assert.equal(context.STATE.turns, 1);
     assert.equal(context.STATE.running, !pending);
     assert.equal(calls.includes("/v1/file-loop/control"), false);
-    if (pending) assert.deepEqual(calls, ["/v1/file-loop/command", "send", "/v1/file-loop/result-delivered"]);
+    // AGP_STOP_REASON_V1: stop re-reads /v1/status to show the final mission state.
+    if (pending) assert.deepEqual(calls, ["/v1/file-loop/command", "send", "/v1/file-loop/result-delivered", "/v1/status"]);
     else assert.deepEqual(calls, ["/v1/file-loop/command", "send", "/v1/file-loop/delivery-ack"]);
   }
   await context.stop("operator stop");
-  assert.equal(calls.at(-1), "/v1/file-loop/control");
+  assert.deepEqual(calls.slice(-2), ["/v1/file-loop/control", "/v1/status"]);
 }
 (async () => {
   await scenario();

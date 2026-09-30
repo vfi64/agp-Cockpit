@@ -66,3 +66,23 @@ def test_panel_polls_progress_after_start():
     assert "describe_standard_task_progress" in PANEL
     assert "self._track(str(mission[\"mission_id\"]))" in PANEL
     assert "after_cancel" in PANEL
+
+
+def test_generic_mission_done_is_reported_as_remote_declared():
+    result = describe_standard_task_progress(
+        mission_id=MID, task_status={"state": "WAITING_FOR_REMOTE"},
+        bridge_status=bridge("DONE"), locally_verified=False)
+    assert result.outcome == "DONE" and result.text.startswith("Fertig — von der Remote-Seite gemeldet")
+
+
+def test_generic_mission_stopped_is_not_shown_as_running():
+    # Live 2026-09-30 (tab "Arbeiten"): mission STOPPED, panel said "Auftrag läuft".
+    result = describe_standard_task_progress(
+        mission_id=MID, task_status={"state": "WAITING_FOR_REMOTE"},
+        bridge_status=bridge("STOPPED", last_error="Vom Cockpit abgelehnt: x"), locally_verified=False)
+    assert result.outcome == "STOPPED" and "Vom Cockpit abgelehnt: x" in result.text
+
+
+def test_arbeiten_panel_uses_mission_progress():
+    panel = (ROOT / "src/agp_cockpit/ui/simple_task_panel.py").read_text(encoding="utf-8")
+    assert "describe_standard_task_progress(" in panel and "locally_verified=False" in panel

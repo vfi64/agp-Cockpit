@@ -1969,6 +1969,13 @@
       STATE.lastEvent = "STOP_EVENT_REPORT_FAILED";
       STATE.note = `${reason || ""} · ${String(error)}`.trim();
     }
+    // AGP_STOP_REASON_V1: show the stopped mission state instead of a stale
+    // READY/RUNNING line; keep the stop reason as the visible note.
+    try {
+      const current = await api("/v1/status");
+      if (current && current.mission) STATE.mission = current.mission;
+      if (current && current.state) STATE.state = current.state;
+    } catch (_) {}
     render();
   }
 
@@ -2020,6 +2027,8 @@
       "",
       "Local execution authority is a hard limit:",
       JSON.stringify(STATE.localAuthority || {}),
+      // AGP_KIT_COMMAND_AUTHORITY_V1: same text as WORK_ORDER_KIT_RULE (Python).
+      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority (choose the most specific command, e.g. via `agentic-kit command-for`). Other allowed tools such as git may only be used in addition.",
       "The proposed effect MUST be present in allowed_effects.",
       "argv[0] MUST name an executable present in allowed_tools.",
       "cwd MUST remain within the authorized repository_root.",

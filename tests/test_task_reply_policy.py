@@ -84,3 +84,32 @@ process.stdout.write(JSON.stringify(ctx.out));
     assert "1480_agp_terminal.json" in bootstrap
     assert OFFERS_DONE not in bootstrap
     assert "earlier results in this conversation do not complete it" in bootstrap
+
+
+def test_kit_rule_is_stated_where_it_is_enforced():
+    # AGP_KIT_COMMAND_AUTHORITY_V1: live step 1486 was rejected for a rule the
+    # prompts never mentioned. Bootstrap and continuations state it verbatim.
+    from agp_cockpit.core.command_file_contract import (
+        WORK_ORDER_KIT_RULE,
+        command_content_contract_violations,
+    )
+
+    content = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+    assert WORK_ORDER_KIT_RULE in content
+    no_kit = valid_command().replace('COMMAND = ["agentic-kit", "x"]\n', 'COMMAND = ["git", "status"]\n')
+    assert "missing declared agentic-kit command" in command_content_contract_violations(no_kit)
+
+
+def test_continuation_states_the_kit_rule(tmp_path):
+    from agp_cockpit.core.command_file_contract import WORK_ORDER_KIT_RULE
+
+    download = tmp_path / "Download"
+    download.mkdir()
+    (download / "run_next.py").write_text(
+        "import sys\nfrom pathlib import Path\nn=int(sys.argv[1]);d=Path(__file__).parent\n"
+        "(d/f'{n:03d}_x_return_bundle.json').write_text('{}')\n"
+    )
+    incoming = tmp_path / "incoming.py"
+    incoming.write_text(valid_command())
+    outcome = consume_command_file(incoming, tmp_path, tmp_path / "state.json")
+    assert WORK_ORDER_KIT_RULE in outcome.continuation_text
