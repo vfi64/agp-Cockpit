@@ -126,7 +126,7 @@ The complete cross-component communication baseline required for protocol-first 
 
 This section is normative and overrides legacy text/JSON compatibility behavior for normal task-first K07 `LIVE` + `FULL_AUTO` cycles.
 
-1. The command payload from ChatGPT is exactly one `.py` attachment. The visible assistant prose/text is not the command payload.
+1. The command payload from ChatGPT is exactly one `.py` attachment. The visible assistant prose/text is not the command payload. The only other accepted remote file is the terminal reply `<step>_agp_terminal.json` (see item 11 of "K07 Delivery, Replay and In-Flight State"); it is never executed.
 2. Cockpit materializes that attachment and sends it through the existing file-loop ingress (`submitAssistantCommandFile` -> `/v1/file-loop/command`).
    Attachment preview text is UI evidence only. For link-rendered files the payload
    comes from the authenticated file fetch; for button-rendered files the payload
@@ -261,6 +261,23 @@ This section is normative for the file loop after local execution.
    the originating tab with `chrome.tabs.sendMessage` and reach the bridge log
    as `K07_NATIVE_TRACE`; `SEND_INDETERMINATE` additionally carries the native
    diagnostics and the nonce evidence.
+11. Terminal reply file (`AGP_K07_TERMINAL_REPLY_FILE_V1`, D4). Prose is not
+   read: the live ChatGPT DOM has no assistant role nodes, so `AGP_DONE` /
+   `AGP_NEEDS_HUMAN` text was never observed and ended in the 180 s wait
+   timeout. A terminal remote answer is exactly one file card
+   `<expected step>_agp_terminal.json` containing only
+   `{"state": "DONE"|"NEEDS_HUMAN", "reason": "<text>"}` (optional `"step"`
+   equal to the filename step; unknown keys rejected; at most 16 KiB). It is
+   materialized through the same download/provenance path as a work order and
+   submitted to `/v1/file-loop/terminal`, which records it in `Download/`
+   (bound to the next local step, idempotent for identical bytes) and ends the
+   mission. Remote `DONE` is a request: for a task with a local completion
+   contract that is not yet verified it becomes `NEEDS_HUMAN`
+   (`authority: completion-contract-rejected`); without a contract it is
+   `DONE` with `authority: remote-declared`. A `.py` and a terminal file for the
+   same step, or two terminal files, fail closed. Every step-assigning
+   continuation and the bootstrap prompt state this rule. The wait timeout names
+   the awaited file names and says that a human must check.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

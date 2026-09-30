@@ -94,6 +94,17 @@ def _with_next_local_step(text: str, root: Path, completed_step: int) -> str:
         + f"The next remote command file must be new; expected local step: {next_step}. "
         + f"Set its internal STEP constant and all step-scoped output names to {next_step}. "
         + "Do not reuse the previous command-file content or identity.\n"
+        + terminal_reply_instruction(next_step)
+    )
+
+
+def terminal_reply_instruction(step: int) -> str:
+    """AGP_K07_TERMINAL_REPLY_FILE_V1: prose is not read; terminal answers are files."""
+    return (
+        "If the task is finished, or a human decision is required, attach instead exactly one "
+        f"file named {step}_agp_terminal.json containing only "
+        '{"state": "DONE" or "NEEDS_HUMAN", "reason": "<evidence-backed reason>"}. '
+        "A prose-only reply is not read by the Cockpit.\n"
     )
 
 

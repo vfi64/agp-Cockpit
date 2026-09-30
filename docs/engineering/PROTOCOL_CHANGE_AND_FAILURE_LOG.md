@@ -943,3 +943,11 @@ repeat once.
 - Test: `tests/test_standard_task_progress.py`.
 - Second acceptance run (step 1479, 17:27): panel showed "Fertig ✓ … Mission: DONE · Lokaler Task: VERIFIED_COMPLETE"; remote acknowledged the final receipt.
 - Remaining display defect in that run: "Steps 0" although one command file executed. The file loop never incremented `step_count` (only the legacy `record_step_result` did). Repair AGP_K07_STEP_COUNT_V1: `BridgeRuntime.record_local_step()` once per newly executed command file, never on replay; HTTP test `test_mission_counts_each_executed_step_once_and_never_a_replay` (fails without the fix).
+
+## 2026-09-30 — D4 repair: terminal replies as step-scoped files
+
+- Failure (latent, confirmed by live DOM evidence): prose terminal markers (`AGP_DONE`, `AGP_NEEDS_HUMAN`) are invisible because the ChatGPT DOM has no `data-message-author-role` nodes; a terminal answer could only end in `K07_ASSISTANT_WAIT_TIMEOUT` without reason. The bootstrap prompt still asked the remote to "respond with AGP_NEEDS_HUMAN".
+- Repair AGP_K07_TERMINAL_REPLY_FILE_V1: `core/terminal_reply.py` (strict schema, step binding, idempotent recording), `/v1/file-loop/terminal`, download ingress and service-worker name checks accept `<step>_agp_terminal.json`; content script detects the card by expected step with two-poll stability, submits it and stops with "Fertig (Remote)" or "Mensch muss eingreifen". Remote DONE on a task with an unverified completion contract becomes NEEDS_HUMAN. Prompts (bootstrap, every step-assigning continuation) state the rule; wait-timeout message names the awaited files.
+- Build `terminal-reply-file-20260930`, extension 0.3.17.
+- Tests: `tests/test_k07_terminal_reply.py` (parse, binding, HTTP), `tests/test_handoff_completion.py::test_remote_done_file_cannot_complete_a_contract_task`, `tests/terminal_reply_browser.cjs` (actual tick), Playwright card detection.
+- Live proof pending: whether ChatGPT renders a `.json` attachment as a card with the file name in its label and whether the download path delivers it.

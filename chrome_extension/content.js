@@ -349,7 +349,7 @@
       anchor.textContent ||
       ""
     ).trim();
-    const match = label.match(/(?:^|[\s/])([^\s/]+\.py(?:[?#][^\s]*)?)/i);
+    const match = label.match(/(?:^|[\s/])([^\s/]+\.(?:py|json)(?:[?#][^\s]*)?)/i);
     const name = match ? match[1] : label.split("/").pop().trim();
     let row = anchor;
     let downloadNode = null;
@@ -369,8 +369,12 @@
   // live DOM exposed the 1475 file card while no assistant node was found for
   // 180 s. Composer, user-turn and dialog copies are excluded; the first card
   // in document order wins among identical names.
-  function expectedStepAttachmentCandidates(expectedStep) {
-    const pattern = new RegExp(`^${Number(expectedStep)}_[^\\s/]+\\.py(?:[?#]|$)`, "i");
+  function expectedStepAttachmentCandidates(expectedStep, kind="command") {
+    // AGP_K07_TERMINAL_REPLY_FILE_V1: a terminal answer is the file card
+    // <expectedStep>_agp_terminal.json, with the same identity rules.
+    const pattern = kind === "terminal"
+      ? new RegExp(`^${Number(expectedStep)}_agp_terminal\\.json(?:[?#]|$)`)
+      : new RegExp(`^${Number(expectedStep)}_[^\\s/]+\\.py(?:[?#]|$)`, "i");
     const unique = new Map();
     for (const anchor of document.querySelectorAll('a[href], button, [role="button"]')) {
       if (anchor.closest('form, [data-message-author-role="user"], [role="dialog"], [aria-modal="true"]')) continue;
@@ -381,6 +385,16 @@
       if (!unique.has(key)) unique.set(key, item);
     }
     return Array.from(unique.values());
+  }
+
+  function expectedStepFileVisible(step) {
+    return expectedStepAttachmentCandidates(step).length > 0 ||
+      expectedStepAttachmentCandidates(step, "terminal").length > 0;
+  }
+
+  function expectedStepTerminalCandidates() {
+    const step = Number(STATE.nextLocalStep || 0);
+    return step > 0 ? expectedStepAttachmentCandidates(step, "terminal") : [];
   }
 
   // AGP_K07_COMMAND_FILE_INGRESS_989
@@ -748,11 +762,10 @@
     return downloadedContent;
   }
 
-  async function fetchSingleAssistantPythonAttachment() {
-    const candidates = assistantPythonAttachmentCandidates();
+  async function fetchSingleAssistantPythonAttachment(candidates = assistantPythonAttachmentCandidates()) {
     if (candidates.length !== 1) {
       throw new Error(
-        `expected exactly one assistant .py attachment; observed ${candidates.length}`
+        `expected exactly one assistant remote-file attachment; observed ${candidates.length}`
       );
     }
     const attachment = candidates[0];
@@ -772,6 +785,32 @@
       );
     }
     return response;
+  }
+
+  // AGP_K07_TERMINAL_REPLY_FILE_V1: materialize the terminal file through the
+  // same download/provenance path and let the bridge decide the final state.
+  async function submitAssistantTerminalReply(candidates) {
+    const fetched = await fetchSingleAssistantPythonAttachment(candidates);
+    const result = await api("/v1/file-loop/terminal", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        filename:fetched.filename,
+        content:fetched.content,
+        download_sha256:fetched.download_sha256 || undefined
+      })
+    });
+    if (!result || result.terminal !== true || !["DONE", "NEEDS_HUMAN"].includes(String(result.state || ""))) {
+      throw new Error("K07 terminal-reply bridge response incomplete");
+    }
+    await clientEvent("K07_TERMINAL_REPLY_OBSERVED", {
+      filename:fetched.filename,
+      state:String(result.state),
+      remote_state:String(result.remote_state || ""),
+      authority:String(result.authority || ""),
+      replayed:Boolean(result.replayed)
+    });
+    return result;
   }
 
   async function submitAssistantCommandFile(runGeneration = STATE.runGeneration) {
@@ -849,7 +888,7 @@
       return Object.assign({}, result, {delivery_skipped:true});
     }
     const upcomingStep = Number(result.next_step || 0);
-    if (upcomingStep > 0 && expectedStepAttachmentCandidates(upcomingStep).length) {
+    if (upcomingStep > 0 && expectedStepFileVisible(upcomingStep)) {
       // The continuation would ask for a number that is already visible;
       // its stale card would be consumed as the next response. Fail closed.
       const currentExpectedStep = STATE.nextLocalStep;
@@ -1952,7 +1991,8 @@
       "The Python file is the only non-terminal command artifact for the normal K07 file loop.",
       ...(nextStep > 0 ? [
         "The local bridge is the numbering authority for this run.",
-        `The next local work-order number is ${nextStep}. Use exactly ${nextStep}_...py as the attachment filename and use ${nextStep} in the embedded STEP constant and all step-scoped output names. Never reuse an older number; if you cannot produce this exact new number, respond with AGP_NEEDS_HUMAN and the exact reason.`
+        `The next local work-order number is ${nextStep}. Use exactly ${nextStep}_...py as the attachment filename and use ${nextStep} in the embedded STEP constant and all step-scoped output names. Never reuse an older number.`,
+        `If the task is already finished, or a genuine human decision is required, attach instead exactly one file named ${nextStep}_agp_terminal.json containing only {"state": "DONE" or "NEEDS_HUMAN", "reason": "<evidence-backed reason>"}. A prose-only reply is not read by the Cockpit.`
       ] : []),
       "",
       "Use the repository and Agentic Project Kit contracts from the mission.",
@@ -1971,7 +2011,7 @@
       "",
       "Do not return Protocol-v1 JSON for a normal task-first K07 cycle.",
       "Do not substitute prose or JSON for the required .py attachment.",
-      "If a genuine human decision is required, respond with AGP_NEEDS_HUMAN and the exact reason."
+      "Never answer with prose only: the Cockpit reads exactly one attached file per turn."
     ].join("\n");
   }
 
@@ -2379,7 +2419,10 @@
         Date.now() - STATE.assistantWaitStartedAt > 180000) {
       STATE.waitingForAssistant = false;
       STATE.assistantWaitStartedAt = 0;
-      const message = "K07_ASSISTANT_RESPONSE_TIMEOUT after 180s";
+      const awaitedStep = Number(STATE.nextLocalStep || 0);
+      const message = "K07_ASSISTANT_RESPONSE_TIMEOUT after 180s — Mensch muss prüfen: keine Datei " +
+        (awaitedStep > 0 ? `${awaitedStep}_*.py oder ${awaitedStep}_agp_terminal.json` : "der Remote-Antwort") +
+        " erschienen; eine reine Textantwort wird nicht ausgewertet.";
       STATE.lastEvent = "K07_ASSISTANT_WAIT_TIMEOUT";
       STATE.note = message;
       await clientEvent("K07_ASSISTANT_WAIT_TIMEOUT", {timeout_ms:180000});
@@ -2396,7 +2439,7 @@
       // AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1: a card carrying the
       // freshly assigned step number is itself the response boundary.
       const expectedAttachmentVisible = Number(STATE.nextLocalStep || 0) > 0 &&
-        assistantPythonAttachmentCandidates().length > 0;
+        expectedStepFileVisible(Number(STATE.nextLocalStep || 0));
       const newResponseText = expectedAttachmentVisible ? "" : newAssistantTextAfterBaseline();
       if (!expectedAttachmentVisible && !newResponseText) {
         await reportAssistantWaitObservation("no_response_boundary");
@@ -2416,6 +2459,45 @@
       // task-first K07 response. It must not wait for prose stability: the
       // file card is exactly what the local file loop consumes.
       const directCommandFiles = assistantPythonAttachmentCandidates();
+      const terminalFiles = expectedStepTerminalCandidates();
+      if (terminalFiles.length > 0) {
+        if (directCommandFiles.length > 0 || terminalFiles.length > 1) {
+          throw new Error(
+            `expected exactly one remote file for step ${Number(STATE.nextLocalStep || 0)}; observed ` +
+            `${directCommandFiles.length} .py and ${terminalFiles.length} terminal`
+          );
+        }
+        if (STATE.processingAssistant) return;
+        const terminalKey = assistantAttachmentKey(terminalFiles);
+        if (terminalKey && terminalKey === STATE.lastProcessedAssistantAttachmentKey) return;
+        if (STATE.pendingAttachmentKey !== terminalKey) {
+          STATE.pendingAttachmentKey = terminalKey;
+          STATE.lastEvent = "K07_ASSISTANT_ATTACHMENT_SETTLING";
+          STATE.note = `Abschlussdatei erkannt, prüfe Stabilität: ${terminalFiles[0].name}`;
+          render();
+          return;
+        }
+        STATE.pendingAttachmentKey = "";
+        STATE.processingAssistant = true;
+        STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
+        let terminalResult;
+        try {
+          terminalResult = await submitAssistantTerminalReply(terminalFiles);
+          STATE.lastProcessedAssistantAttachmentKey = terminalKey;
+        } finally {
+          STATE.processingAssistant = false;
+        }
+        if (STATE.runGeneration !== runGeneration) return;
+        STATE.turns += terminalResult.replayed ? 0 : 1;
+        const terminalState = String(terminalResult.state);
+        const terminalNote = terminalState === "DONE"
+          ? `Fertig (Remote): ${terminalResult.human_reason}`
+          : `Mensch muss eingreifen: ${terminalResult.human_reason}`;
+        await stop(terminalNote, terminalState, terminalState !== "DONE");
+        await refreshStatus();
+        return;
+      }
       if (directCommandFiles.length === 1) {
         if (STATE.processingAssistant) return;
         const attachmentKey = assistantAttachmentKey(directCommandFiles);
@@ -3162,7 +3244,7 @@
     // as this mission's response. Reserve every visible one and advance.
     for (let guard = 0; guard < 20; guard += 1) {
       const visibleStep = Number(STATE.nextLocalStep || 0);
-      if (visibleStep <= 0 || !expectedStepAttachmentCandidates(visibleStep).length) break;
+      if (visibleStep <= 0 || !expectedStepFileVisible(visibleStep)) break;
       await reserveRemoteStep("visible-unmaterialized-remote-attachment", visibleStep);
       if (Number(STATE.nextLocalStep || 0) <= visibleStep) {
         throw new Error(`K07 expected step ${visibleStep} is already visible and could not be reserved`);

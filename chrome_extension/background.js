@@ -7,13 +7,24 @@ const PENDING = "agpPendingRefreshTabs";
 const K07_DOWNLOAD_ARM_STORAGE = "agpK07DownloadArms";
 const K07_DOWNLOAD_ARMS = new Map();
 
+// AGP_K07_TERMINAL_REPLY_FILE_V1: besides the Python work order, the only
+// accepted remote file is the step-scoped terminal reply.
+function k07SafeRemoteFileName(name) {
+  const value = String(name || "").trim();
+  return /^[^\\/]+\.py$/i.test(value) || /^\d+_agp_terminal\.json$/.test(value);
+}
+
 function k07DownloadNameMatches(actual, expected) {
   const actualName = String(actual || "").split(/[\\/]/).pop();
   const expectedName = String(expected || "").trim();
   if (actualName === expectedName) return true;
-  const stem = expectedName.replace(/\.py$/i, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // Browser duplicate suffixes: "x (1).py" and "x(2).py".
-  return new RegExp(`^${stem} ?\\(\\d+\\)\\.py$`, "i").test(actualName);
+  const dot = expectedName.lastIndexOf(".");
+  if (dot <= 0) return false;
+  const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const stem = escape(expectedName.slice(0, dot));
+  const suffix = escape(expectedName.slice(dot));
+  // Browser duplicate suffixes: "x (1).py" and "x(2).json".
+  return new RegExp(`^${stem} ?\\(\\d+\\)${suffix}$`, "i").test(actualName);
 }
 
 async function k07RecentDownloads() {
@@ -69,8 +80,8 @@ function k07DownloadStartedAfterArm(item, arm) {
 async function agpArmCommandFileDownload(message, sender) {
   const filename = String(message && message.filename || "").trim();
   const tabId = sender && sender.tab ? sender.tab.id : null;
-  if (!Number.isInteger(tabId) || !/^[^\\/]+\.py$/i.test(filename)) {
-    throw new Error("K07 download arm requires one safe .py filename");
+  if (!Number.isInteger(tabId) || !k07SafeRemoteFileName(filename)) {
+    throw new Error("K07 download arm requires one safe .py or terminal-reply filename");
   }
   const known = await k07RecentDownloads();
   await k07StoreDownloadArm(`${tabId}:${filename}`, {
@@ -804,8 +815,8 @@ async function agpFetchAssistantCommandFile(message, sender) {
   const filename = String(message.filename || "").trim();
   const tabId = sender && sender.tab ? sender.tab.id : null;
 
-  if (!href || !filename || !/\.py$/i.test(filename)) {
-    throw new Error("K07 command-file fetch requires one .py attachment");
+  if (!href || !filename || !k07SafeRemoteFileName(filename)) {
+    throw new Error("K07 command-file fetch requires one .py or terminal-reply attachment");
   }
   if (!Number.isInteger(tabId)) {
     throw new Error("K07 command-file fetch requires sender.tab.id");

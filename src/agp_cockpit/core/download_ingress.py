@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 from agp_cockpit.core.command_file_contract import validate_command_content
+from agp_cockpit.core.terminal_reply import is_terminal_filename, parse_terminal_reply
 
 MAX_DOWNLOAD_BYTES = 2_000_000
 
@@ -31,12 +32,13 @@ def read_downloaded_command(
 ) -> tuple[str, str, str]:
     """Read one browser download without granting arbitrary file access."""
     expected = str(expected_filename).strip()
+    terminal = is_terminal_filename(expected)
     if (
         not expected
-        or not expected.lower().endswith(".py")
+        or not (terminal or expected.lower().endswith(".py"))
         or Path(expected).name != expected
     ):
-        raise ValueError("exactly one safe .py filename required")
+        raise ValueError("exactly one safe .py or <step>_agp_terminal.json filename required")
 
     path = Path(download_path).expanduser().resolve()
     if not _matches_download_name(path.name, expected):
@@ -48,5 +50,8 @@ def read_downloaded_command(
     if path.stat().st_size < 1 or path.stat().st_size > MAX_DOWNLOAD_BYTES:
         raise ValueError("downloaded command file size outside bounded range")
     content = path.read_text(encoding="utf-8")
+    if terminal:
+        parse_terminal_reply(expected, content)
+        return expected, content, "application/json"
     validate_command_content(content, filename=expected)
     return expected, content, "text/x-python"

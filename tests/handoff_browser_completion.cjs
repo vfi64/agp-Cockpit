@@ -11,7 +11,8 @@ async function scenario({pending=true, delivered=true}={}) {
   const calls = [];
   const context = {
     STATE: {running:true, runGeneration:1, turns:0, nextLocalStep:1467},
-    expectedStepAttachmentCandidates:() => [], reserveRemoteStep:async () => ({}),
+    expectedStepAttachmentCandidates:() => [], expectedStepFileVisible:() => false,
+    reserveRemoteStep:async () => ({}),
     PENDING_SEND_TRANSPORT:null, AGP_FORMAT_REPAIR_ATTEMPTS:0,
     clientEvent:async () => {}, lastAssistantMessageId:() => "assistant",
     fetchSingleAssistantPythonAttachment:async () => ({filename:"1467_test.py", content:"pass"}),

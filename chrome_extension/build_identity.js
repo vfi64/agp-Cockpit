@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "delivery-and-task-binding-20260930";
+globalThis.AGP_EXTENSION_BUILD_ID = "terminal-reply-file-20260930";

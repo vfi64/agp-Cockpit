@@ -42,6 +42,7 @@ from agp_cockpit.core.handoff_completion import (
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
+from agp_cockpit.core.terminal_reply import parse_terminal_reply, record_terminal_reply
 from agp_cockpit.core.transport_protocol_v1 import (
     ActionRegistry,
     parse_action_frame,
@@ -321,6 +322,7 @@ class CockpitBridgeServer:
                     "/v1/file-loop/command",
                     "/v1/file-loop/result-delivered",
                     "/v1/file-loop/delivery-ack",
+                    "/v1/file-loop/terminal",
                 }
                 if file_loop_locked:
                     file_loop_lock.acquire()
@@ -567,6 +569,92 @@ class CockpitBridgeServer:
                                 "failure_reason": parsed_result.get("failure_reason") if isinstance(parsed_result, dict) else None,
                                 "replayed": outcome.replayed,
                                 "delivery_pending": bool(outcome.delivery_pending and not terminal_loop),
+                            },
+                        )
+                        return
+
+                    # AGP_K07_TERMINAL_REPLY_FILE_V1 (D4): a terminal remote
+                    # answer is a step-scoped JSON file, never visible prose.
+                    if path == "/v1/file-loop/terminal":
+                        data = self._body()
+                        filename = str(data.get("filename") or "").strip()
+                        content = data.get("content")
+                        reply = parse_terminal_reply(filename, content)
+                        download_sha256 = str(data.get("download_sha256") or "").strip()
+                        if download_sha256 and download_sha256 != reply.sha256:
+                            raise ValueError("terminal reply does not match the materialized browser download")
+                        from agp_cockpit.core.operator_control import (
+                            OperatorControlStore,
+                        )
+                        operator_action = str(
+                            OperatorControlStore(runtime_root).current().get("action") or ""
+                        ).upper()
+                        if operator_action in {"PAUSE", "STOP"}:
+                            raise RuntimeError(
+                                f"terminal reply blocked by operator control: {operator_action}"
+                            )
+                        download_dir = repo_root / "Download"
+                        replayed = record_terminal_reply(
+                            download_dir, reply, content, next_step_number(download_dir)
+                        )
+                        from agp_cockpit.core.start_request import resolve_task_binding
+                        mission = engine.runtime.state
+                        binding = resolve_task_binding(
+                            runtime_root, None if mission is None else mission.mission_id
+                        )
+                        task_id = str(binding.get("task_id") or "").strip()
+                        contract_pending = False
+                        if task_id:
+                            durable = DurableTaskController(task_id, task_db_path)
+                            try:
+                                contract_pending = (
+                                    contract_enabled(durable)
+                                    and durable.snapshot["state"] != "VERIFIED_COMPLETE"
+                                )
+                            finally:
+                                durable.close()
+                        state = reply.state
+                        authority = "remote-declared"
+                        human_reason = reply.reason
+                        if state == "DONE" and contract_pending:
+                            # Remote DONE is only a request. A task with a local
+                            # completion contract is complete only by local
+                            # verification, which has not happened.
+                            state = "NEEDS_HUMAN"
+                            authority = "completion-contract-rejected"
+                            human_reason = (
+                                "Remote meldet DONE ohne lokal verifizierten Abschluss: " + reply.reason
+                            )
+                        if mission is not None and mission.state not in {
+                            "DONE", "NEEDS_HUMAN", "BLOCKED", "FAILED", "STOPPED"
+                        }:
+                            engine.runtime.final(state, human_reason)
+                        diag.event(
+                            "K07_TERMINAL_REPLY_ACCEPTED",
+                            component="file-loop",
+                            details={
+                                "filename": reply.filename,
+                                "step": reply.step,
+                                "remote_state": reply.state,
+                                "state": state,
+                                "authority": authority,
+                                "sha256": reply.sha256,
+                                "replayed": replayed,
+                                "cycle_id": str(data.get("cycle_id") or "")[:40],
+                            },
+                        )
+                        self._json(
+                            200,
+                            {
+                                "state": state,
+                                "remote_state": reply.state,
+                                "terminal": True,
+                                "step": reply.step,
+                                "human_reason": human_reason,
+                                "authority": authority,
+                                "replayed": replayed,
+                                "sha256": reply.sha256,
+                                "mission_state": None if engine.runtime.state is None else engine.runtime.state.state,
                             },
                         )
                         return

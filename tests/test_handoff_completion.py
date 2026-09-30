@@ -245,3 +245,42 @@ def test_task_binding_survives_start_request_invalidation(handoff, monkeypatch):
         assert post("/v1/file-loop/result-delivered", body)["state"] == "DONE"
     finally:
         server.stop()
+
+
+def test_remote_done_file_cannot_complete_a_contract_task(handoff):
+    # AGP_K07_TERMINAL_REPLY_FILE_V1: remote DONE is a request; a task with a
+    # local completion contract becomes NEEDS_HUMAN, never DONE, without
+    # local verification.
+    from urllib.request import Request, urlopen
+
+    from agp_cockpit.core import bridge_server
+    from agp_cockpit.core.start_request import StartRequestStore
+
+    root, runtime, _, _, controller = handoff
+    server = bridge_server.CockpitBridgeServer(
+        root, runtime_root=runtime,
+        config=bridge_server.BridgeServerConfig(port=0, token="test"),
+    )
+    server.start()
+
+    def post(path, body):
+        req = Request(f"http://127.0.0.1:{server._server.server_address[1]}{path}",
+                      data=json.dumps(body).encode(),
+                      headers={"X-AGP-Token": "test", "Content-Type": "application/json"})
+        with urlopen(req, timeout=5) as response:
+            return json.load(response)
+
+    try:
+        mission = post("/v1/mission", {"title": "handoff", "mission_text": "handoff",
+                                      "execution_mode": "LIVE", "run_mode": "FULL_AUTO"})["mission"]
+        StartRequestStore(runtime).request(mission["mission_id"], task_id=controller.task_id)
+        result = post("/v1/file-loop/terminal", {
+            "filename": "1468_agp_terminal.json",
+            "content": json.dumps({"state": "DONE", "reason": "package generated"}),
+        })
+        assert result["state"] == "NEEDS_HUMAN"
+        assert result["authority"] == "completion-contract-rejected"
+        assert server.engine.runtime.state.state == "NEEDS_HUMAN"
+        assert controller.snapshot["state"] != "VERIFIED_COMPLETE"
+    finally:
+        server.stop()

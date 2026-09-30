@@ -87,7 +87,12 @@ Verified Handoff Completion). Reparatur: eigene, persistente aktive
 Task-Bindung (Mission ↔ Task ↔ Completion-Contract), unabhängig vom
 Einmal-Trigger; gelöscht nur bei terminalem Zustand/STOP/neuer Mission.
 
-### D4 — Textbasierte Antworten sind im aktuellen DOM unsichtbar (FEHLER, latent)
+### D4 — Textbasierte Antworten sind im aktuellen DOM unsichtbar (FEHLER, latent) — REPARIERT, Live-Nachweis offen
+Reparatur 2026-09-30 (`AGP_K07_TERMINAL_REPLY_FILE_V1`): terminale Antwort als
+Datei `<schritt>_agp_terminal.json`, Endpoint `/v1/file-loop/terminal`,
+Remote-DONE nur Antrag (siehe COMMUNICATION_PROTOCOL.md, Punkt 11). Belegt durch
+`tests/test_k07_terminal_reply.py`, `tests/terminal_reply_browser.cjs`,
+`tests/e2e/test_k07_expected_step_attachment.spec.js`. Ursprünglicher Befund:
 `assistantMessageNodes()` nutzt nur `[data-message-author-role="assistant"]`
 (live 0 Treffer). Damit werden Terminalantworten (`AGP_DONE`,
 `AGP_NEEDS_HUMAN`, Quittung des Handoff-Abschlusses) nie erkannt.
