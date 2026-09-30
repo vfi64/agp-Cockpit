@@ -149,3 +149,23 @@ def test_mission_counts_each_executed_step_once_and_never_a_replay(bridge):
     assert first["replayed"] is False
     assert mission["step_count"] == 1
     assert mission["turn_count"] == 1
+
+
+def test_stop_records_the_real_reason(bridge):
+    # AGP_STOP_REASON_V1: live 2026-09-30 a bootstrap send failure was shown
+    # as "Stopped by operator control".
+    _root, post = bridge
+    post("/v1/mission", {"title": "t", "mission_text": "m", "execution_mode": "LIVE",
+                         "run_mode": "FULL_AUTO"})
+    post("/v1/file-loop/control", {"action": "STOP", "reason": "Senden fehlgeschlagen: COMPOSER_FOCUS_NOT_VERIFIED"})
+    mission = post.get("/v1/status")["mission"]
+    assert mission["state"] == "STOPPED"
+    assert mission["last_error"] == "Senden fehlgeschlagen: COMPOSER_FOCUS_NOT_VERIFIED"
+
+
+def test_stop_without_reason_keeps_the_operator_default(bridge):
+    _root, post = bridge
+    post("/v1/mission", {"title": "t", "mission_text": "m", "execution_mode": "LIVE",
+                         "run_mode": "FULL_AUTO"})
+    post("/v1/file-loop/control", {"action": "STOP"})
+    assert post.get("/v1/status")["mission"]["last_error"] == "Stopped by operator control"

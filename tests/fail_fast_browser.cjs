@@ -1,0 +1,98 @@
+// AGP_K07_FAIL_FAST_REJECTION_V1 + AGP_BUILD_IDENTITY_GATE_V1 + AGP_STOP_REASON_V1
+// Drives the actual content-script tick/startAuto/stop with stubs.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const source = fs.readFileSync("chrome_extension/content.js", "utf8");
+const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
+const stopCode = section("  async function stop(", "  function scheduleTick()");
+
+function baseContext(calls) {
+  return {
+    STATE:{running:true, paused:false, runGeneration:1, turns:0, errors:0, nextLocalStep:1486,
+           waitingForAssistant:true, assistantWaitStartedAt:Date.now(), processingAssistant:false,
+           pendingAttachmentKey:"", lastProcessedAssistantAttachmentKey:""},
+    PENDING_SEND_TRANSPORT:null, AGP_FORMAT_REPAIR_ATTEMPTS:0,
+    LIMITS:{minAssistantChars:1, stablePollsRequired:2, maxErrors:3},
+    clientEvent:async (name) => { calls.push("event:" + name); },
+    resetCandidate:() => {}, render:() => {}, clearInterval:() => {},
+    api:async (path, options) => {
+      calls.push(path + (options && options.body ? " " + options.body : ""));
+      return {};
+    },
+  };
+}
+
+async function rejectionStopsOnFirstError() {
+  const calls = [];
+  const context = Object.assign(baseContext(calls), {
+    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {},
+    expectedStepFileVisible:() => true, chatgptGenerationActive:() => false,
+    newAssistantTextAfterBaseline:() => "", reportAssistantWaitObservation:async () => {},
+    expectedStepTerminalCandidates:() => [],
+    assistantPythonAttachmentCandidates:() => [{name:"1486_x.py"}],
+    assistantAttachmentKey:c => c[0].name,
+    lastAssistantText:() => "",
+    processCompletedAssistant:async () => {
+      const error = new Error("ValueError: invalid command file");
+      error.bridgeRejected = true;
+      throw error;
+    },
+  });
+  vm.createContext(context);
+  vm.runInContext(stopCode + section("  async function tick()", "  const LIVE_PROBE"), context);
+  await context.tick();   // settling
+  await context.tick();   // consume -> rejected
+  assert.equal(context.STATE.running, false);
+  assert.equal(context.STATE.errors, 1);
+  assert.ok(calls.includes("event:K07_BRIDGE_REJECTED"));
+  const control = calls.find(call => call.startsWith("/v1/file-loop/control"));
+  assert.match(control, /"action":"STOP"/);
+  assert.match(control, /Vom Cockpit abgelehnt: ValueError: invalid command file/);
+}
+
+async function transientErrorIsRetried() {
+  const calls = [];
+  const context = Object.assign(baseContext(calls), {
+    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {},
+    expectedStepFileVisible:() => true, chatgptGenerationActive:() => false,
+    newAssistantTextAfterBaseline:() => "", reportAssistantWaitObservation:async () => {},
+    expectedStepTerminalCandidates:() => [],
+    assistantPythonAttachmentCandidates:() => [{name:"1486_x.py"}],
+    assistantAttachmentKey:c => c[0].name,
+    lastAssistantText:() => "",
+    processCompletedAssistant:async () => { throw new Error("K07 command-file browser download timed out"); },
+  });
+  vm.createContext(context);
+  vm.runInContext(stopCode + section("  async function tick()", "  const LIVE_PROBE"), context);
+  await context.tick();
+  await context.tick();
+  assert.equal(context.STATE.running, true);
+  assert.equal(calls.some(call => call.startsWith("/v1/file-loop/control")), false);
+}
+
+async function buildMismatchRefusesStart() {
+  const calls = [];
+  const context = Object.assign(baseContext(calls), {
+    refreshStatus:async () => ({state:"READY", bridge_build_id:"old-build",
+      mission:{mission_id:"m", state:"READY", mission_text:"x"}}),
+    sendPrompt:async () => { calls.push("SEND"); },
+    location:{href:"https://chatgpt.com/"},
+  });
+  context.STATE.running = false;
+  context.globalThis = context;
+  context.AGP_EXTENSION_BUILD_ID = "new-build";
+  vm.createContext(context);
+  const startCode = section("  async function startAuto()", "  function btn(label, cls, handler)");
+  vm.runInContext(stopCode + startCode, context);
+  await assert.rejects(context.startAuto(), /Build passt nicht: Cockpit-App old-build, Extension new-build/);
+  assert.equal(calls.includes("SEND"), false);
+  assert.ok(calls.includes("event:BUILD_MISMATCH_START_REFUSED"));
+  assert.ok(calls.some(call => call.startsWith("/v1/file-loop/control") && call.includes("Build passt nicht")));
+}
+
+(async () => {
+  await rejectionStopsOnFirstError();
+  await transientErrorIsRetried();
+  await buildMismatchRefusesStart();
+})().catch(error => { console.error(error); process.exitCode = 1; });

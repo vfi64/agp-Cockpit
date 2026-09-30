@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "reply-policy-20260930";
+globalThis.AGP_EXTENSION_BUILD_ID = "fail-fast-20260930";

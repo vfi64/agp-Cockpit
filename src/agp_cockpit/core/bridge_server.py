@@ -1210,7 +1210,10 @@ class CockpitBridgeServer:
                         control = OperatorControlStore(runtime_root).request(action)
                         if action.upper() == "STOP":
                             if engine.runtime.state is not None:
-                                engine.runtime.stop("Stopped by operator control")
+                                # AGP_STOP_REASON_V1: keep the real cause
+                                # (send failure, rejection, build mismatch).
+                                stop_reason = " ".join(str(data.get("reason") or "").split())[:300]
+                                engine.runtime.stop(stop_reason or "Stopped by operator control")
                                 process_stop = engine.runtime.last_execution_stop or {
                                     "requested": False,
                                     "active": False,

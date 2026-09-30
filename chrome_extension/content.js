@@ -1038,7 +1038,13 @@
     if (!response.ok) {
       STATE.connected = false;
       STATE.errorId = data.error_id || "";
-      throw new Error(data.error || `Cockpit bridge HTTP ${response.status}`);
+      const error = new Error(data.error || `Cockpit bridge HTTP ${response.status}`);
+      // AGP_K07_FAIL_FAST_REJECTION_V1: the bridge rejects a payload that
+      // violates the contract with HTTP 400 "ValueError: ...". Repeating the
+      // same step cannot change that verdict (live 2026-09-30: three
+      // downloads of the same file before AUTO_ERROR).
+      error.bridgeRejected = response.status === 400 && /^ValueError:/.test(String(data.error || ""));
+      throw error;
     }
 
     STATE.connected = true;
@@ -1943,7 +1949,8 @@
       if (operatorStop) await api("/v1/file-loop/control", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({action:"STOP"})
+        // The mission records the real reason, not a generic operator stop.
+        body:JSON.stringify({action:"STOP", reason:String(reason || "").slice(0, 300)})
       });
     } catch (error) {
       await clientEvent("OPERATOR_STOP_REQUEST_FAILED", {
@@ -2792,6 +2799,11 @@
       STATE.errors += 1;
       STATE.note = String(err);
       STATE.lastEvent = "TICK_ERROR";
+      if (err && err.bridgeRejected === true) {
+        await clientEvent("K07_BRIDGE_REJECTED", {message:String(err)});
+        await stop(`Vom Cockpit abgelehnt: ${err.message}`, "AUTO_ERROR");
+        return;
+      }
       if (String(err).includes("K07") || String(err).includes("command-file")) {
         await clientEvent("K07_FILE_INGRESS_FAILED", {
           message:String(err),
@@ -3208,6 +3220,22 @@
     }
 
     const mission = status.mission;
+
+    // AGP_BUILD_IDENTITY_GATE_V1: live 2026-09-30 an extension of one build
+    // ran against a bridge of another; the bridge rejected the new terminal
+    // file only after the remote turn. Refuse to start instead.
+    const bridgeBuild = String(status.bridge_build_id || "");
+    const extensionBuild = String(globalThis.AGP_EXTENSION_BUILD_ID || "");
+    if (bridgeBuild && extensionBuild && bridgeBuild !== extensionBuild) {
+      const reason = `Build passt nicht: Cockpit-App ${bridgeBuild}, Extension ${extensionBuild}. ` +
+        "App neu bauen oder Extension neu laden; es wurde nichts gesendet.";
+      await clientEvent("BUILD_MISMATCH_START_REFUSED", {
+        bridge_build_id:bridgeBuild,
+        extension_build_id:extensionBuild
+      });
+      await stop(reason, "BUILD_MISMATCH");
+      throw new Error(reason);
+    }
 
     if (mission.state !== "READY") {
       throw new Error(
