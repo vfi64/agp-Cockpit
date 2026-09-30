@@ -148,7 +148,7 @@ def decision_mission_text(*, goal_text: str, decision: str, question: str, note:
         )
     return (
         "HUMAN DECISION — continuation of the same task in this conversation.\n\n"
-        f"Your question was: {question or '—'}\n"
+        f"The question was: {question or '—'}\n"
         f"Decision: {verdict}\n"
         f"Human note: {note or '—'}\n\n"
         + (

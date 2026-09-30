@@ -847,8 +847,7 @@
     if (
       !result ||
       (result.state !== "COMMAND_FILE" && !terminal) ||
-      typeof result.result_file !== "string" ||
-      !result.result_file ||
+      (!terminal && (typeof result.result_file !== "string" || !result.result_file)) ||
       (!terminal && result.held !== true &&
         (result.replayed !== true || result.delivery_pending === true) &&
         (typeof result.prompt !== "string" || !result.prompt))
@@ -2028,7 +2027,7 @@
       "Local execution authority is a hard limit:",
       JSON.stringify(STATE.localAuthority || {}),
       // AGP_KIT_COMMAND_AUTHORITY_V1: same text as WORK_ORDER_KIT_RULE (Python).
-      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority. Use only commands from the agentic-kit command digest attached to the mission start, prefer the most comprehensive orchestrator command, and never run git push, git fetch or git pull. Other allowed tools such as git may only be used in addition.",
+      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority. Use only commands from the agentic-kit command digest attached to the mission start, prefer the most comprehensive orchestrator command, and never run git push, git fetch or git pull. Other allowed tools such as git may only be used in addition. Record every agentic-kit command's argv, returncode, stdout and stderr (tails) in the return bundle.",
       "The proposed effect MUST be present in allowed_effects.",
       "argv[0] MUST name an executable present in allowed_tools.",
       "cwd MUST remain within the authorized repository_root.",

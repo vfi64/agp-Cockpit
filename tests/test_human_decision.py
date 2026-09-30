@@ -157,33 +157,47 @@ def mission(call, runtime, task_id="T"):
     return created["mission_id"]
 
 
-def test_http_push_is_rejected_until_approved_and_approval_is_consumed(bridge):
+def test_http_push_without_approval_asks_the_human_and_approval_is_consumed(bridge):
     _root, runtime, call = bridge
     first = mission(call, runtime)
-    push = {"filename": "1480_push.py", "content": work_order(["transfer", "push-current"])}
-    with pytest.raises(HTTPError) as rejected:
-        call("/v1/file-loop/command", push)
-    assert "requires an explicit human approval" in rejected.value.read().decode()
-
     with pytest.raises(HTTPError):   # no decision while the mission is not waiting for one
         call("/v1/task/decision", {"mission_id": first, "decision": "APPROVE"})
-    call("/v1/file-loop/terminal", {"filename": "1480_agp_terminal.json",
-                                    "content": json.dumps({"state": "NEEDS_HUMAN", "reason": "Push?"})})
+    # AGP_REMOTE_EFFECT_ASKS_HUMAN_V1: not executed, the mission asks instead of failing
+    asked = call("/v1/file-loop/command", {"filename": "1480_push.py",
+                                           "content": work_order(["transfer", "push-current"])})
+    assert asked["terminal"] is True and asked["state"] == "NEEDS_HUMAN"
+    assert "agentic-kit transfer push-current" in asked["human_reason"]
+    assert not (_root / "Download" / "1480_push.py").exists()
+    assert call("/v1/status")["mission"]["state"] == "NEEDS_HUMAN"
     record = call("/v1/task/decision", {"mission_id": first, "decision": "APPROVE", "note": "ja"})
-    assert record["grant"]["remaining"] == 1 and record["question"] == "Push?"
+    assert record["grant"]["remaining"] == 1 and "1480_push.py" in record["question"]
 
     mission(call, runtime)   # the desktop continues the same task in a new mission
-    accepted = call("/v1/file-loop/command", {"filename": "1481_push.py",
+    accepted = call("/v1/file-loop/command", {"filename": "1480_push.py",
                                               "content": work_order(["transfer", "push-current"])})
-    assert accepted["replayed"] is False
+    assert accepted["replayed"] is False and accepted["terminal"] is not True
     assert HumanDecisionStore(runtime).current()["grant"]["remaining"] == 0
 
-    with pytest.raises(HTTPError):   # one-shot: the next push needs a new approval
-        call("/v1/file-loop/command", {"filename": "1482_push.py",
-                                       "content": work_order(["transfer", "push-current", "--again"])})
-    read_only = call("/v1/file-loop/command", {"filename": "1482_status.py",
+    # one-shot: the next push asks again instead of running
+    again = call("/v1/file-loop/command", {"filename": "1481_push.py",
+                                           "content": work_order(["transfer", "push-current", "--again"])})
+    assert again["state"] == "NEEDS_HUMAN" and again["terminal"] is True
+
+
+def test_invalid_remote_effect_work_order_is_still_rejected(bridge):
+    _root, runtime, call = bridge
+    mission(call, runtime)
+    bad = work_order(["transfer", "push-current"]) + "import os\nos.system('git push')\n"
+    with pytest.raises(HTTPError):
+        call("/v1/file-loop/command", {"filename": "1480_push.py", "content": bad})
+
+
+def test_read_only_work_order_needs_no_approval(bridge):
+    _root, runtime, call = bridge
+    mission(call, runtime)
+    read_only = call("/v1/file-loop/command", {"filename": "1480_status.py",
                                                "content": work_order(["transfer", "divergence-status"])})
-    assert read_only["replayed"] is False
+    assert read_only["replayed"] is False and read_only["terminal"] is not True
 
 
 def test_http_status_reports_the_approval_and_it_expires_with_the_mission(bridge_with_contract):
@@ -205,6 +219,6 @@ def test_http_status_reports_the_approval_and_it_expires_with_the_mission(bridge
     mission(call, runtime)
     authority = call("/v1/status")["local_authority"]
     assert authority["allow_network"] is False and "human_approval" not in authority
-    with pytest.raises(HTTPError):
-        call("/v1/file-loop/command", {"filename": "1482_push.py",
-                                       "content": work_order(["transfer", "push-current"])})
+    asked = call("/v1/file-loop/command", {"filename": "1482_push.py",
+                                           "content": work_order(["transfer", "push-current"])})
+    assert asked["state"] == "NEEDS_HUMAN"

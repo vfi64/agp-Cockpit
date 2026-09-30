@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "approval-scope-20260930";
+globalThis.AGP_EXTENSION_BUILD_ID = "approval-asks-20260930";

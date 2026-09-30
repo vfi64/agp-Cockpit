@@ -422,10 +422,51 @@ class CockpitBridgeServer:
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
                         remote_effects_allowed = _remote_effects_allowed(runtime_root, engine)
+                        # AGP_REMOTE_EFFECT_ASKS_HUMAN_V1 (live 1495/1496): a
+                        # remote-effect work order without an open approval is
+                        # not a technical failure but a decision. When it is
+                        # otherwise valid it ends the mission with NEEDS_HUMAN
+                        # and is not executed; the human answers in the app.
                         validate_command_content(
                             content, filename=filename, repository_root=repo_root,
-                            allow_remote_effects=remote_effects_allowed,
+                            allow_remote_effects=True,
                         )
+                        if not remote_effects_allowed:
+                            from agp_cockpit.core.kit_command_catalog import (
+                                KitCommandCatalog,
+                                remote_effect_commands,
+                            )
+                            wanted = remote_effect_commands(
+                                content, KitCommandCatalog.load(repo_root)
+                            )
+                            if wanted:
+                                question = (
+                                    f"Arbeitsauftrag {filename} will eine Wirkung nach außen "
+                                    f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
+                                    "Freigabe vor (keine erteilt, oder die letzte wurde von "
+                                    "einem früheren Auftrag verbraucht). Der Auftrag wurde "
+                                    "nicht ausgeführt. Darf er ausgeführt werden?"
+                                )
+                                mission = engine.runtime.state
+                                if mission is not None and mission.state not in _MISSION_ENDED_STATES:
+                                    engine.runtime.final("NEEDS_HUMAN", question)
+                                diag.event(
+                                    "REMOTE_EFFECT_APPROVAL_REQUESTED",
+                                    component="file-loop",
+                                    details={"filename": filename, "commands": wanted,
+                                             "cycle_id": cycle_id},
+                                )
+                                self._json(200, {
+                                    "state": "NEEDS_HUMAN",
+                                    "step": None,
+                                    "result_file": None,
+                                    "prompt": None,
+                                    "terminal": True,
+                                    "human_reason": question,
+                                    "cycle_id": cycle_id,
+                                    "replayed": False,
+                                })
+                                return
                         # AGP_K07_DOWNLOAD_PROVENANCE_V1: when the browser
                         # materialized the payload through /download, the
                         # submitted content must be byte-identical to it.

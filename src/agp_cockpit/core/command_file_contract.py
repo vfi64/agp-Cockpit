@@ -32,7 +32,8 @@ WORK_ORDER_KIT_RULE = (
     "the Kit is the command authority. Use only commands from the agentic-kit command digest "
     "attached to the mission start, prefer the most comprehensive orchestrator command, and "
     "never run git push, git fetch or git pull. Other allowed tools such as git may only be "
-    "used in addition."
+    "used in addition. Record every agentic-kit command's argv, returncode, stdout and "
+    "stderr (tails) in the return bundle."
 )
 
 
