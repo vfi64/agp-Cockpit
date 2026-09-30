@@ -37,3 +37,49 @@ def test_canonical_run_next_bounds_child_output_and_log(tmp_path: Path) -> None:
     assert (download / "001_emit_return_bundle.json").is_file()
     assert (download / "__run_next_output.txt").stat().st_size <= MAX_OUTPUT_BYTES
     assert "TRUNCATED" in (download / "__run_next_output.txt").read_text(encoding="utf-8")
+
+
+def test_canonical_run_next_numeric_selector_matches_zero_padded_file(tmp_path: Path) -> None:
+    download = tmp_path / "Download"
+    download.mkdir()
+    shutil.copy2(ROOT / "Download" / "run_next.py", download / "run_next.py")
+    command = download / "001_probe.py"
+    command.write_text(
+        "import argparse\n"
+        "from pathlib import Path\n"
+        "parser = argparse.ArgumentParser()\n"
+        "parser.add_argument('--self-test', action='store_true')\n"
+        "args = parser.parse_args()\n"
+        "if not args.self_test:\n"
+        "    Path(__file__).with_name('001_probe_return_bundle.json').write_text('{}')\n",
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [sys.executable, str(download / "run_next.py"), "1"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (download / "001_probe_return_bundle.json").is_file()
+
+
+def test_canonical_run_next_logs_system_exit_text(tmp_path: Path) -> None:
+    download = tmp_path / "Download"
+    download.mkdir()
+    shutil.copy2(ROOT / "Download" / "run_next.py", download / "run_next.py")
+
+    completed = subprocess.run(
+        [sys.executable, str(download / "run_next.py"), "999"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    log = (download / "__run_next_output.txt").read_text(encoding="utf-8")
+    assert completed.returncode == 1
+    assert "No script matching" in log

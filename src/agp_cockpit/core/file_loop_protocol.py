@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import ast
+import json
 import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
 DONE="AGP_DONE"; HUMAN="AGP_NEEDS_HUMAN"
+REMOTE_ISSUED_STEPS = ".agp-remote-issued-steps.json"
 class RemoteState(str,Enum):
     COMMAND_FILE="COMMAND_FILE"; DONE="DONE"; NEEDS_HUMAN="NEEDS_HUMAN"; BLOCKED="BLOCKED"
 @dataclass(frozen=True)
@@ -19,11 +21,56 @@ def parse_terminal_reply(text:str)->RemoteReply:
         reason=raw[len(HUMAN):].strip()
         return RemoteReply(RemoteState.NEEDS_HUMAN,human_reason=reason or None)
     raise ValueError("remote prose is not executable; expected a .py command attachment or terminal sentinel")
+
+
+def _reserved_remote_steps(download_dir: Path) -> set[int]:
+    path = download_dir / REMOTE_ISSUED_STEPS
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    raw_steps = data.get("steps") if isinstance(data, dict) else data
+    if not isinstance(raw_steps, list):
+        return set()
+    steps: set[int] = set()
+    for value in raw_steps:
+        try:
+            step = int(value)
+        except (TypeError, ValueError):
+            continue
+        if step > 0:
+            steps.add(step)
+    return steps
+
+
+def reserve_remote_issued_steps(download_dir: Path, steps: list[int] | tuple[int, ...]) -> dict:
+    """Record remote-visible step numbers that must not be reused locally."""
+    safe_steps: set[int] = set()
+    for value in steps:
+        try:
+            step = int(value)
+        except (TypeError, ValueError):
+            continue
+        if step > 0:
+            safe_steps.add(step)
+    if not safe_steps:
+        return {"reserved_steps": sorted(_reserved_remote_steps(download_dir))}
+    download_dir.mkdir(parents=True, exist_ok=True)
+    reserved = _reserved_remote_steps(download_dir) | safe_steps
+    payload = {"steps": sorted(reserved)}
+    (download_dir / REMOTE_ISSUED_STEPS).write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {"reserved_steps": payload["steps"]}
+
+
 def next_step_number(download_dir:Path, minimum_step:int=0)->int:
-    nums=[]
-    for p in download_dir.iterdir():
-        m=re.match(r"^(\d+)_",p.name)
-        if m:nums.append(int(m.group(1)))
+    nums=list(_reserved_remote_steps(download_dir))
+    if download_dir.exists():
+        for p in download_dir.iterdir():
+            m=re.match(r"^(\d+)_",p.name)
+            if m:nums.append(int(m.group(1)))
     return max([*nums, int(minimum_step)], default=0)+1
 
 

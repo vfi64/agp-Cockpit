@@ -1,3 +1,4 @@
+import shutil
 import sys
 import threading
 import time
@@ -158,6 +159,43 @@ def test_failed_command_gets_json_return_bundle(tmp_path):
     assert data["runner_returncode"]==1
     assert data["work_order"] is None
     assert "compile failed" in data["stdout"]
+
+
+def test_nonzero_runner_with_candidate_bundle_is_diagnostic(tmp_path):
+    cmd=make(tmp_path,"import sys\nfrom pathlib import Path\nn=int(sys.argv[1]); d=Path(__file__).parent\n(d/f'{n:03d}_probe_return_bundle.json').write_text('{\"status\":\"ok\"}')\nsys.exit(1)\n")
+    result=execute_with_run_next(tmp_path,cmd)
+    data=__import__("json").loads(result.return_bundle.read_text())
+    assert result.artifact_kind=="execution_diagnostic"
+    assert result.runner_returncode==1
+    assert data["status"]=="failed"
+    assert "non-zero status" in data["failure_reason"]
+    assert data["candidate_return_bundles"][0].endswith("001_probe_return_bundle.json")
+
+
+def test_canonical_runner_self_test_bundle_is_not_success(tmp_path):
+    download=tmp_path/"Download"; download.mkdir()
+    shutil.copy2(ROOT/"Download/run_next.py", download/"run_next.py")
+    command=download/"001_probe.py"
+    command.write_text(
+        'import argparse\nfrom pathlib import Path\n'
+        'COMMAND = ["agentic-kit", "check"]\n'
+        'RETURN_BUNDLE = "return_bundle.json"\n'
+        'def main():\n'
+        '    parser = argparse.ArgumentParser()\n'
+        '    parser.add_argument("--self-test", action="store_true")\n'
+        '    parser.parse_args()\n'
+        '    Path(__file__).with_name("001_probe_return_bundle.json").write_text("{\\"status\\":\\"ok\\"}")\n'
+        'if __name__ == "__main__":\n'
+        '    main()\n'
+    )
+    result=execute_with_run_next(tmp_path,command)
+    data=__import__("json").loads(result.return_bundle.read_text())
+    assert result.artifact_kind=="execution_diagnostic"
+    assert result.runner_returncode==1
+    assert "non-zero status" in data["failure_reason"]
+    assert "Self-test produced canonical response artifact" in (
+        result.stdout + result.stderr + result.run_next_output.read_text(encoding="utf-8")
+    )
 
 
 def test_runner_puts_project_venv_first_on_child_path(tmp_path):

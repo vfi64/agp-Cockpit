@@ -7,6 +7,7 @@ from agp_cockpit.core.automation_guard import AutomationGuard, AutomationLimits
 from agp_cockpit.core.file_loop_orchestrator import (
     CONTINUATION_TEXT,
     RECOVERY_CONTINUATION_PREFIX,
+    REDELIVERY_NOTICE,
     REPLAY_CONTINUATION_TEXT,
     consume_command_file,
     consume_terminal_reply,
@@ -19,8 +20,20 @@ def fixture_root(tmp_path):
 def test_attachment_exactly_once(tmp_path):
     root=fixture_root(tmp_path);state=root/".local/state.json";incoming=tmp_path/"incoming.py";incoming.write_text(valid_command())
     o=consume_command_file(incoming,root,state);assert o.state is RemoteState.COMMAND_FILE and o.run.return_bundle.exists() and o.continuation_text.startswith(CONTINUATION_TEXT) and o.replayed is False
+    # AGP_K07_DELIVERY_STATE_V1: without a delivery acknowledgement the
+    # replay re-delivers the preserved result instead of suppressing it.
+    redelivery=consume_command_file(incoming,root,state)
+    assert redelivery.replayed is True and redelivery.delivery_pending is True
+    assert redelivery.continuation_text.startswith(REDELIVERY_NOTICE + CONTINUATION_TEXT)
+    assert redelivery.run.return_bundle == o.run.return_bundle
+    import hashlib
+
+    from agp_cockpit.core.file_loop_orchestrator import mark_result_delivered
+    ack=mark_result_delivered(state, hashlib.sha256(o.run.return_bundle.read_bytes()).hexdigest())
+    assert ack["delivery"]=="DELIVERED" and ack["idempotent"] is False
     replay=consume_command_file(incoming,root,state)
     assert replay.run.return_bundle.exists() and replay.continuation_text==REPLAY_CONTINUATION_TEXT and replay.replayed is True
+    assert replay.delivery_pending is False
 
 
 def test_identical_preflight_failure_replays_even_under_new_remote_name(tmp_path):
@@ -61,7 +74,8 @@ def test_same_preflight_file_is_replayed_instead_of_reexecuted(tmp_path):
     assert replay.replayed is True
     assert replay.run is not None
     assert replay.run.step == 1
-    assert replay.continuation_text == REPLAY_CONTINUATION_TEXT
+    assert replay.delivery_pending is True
+    assert replay.continuation_text.startswith(REDELIVERY_NOTICE + RECOVERY_CONTINUATION_PREFIX)
 
 
 def test_new_mission_discards_persisted_preflight_failures(tmp_path):

@@ -127,6 +127,17 @@ class BridgeRuntime:
         self.store.save(state)
         return state
 
+    def record_local_step(self) -> MissionState:
+        """Count one newly executed local command file (never a replay).
+
+        AGP_K07_STEP_COUNT_V1: the file loop executes steps without
+        record_step_result, so step_count stayed 0 in live runs.
+        """
+        state = self.require_state()
+        state.step_count += 1
+        self.store.save(state)
+        return state
+
     def record_step_result(
         self,
         *,

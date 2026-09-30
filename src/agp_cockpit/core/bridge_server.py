@@ -19,11 +19,26 @@ from agp_cockpit.core.bridge_protocol import (
     encode_turn_response,
     parse_turn_request,
 )
+from agp_cockpit.core.command_file_contract import validate_command_content
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
 from agp_cockpit.core.download_ingress import read_downloaded_command
-from agp_cockpit.core.file_loop_orchestrator import consume_command_file
-from agp_cockpit.core.file_loop_protocol import next_step_number
+from agp_cockpit.core.file_loop_orchestrator import (
+    consume_command_file,
+    mark_result_delivered,
+    withhold_result_delivery,
+)
+from agp_cockpit.core.file_loop_protocol import (
+    next_step_number,
+    reserve_remote_issued_steps,
+)
 from agp_cockpit.core.file_loop_runner import RunNextProcessController
+from agp_cockpit.core.handoff_completion import (
+    FINAL_RECEIPT_PROMPT,
+    acknowledge_delivery,
+    contract_enabled,
+    package_snapshot,
+    prepare_receipt,
+)
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
@@ -131,7 +146,7 @@ class CockpitBridgeServer:
         repo_root = self.repository_root
         protocol_v1_actions = self.protocol_v1_actions
         protocol_v1_results = self.protocol_v1_results
-        durable_db_path = self._durable_db_path
+        task_db_path = self.runtime_root / "tasks.sqlite3"
         durable_controller_for = self._durable_controller
         runtime_root = self.runtime_root
         local_task_contract = self.local_task_contract
@@ -302,7 +317,11 @@ class CockpitBridgeServer:
                     self._json(403, {"error": "forbidden"})
                     return
 
-                file_loop_locked = path == "/v1/file-loop/command"
+                file_loop_locked = path in {
+                    "/v1/file-loop/command",
+                    "/v1/file-loop/result-delivered",
+                    "/v1/file-loop/delivery-ack",
+                }
                 if file_loop_locked:
                     file_loop_lock.acquire()
                 try:
@@ -332,6 +351,15 @@ class CockpitBridgeServer:
                             raise ValueError("exactly one safe .py filename required")
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
+                        validate_command_content(content, filename=filename)
+                        # AGP_K07_DOWNLOAD_PROVENANCE_V1: when the browser
+                        # materialized the payload through /download, the
+                        # submitted content must be byte-identical to it.
+                        download_sha256 = str(data.get("download_sha256") or "").strip()
+                        if download_sha256 and download_sha256 != _k07_cycle_hash.sha256(
+                            content.encode("utf-8")
+                        ).hexdigest():
+                            raise ValueError("command content does not match the materialized browser download")
 
                         from agp_cockpit.core.operator_control import (
                             OperatorControlStore,
@@ -344,14 +372,21 @@ class CockpitBridgeServer:
                                 f"file-loop admission blocked by operator control: {operator_action}"
                             )
 
-                        from agp_cockpit.core.start_request import StartRequestStore
-                        current_start = StartRequestStore(runtime_root).current()
+                        from agp_cockpit.core.start_request import resolve_task_binding
+                        current_start = resolve_task_binding(
+                            runtime_root,
+                            None if engine.runtime.state is None else engine.runtime.state.mission_id,
+                        )
                         current_task_id = str(current_start.get("task_id") or "").strip()
+                        handoff_contract = False
                         if current_task_id:
-                            durable = DurableTaskController(current_task_id, durable_db_path)
+                            durable = DurableTaskController(current_task_id, task_db_path)
                             try:
                                 if durable.snapshot.get("suspension_reason") == "WAITING_FOR_HUMAN":
                                     raise RuntimeError("WAITING_FOR_HUMAN")
+                                handoff_contract = contract_enabled(durable)
+                                if handoff_contract and durable.snapshot["state"] == "VERIFIED_COMPLETE":
+                                    raise ValueError("handoff task is already complete; no further command permitted")
                             finally:
                                 durable.close()
 
@@ -371,6 +406,7 @@ class CockpitBridgeServer:
                         )
 
                         state_file = runtime_root / "file-loop-state.json"
+                        handoff_before = package_snapshot(repo_root) if handoff_contract else {}
                         outcome = consume_command_file(
                             incoming,
                             repo_root,
@@ -385,6 +421,19 @@ class CockpitBridgeServer:
                             process_controller=run_next_controller,
                         )
                         terminal_loop = outcome.state.value in {"BLOCKED", "NEEDS_HUMAN", "DONE"}
+                        # AGP_K07_POST_EXECUTION_OPERATOR_CONTROL_V1: STOP or
+                        # PAUSE requested while run_next was executing must
+                        # suppress the outgoing continuation. The result stays
+                        # PENDING (PAUSE: re-delivered on resume via replay) or
+                        # WITHHELD (STOP).
+                        post_operator_action = str(
+                            OperatorControlStore(runtime_root).current().get("action") or ""
+                        ).upper()
+                        held_by_operator = (
+                            outcome.run is not None
+                            and not terminal_loop
+                            and post_operator_action in {"PAUSE", "STOP"}
+                        )
                         if outcome.run is None and terminal_loop:
                             if outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
                                 engine.runtime.final("BLOCKED", outcome.human_reason or "file-loop guard blocked")
@@ -406,6 +455,7 @@ class CockpitBridgeServer:
                             raise RuntimeError("command-file execution produced no return bundle")
                         if not outcome.replayed and engine.runtime.state is not None:
                             engine.runtime.record_assistant(content)
+                            engine.runtime.record_local_step()
                         if terminal_loop and outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
                             engine.runtime.final(
                                 "BLOCKED",
@@ -415,6 +465,63 @@ class CockpitBridgeServer:
                         result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
                         output_path = Path(outcome.run.run_next_output)
                         output_sha256 = _k07_cycle_hash.sha256(output_path.read_bytes()).hexdigest()
+                        completion_pending = False
+                        if held_by_operator:
+                            if post_operator_action == "STOP":
+                                withhold_result_delivery(state_file, result_sha256)
+                            diag.event(
+                                "K07_RESULT_DELIVERY_HELD",
+                                component="file-loop",
+                                details={
+                                    "cycle_id": cycle_id,
+                                    "step": outcome.run.step,
+                                    "operator_action": post_operator_action,
+                                    "result_sha256": result_sha256,
+                                },
+                            )
+                            self._json(
+                                200,
+                                {
+                                    "state": "STOPPED" if post_operator_action == "STOP" else outcome.state.value,
+                                    "step": outcome.run.step,
+                                    "result_file": str(outcome.run.return_bundle),
+                                    "prompt": None,
+                                    "terminal": post_operator_action == "STOP",
+                                    "held": post_operator_action == "PAUSE",
+                                    "delivery_pending": post_operator_action == "PAUSE",
+                                    "human_reason": (
+                                        f"operator {post_operator_action} during local execution; "
+                                        "result retained locally and not delivered"
+                                    ),
+                                    "cycle_id": cycle_id,
+                                    "result_sha256": result_sha256,
+                                    "replayed": outcome.replayed,
+                                },
+                            )
+                            return
+                        if (
+                            handoff_contract
+                            and outcome.replayed
+                            and outcome.delivery_pending
+                            and (runtime_root / "handoff-completion.json").is_file()
+                        ):
+                            receipt = json.loads(
+                                (runtime_root / "handoff-completion.json").read_text(encoding="utf-8")
+                            )
+                            completion_pending = (
+                                receipt.get("cycle_id") == cycle_id
+                                and receipt.get("result_sha256") == result_sha256
+                                and receipt.get("delivered") is False
+                            )
+                        if handoff_contract and not outcome.replayed and not terminal_loop:
+                            mission = engine.runtime.state
+                            if mission is None or current_start.get("mission_id") != mission.mission_id:
+                                raise ValueError("handoff task does not match active mission")
+                            completion_pending = prepare_receipt(
+                                repo_root, runtime_root, mission_id=mission.mission_id,
+                                task_id=current_task_id, cycle_id=cycle_id,
+                                run=outcome.run, before=handoff_before,
+                            ) is not None
                         try:
                             parsed_result = json.loads(result_path.read_text(encoding="utf-8"))
                             result_validation = {"valid": isinstance(parsed_result, dict), "error": None if isinstance(parsed_result, dict) else "result artifact must be a JSON object"}
@@ -445,7 +552,8 @@ class CockpitBridgeServer:
                                     minimum_step=outcome.run.step,
                                 ),
                                 "result_file": str(outcome.run.return_bundle),
-                                "prompt": outcome.continuation_text,
+                                "prompt": FINAL_RECEIPT_PROMPT if completion_pending else outcome.continuation_text,
+                                "completion_pending": completion_pending,
                                 "terminal": terminal_loop,
                                 "human_reason": outcome.human_reason,
                                 "cycle_id": cycle_id,
@@ -458,8 +566,81 @@ class CockpitBridgeServer:
                                 "result_execution": parsed_result.get("execution") if isinstance(parsed_result, dict) else None,
                                 "failure_reason": parsed_result.get("failure_reason") if isinstance(parsed_result, dict) else None,
                                 "replayed": outcome.replayed,
+                                "delivery_pending": bool(outcome.delivery_pending and not terminal_loop),
                             },
                         )
+                        return
+
+                    if path == "/v1/file-loop/result-delivered":
+                        from agp_cockpit.core.operator_control import (
+                            OperatorControlStore,
+                        )
+                        from agp_cockpit.core.start_request import resolve_task_binding
+
+                        data = self._body()
+                        mission = engine.runtime.state
+                        start = resolve_task_binding(
+                            runtime_root, None if mission is None else mission.mission_id
+                        )
+                        if (mission is None or start.get("mission_id") != mission.mission_id
+                                or mission.state in {"STOPPED", "BLOCKED", "FAILED", "NEEDS_HUMAN"}
+                                or OperatorControlStore(runtime_root).current().get("action") in {"STOP", "PAUSE"}):
+                            raise ValueError("no active mission for handoff receipt")
+                        durable = DurableTaskController(str(start.get("task_id") or ""), task_db_path)
+                        def require_active_handoff():
+                            current = engine.runtime.state
+                            if (current is None or current.mission_id != mission.mission_id
+                                    or current.state in {"STOPPED", "BLOCKED", "FAILED", "NEEDS_HUMAN"}
+                                    or resolve_task_binding(runtime_root, current.mission_id) != start
+                                    or OperatorControlStore(runtime_root).current().get("action") in {"STOP", "PAUSE"}):
+                                raise ValueError("handoff interrupted during completion verification")
+                        try:
+                            completed = acknowledge_delivery(
+                                repo_root, runtime_root, durable, mission_id=mission.mission_id,
+                                cycle_id=str(data.get("cycle_id") or ""),
+                                result_sha256=str(data.get("result_sha256") or ""),
+                                require_active=require_active_handoff,
+                            )
+                        finally:
+                            durable.close()
+                        try:
+                            mark_result_delivered(
+                                runtime_root / "file-loop-state.json",
+                                str(data.get("result_sha256") or ""),
+                            )
+                        except ValueError:
+                            pass
+                        if mission.state != "DONE":
+                            require_active_handoff()
+                            engine.runtime.final("DONE", completed["human_reason"])
+                        self._json(200, completed)
+                        return
+
+                    if path == "/v1/file-loop/delivery-ack":
+                        # AGP_K07_DELIVERY_STATE_V1: the browser confirms that
+                        # the result evidence and continuation were committed
+                        # as a new user turn for exactly this result hash.
+                        data = self._body()
+                        result_sha256 = str(data.get("result_sha256") or "").strip()
+                        if len(result_sha256) != 64:
+                            raise ValueError("result_sha256 required")
+                        acknowledged = mark_result_delivered(
+                            runtime_root / "file-loop-state.json",
+                            result_sha256,
+                            None if engine.runtime.state is None else engine.runtime.state.mission_id,
+                        )
+                        diag.event(
+                            "K07_RESULT_DELIVERED",
+                            component="file-loop",
+                            details={
+                                "cycle_id": str(data.get("cycle_id") or "")[:40],
+                                "result_sha256": result_sha256,
+                                "step": acknowledged.get("step"),
+                                "idempotent": acknowledged.get("idempotent"),
+                                "commit_via": str(data.get("commit_via") or "")[:40],
+                            },
+                        )
+                        self._json(200, {"ok": True, "stage": "RESULT_DELIVERY_ACKNOWLEDGED", **acknowledged})
                         return
 
                     if path == "/v1/file-loop/download":
@@ -479,6 +660,39 @@ class CockpitBridgeServer:
                                 "content": content,
                                 "content_type": content_type,
                                 "chars": len(content),
+                                "bytes": len(content.encode("utf-8")),
+                                "sha256": __import__("hashlib").sha256(content.encode("utf-8")).hexdigest(),
+                            },
+                        )
+                        return
+
+                    if path == "/v1/file-loop/reserve-step":
+                        data = self._body()
+                        step = int(data.get("step", 0) or 0)
+                        if step <= 0:
+                            raise ValueError("positive step required")
+                        reserved = reserve_remote_issued_steps(
+                            repo_root / "Download",
+                            [step],
+                        )
+                        next_step = next_step_number(repo_root / "Download")
+                        diag.event(
+                            "K07_REMOTE_STEP_RESERVED",
+                            component="file-loop",
+                            details={
+                                "step": step,
+                                "next_step": next_step,
+                                "reason": str(data.get("reason", ""))[:120],
+                            },
+                        )
+                        self._json(
+                            200,
+                            {
+                                "ok": True,
+                                "stage": "REMOTE_STEP_RESERVED",
+                                "step": step,
+                                "next_step": next_step,
+                                **reserved,
                             },
                         )
                         return
@@ -717,6 +931,18 @@ class CockpitBridgeServer:
                                 and requested_generation == int(pending.get("generation", 0) or 0)
                                 and requested_mission == str(pending.get("mission_id", "")).strip()
                             ):
+                                from agp_cockpit.core.start_request import (
+                                    ActiveTaskStore,
+                                )
+
+                                # AGP_K07_ACTIVE_TASK_BINDING_V1: keep the
+                                # mission's task identity beyond the one-shot
+                                # trigger invalidation below.
+                                ActiveTaskStore(runtime_root).bind(
+                                    requested_mission,
+                                    str(pending.get("task_id", "") or ""),
+                                    requested_generation,
+                                )
                                 StartRequestStore(runtime_root).invalidate_pending()
                                 client_response["task_start_request"] = "CONSUMED"
                                 diag.event(

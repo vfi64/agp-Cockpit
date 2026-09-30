@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
+
+from agp_cockpit.core.command_file_contract import validate_command_content
 
 MAX_DOWNLOAD_BYTES = 2_000_000
 
@@ -14,10 +17,11 @@ def _allowed_download_roots(repository_root: Path) -> tuple[Path, ...]:
 
 
 def _matches_download_name(actual: str, expected: str) -> bool:
+    """Accept the exact name or a browser duplicate suffix: ``x (1).py`` / ``x(2).py``."""
     if actual == expected:
         return True
-    expected_stem = Path(expected).stem
-    return actual.startswith(expected_stem + " (") and actual.endswith(Path(expected).suffix)
+    pattern = re.escape(Path(expected).stem) + r" ?\(\d+\)" + re.escape(Path(expected).suffix)
+    return re.fullmatch(pattern, actual) is not None
 
 
 def read_downloaded_command(
@@ -44,4 +48,5 @@ def read_downloaded_command(
     if path.stat().st_size < 1 or path.stat().st_size > MAX_DOWNLOAD_BYTES:
         raise ValueError("downloaded command file size outside bounded range")
     content = path.read_text(encoding="utf-8")
+    validate_command_content(content, filename=expected)
     return expected, content, "text/x-python"

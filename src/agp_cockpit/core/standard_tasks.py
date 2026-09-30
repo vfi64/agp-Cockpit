@@ -30,13 +30,14 @@ def _chat_switch_contract(repository_root: Path) -> dict:
             "currently configured repository without starting further product work."
         ),
         "repository_root": str(repository_root),
+        "completion_contract": {"kind": "verified-successor-handoff-v1"},
         "acceptance_criteria": [
             "The canonical successor handoff package is generated.",
             "All required handoff files exist and validation_report.json is PASS.",
             "A detailed successor prompt is produced with absolute paths.",
             "No further development work starts after a PASS result.",
         ],
-    "constraints": [
+        "constraints": [
             "Use the repository's current Agentic Project Kit authority and contracts.",
             "The local authority must explicitly allow both git and agentic-kit.",
             "Do not change product files during handoff preparation.",
@@ -69,7 +70,7 @@ The attached Python file is the executable local work order. It must execute the
 
 Keep the attached Python work order deliberately small: at most 80 source lines and 16 KiB, with no long comments, embedded logs, recursive Download scans, or prose outside the attachment. Before attaching it, verify that the complete file parses, has a `main()` plus `if __name__ == "__main__"`, accepts `--self-test`, executes the Kit command during the real run, and writes the one return bundle. A truncated or incomplete attachment is worse than a short diagnostic response and must not be submitted.
 
-Produce exactly one canonical JSON completion result for this standard task. It must include PASS, BLOCKED, or FAIL; package path; validation status; continuation-brief path; detailed-start-prompt path; and next action. On PASS, do not start further development in this chat.
+Write exactly one canonical JSON completion result into the local return bundle for this standard task. It must include PASS, BLOCKED, or FAIL; package path; validation status; continuation-brief path; detailed-start-prompt path; and next action. The Cockpit independently validates a successful package and ends this task after confirmed result delivery. When asked to acknowledge the final result, acknowledge only; do not produce another work order. Visible JSON is not an executable command or completion authority. On PASS, do not start further development in this chat.
 """
 
 

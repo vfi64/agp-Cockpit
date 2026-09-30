@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import hashlib
 import json
 import os
@@ -12,6 +11,8 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+
+from agp_cockpit.core.command_file_contract import command_contract_violations
 
 MAX_CAPTURE_BYTES = 256 * 1024
 MAX_RUNNER_LOG_BYTES = 256 * 1024
@@ -183,87 +184,6 @@ def step_from_command_file(path:Path)->int:
     return int(prefix)
 
 
-def _embedded_step_number(tree: ast.AST) -> int | None:
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == "STEP":
-                value = node.value
-            elif isinstance(target, (ast.Tuple, ast.List)):
-                names = [item.id if isinstance(item, ast.Name) else None for item in target.elts]
-                if "STEP" not in names or not isinstance(node.value, (ast.Tuple, ast.List)):
-                    continue
-                value = node.value.elts[names.index("STEP")]
-            else:
-                continue
-            if isinstance(value, ast.Constant) and isinstance(value.value, int):
-                return int(value.value)
-    return None
-
-
-def command_contract_violations(command_file: Path, expected_step: int | None = None) -> list[str]:
-    """Reject syntactically valid but incomplete remote work-order files."""
-    source = command_file.read_text(encoding="utf-8")
-    tree = ast.parse(source, filename=str(command_file))
-    embedded_step = _embedded_step_number(tree)
-    functions = {node.name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
-    strings = {node.value for node in ast.walk(tree) if isinstance(node, ast.Constant) and isinstance(node.value, str)}
-    has_self_test_argument = any(
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "add_argument"
-        and any(isinstance(argument, ast.Constant) and argument.value == "--self-test" for argument in node.args)
-        for node in ast.walk(tree)
-    )
-    has_self_test_argv_guard = any(
-        isinstance(node, ast.Compare)
-        and len(node.ops) == 1
-        and isinstance(node.ops[0], ast.In)
-        and isinstance(node.left, ast.Constant)
-        and node.left.value == "--self-test"
-        and len(node.comparators) == 1
-        and isinstance(node.comparators[0], ast.Attribute)
-        and isinstance(node.comparators[0].value, ast.Name)
-        and node.comparators[0].value.id == "sys"
-        and node.comparators[0].attr == "argv"
-        for node in ast.walk(tree)
-    )
-    has_bundle_writer = any(
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr in {"write_text", "write_bytes"}
-        for node in ast.walk(tree)
-    ) or any(
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr in {"dump", "dump_json"}
-        for node in ast.walk(tree)
-    )
-    has_main_guard = any(
-        isinstance(node, ast.If)
-        and isinstance(node.test, ast.Compare)
-        and isinstance(node.test.left, ast.Name)
-        and node.test.left.id == "__name__"
-        and any(isinstance(value, ast.Constant) and value.value == "__main__" for value in node.test.comparators)
-        for node in ast.walk(tree)
-    )
-    violations: list[str] = []
-    if "main" not in functions:
-        violations.append("missing main() entry point")
-    if not has_main_guard:
-        violations.append("missing __main__ execution guard")
-    if expected_step is not None and embedded_step is not None and embedded_step != expected_step:
-        violations.append(f"embedded STEP {embedded_step} does not match local step {expected_step}")
-    if "--self-test" not in strings or not (has_self_test_argument or has_self_test_argv_guard):
-        violations.append("missing --self-test contract")
-    if "agentic-kit" not in strings:
-        violations.append("missing declared agentic-kit command")
-    if not any("return_bundle" in value for value in strings) or not has_bundle_writer:
-        violations.append("missing return-bundle contract")
-    return violations
-
-
 def _contains_command_output(stdout: str) -> bool:
     """Distinguish command output from the fixed run_next progress banners."""
     noise = (
@@ -409,6 +329,43 @@ def _materialize_multiple_bundle_diagnostic(
                 "kind": "agp_cockpit_file_loop_execution_diagnostic",
                 "status": "failed",
                 "failure_reason": "multiple new return bundles were produced; none was selected",
+                "step": step,
+                "command_file": str(command_file),
+                "candidate_return_bundles": [str(path) for path in bundles],
+                "runner_returncode": completed.returncode,
+                "run_next_output": str(output_path),
+                "stdout": _bounded_text(completed.stdout),
+                "stderr": _bounded_text(completed.stderr),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return result
+
+
+def _materialize_nonzero_bundle_diagnostic(
+    download: Path,
+    step: int,
+    command_file: Path,
+    completed: subprocess.CompletedProcess[str],
+    bundles: list[Path],
+    output_path: Path,
+) -> Path:
+    stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
+    result = download / f"{step}_{command_file.stem}_execution_diagnostic_{stamp}.json"
+    result.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "agp_cockpit_file_loop_execution_diagnostic",
+                "status": "failed",
+                "failure_reason": (
+                    "authorized run_next returned a non-zero status; "
+                    "candidate return bundle(s) are evidence only"
+                ),
                 "step": step,
                 "command_file": str(command_file),
                 "candidate_return_bundles": [str(path) for path in bundles],
@@ -622,6 +579,29 @@ def execute_with_run_next(
         else:
             reason = "local command produced no return artifact or observable output"
         created = [_materialize_command_failure(download, step, command_file, cp, reason, output_log).resolve()]
+    elif cp.returncode != 0:
+        diagnostic = _materialize_nonzero_bundle_diagnostic(
+            download,
+            step,
+            command_file,
+            cp,
+            created,
+            output_log,
+        ).resolve()
+        _attach_execution_identity(
+            diagnostic,
+            _execution_identity(root, command_file, step, runner_argv, cp.returncode),
+        )
+        return FileLoopRun(
+            step,
+            command_file,
+            diagnostic,
+            output_log,
+            cp.returncode,
+            cp.stdout,
+            cp.stderr,
+            "execution_diagnostic",
+        )
     artifact_kind = "return_bundle"
     if len(created) > 1:
         diagnostic = _materialize_multiple_bundle_diagnostic(
