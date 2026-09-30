@@ -15,6 +15,9 @@ def test_runtime_diagnostics_are_part_of_visible_system_build():
     assert "runtime_refresh_button" in s
     assert "repair_button" in s
     assert "hermes_model_button" in s
+    assert 'text="Browser-Bridge"' in s
+    assert "bridge_identity_var" in s
+    assert "runtime_identity_status(" in s
 
 
 def test_simplified_header_is_not_pending():

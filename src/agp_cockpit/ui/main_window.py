@@ -5,12 +5,15 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 from agp_cockpit import __version__
+from agp_cockpit.adapters.macos_settings import bridge_runtime_root
 from agp_cockpit.core.hermes_config import DEFAULT_HERMES_CONFIG
 from agp_cockpit.core.hermes_runtime import discover_hermes_runtime
 from agp_cockpit.core.hermes_writer import update_hermes_model
 from agp_cockpit.core.live_startup import execute_live_guarded_startup
+from agp_cockpit.core.runtime_identity import runtime_identity_status
 from agp_cockpit.core.startup import StartupAction, decide_startup
 from agp_cockpit.core.startup_probe import observe_live_read_only
+from agp_cockpit.ui.bridge_identity_status import format_bridge_identity_status
 from agp_cockpit.ui.hermes_status import format_hermes_status
 from agp_cockpit.ui.simple_task_panel import SimpleTaskPanel
 from agp_cockpit.ui.standard_tasks_panel import StandardTasksPanel
@@ -43,6 +46,7 @@ class MainWindow(ttk.Frame):
         self.model_var = tk.StringVar(value="")
         self.context_var = tk.StringVar(value=f"Repository: {self.repository_root}")
         self.system_focus_var = tk.StringVar(value="Tastaturfokus: —")
+        self.bridge_identity_var = tk.StringVar(value="Browser-Bridge wird geprüft …")
 
         self._build()
 
@@ -124,22 +128,45 @@ class MainWindow(ttk.Frame):
 
         system_tab = ttk.Frame(self.tabs)
         system_tab.columnconfigure(0, weight=1)
-        system_tab.rowconfigure(0, weight=1)
+        system_tab.rowconfigure(4, weight=1)
         self._build_system_tab(system_tab)
         self.tabs.add(system_tab, text="System")
         self.after(80, self.refresh_runtime_status)
+        self.after(120, self.refresh_bridge_identity)
 
     def _build_system_tab(self, parent: ttk.Frame) -> None:
+        bridge = ttk.LabelFrame(
+            parent,
+            text="Browser-Bridge",
+            padding=8,
+        )
+        bridge.grid(
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+        )
+        ttk.Label(
+            bridge,
+            textvariable=self.bridge_identity_var,
+            justify="left",
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
+
         ollama = ttk.LabelFrame(
             parent,
             text="Ollama",
             padding=8,
         )
         ollama.grid(
-            row=0,
+            row=1,
             column=0,
-            sticky="nsew",
+            sticky="new",
             padx=(0, 4),
+            pady=(8, 0),
         )
         ollama.columnconfigure(0, weight=1)
 
@@ -219,10 +246,11 @@ class MainWindow(ttk.Frame):
             padding=8,
         )
         hermes.grid(
-            row=0,
+            row=1,
             column=1,
-            sticky="nsew",
+            sticky="new",
             padx=(4, 0),
+            pady=(8, 0),
         )
         hermes.columnconfigure(0, weight=1)
 
@@ -256,7 +284,7 @@ class MainWindow(ttk.Frame):
             padding=8,
         )
         info.grid(
-            row=1,
+            row=2,
             column=0,
             columnspan=2,
             sticky="ew",
@@ -275,7 +303,7 @@ class MainWindow(ttk.Frame):
             column=0,
             sticky="w",
         )
-        ttk.Label(parent,textvariable=self.system_focus_var).grid(row=2,column=0,columnspan=2,sticky="w",pady=(8,0))
+        ttk.Label(parent,textvariable=self.system_focus_var).grid(row=3,column=0,columnspan=2,sticky="w",pady=(8,0))
         system_focus_names={
             self.model_box:"Modell",
             self.runtime_refresh_button:"Aktualisieren",
@@ -284,6 +312,18 @@ class MainWindow(ttk.Frame):
         }
         for widget,name in system_focus_names.items():
             widget.bind("<FocusIn>",lambda _e,n=name:self.system_focus_var.set(f"Tastaturfokus: {n}"),add="+")
+
+    def refresh_bridge_identity(self) -> None:
+        try:
+            identity = runtime_identity_status(
+                self.repository_root,
+                bridge_runtime_root(),
+            )
+            self.bridge_identity_var.set(format_bridge_identity_status(identity))
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces diagnostics.
+            self.bridge_identity_var.set(f"Status: Diagnosefehler\n{exc}")
+        finally:
+            self.after(2_000, self.refresh_bridge_identity)
 
     def refresh_runtime_status(self) -> None:
         try:

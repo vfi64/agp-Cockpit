@@ -47,6 +47,14 @@ independent literals in feature code.
 10. The `EXTENSION_HANDSHAKE` writer and every production handshake reader must
     use the same injected `bridge_runtime_root()`. The repository-local
     `.local/agp-cockpit/bridge/` directory is not a production identity source.
+11. The desktop System tab reports both the staged extension identity and the
+    fresh browser-handshake identity. A matching version string without a
+    matching build ID is displayed as a conflict, not as a ready Bridge.
+12. When the configured repository root contains `chrome_extension/`, extension
+    staging must use that repository source before packaged application
+    resources. A stale built `.app` must not overwrite the staged browser
+    extension with an older embedded copy on restart. Packaged resources are
+    only a fallback when no repository source extension is available.
 
 Tests must fail if a production component introduces a second operator-control
 path or if the task operator and Bridge no longer resolve to the same runtime

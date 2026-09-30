@@ -1,9 +1,23 @@
+import ast
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_submodules
 
 ROOT = Path(SPECPATH).resolve().parents[1]
 hiddenimports = collect_submodules("tkinter")
+
+
+def _app_version():
+    tree = ast.parse((ROOT / "src" / "agp_cockpit" / "version.py").read_text(encoding="utf-8"))
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "APP_VERSION" for target in node.targets)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            return node.value.value
+    raise RuntimeError("APP_VERSION not found")
 
 a = Analysis(
     [str(ROOT / "packaging" / "macos" / "launcher.py")],
@@ -30,7 +44,7 @@ app = BUNDLE(
     name="AGP Cockpit.app",
     icon=None,
     bundle_identifier="de.vfi64.agp-cockpit",
-    version="0.1.0.dev3",
+    version=_app_version(),
     info_plist={
         "CFBundleDisplayName": "AGP Cockpit",
         "CFBundleName": "AGP Cockpit",

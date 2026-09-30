@@ -64,6 +64,35 @@ def test_stage_extension_reuses_identical_stage(monkeypatch, tmp_path):
     assert (second / ".agp-stage.json").read_text(encoding="utf-8") == marker_before
 
 
+def test_stage_extension_prefers_repository_source_over_stale_bundled_app(monkeypatch, tmp_path):
+    from agp_cockpit.adapters import macos_extension
+
+    repo = tmp_path / "repo"
+    _make_extension(repo, version="0.3.13")
+    (repo / "chrome_extension" / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "source-build";\n', encoding="utf-8"
+    )
+
+    bundle = tmp_path / "bundle"
+    _make_extension(bundle, version="0.3.12")
+    (bundle / "chrome_extension" / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "stale-bundle";\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(macos_extension.sys, "_MEIPASS", str(bundle), raising=False)
+
+    support = tmp_path / "support"
+    monkeypatch.setattr(macos_extension, "settings_path", lambda: support / "settings.json")
+
+    staged = macos_extension.stage_extension(repo)
+    marker = json.loads((staged / ".agp-stage.json").read_text(encoding="utf-8"))
+
+    assert json.loads((staged / "manifest.json").read_text(encoding="utf-8"))["version"] == "0.3.13"
+    assert (staged / "build_identity.js").read_text(encoding="utf-8").strip().endswith('"source-build";')
+    assert marker["version"] == "0.3.13"
+    assert marker["build_id"] == "source-build"
+    assert marker["source_extension"] == str((repo / "chrome_extension").resolve())
+
+
 def test_bootstrap_contract_uses_configured_bridge_endpoint_and_local_extension():
     source = Path("src/agp_cockpit/app_bootstrap.py").read_text(encoding="utf-8")
     assert "host=bridge_host" in source
@@ -79,3 +108,11 @@ def test_app_passes_versioned_bridge_settings_to_bootstrap():
     source = Path("src/agp_cockpit/app.py").read_text(encoding="utf-8")
     assert "bridge_host=settings.bridge_host" in source
     assert "bridge_port=settings.bridge_port" in source
+
+
+def test_macos_app_bundle_version_comes_from_runtime_version():
+    spec = Path("packaging/macos/agp_cockpit.spec").read_text(encoding="utf-8")
+
+    assert "def _app_version()" in spec
+    assert 'version=_app_version()' in spec
+    assert 'version="0.1.0' not in spec

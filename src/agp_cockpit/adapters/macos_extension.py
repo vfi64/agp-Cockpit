@@ -57,10 +57,13 @@ def _tree_digest(source: Path) -> str:
 
 def packaged_extension_source(repository_root: Path) -> Path:
     candidates: list[Path] = []
+    # The repository checkout is the source of truth during local AGP Cockpit
+    # development. A rebuilt app may lag behind source; it must not overwrite a
+    # freshly staged extension with stale bundled resources on restart.
+    candidates.append(repository_root.expanduser().resolve() / "chrome_extension")
     meipass = getattr(sys, "_MEIPASS", None)
     if meipass:
         candidates.append(Path(meipass) / "chrome_extension")
-    candidates.append(repository_root.expanduser().resolve() / "chrome_extension")
     for candidate in candidates:
         if (candidate / "manifest.json").is_file():
             return candidate
