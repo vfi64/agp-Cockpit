@@ -8,6 +8,7 @@ src/agp_cockpit/app_bootstrap.py
 src/agp_cockpit/bridge_main.py
 src/agp_cockpit/first_run_diagnostics.py
 src/agp_cockpit/settings.py
+src/agp_cockpit/version.py
 src/agp_cockpit.egg-info/PKG-INFO
 src/agp_cockpit.egg-info/SOURCES.txt
 src/agp_cockpit.egg-info/dependency_links.txt
@@ -38,12 +39,15 @@ src/agp_cockpit/core/chatgpt_session.py
 src/agp_cockpit/core/chrome_automation.py
 src/agp_cockpit/core/clipboard.py
 src/agp_cockpit/core/clipboard_text.py
+src/agp_cockpit/core/command_file_contract.py
 src/agp_cockpit/core/controller.py
 src/agp_cockpit/core/diagnostic_log.py
+src/agp_cockpit/core/download_ingress.py
 src/agp_cockpit/core/file_loop_lifecycle.py
 src/agp_cockpit/core/file_loop_orchestrator.py
 src/agp_cockpit/core/file_loop_protocol.py
 src/agp_cockpit/core/file_loop_runner.py
+src/agp_cockpit/core/handoff_completion.py
 src/agp_cockpit/core/hermes_config.py
 src/agp_cockpit/core/hermes_runtime.py
 src/agp_cockpit/core/hermes_writer.py
@@ -62,6 +66,7 @@ src/agp_cockpit/core/protocol_execution_v1.py
 src/agp_cockpit/core/response_pickup.py
 src/agp_cockpit/core/run_next_guard.py
 src/agp_cockpit/core/runtime.py
+src/agp_cockpit/core/runtime_identity.py
 src/agp_cockpit/core/runtime_root_policy.py
 src/agp_cockpit/core/single_round.py
 src/agp_cockpit/core/standard_tasks.py
@@ -80,6 +85,7 @@ src/agp_cockpit/core/transport_protocol_v1.py
 src/agp_cockpit/core/work_order.py
 src/agp_cockpit/core/work_order_runner.py
 src/agp_cockpit/ui/__init__.py
+src/agp_cockpit/ui/bridge_identity_status.py
 src/agp_cockpit/ui/browser_transport_panel.py
 src/agp_cockpit/ui/hermes_status.py
 src/agp_cockpit/ui/main_window.py
@@ -97,7 +103,9 @@ tests/test_app_bootstrap.py
 tests/test_architecture_v2_contract.py
 tests/test_assistant_response_completion_064_r1.py
 tests/test_async_browser_readiness.py
+tests/test_attachment_preview_identity.py
 tests/test_automation_guard.py
+tests/test_background_download_correlation.py
 tests/test_bridge_client_event_endpoint.py
 tests/test_bridge_diagnostics_endpoint.py
 tests/test_bridge_engine.py
@@ -105,6 +113,7 @@ tests/test_bridge_engine_execution.py
 tests/test_bridge_engine_modes.py
 tests/test_bridge_execution.py
 tests/test_bridge_http_dry_run.py
+tests/test_bridge_identity_status.py
 tests/test_bridge_runtime.py
 tests/test_bridge_runtime_server.py
 tests/test_bridge_server_operator.py
@@ -122,10 +131,12 @@ tests/test_chatgpt_session.py
 tests/test_chrome_automation.py
 tests/test_clipboard.py
 tests/test_communication_protocol_authority_complete_1345.py
+tests/test_communication_sequence_doc.py
 tests/test_controller.py
 tests/test_delivered_path_runtime_invariants.py
 tests/test_deterministic_startup_tab_wakeup.py
 tests/test_diagnostic_log.py
+tests/test_download_ingress.py
 tests/test_draggable_minimizable_bridge_overlay.py
 tests/test_experience_registry.py
 tests/test_extension_handshake_endpoint.py
@@ -133,6 +144,8 @@ tests/test_extension_handshake_source.py
 tests/test_followup_send_path_065l_r7.py
 tests/test_followup_send_target_and_decisive_ack_066_d4.py
 tests/test_generation_edge_ack_066_e7.py
+tests/test_handoff_browser_completion.py
+tests/test_handoff_completion.py
 tests/test_hermes_config.py
 tests/test_hermes_config_inference.py
 tests/test_hermes_runtime.py
@@ -158,6 +171,7 @@ tests/test_k06_missing_focus_elements.py
 tests/test_k06_user_state_isolation.py
 tests/test_k07_active_loop_992.py
 tests/test_k07_assistant_message_identity_baseline.py
+tests/test_k07_attachment_dialog_close.py
 tests/test_k07_automatic_format_recovery.py
 tests/test_k07_browser_native_transport_adapter.py
 tests/test_k07_command_file_ingress_989.py
@@ -165,6 +179,8 @@ tests/test_k07_completion_timeout_1360.py
 tests/test_k07_composer_readiness_gate.py
 tests/test_k07_cycle_correlation_observability.py
 tests/test_k07_debug_trace_observability_1131.py
+tests/test_k07_delivery_and_inflight_state.py
+tests/test_k07_delivery_http.py
 tests/test_k07_desktop_unified_control_1007.py
 tests/test_k07_explicit_task_start_transport.py
 tests/test_k07_file_loop_lifecycle.py
@@ -233,6 +249,7 @@ tests/test_multiturn_run_mode_065l_r5.py
 tests/test_no_redundant_post_handshake_refresh.py
 tests/test_operator_api.py
 tests/test_overlay_multiturn_button_065l_r2.py
+tests/test_persisted_mission_stop.py
 tests/test_phase11_cli_first_run_diagnostics.py
 tests/test_phase11_gui_product_polish.py
 tests/test_phase11_macos_packaging.py
@@ -285,14 +302,19 @@ tests/test_process_port.py
 tests/test_protocol_action_contract_v1.py
 tests/test_protocol_execution_v1.py
 tests/test_protocol_governance_authority_1270.py
+tests/test_remote_service_limit.py
 tests/test_response_completion_gate.py
 tests/test_response_pickup.py
+tests/test_run_next_output_bound.py
 tests/test_run_next_self_test_guard.py
 tests/test_runtime.py
+tests/test_runtime_identity.py
 tests/test_runtime_status.py
 tests/test_send_ack_false_negative_065l_r11.py
 tests/test_single_round.py
 tests/test_standard_tasks.py
+tests/test_start_request_lifecycle.py
+tests/test_start_request_runtime_identity.py
 tests/test_startup.py
 tests/test_startup_controlflow_063v_r5.py
 tests/test_startup_handshake_polish.py
