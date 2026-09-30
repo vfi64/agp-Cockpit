@@ -26,6 +26,21 @@ from pathlib import Path
 MANIFEST = Path("docs/reference/agentic-kit-commands.json")
 SURFACE_ORDER = {"orchestrator": 0, "diagnostic": 1, "primitive": 2}
 NETWORK_GIT = frozenset({"push", "fetch", "pull"})
+# AGP_REMOTE_EFFECT_GATE_V1: Kit commands with an effect outside the local
+# repository (push, fetch/pull, PR, merge, publish, remote branches). The
+# manifest has no such classification yet; until the Kit provides one, this
+# Cockpit list plus every command whose "replaces_raw" names git push or gh is
+# authoritative. A test fails when an entry disappears from the manifest.
+REMOTE_EFFECT_COMMANDS = frozenset({
+    "github-create", "pr merge-if-green", "pr-closeout", "release-publish",
+    "remote-branch-hygiene-apply", "remote-next",
+    "transfer admin-refresh-pr", "transfer delete-merged-work-branch",
+    "transfer evidence-pr-complete", "transfer fetch-origin", "transfer post-merge-complete",
+    "transfer pr-closeout-complete", "transfer pr-complete", "transfer pr-create",
+    "transfer pr-create-complete", "transfer pr-merge-safe", "transfer publish-last-report",
+    "transfer pull-current", "transfer push-current", "transfer remote-next",
+    "transfer remote-work-start", "transfer sync-main", "work finish",
+})
 COMMAND_RULES = (
     "Command authority (standing rules for every work order): "
     "use only agentic-kit commands listed in the attached agentic-kit-command-digest.json "
@@ -33,7 +48,9 @@ COMMAND_RULES = (
     "Prefer the most comprehensive orchestrator command (surface \"orchestrator\") that covers the task; "
     "use diagnostic or primitive commands only when no orchestrator fits. "
     "Never run git push, git fetch or git pull. "
-    "Raw git/gh commands that have a Kit wrapper (\"replaces_raw\") are rejected; use the wrapper."
+    "Raw git/gh commands that have a Kit wrapper (\"replaces_raw\") are rejected; use the wrapper. "
+    "Commands marked \"remote_effect\" (push, pull/fetch, PR, merge, publish) are rejected unless the "
+    "human has explicitly approved exactly that step; ask with NEEDS_HUMAN first."
 )
 
 
@@ -64,6 +81,14 @@ class KitCommandCatalog:
                 best = command
         return best
 
+    def has_remote_effect(self, command: dict) -> bool:
+        name = " ".join(str(p) for p in command["path"])
+        if name in REMOTE_EFFECT_COMMANDS:
+            return True
+        return any(
+            str(raw).startswith(("git push", "gh ")) for raw in command.get("replaces_raw") or []
+        )
+
     def wrappers(self) -> list[tuple[str, str]]:
         pairs = []
         for command in self.commands:
@@ -88,6 +113,7 @@ class KitCommandCatalog:
                     "use": " ".join(str(c.get("when_to_use") or c.get("help") or "").split())[:200],
                     "options": [o for p in c.get("params", []) for o in (p.get("opts") or [])][:12],
                     "replaces_raw": list(c.get("replaces_raw") or []),
+                    "remote_effect": self.has_remote_effect(c),
                 }
                 for c in ordered
             ],
@@ -128,9 +154,34 @@ def _program(token: str) -> str:
     return Path(str(token)).name
 
 
-def command_catalog_violations(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+def remote_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    """Qualified names of remote-effect Kit commands used by a work order."""
+    if catalog is None:
+        return []
+    found = set()
+    for argv in _invocations(ast.parse(source)):
+        if _program(argv[0]) != "agentic-kit":
+            continue
+        subcommands = []
+        for token in argv[1:]:
+            if token.startswith("-") or token == "<expr>":
+                break
+            subcommands.append(token)
+        command = catalog.resolve(subcommands) if subcommands else None
+        if command is not None and catalog.has_remote_effect(command):
+            found.add(command["qualified_name"])
+    return sorted(found)
+
+
+def command_catalog_violations(source: str, catalog: KitCommandCatalog | None,
+                               *, allow_remote_effects: bool = False) -> list[str]:
     tree = ast.parse(source)
     violations: list[str] = []
+    if not allow_remote_effects:
+        violations.extend(
+            f"{name} has a remote effect and requires an explicit human approval"
+            for name in remote_effect_commands(source, catalog)
+        )
     wrappers = catalog.wrappers() if catalog is not None else []
     for argv in _invocations(tree):
         program = _program(argv[0])

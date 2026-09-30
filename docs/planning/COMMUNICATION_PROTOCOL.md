@@ -294,7 +294,19 @@ This section is normative for the file loop after local execution.
    order: at least one agentic-kit command; only commands present in the
    manifest; no git push / fetch / pull; no raw git/gh command that has a Kit
    wrapper (`replaces_raw`). Orchestrator commands are preferred (prompt rule;
-   not enforceable). The wait timeout names
+   not enforceable).
+14. Human decision and remote effects (`AGP_HUMAN_DECISION_V1`,
+   `AGP_REMOTE_EFFECT_GATE_V1`). Kit commands with an effect outside the
+   repository (push, pull/fetch, PR, merge, publish, remote branches; Cockpit
+   list `REMOTE_EFFECT_COMMANDS` plus `replaces_raw` naming git push or gh)
+   are rejected unless the human approved. A remote `NEEDS_HUMAN` shows its
+   question in the tab "Arbeiten"; "Freigeben"/"Ablehnen" (with an optional
+   note) is recorded through `/v1/task/decision` (only for the current
+   mission in `NEEDS_HUMAN`), and the same task continues in the same
+   conversation as a new mission. An approval is a one-shot grant bound to the
+   task: it admits exactly one executed work order with remote-effect commands
+   and is then consumed (expires after 24 h). Raw git push/fetch/pull remain
+   forbidden in every case. The wait timeout names
    the awaited file names and says that a human must check.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line

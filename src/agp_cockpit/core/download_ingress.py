@@ -29,6 +29,7 @@ def read_downloaded_command(
     download_path: str | Path,
     expected_filename: str,
     repository_root: Path,
+    allow_remote_effects: bool = False,
 ) -> tuple[str, str, str]:
     """Read one browser download without granting arbitrary file access."""
     expected = str(expected_filename).strip()
@@ -53,5 +54,6 @@ def read_downloaded_command(
     if terminal:
         parse_terminal_reply(expected, content)
         return expected, content, "application/json"
-    validate_command_content(content, filename=expected, repository_root=repository_root)
+    validate_command_content(content, filename=expected, repository_root=repository_root,
+                             allow_remote_effects=allow_remote_effects)
     return expected, content, "text/x-python"

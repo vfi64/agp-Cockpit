@@ -84,6 +84,17 @@ def _kit_command_digest(repo_root: Path) -> dict[str, str]:
     return {"kit_command_digest_path": cached[1], "kit_manifest_sha": cached[2]}
 
 
+def _remote_effects_allowed(runtime_root: Path, engine) -> bool:
+    """AGP_HUMAN_DECISION_V1: one-shot human approval for the bound task."""
+    from agp_cockpit.core.human_decision import HumanDecisionStore
+    from agp_cockpit.core.start_request import resolve_task_binding
+
+    mission = engine.runtime.state
+    binding = resolve_task_binding(runtime_root, None if mission is None else mission.mission_id)
+    task_id = str(binding.get("task_id") or "").strip()
+    return HumanDecisionStore(runtime_root).remote_effects_allowed(task_id)
+
+
 def _runtime_identity_payload() -> dict[str, str | int]:
     payload: dict[str, str | int] = {
         "application_version": __version__,
@@ -379,7 +390,11 @@ class CockpitBridgeServer:
                             raise ValueError("exactly one safe .py filename required")
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
-                        validate_command_content(content, filename=filename, repository_root=repo_root)
+                        remote_effects_allowed = _remote_effects_allowed(runtime_root, engine)
+                        validate_command_content(
+                            content, filename=filename, repository_root=repo_root,
+                            allow_remote_effects=remote_effects_allowed,
+                        )
                         # AGP_K07_DOWNLOAD_PROVENANCE_V1: when the browser
                         # materialized the payload through /download, the
                         # submitted content must be byte-identical to it.
@@ -487,6 +502,27 @@ class CockpitBridgeServer:
                         if not outcome.replayed and engine.runtime.state is not None:
                             engine.runtime.record_assistant(content)
                             engine.runtime.record_local_step()
+                        # AGP_HUMAN_DECISION_V1: an executed remote-effect work
+                        # order consumes the one-shot approval.
+                        if not outcome.replayed and outcome.run is not None and remote_effects_allowed:
+                            from agp_cockpit.core.human_decision import (
+                                HumanDecisionStore,
+                            )
+                            from agp_cockpit.core.kit_command_catalog import (
+                                KitCommandCatalog,
+                                remote_effect_commands,
+                            )
+                            used = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
+                            if used:
+                                HumanDecisionStore(runtime_root).consume(
+                                    current_task_id,
+                                    _k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
+                                )
+                                diag.event(
+                                    "HUMAN_APPROVAL_CONSUMED",
+                                    component="file-loop",
+                                    details={"task_id": current_task_id, "commands": used, "cycle_id": cycle_id},
+                                )
                         if terminal_loop and outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
                             engine.runtime.final(
                                 "BLOCKED",
@@ -766,6 +802,7 @@ class CockpitBridgeServer:
                             data.get("download_path", ""),
                             data.get("filename", ""),
                             repo_root,
+                            allow_remote_effects=_remote_effects_allowed(runtime_root, engine),
                         )
                         self._json(
                             200,
@@ -984,6 +1021,33 @@ class CockpitBridgeServer:
                         return
 
                     data = self._body()
+
+                    # AGP_HUMAN_DECISION_V1: the human answers a NEEDS_HUMAN
+                    # question of the current mission (desktop app only).
+                    if path == "/v1/task/decision":
+                        from agp_cockpit.core.human_decision import HumanDecisionStore
+                        from agp_cockpit.core.start_request import resolve_task_binding
+                        mission = engine.runtime.state
+                        mission_id = str(data.get("mission_id") or "")
+                        if mission is None or mission.mission_id != mission_id:
+                            raise ValueError("decision does not belong to the current mission")
+                        if mission.state != "NEEDS_HUMAN":
+                            raise ValueError(f"mission is {mission.state}, not waiting for a human decision")
+                        task_id = str(resolve_task_binding(runtime_root, mission_id).get("task_id") or "")
+                        record = HumanDecisionStore(runtime_root).record(
+                            mission_id=mission_id, task_id=task_id,
+                            decision=str(data.get("decision") or ""),
+                            question=mission.last_summary, note=str(data.get("note") or ""),
+                        )
+                        diag.event(
+                            "HUMAN_DECISION_RECORDED",
+                            component="task",
+                            mission_id=mission_id,
+                            details={"task_id": task_id, "decision": record["decision"],
+                                     "grant": bool(record["grant"])},
+                        )
+                        self._json(200, record)
+                        return
 
                     if path == "/v1/task/complete-proposal":
                         session_id = str(data.get("session_id", "")).strip()

@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "task-editor-20260930";
+globalThis.AGP_EXTENSION_BUILD_ID = "human-decision-20260930";

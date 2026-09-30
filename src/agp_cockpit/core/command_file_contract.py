@@ -134,6 +134,7 @@ def validate_command_content(
     filename: str = "<command-file>",
     expected_step: int | None = None,
     repository_root: Path | None = None,
+    allow_remote_effects: bool = False,
 ) -> None:
     try:
         violations = command_content_contract_violations(
@@ -147,7 +148,9 @@ def validate_command_content(
             command_catalog_violations,
         )
         catalog = KitCommandCatalog.load(repository_root) if repository_root is not None else None
-        violations = violations + command_catalog_violations(source, catalog)
+        violations = violations + command_catalog_violations(
+            source, catalog, allow_remote_effects=allow_remote_effects
+        )
     except SyntaxError as exc:
         raise ValueError(
             f"command file is not executable Python: {type(exc).__name__}: {exc}"

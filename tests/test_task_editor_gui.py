@@ -2,6 +2,7 @@
 paste, load, change, start) driven through the real Tk widgets."""
 import json
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -49,6 +50,13 @@ def test_editor_widget_flow(monkeypatch, tmp_path):
         def status(self):
             return {"state": "WAITING_FOR_REMOTE"}
 
+        class operator_control:
+            requests: ClassVar[list] = []
+
+            @classmethod
+            def request(cls, action):
+                cls.requests.append(action)
+
     sent = {}
     monkeypatch.setattr(m, "TaskOperatorAPI", FakeAPI)
     monkeypatch.setattr(m.messagebox, "askyesno", lambda *a, **k: True)
@@ -58,6 +66,8 @@ def test_editor_widget_flow(monkeypatch, tmp_path):
     monkeypatch.setattr(m, "mission_status", lambda: {"mission": {
         "mission_id": "M1", "state": "NEEDS_HUMAN", "turn_count": 2, "step_count": 1,
         "last_summary": "Push freigeben?"}})
+    decisions = []
+    monkeypatch.setattr(m, "record_decision", lambda **k: decisions.append(k) or {"decision": k["decision"]})
     try:
         panel = m.SimpleTaskPanel(root, repository_root=Path("."))
         panel.pack()
@@ -76,6 +86,20 @@ def test_editor_widget_flow(monkeypatch, tmp_path):
         panel.refresh_status()
         assert panel.state_var.get().startswith("Mensch muss eingreifen")
         assert str(panel.editor["state"]) == "normal" and str(panel.start_button["state"]) == "normal"
+        # AGP_HUMAN_DECISION_V1: the question is shown and answered in the app
+        root.update()
+        assert panel.decision_frame.winfo_ismapped()
+        assert panel.decision_question_var.get() == "Push freigeben?"
+        panel.decision_note.insert("1.0", "ja, nach origin")
+        panel.decide("APPROVE")
+        assert decisions == [{"mission_id": "M1", "decision": "APPROVE", "note": "ja, nach origin"}]
+        assert FakeAPI.operator_control.requests == ["RESUME"]
+        assert "APPROVED" in sent["mission_text"] and "ja, nach origin" in sent["mission_text"]
+        assert sent["title"].endswith("· Entscheidung") and sent["start"] == ("M1", "t1")
+        root.update()
+        assert not panel.decision_frame.winfo_ismapped() and panel.workflow_phase == "STARTED"
+        panel.workflow_phase = "LOADED"
+        panel.editor.configure(state="normal")
         # loading a JSON file fills the editor; invalid JSON is reported, not started
         (tmp_path / "a.json").write_text(json.dumps({"goal": "G", "title": "T"}))
         monkeypatch.setattr(m.filedialog, "askopenfilename", lambda **k: str(tmp_path / "a.json"))
