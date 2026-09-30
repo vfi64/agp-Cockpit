@@ -86,10 +86,40 @@ def test_artifact_change_rejected(handoff):
         ack(handoff)
 
 
-def test_stale_package_rejected(handoff):
+def test_step_without_package_regeneration_is_not_completion(handoff):
+    # A step that did not regenerate the package is an ordinary step.
     handoff[2].update(hc.package_snapshot(handoff[0]))
+    assert prepare(handoff) is None
+
+
+def test_partial_package_regeneration_is_rejected(handoff):
+    before = hc.package_snapshot(handoff[0])
+    before["successor_prompt.md"] = hc.package_snapshot(handoff[0])["successor_prompt.md"]
+    handoff[2].clear()
+    handoff[2].update({name: None for name in hc.FILES})
+    handoff[2]["successor_prompt.md"] = before["successor_prompt.md"]
     with pytest.raises(ValueError, match="freshly"):
         prepare(handoff)
+
+
+def test_live_1482_bundle_schema_completes_from_local_evidence(handoff):
+    # AGP_HANDOFF_EVIDENCE_NOT_SCHEMA_V1: the remote wrote "state"/"command"
+    # instead of "status"/"execution"; local evidence alone decides.
+    root = handoff[0]
+    handoff[3].return_bundle.write_text(json.dumps({
+        "state": "PASS", "step": 1467, "package_path": str(root / hc.PACKAGE),
+        "validation_status": "PASS",
+        "detailed_start_prompt_path": str(root / "Download/1467_START_NEW_CHAT_DETAILED_PROMPT.md"),
+        "command": {"argv": ["agentic-kit", "transfer", "chat-switch-complete", "--json"], "returncode": 0},
+    }))
+    receipt = prepare(handoff)
+    assert receipt is not None and receipt["delivered"] is False
+
+
+@pytest.mark.parametrize("key", ["status", "state"])
+def test_remote_negative_declaration_is_respected(handoff, key):
+    handoff[3].return_bundle.write_text(json.dumps({key: "BLOCKED"}))
+    assert prepare(handoff) is None
 
 
 def test_failure_is_not_completion(handoff):
@@ -104,10 +134,9 @@ def test_contract_is_not_inferred_from_pass(handoff):
         ack(handoff)
 
 
-def test_runner_failure_rejected(handoff):
+def test_runner_failure_is_never_completion(handoff):
     handoff[3].runner_returncode = 1
-    with pytest.raises(ValueError, match="runner"):
-        prepare(handoff)
+    assert prepare(handoff) is None
 
 
 def test_operator_stop_during_validation_prevents_completion(handoff):

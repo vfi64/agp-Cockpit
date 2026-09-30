@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "composer-resolver-20260930";
+globalThis.AGP_EXTENSION_BUILD_ID = "handoff-evidence-20260930";
