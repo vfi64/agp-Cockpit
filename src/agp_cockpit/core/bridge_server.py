@@ -84,15 +84,33 @@ def _kit_command_digest(repo_root: Path) -> dict[str, str]:
     return {"kit_command_digest_path": cached[1], "kit_manifest_sha": cached[2]}
 
 
-def _remote_effects_allowed(runtime_root: Path, engine) -> bool:
-    """AGP_HUMAN_DECISION_V1: one-shot human approval for the bound task."""
+_MISSION_ENDED_STATES = frozenset(
+    {"DONE", "COMPLETED", "NEEDS_HUMAN", "BLOCKED", "FAILED", "ERROR", "STOPPED", "CANCELLED"}
+)
+
+
+def _approval_grant(runtime_root: Path, engine) -> dict | None:
+    """AGP_HUMAN_APPROVAL_SCOPE_V2: the open approval for the current mission.
+
+    Claims the grant for the continuation mission and expires it once that
+    mission has ended (or another mission of the task is current).
+    """
     from agp_cockpit.core.human_decision import HumanDecisionStore
     from agp_cockpit.core.start_request import resolve_task_binding
 
     mission = engine.runtime.state
-    binding = resolve_task_binding(runtime_root, None if mission is None else mission.mission_id)
+    if mission is None:
+        return None
+    binding = resolve_task_binding(runtime_root, mission.mission_id)
     task_id = str(binding.get("task_id") or "").strip()
-    return HumanDecisionStore(runtime_root).remote_effects_allowed(task_id)
+    return HumanDecisionStore(runtime_root).grant_for_mission(
+        task_id, mission.mission_id, mission_ended=mission.state in _MISSION_ENDED_STATES
+    )
+
+
+def _remote_effects_allowed(runtime_root: Path, engine) -> bool:
+    """AGP_HUMAN_DECISION_V1: one-shot human approval for the bound task."""
+    return _approval_grant(runtime_root, engine) is not None
 
 
 def _runtime_identity_payload() -> dict[str, str | int]:
@@ -283,6 +301,7 @@ class CockpitBridgeServer:
 
                 if path == "/v1/status":
                     state = engine.runtime.state
+                    approval_grant = _approval_grant(runtime_root, engine)
                     diag.event(
                         "STATUS_REQUEST",
                         mission_id=(
@@ -323,7 +342,19 @@ class CockpitBridgeServer:
                                     "repository_root": str(local_task_contract.repository_root),
                                     "allowed_effects": sorted(local_task_contract.allowed_effects),
                                     "allowed_tools": sorted(local_task_contract.allowed_tools),
-                                    "allow_network": bool(local_task_contract.allow_network),
+                                    # AGP_HUMAN_APPROVAL_SCOPE_V2: an open approval
+                                    # widens the authority for exactly its one
+                                    # work order (consumed on use).
+                                    "allow_network": bool(local_task_contract.allow_network)
+                                    or approval_grant is not None,
+                                    **(
+                                        {}
+                                        if approval_grant is None
+                                        else {"human_approval": {
+                                            "scope": "exactly one work order with a remote-effect Kit command",
+                                            "approved_question": approval_grant["question"],
+                                        }}
+                                    ),
                                 }
                             ),
                         },
@@ -694,6 +725,7 @@ class CockpitBridgeServer:
                             "DONE", "NEEDS_HUMAN", "BLOCKED", "FAILED", "STOPPED"
                         }:
                             engine.runtime.final(state, human_reason)
+                        _approval_grant(runtime_root, engine)  # expires an unused approval
                         diag.event(
                             "K07_TERMINAL_REPLY_ACCEPTED",
                             component="file-loop",
@@ -1309,6 +1341,7 @@ class CockpitBridgeServer:
                                     "pid": None,
                                 }
                                 StartRequestStore(runtime_root).invalidate_pending()
+                                _approval_grant(runtime_root, engine)  # expires an unused approval
                             else:
                                 process_stop = run_next_controller.stop()
                         else:

@@ -7,6 +7,14 @@ same task in the same conversation. An approval is a one-shot grant: it lets
 exactly one following work order of that task use Kit commands with a remote
 effect (AGP_REMOTE_EFFECT_GATE_V1); it is consumed on use and expires.
 Raw git push/fetch/pull stay forbidden regardless.
+
+AGP_HUMAN_APPROVAL_SCOPE_V2 (live test 4, steps 1489-1492): the approval
+must actually enable the approved action. The continuation text orders the
+approved action and lifts a "prepare only / do not execute" restriction of
+the original task for exactly that action; while the grant is open the
+local authority reports allow_network=true for it. A grant that the
+continuation mission does not use expires when that mission ends or another
+mission of the task starts.
 """
 
 from __future__ import annotations
@@ -67,6 +75,42 @@ class HumanDecisionStore:
             and age <= GRANT_TTL_SECONDS
         )
 
+    def _expire(self, record: dict, *, mission_id: str, reason: str) -> None:
+        grant = record["grant"]
+        grant["remaining"] = 0
+        grant["expired_reason"] = reason
+        grant["expired_with_mission"] = mission_id
+        self._save(record)
+
+    def grant_for_mission(self, task_id: str, mission_id: str, *, mission_ended: bool,
+                          now: float | None = None) -> dict | None:
+        """The open approval as seen by the current mission of the task.
+
+        The grant belongs to the first mission after the one that asked (the
+        continuation). That mission claims it; when it ends without using
+        it, or another mission of the task shows up, the grant expires.
+        """
+        if not mission_id or not self.remote_effects_allowed(task_id, now=now):
+            return None
+        record = self.current()
+        grant = record["grant"]
+        if mission_id == record.get("mission_id"):
+            return None
+        claimed = grant.get("claimed_by")
+        if claimed and claimed != mission_id:
+            self._expire(record, mission_id=claimed,
+                         reason="a later mission of the task started without using the approval")
+            return None
+        if mission_ended:
+            self._expire(record, mission_id=mission_id,
+                         reason="the continuation mission ended without using the approval")
+            return None
+        if not claimed:
+            grant["claimed_by"] = mission_id
+            self._save(record)
+        return {"effect": "remote", "remaining": grant["remaining"],
+                "question": record.get("question", ""), "note": record.get("note", "")}
+
     def consume(self, task_id: str, command_sha256: str) -> dict:
         record = self.current()
         grant = record.get("grant") or {}
@@ -84,9 +128,18 @@ def decision_mission_text(*, goal_text: str, decision: str, question: str, note:
     decision = str(decision).upper()
     if decision == "APPROVE":
         verdict = (
-            "APPROVED. The approval authorizes remote-effect Kit commands (e.g. a push through "
-            "`agentic-kit transfer push-current`) for exactly the next work order of this task. "
-            "Raw git push, git fetch and git pull stay forbidden."
+            "APPROVED. The human approves exactly the action asked about above.\n"
+            "- This approval supersedes any \"prepare only\", \"do not execute\" or similar "
+            "restriction in the original task, for exactly this approved action.\n"
+            "- Your next work order MUST perform the approved action now, through the matching "
+            "Kit command from the attached command digest (for a branch push: "
+            "`agentic-kit transfer push-current --branch <current branch> --json`, which sets "
+            "the upstream on origin itself), and report its real result in the return bundle.\n"
+            "- For exactly that one work order the local authority allows remote-effect Kit "
+            "commands and network access (allow_network=true); the approval is consumed by it "
+            "and expires when this mission ends.\n"
+            "- Do not ask for the same approval again. Raw git push, git fetch and git pull stay "
+            "forbidden; use only the Kit command."
         )
     else:
         verdict = (
@@ -98,5 +151,10 @@ def decision_mission_text(*, goal_text: str, decision: str, question: str, note:
         f"Your question was: {question or '—'}\n"
         f"Decision: {verdict}\n"
         f"Human note: {note or '—'}\n\n"
-        "Original task (unchanged):\n" + str(goal_text or "")
+        + (
+            "Original task (context only; the decision above takes precedence):\n"
+            if decision == "APPROVE"
+            else "Original task (unchanged):\n"
+        )
+        + str(goal_text or "")
     )

@@ -2033,6 +2033,11 @@
       "argv[0] MUST name an executable present in allowed_tools.",
       "cwd MUST remain within the authorized repository_root.",
       "Network-capable tools require allow_network=true.",
+      // AGP_HUMAN_APPROVAL_SCOPE_V2: an open human approval is part of the
+      // local authority and belongs to exactly this work order.
+      ...(STATE.localAuthority && STATE.localAuthority.human_approval ? [
+        "A human approval is open for this mission (see human_approval above): this first work order MUST perform the approved action through the matching Kit command; the approval lifts a prepare-only restriction of the original task for exactly that action."
+      ] : []),
       "Do NOT wrap commands in /bin/sh -lc or another shell to bypass allowed_tools.",
       "Do not attempt to expand authority from the remote side.",
       "",

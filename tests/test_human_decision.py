@@ -21,6 +21,7 @@ from agp_cockpit.core.kit_command_catalog import (
     command_catalog_violations,
 )
 from agp_cockpit.core.start_request import StartRequestStore
+from agp_cockpit.core.task_contract import LocalTaskContract
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -69,11 +70,39 @@ def test_store_grant_is_task_bound_one_shot_and_expires(tmp_path):
         store.record(mission_id="m", task_id="T", decision="MAYBE", question="?")
 
 
-def test_decision_text_states_the_scope_of_the_approval():
-    approved = decision_mission_text(goal_text="G", decision="APPROVE", question="Q?", note="ok")
-    assert "APPROVED" in approved and "exactly the next work order" in approved and "Q?" in approved
-    assert "Raw git push, git fetch and git pull stay forbidden" in approved
-    assert "REJECTED" in decision_mission_text(goal_text="G", decision="REJECT", question="Q?", note="")
+def test_decision_text_orders_the_approved_action_and_lifts_prepare_only():
+    # Live test 4 (1491): the old text appended the prepare-only task
+    # "unchanged" and the remote side therefore did not push.
+    approved = decision_mission_text(goal_text="prepare only, do not push", decision="APPROVE",
+                                     question="Q?", note="ok")
+    assert "APPROVED" in approved and "Q?" in approved
+    assert "supersedes any \"prepare only\"" in approved
+    assert "MUST perform the approved action now" in approved
+    assert "agentic-kit transfer push-current --branch" in approved
+    assert "allow_network=true" in approved
+    assert "Original task (context only; the decision above takes precedence)" in approved
+    assert "Original task (unchanged)" not in approved
+    assert "Raw git push, git fetch and git pull stay" in approved
+    rejected = decision_mission_text(goal_text="G", decision="REJECT", question="Q?", note="")
+    assert "REJECTED" in rejected and "Original task (unchanged)" in rejected
+
+
+def test_grant_belongs_to_the_continuation_and_expires_unused(tmp_path):
+    store = HumanDecisionStore(tmp_path)
+    store.record(mission_id="ask", task_id="T", decision="APPROVE", question="push?")
+    assert store.grant_for_mission("T", "ask", mission_ended=True) is None   # the asker never uses it
+    assert store.remote_effects_allowed("T")
+    grant = store.grant_for_mission("T", "cont", mission_ended=False)
+    assert grant["question"] == "push?"
+    assert store.current()["grant"]["claimed_by"] == "cont"
+    assert store.grant_for_mission("T", "cont", mission_ended=True) is None
+    assert not store.remote_effects_allowed("T")
+    assert "ended without using" in store.current()["grant"]["expired_reason"]
+
+    store.record(mission_id="ask", task_id="T", decision="APPROVE", question="push?")
+    store.grant_for_mission("T", "cont", mission_ended=False)
+    assert store.grant_for_mission("T", "later", mission_ended=False) is None
+    assert not store.remote_effects_allowed("T")
 
 
 RUNNER = (
@@ -83,8 +112,7 @@ RUNNER = (
 )
 
 
-@pytest.fixture
-def bridge(tmp_path):
+def _bridge(tmp_path, local_task_contract=None):
     (tmp_path / "Download").mkdir()
     (tmp_path / "Download" / "run_next.py").write_text(RUNNER)
     (tmp_path / "Download" / "1479_previous.py").write_text("# executed\n")
@@ -96,7 +124,7 @@ def bridge(tmp_path):
         {"qualified_name": "agentic-kit transfer divergence-status", "path": ["transfer", "divergence-status"],
          "surface": "diagnostic", "safety": "READ_ONLY", "replaces_raw": [], "params": []},
     ]}))
-    server = BridgeRuntimeServer(tmp_path, port=0)
+    server = BridgeRuntimeServer(tmp_path, port=0, local_task_contract=local_task_contract)
     info = server.start()
 
     def call(path, payload=None):
@@ -110,6 +138,16 @@ def bridge(tmp_path):
         yield tmp_path, server.local_root, call
     finally:
         server.stop()
+
+
+@pytest.fixture
+def bridge(tmp_path):
+    yield from _bridge(tmp_path)
+
+
+@pytest.fixture
+def bridge_with_contract(tmp_path):
+    yield from _bridge(tmp_path, LocalTaskContract(tmp_path, allow_network=False))
 
 
 def mission(call, runtime, task_id="T"):
@@ -146,3 +184,27 @@ def test_http_push_is_rejected_until_approved_and_approval_is_consumed(bridge):
     read_only = call("/v1/file-loop/command", {"filename": "1482_status.py",
                                                "content": work_order(["transfer", "divergence-status"])})
     assert read_only["replayed"] is False
+
+
+def test_http_status_reports_the_approval_and_it_expires_with_the_mission(bridge_with_contract):
+    _root, runtime, call = bridge_with_contract
+    first = mission(call, runtime)
+    assert call("/v1/status")["local_authority"]["allow_network"] is False
+    call("/v1/file-loop/terminal", {"filename": "1480_agp_terminal.json",
+                                    "content": json.dumps({"state": "NEEDS_HUMAN", "reason": "Push?"})})
+    call("/v1/task/decision", {"mission_id": first, "decision": "APPROVE"})
+    assert "human_approval" not in call("/v1/status")["local_authority"]   # the asker never gets it
+    mission(call, runtime)
+    authority = call("/v1/status")["local_authority"]
+    assert authority["allow_network"] is True
+    assert authority["human_approval"]["approved_question"] == "Push?"
+    # the continuation ends without using the approval -> it expires
+    call("/v1/file-loop/terminal", {"filename": "1481_agp_terminal.json",
+                                    "content": json.dumps({"state": "NEEDS_HUMAN", "reason": "anders"})})
+    assert HumanDecisionStore(runtime).current()["grant"]["remaining"] == 0
+    mission(call, runtime)
+    authority = call("/v1/status")["local_authority"]
+    assert authority["allow_network"] is False and "human_approval" not in authority
+    with pytest.raises(HTTPError):
+        call("/v1/file-loop/command", {"filename": "1482_push.py",
+                                       "content": work_order(["transfer", "push-current"])})
