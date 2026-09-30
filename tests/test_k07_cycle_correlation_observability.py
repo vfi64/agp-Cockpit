@@ -36,7 +36,7 @@ def test_browser_result_transport_preserves_existing_cycle_correlation():
 def test_failed_command_turn_is_visible_without_claiming_completion():
     content = Path('chrome_extension/content.js').read_text()
     assert 'K07_COMMAND_FILE_TURN_FAILED' in content
-    assert 'commandResult.result_status === "failed"' in content
+    assert 'String(commandResult.result_status || "").toLowerCase() === "failed"' in content
     assert 'local command execution failed; recovery requested' in content
 
 def test_status_exposes_versioned_runtime_identity_and_log_path():

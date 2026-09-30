@@ -22,10 +22,16 @@ async function installCryptoSubtleHarness(page) {
       !globalThis.crypto.subtle ||
       typeof globalThis.crypto.subtle.digest !== "function"
     ) {
+      const original = globalThis.crypto;
       Object.defineProperty(globalThis, "crypto", {
         configurable: true,
         value: {
-          subtle: {digest}
+          subtle: {digest},
+          // Real pages always expose getRandomValues, including insecure
+          // contexts; the send-commit nonce depends on it.
+          getRandomValues: original && typeof original.getRandomValues === "function"
+            ? original.getRandomValues.bind(original)
+            : array => { for (let i = 0; i < array.length; i += 1) array[i] = Math.floor(Math.random() * 256); return array; }
         }
       });
     }
@@ -100,6 +106,7 @@ async function installBridgeMocks(page) {
       },
       runtime: {
         id: "phase066-test-extension",
+        getManifest: () => ({version: "0.3.13"}),
         onMessage: {addListener: () => {}}
       }
     };
@@ -199,3 +206,59 @@ for (const stage of ["USER_TURN_COMMITTED", "USER_TURN_INDETERMINATE"]) {
     else expect(events).not.toContain("NATIVE_SEND_ACCEPTED");
   });
 }
+
+test("actual content.js fails closed after indeterminate send with only an empty composer", async ({page}) => {
+  // AGP_K07_SEND_COMMIT_NONCE_V1: composer mutation is telemetry, not
+  // acceptance. No persisted nonce-bearing turn means no committed send.
+  test.setTimeout(40000);
+  await installCryptoSubtleHarness(page);
+  await installBridgeMocks(page);
+  await page.evaluate(() => {
+    window.AGPBrowserNativeTransport = {
+      available: () => true,
+      submit: async () => ({
+        stage:"USER_TURN_INDETERMINATE",
+        request_id:"fixture-native-empty-composer",
+        tab_id:1,
+        after:{
+          composer_text:"",
+          user_message_count:0,
+          exact_user_message_found:false,
+          generation_active:false
+        }
+      })
+    };
+  });
+  await expect.poll(() => page.evaluate(() => window.__agpEvents), {timeout:35000})
+    .toContain("MISSION_BOOTSTRAP_SEND_FAILED");
+  const events = await page.evaluate(() => window.__agpEvents);
+  expect(events).toContain("SEND_INDETERMINATE");
+  expect(events).not.toContain("NATIVE_SEND_PROVISIONAL_SIDE_EFFECT");
+  expect(events).not.toContain("MISSION_BOOTSTRAP_SENT");
+});
+
+test("actual content.js reconciles an indeterminate send by its nonce in unknown turn markup", async ({page}) => {
+  test.setTimeout(40000);
+  await installCryptoSubtleHarness(page);
+  await installBridgeMocks(page);
+  await page.evaluate(() => {
+    window.AGPBrowserNativeTransport = {
+      available: () => true,
+      submit: async prompt => {
+        window.__agpSubmittedPrompt = prompt;
+        const section = document.createElement("section");
+        const bubble = document.createElement("div");
+        bubble.textContent = prompt.slice(0, 120) + "…";
+        section.append(bubble);
+        document.querySelector("main").append(section);
+        return {stage:"USER_TURN_INDETERMINATE", request_id:"fixture-native-nonce", tab_id:1};
+      }
+    };
+  });
+  await expect.poll(() => page.evaluate(() => window.__agpEvents), {timeout:35000})
+    .toContain("MISSION_BOOTSTRAP_SENT");
+  const submitted = await page.evaluate(() => window.__agpSubmittedPrompt);
+  expect(submitted).toMatch(/^AGP-SEND-[0-9a-f]{16}\n/);
+  const events = await page.evaluate(() => window.__agpEvents);
+  expect(events).not.toContain("MISSION_BOOTSTRAP_SEND_FAILED");
+});

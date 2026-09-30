@@ -100,6 +100,7 @@
       request_id: requestId,
       operation: "insert_and_submit",
       text: prompt,
+      commit_marker: String(options.commitMarker || ""),
       attempt: Number(options.attempt || 1),
       page_url: location.href
     });

@@ -27,7 +27,7 @@ def test_cleanup_must_be_observed_before_native_submit_continues():
     fn = native_fn()
     assert "could not clear exact stale Cockpit-owned draft" in fn
     assert "cleanupDeadline" in fn
-    assert fn.index("NATIVE_STALE_OWNED_COMPOSER_RECOVERED") < fn.index("nativeTransport.submit(prompt, {attempt})")
+    assert fn.index("NATIVE_STALE_OWNED_COMPOSER_RECOVERED") < fn.index("nativeTransport.submit(prompt, {attempt, commitMarker})")
 
 def test_old_blanket_empty_composer_error_is_removed():
     fn = native_fn()

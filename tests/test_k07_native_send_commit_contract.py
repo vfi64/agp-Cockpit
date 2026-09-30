@@ -29,7 +29,7 @@ def test_cdp_dismisses_only_the_duplicate_upload_dialog_before_focus_verificatio
     assert "active_text" in BACKGROUND
     assert "attempt < 12" in BACKGROUND
 
-def test_cdp_requires_exact_persistent_user_turn_commit():
+def test_cdp_requires_persistent_user_turn_commit():
     assert 'stage:"USER_TURN_COMMITTED"' in BACKGROUND
     assert '"USER_TURN_INDETERMINATE"' in BACKGROUND
     assert '"USER_TURN_NOT_COMMITTED"' in BACKGROUND
@@ -73,11 +73,52 @@ def test_native_acceptance_is_only_user_message_commit():
     assert "NATIVE_USER_TURN_COMMITTED" in fn
     assert 'native_stage:"USER_TURN_COMMITTED"' in fn
 
+
+def test_indeterminate_native_send_reserves_possible_remote_step():
+    start = CONTENT.index("async function sendPromptNative(prompt)")
+    end = CONTENT.index("if (String(nativeAck.stage || \"\") !== \"USER_TURN_COMMITTED\")", start)
+    fn = CONTENT[start:end]
+    assert '"/v1/file-loop/reserve-step"' in CONTENT
+    assert 'reserveRemoteStep("native-send-indeterminate", reservedStep)' in fn
+    assert 'STATE.nextLocalStep = Number(reserved.next_step)' in CONTENT
+
+
+def test_indeterminate_send_never_accepts_empty_composer_as_commit():
+    # AGP_K07_SEND_COMMIT_NONCE_V1: composer mutation is telemetry only.
+    start = CONTENT.index("async function sendPromptNative(prompt)")
+    end = CONTENT.index("if (String(nativeAck.stage || \"\") !== \"USER_TURN_COMMITTED\")", start)
+    fn = CONTENT[start:end]
+    assert "NATIVE_SEND_PROVISIONAL_SIDE_EFFECT" not in CONTENT
+    assert "native_indeterminate_empty_composer" not in CONTENT
+    assert "provisionalRemoteStep" not in CONTENT
+    assert 'throw new Error("SEND_INDETERMINATE: user turn not reconciled")' in fn
+
+
+def test_every_native_send_carries_a_fresh_commit_nonce():
+    start = CONTENT.index("async function sendPromptNative(prompt)")
+    fn = CONTENT[start:CONTENT.index("async function sendPrompt(prompt)", start)]
+    assert "const commitMarker = agpCommitMarker();" in fn
+    assert "prompt = `${commitMarker}\\n${String(prompt || \"\")}`;" in fn
+    assert "nativeTransport.submit(prompt, {attempt, commitMarker})" in fn
+    assert "crypto.getRandomValues(bytes)" in CONTENT
+    transport = (ROOT / "chrome_extension" / "browser_native_transport.js").read_text()
+    assert 'commit_marker: String(options.commitMarker || "")' in transport
+    background = (ROOT / "chrome_extension" / "background.js").read_text()
+    assert "AGP_K07_SEND_COMMIT_NONCE_V1" in background
+    assert background.count("const observed = await observeCommit();") == 3
+    assert "markerStreak >= 2" in background
+
+
 def test_rendered_user_turn_projection_is_shared_and_debugger_safe():
     evidence = (ROOT / "chrome_extension" / "native_message_evidence.js").read_text()
     background = (ROOT / "chrome_extension" / "background.js").read_text()
     assert "function agpNormalizeUserTurnText" in evidence
+    assert "function agpRenderedUserTurnMatches" in evidence
+    assert "const minimumPrefix = 240" in evidence
+    assert "expectedText.startsWith(collapsedText)" in evidence
+    assert "observedText.slice(0, minimumPrefix) === expectedText.slice(0, minimumPrefix)" in evidence
     assert "normalizeRenderedUserTurn" in background
+    assert "renderedUserTurnMatches(message.text, text)" in background
     snapshot = evidence[evidence.index("function agpNativeMessageSnapshot") :]
     assert "agpNormalizeUserTurnText(value)" not in snapshot
     assert ".replace(/`/g, \"\")" in snapshot
@@ -85,4 +126,4 @@ def test_rendered_user_turn_projection_is_shared_and_debugger_safe():
 def test_raw_composer_verification_remains_separate_from_rendered_turn_projection():
     background = (ROOT / "chrome_extension" / "background.js").read_text()
     assert "normalize(inserted && inserted.value) !== normalize(text)" in background
-    assert "normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text)" in background
+    assert "renderedUserTurnMatches(message.text, text)" in background

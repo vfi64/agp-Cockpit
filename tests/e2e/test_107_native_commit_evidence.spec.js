@@ -5,20 +5,34 @@ const vm = require('node:vm');
 
 const extension = path.resolve(__dirname, '../../chrome_extension');
 
-async function runNative(page, {prompt, existing = false, submit = true, altered = false}) {
+async function runNative(page, {prompt, existing = false, submit = true, altered = false, roleless = false, collapseChars = null, renderedText = null}) {
   await page.setContent('<main><textarea id="prompt-textarea"></textarea><button data-testid="send-button">Send</button></main>');
-  const addMessage = async (id) => page.evaluate(({prompt, id, altered}) => {
-    const node = document.createElement('div');
-    node.dataset.messageAuthorRole = 'user';
+  const addMessage = async (id) => page.evaluate(({prompt, id, altered, roleless, collapseChars, renderedText}) => {
+    let bodyText = renderedText === null
+      ? (altered ? prompt.replace(/s/g, '') : prompt.replace(/ /g, '\u00a0'))
+      : renderedText;
+    if (Number.isInteger(collapseChars)) bodyText = bodyText.slice(0, collapseChars);
+    const node = document.createElement('section');
     node.dataset.messageId = id;
-    const body = document.createElement('div');
-    body.dataset.testid = 'collapsible-user-message-content';
-    body.textContent = altered ? prompt.replace(/s/g, '') : prompt.replace(/ /g, '\u00a0');
-    const toggle = document.createElement('button');
-    toggle.textContent = 'Mehr anzeigen';
-    node.append(body, toggle);
+    if (roleless) {
+      const heading = document.createElement('h5');
+      heading.textContent = 'Du hast gesagt:';
+      const body = document.createElement('div');
+      body.textContent = bodyText;
+      const assistant = document.createElement('h5');
+      assistant.textContent = 'ChatGPT hat gesagt:';
+      node.append(heading, body, assistant);
+    } else {
+      node.dataset.messageAuthorRole = 'user';
+      const body = document.createElement('div');
+      body.dataset.testid = 'collapsible-user-message-content';
+      body.textContent = bodyText;
+      const toggle = document.createElement('button');
+      toggle.textContent = 'Mehr anzeigen';
+      node.append(body, toggle);
+    }
     document.querySelector('main').append(node);
-  }, {prompt, id, altered});
+  }, {prompt, id, altered, roleless, collapseChars, renderedText});
   if (existing) await addMessage('old-turn');
   await page.locator('#prompt-textarea').focus();
   const events = [];
@@ -79,6 +93,47 @@ test('a new identical message is distinct from the old turn', async ({page}) => 
   expect(result.commit.exact_user_message_index).toBe(1);
 });
 
+test('native commit accepts visible heading-labelled user turns without role attributes', async ({page}) => {
+  const {result} = await runNative(page, {prompt:'mission status', roleless:true});
+  expect(result.stage).toBe('USER_TURN_COMMITTED');
+  expect(result.commit.latest_user_message).toBe('mission status');
+});
+
+test('native commit accepts a new long collapsed-prefix user turn', async ({page}) => {
+  const prompt = 'AGP mission bootstrap '.repeat(24) + 'FINAL HASH c385efa5346c04ec8a917a2a8f978c5226c55d3a23f42192c957eb111ea0db5b';
+  const {result} = await runNative(page, {prompt, collapseChars:320});
+  expect(result.stage).toBe('USER_TURN_COMMITTED');
+  expect(result.commit.latest_user_message.length).toBeGreaterThanOrEqual(240);
+  expect(result.commit.latest_user_message).toBe(prompt.slice(0, 320).trim());
+});
+
+test('native commit accepts a new long rendered projection with the same start', async ({page}) => {
+  const prompt = 'AGP mission bootstrap '.repeat(24) +
+    'source_manifest.json successor_prompt.md ' +
+    'agentic-kit transfer chat-switch-complete --json '.repeat(8) +
+    'FINAL HASH c385efa5346c04ec8a917a2a8f978c5226c55d3a23f42192c957eb111ea0db5b';
+  const renderedText = prompt.slice(0, 320) + ' renderer skipped a middle segment';
+  const {result} = await runNative(page, {prompt, renderedText});
+  expect(result.stage).toBe('USER_TURN_COMMITTED');
+  expect(result.commit.latest_user_message).toBe(renderedText.replace(/\s+/g, ' ').trim());
+});
+
+test('native commit rejects an old long rendered projection without a new turn', async ({page}) => {
+  const prompt = 'AGP mission bootstrap '.repeat(24) +
+    'source_manifest.json successor_prompt.md ' +
+    'agentic-kit transfer chat-switch-complete --json '.repeat(8) +
+    'FINAL HASH c385efa5346c04ec8a917a2a8f978c5226c55d3a23f42192c957eb111ea0db5b';
+  const renderedText = prompt.slice(0, 320) + ' renderer skipped a middle segment';
+  const {result} = await runNative(page, {prompt, existing:true, submit:false, renderedText});
+  expect(result.stage).toBe('USER_TURN_NOT_COMMITTED');
+});
+
+test('native commit rejects a too-short collapsed-prefix user turn', async ({page}) => {
+  const prompt = 'AGP mission bootstrap '.repeat(24) + 'FINAL HASH c385efa5346c04ec8a917a2a8f978c5226c55d3a23f42192c957eb111ea0db5b';
+  const {result} = await runNative(page, {prompt, collapseChars:120});
+  expect(result.stage).toBe('USER_TURN_INDETERMINATE');
+});
+
 for (const html of [
   'mission status<br>Steps: tests passed',
   '<p>mission status</p><p>Steps: tests passed</p>',
@@ -106,6 +161,26 @@ test('user-turn evidence accepts current conversation-turn test-id wrappers', as
   const result = await page.evaluate(() => agpNativeMessageSnapshot());
   expect(result.user_message_count).toBe(1);
   expect(result.messages[0].text).toBe('mission status Steps: tests passed');
+});
+
+test('user-turn evidence accepts visible localized author-heading layout', async ({page}) => {
+  await page.setContent(
+    '<main>' +
+    '<section><h5>Du hast gesagt:</h5>' +
+    '<div><p>mission&nbsp;status</p><p>Steps: tests passed</p><button>Nachricht kopieren</button></div>' +
+    '<h5>ChatGPT hat gesagt:</h5><div>assistant reply</div></section>' +
+    '<section><h5>You said:</h5>' +
+    '<div><p>next mission</p><p>Step 1472</p><button>Copy message</button></div>' +
+    '<h5>ChatGPT said:</h5><div>next assistant</div></section>' +
+    '</main>'
+  );
+  await page.addScriptTag({path:path.join(extension, 'native_message_evidence.js')});
+  const result = await page.evaluate(() => agpNativeMessageSnapshot());
+  expect(result.user_message_count).toBe(2);
+  expect(result.messages.map(message => message.text)).toEqual([
+    'mission status Steps: tests passed',
+    'next mission Step 1472'
+  ]);
 });
 
 test('user-turn evidence matches rendered Markdown to the raw prompt', async ({page}) => {

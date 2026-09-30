@@ -13,6 +13,20 @@ function agpNormalizeUserTurnText(value) {
     .trim();
 }
 
+function agpRenderedUserTurnMatches(observed, expected) {
+  const observedText = agpNormalizeUserTurnText(observed);
+  const expectedText = agpNormalizeUserTurnText(expected);
+  if (!observedText || !expectedText) return false;
+  if (observedText === expectedText) return true;
+  const minimumPrefix = 240;
+  const collapsedText = observedText.replace(/\s*(?:…|\.{3})$/, "").trim();
+  if (collapsedText.length >= minimumPrefix && expectedText.startsWith(collapsedText)) {
+    return true;
+  }
+  return observedText.length >= minimumPrefix &&
+    observedText.slice(0, minimumPrefix) === expectedText.slice(0, minimumPrefix);
+}
+
 function agpNativeMessageSnapshot() {
   // Keep the snapshot self-contained: background.js serializes this function
   // into the page through Runtime.evaluate(...toString()).
@@ -33,24 +47,12 @@ function agpNativeMessageSnapshot() {
     'article[data-testid^="conversation-turn-user"]',
     '[data-testid*="conversation-turn"][data-testid*="user"]'
   ];
-  let nodes = [];
-  for (const selector of userSelectors) {
-    const candidates = Array.from(document.querySelectorAll(selector))
-      .filter(node => {
-        const r = node.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      });
-    if (candidates.length) {
-      nodes = candidates;
-      break;
-    }
-  }
-  nodes = nodes
-    .filter(node => {
-      const r = node.getBoundingClientRect();
-      return r.width > 0 && r.height > 0;
-    });
-  const messages = nodes.map(node => {
+  const visibleElement = node => {
+    if (!node || typeof node.getBoundingClientRect !== "function") return false;
+    const r = node.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const cloneMessageText = node => {
     const content = node.querySelector('[data-testid="collapsible-user-message-content"]');
     const copy = (content || node).cloneNode(true);
     copy.querySelectorAll('button, [role="button"], [aria-hidden="true"]').forEach(control => control.remove());
@@ -59,9 +61,58 @@ function agpNativeMessageSnapshot() {
       block.prepend(document.createTextNode("\n"));
       block.append(document.createTextNode("\n"));
     });
-    const text = copy.textContent || "";
-    return {id:node.getAttribute("data-message-id") || "", text:norm(text)};
-  });
+    return norm(copy.textContent || "");
+  };
+  let nodes = [];
+  for (const selector of userSelectors) {
+    const candidates = Array.from(document.querySelectorAll(selector))
+      .filter(visibleElement);
+    if (candidates.length) {
+      nodes = candidates;
+      break;
+    }
+  }
+  nodes = nodes.filter(visibleElement);
+  let messages = nodes.map(node => ({
+    id:node.getAttribute("data-message-id") || "",
+    text:cloneMessageText(node)
+  }));
+  if (!messages.length) {
+    const userLabels = new Set(["du hast gesagt", "du hast gesagt:", "you said", "you said:"]);
+    const authorLabels = new Set([
+      "du hast gesagt", "du hast gesagt:", "you said", "you said:",
+      "chatgpt hat gesagt", "chatgpt hat gesagt:", "chatgpt said", "chatgpt said:"
+    ]);
+    const labelCandidates = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6,[role='heading'],strong,span,div"))
+      .filter(visibleElement)
+      .filter(node => {
+        const value = norm(node.textContent).toLowerCase();
+        return value.length <= 40 && userLabels.has(value);
+      });
+    const textFromLabel = label => {
+      for (let base = label; base; base = base.parentElement) {
+        const parent = base.parentElement;
+        if (!parent || parent === document.body || parent === document.documentElement) break;
+        const parts = [];
+        for (let sibling = base.nextElementSibling; sibling; sibling = sibling.nextElementSibling) {
+          const boundary = norm(sibling.textContent).toLowerCase();
+          if (boundary.length <= 40 && authorLabels.has(boundary)) break;
+          if (!visibleElement(sibling)) continue;
+          const text = cloneMessageText(sibling);
+          if (text) parts.push(text);
+          if (parts.length) break;
+        }
+        if (parts.length) return parts.join(" ");
+      }
+      return "";
+    };
+    messages = labelCandidates
+      .map(label => ({
+        id:label.getAttribute("data-message-id") || "",
+        text:textFromLabel(label)
+      }))
+      .filter(message => message.text);
+  }
   const composer = document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
   return {
     url:location.href,

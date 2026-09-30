@@ -4,18 +4,66 @@ importScripts("native_message_evidence.js");
 const ALARM_NAME = "agp-browser-refresh-tabs";
 const LAST_HANDLED = "agpLastHandledRefreshGeneration";
 const PENDING = "agpPendingRefreshTabs";
+const K07_DOWNLOAD_ARM_STORAGE = "agpK07DownloadArms";
 const K07_DOWNLOAD_ARMS = new Map();
 
 function k07DownloadNameMatches(actual, expected) {
   const actualName = String(actual || "").split(/[\\/]/).pop();
   const expectedName = String(expected || "").trim();
   if (actualName === expectedName) return true;
-  const stem = expectedName.replace(/\.py$/i, "");
-  return actualName.startsWith(`${stem} (`) && actualName.endsWith(".py");
+  const stem = expectedName.replace(/\.py$/i, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Browser duplicate suffixes: "x (1).py" and "x(2).py".
+  return new RegExp(`^${stem} ?\\(\\d+\\)\\.py$`, "i").test(actualName);
 }
 
 async function k07RecentDownloads() {
   return chrome.downloads.search({orderBy:["-startTime"], limit:100});
+}
+
+async function k07StoredDownloadArms() {
+  const data = await chrome.storage.session.get([K07_DOWNLOAD_ARM_STORAGE]);
+  const arms = data && data[K07_DOWNLOAD_ARM_STORAGE];
+  return arms && typeof arms === "object" ? arms : {};
+}
+
+async function k07StoreDownloadArm(key, arm) {
+  K07_DOWNLOAD_ARMS.set(key, {
+    knownIds:new Set(arm.knownIds || []),
+    armedAt:Number(arm.armedAt || Date.now()),
+  });
+  const stored = await k07StoredDownloadArms();
+  stored[key] = {
+    knownIds:Array.from(arm.knownIds || []),
+    armedAt:Number(arm.armedAt || Date.now()),
+  };
+  await chrome.storage.session.set({[K07_DOWNLOAD_ARM_STORAGE]:stored});
+}
+
+async function k07LoadDownloadArm(key) {
+  const memory = K07_DOWNLOAD_ARMS.get(key);
+  if (memory) return memory;
+  const stored = await k07StoredDownloadArms();
+  const arm = stored[key];
+  if (!arm) return null;
+  return {
+    knownIds:new Set(Array.isArray(arm.knownIds) ? arm.knownIds : []),
+    armedAt:Number(arm.armedAt || 0),
+  };
+}
+
+async function k07ForgetDownloadArm(key) {
+  K07_DOWNLOAD_ARMS.delete(key);
+  const stored = await k07StoredDownloadArms();
+  if (Object.prototype.hasOwnProperty.call(stored, key)) {
+    delete stored[key];
+    await chrome.storage.session.set({[K07_DOWNLOAD_ARM_STORAGE]:stored});
+  }
+}
+
+function k07DownloadStartedAfterArm(item, arm) {
+  const started = Date.parse(String(item && item.startTime || ""));
+  if (!Number.isFinite(started) || !Number.isFinite(arm.armedAt)) return false;
+  return started + 1000 >= arm.armedAt;
 }
 
 async function agpArmCommandFileDownload(message, sender) {
@@ -25,8 +73,8 @@ async function agpArmCommandFileDownload(message, sender) {
     throw new Error("K07 download arm requires one safe .py filename");
   }
   const known = await k07RecentDownloads();
-  K07_DOWNLOAD_ARMS.set(`${tabId}:${filename}`, {
-    knownIds: new Set(known.filter(item => k07DownloadNameMatches(item.filename, filename)).map(item => item.id)),
+  await k07StoreDownloadArm(`${tabId}:${filename}`, {
+    knownIds: known.filter(item => k07DownloadNameMatches(item.filename, filename)).map(item => item.id),
     armedAt: Date.now(),
   });
   return {ok:true, stage:"COMMAND_FILE_DOWNLOAD_ARMED", filename};
@@ -36,7 +84,7 @@ async function agpWaitForCommandFileDownload(message, sender) {
   const filename = String(message && message.filename || "").trim();
   const tabId = sender && sender.tab ? sender.tab.id : null;
   const key = `${tabId}:${filename}`;
-  const arm = K07_DOWNLOAD_ARMS.get(key);
+  const arm = await k07LoadDownloadArm(key);
   if (!arm) throw new Error("K07 command-file download was not armed");
   const deadline = Date.now() + 45000;
   try {
@@ -45,15 +93,24 @@ async function agpWaitForCommandFileDownload(message, sender) {
       const candidate = items.find(item =>
         !arm.knownIds.has(item.id) &&
         k07DownloadNameMatches(item.filename, filename) &&
+        k07DownloadStartedAfterArm(item, arm) &&
         item.state === "complete" &&
         item.filename
       );
       if (candidate) {
-        return {ok:true, stage:"COMMAND_FILE_DOWNLOADED", filename, download_path:candidate.filename, download_id:candidate.id};
+        return {
+          ok:true,
+          stage:"COMMAND_FILE_DOWNLOADED",
+          filename,
+          download_path:candidate.filename,
+          download_id:candidate.id,
+          download_bytes:Number(candidate.fileSize || candidate.totalBytes || 0),
+        };
       }
       const interrupted = items.find(item =>
         !arm.knownIds.has(item.id) &&
         k07DownloadNameMatches(item.filename, filename) &&
+        k07DownloadStartedAfterArm(item, arm) &&
         item.state === "interrupted"
       );
       if (interrupted) throw new Error(`browser download interrupted: ${interrupted.error || "unknown error"}`);
@@ -61,7 +118,7 @@ async function agpWaitForCommandFileDownload(message, sender) {
     }
     throw new Error("K07 command-file browser download timed out");
   } finally {
-    K07_DOWNLOAD_ARMS.delete(key);
+    await k07ForgetDownloadArm(key);
   }
 }
 
@@ -160,8 +217,13 @@ chrome.alarms.onAlarm.addListener(async alarm => {
 });
 
 
-async function agpK07NativeTrace1165(payload) {
-  try { await chrome.runtime.sendMessage({type:"AGP_K07_NATIVE_TRACE_1165", payload}); } catch (_) {}
+// A service worker cannot reach content scripts through
+// chrome.runtime.sendMessage; that API only addresses extension pages. The
+// trace must be addressed to the originating tab, whose content script owns
+// the authenticated /v1/client-event sink.
+async function agpK07NativeTrace1165(tabId, payload) {
+  if (!Number.isInteger(tabId)) return;
+  try { await chrome.tabs.sendMessage(tabId, {type:"AGP_K07_NATIVE_TRACE_1165", payload}); } catch (_) {}
 }
 
 // AGP_BROWSER_NATIVE_TRANSPORT_V1
@@ -204,6 +266,12 @@ async function agpNativeTransportV1(message, sender) {
     .replace(/\s+/g, " ")
     .trim();
   const normalizeRenderedUserTurn = value => agpNormalizeUserTurnText(value);
+  const renderedUserTurnMatches = (observed, expected) => {
+    if (typeof agpRenderedUserTurnMatches === "function") {
+      return agpRenderedUserTurnMatches(observed, expected);
+    }
+    return normalizeRenderedUserTurn(observed) === normalizeRenderedUserTurn(expected);
+  };
 
   try {
     await chrome.debugger.attach(target, "1.3");
@@ -212,6 +280,29 @@ async function agpNativeTransportV1(message, sender) {
     await chrome.debugger.sendCommand(target, "Runtime.enable");
 
     const observeMessages = () => evaluate(`(${agpNativeMessageSnapshot.toString()})()`);
+
+    // AGP_K07_SEND_COMMIT_NONCE_V1
+    // The content script prefixes every prompt with a fresh nonce line. Its
+    // persistent appearance outside the composer after submit is decisive
+    // commit evidence independent of user-turn selectors, ids, rendering,
+    // virtualization and URL changes.
+    const commitMarker = String(message.commit_marker || "");
+    if (commitMarker && (!/^AGP-SEND-[0-9a-f]{16}$/.test(commitMarker) || !text.startsWith(commitMarker + "\n"))) {
+      throw new Error("invalid native transport commit marker");
+    }
+    const observeMarker = async () => {
+      if (!commitMarker) return null;
+      return evaluate(`(() => {
+        const marker = ${JSON.stringify(commitMarker)};
+        const count = value => String(value || "").split(marker).length - 1;
+        const composer = document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
+        const inBody = composer && !(composer instanceof HTMLTextAreaElement)
+          ? count(composer.innerText || composer.textContent || "")
+          : 0;
+        const bodyText = document.body ? (document.body.innerText || document.body.textContent || "") : "";
+        return {outside_composer:Math.max(0, count(bodyText) - inBody), in_composer:inBody};
+      })()`);
+    };
     const beforeMessages = await observeMessages();
 
     const before = await evaluate(`(() => {
@@ -525,7 +616,8 @@ async function agpNativeTransportV1(message, sender) {
       };
     }
 
-    void agpK07NativeTrace1165({event:"PRIMARY_ENTER_BEFORE",request_id:requestId,send_target:sendTarget,inserted:inserted});
+    const markerBaseline = (await observeMarker()) || {outside_composer:0, in_composer:0};
+    void agpK07NativeTrace1165(tabId, {event:"PRIMARY_ENTER_BEFORE",request_id:requestId,send_target:sendTarget,inserted:inserted});
     await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
       type:"keyDown",
       key:"Enter",
@@ -546,16 +638,30 @@ async function agpNativeTransportV1(message, sender) {
     let commitEvidence = null;
     let lastObserved = null;
     const previousIds = new Set(beforeMessages.messages.map(message => message.id).filter(Boolean));
-    for (let i = 0; i < 40; i += 1) {
-      await new Promise(resolve => setTimeout(resolve, 250));
+    let markerStreak = 0;
+    const observeCommit = async () => {
       const observed = await observeMessages();
       const exactIndex = observed.url === beforeMessages.url
         ? observed.messages.findIndex((message, index) =>
-          normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text) &&
+          renderedUserTurnMatches(message.text, text) &&
           (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
         : -1;
+      const marker = await observeMarker();
+      markerStreak = marker && marker.outside_composer > markerBaseline.outside_composer
+        ? markerStreak + 1
+        : 0;
       observed.exact_user_message_index = exactIndex;
-      observed.exact_user_message_found = exactIndex >= 0;
+      observed.commit_marker = marker;
+      observed.commit_marker_streak = markerStreak;
+      observed.exact_user_message_found = exactIndex >= 0 || markerStreak >= 2;
+      observed.commit_via = exactIndex >= 0
+        ? "rendered_user_turn"
+        : (markerStreak >= 2 ? "commit_marker" : "");
+      return observed;
+    };
+    for (let i = 0; i < 40; i += 1) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      const observed = await observeCommit();
       lastObserved = observed;
       if (observed.exact_user_message_found) {
         commitEvidence = observed;
@@ -573,7 +679,7 @@ async function agpNativeTransportV1(message, sender) {
         lastObserved.composer_text === normalize(text) &&
         !lastObserved.generation_active;
       if (clearlyUnsent) {
-        void agpK07NativeTrace1165({event:"RETRY_ENTER_BEFORE",request_id:requestId,last_observed:lastObserved});
+        void agpK07NativeTrace1165(tabId, {event:"RETRY_ENTER_BEFORE",request_id:requestId,last_observed:lastObserved});
         await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
           type:"keyDown", key:"Enter", code:"Enter", text:"\r", unmodifiedText:"\r",
           windowsVirtualKeyCode:13, nativeVirtualKeyCode:13
@@ -584,14 +690,7 @@ async function agpNativeTransportV1(message, sender) {
         });
         for (let i = 0; i < 20; i += 1) {
           await new Promise(resolve => setTimeout(resolve, 250));
-          const observed = await observeMessages();
-          const exactIndex = observed.url === beforeMessages.url
-            ? observed.messages.findIndex((message, index) =>
-              normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text) &&
-              (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
-            : -1;
-          observed.exact_user_message_index = exactIndex;
-          observed.exact_user_message_found = exactIndex >= 0;
+          const observed = await observeCommit();
           lastObserved = observed;
           if (observed.exact_user_message_found) { commitEvidence = observed; break; }
         }
@@ -617,18 +716,11 @@ async function agpNativeTransportV1(message, sender) {
           button.click();
           return {clicked:true};
         })()`);
-        void agpK07NativeTrace1165({event:"DOM_SEND_FALLBACK",request_id:requestId,click_result:clickResult});
+        void agpK07NativeTrace1165(tabId, {event:"DOM_SEND_FALLBACK",request_id:requestId,click_result:clickResult});
         if (clickResult && clickResult.clicked) {
           for (let i = 0; i < 20; i += 1) {
             await new Promise(resolve => setTimeout(resolve, 250));
-            const observed = await observeMessages();
-            const exactIndex = observed.url === beforeMessages.url
-              ? observed.messages.findIndex((message, index) =>
-                normalizeRenderedUserTurn(message.text) === normalizeRenderedUserTurn(text) &&
-                (message.id ? !previousIds.has(message.id) : index >= beforeMessages.messages.length))
-              : -1;
-            observed.exact_user_message_index = exactIndex;
-            observed.exact_user_message_found = exactIndex >= 0;
+            const observed = await observeCommit();
             lastObserved = observed;
             if (observed.exact_user_message_found) {
               commitEvidence = observed;
@@ -641,7 +733,7 @@ async function agpNativeTransportV1(message, sender) {
           }
         }
       }
-      void agpK07NativeTrace1165({event:"COMMIT_FAILURE",request_id:requestId,clearly_unsent:Boolean(clearlyUnsent),before_messages:beforeMessages,send_target:sendTarget,last_observed:lastObserved});
+      void agpK07NativeTrace1165(tabId, {event:"COMMIT_FAILURE",request_id:requestId,clearly_unsent:Boolean(clearlyUnsent),before_messages:beforeMessages,send_target:sendTarget,last_observed:lastObserved});
       return {
         ok:false,
         request_id:requestId,
@@ -658,6 +750,10 @@ async function agpNativeTransportV1(message, sender) {
           after_user_message_count:Number(lastObserved && lastObserved.user_message_count || 0),
           after_latest_user_message_chars:String(lastObserved && lastObserved.latest_user_message || "").length,
           after_exact_user_message_found:Boolean(lastObserved && lastObserved.exact_user_message_found),
+          commit_marker_present:Boolean(commitMarker),
+          commit_marker_baseline:markerBaseline,
+          after_commit_marker:lastObserved ? lastObserved.commit_marker || null : null,
+          before_url:String(beforeMessages.url || ""),
           after_composer_chars:String(lastObserved && lastObserved.composer_text || "").length,
           after_generation_active:Boolean(lastObserved && lastObserved.generation_active),
           selector_url:String(lastObserved && lastObserved.url || "")

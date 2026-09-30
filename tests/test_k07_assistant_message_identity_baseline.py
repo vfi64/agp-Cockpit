@@ -15,5 +15,7 @@ def test_k07_assistant_baseline_prefers_message_identity_over_node_count():
 def test_k07_all_assistant_baseline_captures_include_message_identity():
     text = CONTENT.read_text(encoding="utf-8")
     assert text.count("captureAssistantBaseline();") >= 3
-    assert "STATE.assistantBaselineMessageIds = nodes" in text
-    assert "STATE.assistantBaselineMessageId = lastAssistantMessageId();" in text
+    # AGP_K07_BASELINE_BEFORE_SEND_V1: snapshot/apply split keeps identity.
+    assert "STATE.assistantBaselineMessageIds = baseline.ids" in text
+    assert "lastId:lastAssistantMessageId()" in text
+    assert "STATE.assistantBaselineMessageId = baseline.lastId" in text

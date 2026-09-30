@@ -9,7 +9,7 @@ def test_send_target_is_hit_tested_before_native_click():
     assert "button.contains(hit)" in n
     assert "style.pointerEvents" in n
     assert '"Input.dispatchKeyEvent"' in n
-def test_commit_remains_exact_persistent_user_turn():
+def test_commit_remains_persistent_user_turn():
     n=native()
     assert '"USER_TURN_NOT_COMMITTED"' in n
     assert 'stage:"USER_TURN_COMMITTED"' in n
