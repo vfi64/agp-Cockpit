@@ -1,6 +1,30 @@
 # Protocol Change and Failure Log
 Durable engineering memory; normative semantics remain in planning protocol authorities.
 
+## 2026-09-23 — verified handoff completion and service-limit boundary
+
+Observed failure: local step `1468` generated a fresh successor package, returned
+`PASS`, and incremented the browser turn to `1/40`, but the browser then demanded
+step `1469`. That mission used a durable task created before the handoff completion
+contract was added, so its persisted `completion_contract` was empty. A subsequent
+fresh task has the required `verified-successor-handoff-v1` contract, but ChatGPT's
+visible account-limit notice was then mistaken for a new assistant work response
+and failed as a missing Python attachment at `0/40`.
+
+Repair: fresh Chat-switch tasks carry the explicit completion contract and finish
+only after local Kit validation plus confirmed result delivery. The content script
+now recognizes bounded German and English ChatGPT usage-limit notices after checking
+for an authoritative Python attachment and before entering the K07 attachment timer.
+It records `REMOTE_SERVICE_LIMIT` and stops the mission without reporting a protocol
+or file-transfer error. All other FULL_AUTO assistant responses still require exactly
+one `.py` attachment; visible JSON or prose remains non-authoritative.
+
+Verification: the full Python suite, focused JavaScript behavior tests, Ruff, and
+diff checks pass. Extension identity advances to `0.3.11` /
+`service-limit-boundary-20260923`. A final live run requires available ChatGPT usage
+and must show either verified `DONE` after the first successful handoff step or
+`REMOTE_SERVICE_LIMIT` at `0/40`, never a fabricated next-step attachment error.
+
 ## 2026-09-20 — Chrome `Uncaught (in promise)` timeout hardening
 
 Observed failure: Chrome displayed `Uncaught (in promise) Error:
@@ -530,3 +554,392 @@ received. Old bundles and runner logs remain available as evidence. Regression
 coverage proves that an old mission's preflight failure does not block the
 first failed command of a new mission, while repeated failures within one
 mission remain bounded and terminal.
+
+## 2026-09-23: Verified Handoff Completion After 1467
+
+Observed: 1467 generated the package with PASS, followed by confirmed native
+result delivery. The first divergence was an unconditional next-step request:
+the remote final acknowledgement had no .py, causing a false missing-1468 error.
+Visible PASS text is not sufficient authority and must not bypass FILE_TRANSFER.
+
+Repair: an explicit local standard-task contract, fresh artifact/revision
+verification using the installed Kit validator, hash-bound delivery receipt,
+and the existing durable completion gate. Desktop task scope now comes from
+tasks.sqlite3, rather than the independent protocol session store. Browser DONE
+halts locally without an operator STOP. No command/download/upload format changes.
+
+Tests cover core rejection cases, idempotency, HTTP command-to-receipt-to-DONE,
+actual content.js delivery ordering, failed sends and ordinary continuation.
+The initial full run exposed two static tests tied to old implementation text;
+their assertions were updated alongside behavioral coverage, without relaxing
+the generation fence or Python-attachment requirement. The local full suite
+passed. Live browser E2E remains a separate acceptance check, not implied by
+the isolated integration tests. CI and handoff-content cleanup are out of scope.
+
+## 2026-09-25: Artifact Side Panel and Premature Attachment Deduplication
+
+Observed: the fresh `1469_chat_switch_standard_task.py` card appeared in a new
+ChatGPT conversation, but no local command file or handoff package was created.
+The event chain proved that the extension recognized the numbered attachment,
+then spent 45 seconds looking only for a dialog-hosted CodeMirror preview and
+another 45 seconds waiting for a browser download that never started. The
+extension had already recorded the attachment key before either operation
+succeeded, so the next poll suppressed the only valid response as a duplicate.
+
+First divergence: ChatGPT now renders code attachments in a side-panel artifact
+preview with a filename-labelled textbox, not necessarily under
+`[role="dialog"]`. The download timeout was therefore the primary failure; the
+premature deduplication marker converted that retryable transport failure into
+a permanent mission stall and eventual assistant-response timeout.
+
+Repair: accept both dialog and filename-labelled artifact preview text, locate
+the nearest preview container for deterministic close handling, scope attachment
+identity to mission and run generation, and commit the processed key only after
+successful local processing. A failed preview/download remains retryable; the
+server's existing idempotency boundary still protects a command accepted before
+a later continuation failure. Regression coverage exercises multiple changing
+numeric filenames and verifies that the current artifact-side-panel shape is
+readable without weakening the one-Python-file or expected-step rules.
+
+Build identity for this correction: Extension `0.3.12`, build
+`artifact-preview-retry-20260925`.
+
+## 2026-09-28: Preview Text Was Not the Authoritative Attachment Payload
+
+Observed: the side-panel repair allowed content to arrive, but the arrived
+content was not complete. The locally materialized
+`Download/1469_chat_switch_standard_task.py` was 3,452 bytes / 75 lines with
+SHA-256 `3baa69aeb62154455302d288a69f0f453e6db26aae4314b04bfebf67b1e81ba1`.
+The complete browser download at
+`~/Downloads/1469_chat_switch_standard_task(2).py` was 4,431 bytes / 77 lines
+with SHA-256 `c385efa5346c04ec8a917a2a8f978c5226c55d3a23f42192c957eb111ea0db5b`.
+The diff showed that the local file ended inside the `if ok:` block and missed
+the successor prompt writer, return-bundle writer, and `__main__` guard.
+
+First divergence: the content script treated readable CodeMirror/artifact
+preview `innerText` as the command payload. ChatGPT's preview was a virtualized
+UI projection, not the complete attachment. The local runner correctly rejected
+the result before executing the file, and the file-loop blocked after repeated
+same-family preflight failures; the Kit command was not reached.
+
+Repair: button-rendered `.py` attachments now require the browser download path.
+The preview may open and close as UI, but it is never submitted as command
+content. The background download arm is persisted in `chrome.storage.session`
+so a Manifest-V3 worker restart does not lose correlation; completed downloads
+must be fresh relative to the arm timestamp and must not be one of the
+previously known same-name files. `/v1/file-loop/download` remains the bounded
+server-side materialization point and enforces the existing filename/path/size
+rules. It now also validates the executable work-order contract before
+returning `COMMAND_FILE_FETCHED`; `/v1/file-loop/command` performs the same
+check before `K07_COMMAND_ACCEPTED`. A syntactically truncated or semantically
+incomplete Python file therefore stops at ingress instead of consuming a local
+execution number as an accepted command.
+
+Verification: JS syntax checks for `content.js` and `background.js` pass. The
+new Node regression uses a truncated preview and a complete simulated download
+and requires `readAssistantButtonAttachment()` to return the download content.
+A second Node regression proves the download arm survives worker restart,
+ignores stale same-name downloads, accepts the fresh one, records byte size,
+and clears the arm. Focused Python tests for attachment preview identity,
+background download correlation, attachment dialog close, command-file ingress,
+and download ingress pass. Additional ingress regressions reject truncated
+Python before download fetch completion and before file-loop command
+acceptance.
+
+Build identity for this correction: Extension `0.3.13`, build
+`download-authoritative-payload-20260928`.
+
+Follow-up restart divergence: after manually staging `0.3.13`, restarting the
+Cockpit could restore Chrome to extension `0.3.12`. The cause was the app
+staging source order: a PyInstaller build exposes its embedded extension through
+`sys._MEIPASS`, and `packaged_extension_source()` preferred that bundle before
+the configured repository source. A stale built `.app` therefore overwrote the
+fresh Application Support stage with its older embedded copy.
+
+Repair: repository `chrome_extension/` is now the first staging source whenever
+it exists; packaged app resources are fallback only when no repository source
+extension is available. Runtime path authority records this source order, and
+regression coverage simulates a stale bundled `0.3.12` app plus repository
+`0.3.13`, requiring staging to preserve the repository identity.
+
+Follow-up live divergence: a fresh standard-task E2E accepted start generation
+`134` with extension `0.3.13` / build `download-authoritative-payload-20260928`
+and prepared the bootstrap for local step `1472`. The native send path reported
+`USER_TURN_INDETERMINATE` and the Cockpit stopped the mission as
+`SEND_INDETERMINATE`, but the visible ChatGPT page later showed the exact new
+user turn and a generated `1472_chat_switch_standard_task.py` response. No local
+`Download/1472*` file was materialized because the mission had already stopped.
+
+First divergence: send reconciliation was a false negative. The current
+ChatGPT DOM exposed the user turn through visible localized author headings
+such as `Du hast gesagt:` rather than the previously counted
+`data-message-author-role="user"` wrappers. Generation activity and assistant
+activity remain telemetry only; they are still not send acceptance.
+
+Repair: the shared native-message snapshot now keeps the existing semantic
+selectors first, then falls back to visible localized author-heading layouts
+(`Du hast gesagt:` / `You said:`) and extracts the adjacent user-turn body while
+discarding controls. Regression coverage proves both the snapshot and the
+native commit path accept this role-less heading layout without accepting old
+identical messages, altered messages, generation activity, or assistant
+activity as authority.
+
+Second live divergence: after the author-heading fallback, generations `135`
+and `136` counted visible user turns, but still reported
+`exact_user_message_found: false`. The page had persisted the new long user
+turn in a collapsed rendering with a `Mehr anzeigen` control. In the live DOM,
+the visible projection is a long ChatGPT-rendered beginning, but it may omit or
+reshape later Markdown instead of being a complete prefix string of the raw
+prompt.
+
+Repair: native send reconciliation accepts a new persistent user turn when its
+rendered text is either an exact match or a sufficiently long collapsed prefix
+of the exact inserted prompt. It also accepts a long rendered projection with
+the same beginning as the exact inserted prompt, because the native path already
+verified the full composer content before submitting. These relaxed rendering
+rules are only usable for a turn that is new after the send boundary; old
+matching turns, short fragments, generation activity, composer mutation, and
+assistant activity remain non-authoritative.
+
+Related freshness repair: an indeterminate send can still have a remote side
+effect. Before stopping, the browser now reserves the currently expected local
+step as remote-issued. `next_step_number()` includes those reservations, so a
+later fresh mission must not ask ChatGPT to reuse a number that may already
+exist in the conversation but was not locally materialized.
+
+Follow-up review divergence: an external protocol review reproduced two
+runner-boundary failures with the real `Download/run_next.py`, not with the
+stub runners used by several tests. First, `execute_with_run_next()` could
+accept a newly created return bundle even when `run_next.py` exited non-zero.
+That made a self-test-created bundle or a command that wrote a bundle and then
+failed look like success. Second, a fresh local step below 100 was passed to
+`run_next.py` as `1`, while the materialized command file was named
+`001_*.py`; the canonical runner therefore could not select the command.
+
+Repair: `run_next.py` now maps numeric selectors to zero-padded local command
+filenames and logs textual `SystemExit` reasons into the runner log. The local
+runner treats any non-zero `run_next.py` return code as an execution diagnostic
+when candidate bundles exist; those bundles are retained only as evidence and
+are not promoted to success. File-loop failure classification now treats both
+`failed` and `FAIL` status values as failed outcomes.
+
+Verification: focused runner regressions execute the real `Download/run_next.py`
+for selector `1`, textual `SystemExit` logging, and a self-test-created bundle.
+Additional runner tests prove that `rc != 0` plus a candidate return bundle
+produces an execution diagnostic rather than a successful return bundle.
+
+Follow-up live divergence: a later standard-task start reserved expected step
+`1474` after native send reconciliation failed with `SEND_INDETERMINATE`.
+The ChatGPT conversation then produced `1474_chat_switch_standard_task.py`, but
+the Cockpit mission had already stopped at turn 0 and therefore never entered
+the assistant-attachment download path. The manually downloaded file was
+complete enough to pass the work-order shape checks; the first divergence was
+the send boundary, not the file download or runner.
+
+Repair: `USER_TURN_INDETERMINATE` with an empty composer is now treated as a
+plausible remote side effect. The content script records a provisional send and
+continues into the normal assistant-wait path instead of reserving the step and
+stopping immediately. Positive unsent evidence still fails. If no assistant
+response arrives before the existing assistant timeout, the provisional step is
+then reserved as remote-issued to avoid later number reuse.
+
+Verification: content-script regression coverage exercises the indeterminate
+empty-composer path and requires `MISSION_BOOTSTRAP_SENT` rather than
+`MISSION_BOOTSTRAP_SEND_FAILED`. Static contract tests assert the timeout-side
+reservation path remains present.
+
+## 2026-09-29: Megablick — Native Send Commit, Delivery State and In-Flight Records
+
+Trigger: the native-send reconciliation domain had three consecutive repairs
+without live success (author-heading fallback, long collapsed-prefix matching,
+empty-composer provisional acceptance). AGENTS.md requires a Megablick before
+a further mutation in the same failure domain.
+
+Evidence (repository bridge log `.local/agp-cockpit/logs/bridge.log*`): every
+live start on 2026-09-28/29 (missions `97cdc602`, `9a981d60`, `1c4ca481`,
+`325227f2`) failed at bootstrap with `USER_TURN_INDETERMINATE` in the same
+conversation. Each attempt reported `composer_chars: 0`,
+`exact_user_message_found: false`, `generation_started_observed: false` and
+`user_message_count: 5`, although the conversation grew by one user turn per
+attempt. Across all five rotated logs there were zero `K07_NATIVE_TRACE`
+events despite five indeterminate sends.
+
+First divergence and root causes:
+
+1. Observability defect: `background.js` sent native-transport traces with
+   `chrome.runtime.sendMessage`. From a service worker this only addresses
+   extension pages, never content scripts, so the `COMMIT_FAILURE` snapshot
+   (before/after messages, URL) could never reach `/v1/client-event`. The test
+   `test_k07_native_trace_event_sink_1165` only asserted source strings. Every
+   later repair in this domain was therefore designed without the decisive
+   trace.
+2. Commit-evidence design defect: acceptance depended on recognising the new
+   user turn through DOM wrappers, ids or positional index plus a rendered-text
+   projection of a long Markdown prompt. The constant visible count of five
+   is consistent with a bounded render window in which the index rule
+   (`index >= before.length`) can never hold for id-less turns. Consecutive
+   recovery prompts also shared their first 240 normalized characters, so the
+   prefix rule could not distinguish them.
+3. The 2026-09-29 empty-composer repair treated composer mutation as
+   acceptance, contradicting this protocol, and on the handoff path would have
+   allowed `/result-delivered` and `VERIFIED_COMPLETE` without proven delivery.
+
+Coherent repair (one slice):
+
+- Traces are addressed to the originating tab (`chrome.tabs.sendMessage`).
+- `AGP_K07_SEND_COMMIT_NONCE_V1`: every native send is prefixed with a fresh
+  `AGP-SEND-<16 hex>` line; its persistent appearance outside the composer is
+  decisive commit evidence in `background.js` and in content-script
+  reconciliation. The empty-composer provisional acceptance was removed; an
+  unconfirmed send fails closed again.
+- `AGP_K07_DELIVERY_STATE_V1`: per-step delivery state, `/v1/file-loop/delivery-ack`,
+  re-delivery of `PENDING` results on replay (previously a replay after a lost
+  send suppressed the continuation forever and stranded handoff completion).
+- `AGP_K07_INFLIGHT_RECORD_V1`: `RUNNING` is persisted before `run_next.py`;
+  a lost outcome blocks instead of executing again under a new number.
+- `AGP_K07_POST_EXECUTION_OPERATOR_CONTROL_V1`: STOP/PAUSE requested during
+  execution suppresses the continuation (STOP withholds, PAUSE re-delivers on
+  resume). The browser also checks its run generation before sending.
+- `AGP_K07_DOWNLOAD_PROVENANCE_V1`: download byte/hash binding between
+  `/download` and `/command`; duplicate-name matching accepts the live
+  `(2)`-without-space form and nothing looser than `<stem>( ?)(N).py`.
+- `AGP_K07_BASELINE_BEFORE_SEND_V1` and `AGP_K07_ATTACHMENT_STABILITY_V1`.
+- Recovery prompts after `OUTCOME_UNKNOWN` state that effects may have applied.
+
+Verification: full Python suite and `ruff check .` green (Python 3.12 venv).
+New behavioral tests: `tests/native_trace_delivery.cjs` (fails on the previous
+`background.js`), `tests/test_k07_delivery_and_inflight_state.py`,
+`tests/test_k07_delivery_http.py`, download-name tests in
+`tests/test_download_ingress.py`, and `tests/e2e/test_k07_send_commit_nonce.spec.js`,
+which drives the real `background.js` native transport against a real Chromium
+DOM through forwarded CDP commands. In that fixture (role-less turns, five-turn
+window, URL change, collapsed projection) the legacy matcher stays
+indeterminate while the nonce commits; an emptied composer without a persisted
+turn never commits. Playwright suite: 52 passed; the 11 failures
+(`test_066_send_ack_false_negative_fixture` needs `tests/browser_fixtures/chatgpt_fixture.js`,
+`test_203_phase5_conversation_contract` needs network access to chatgpt.com)
+fail identically on the pre-change code in the review environment.
+
+Build identity: extension `0.3.14` / `send-commit-nonce-delivery-state-20260929`,
+bridge `send-commit-nonce-delivery-state-20260929`.
+
+Not yet proven (G9, live acceptance): the fixture reproduces the divergence
+class, not the exact live DOM. The next single real E2E must show
+`NATIVE_SEND_ACCEPTED` or, if it still fails, a `K07_NATIVE_TRACE`
+`COMMIT_FAILURE` whose `last_observed.commit_marker` settles whether the nonce
+line is rendered. Result-file upload completeness before the continuation
+commit and the generation-activity selectors remain unverified live.
+
+## 2026-09-30: Live E2E — Send Commit Proven, Response Boundary Missed
+
+Live run (mission `0be812a4`, extension `0.3.14`, bridge
+`send-commit-nonce-delivery-state-20260929`): the bootstrap was committed in
+one second (`NATIVE_USER_TURN_COMMITTED` → `NATIVE_SEND_ACCEPTED` →
+`MISSION_BOOTSTRAP_SENT`). The send-boundary divergence of 2026-09-28/29 is
+closed by live evidence. ChatGPT then rendered `1475_chat_switch_standard_task.py`
+(complete, 79 lines, passes the command-file contract), but the browser emitted
+no assistant observation and stopped with `K07_ASSISTANT_RESPONSE_TIMEOUT after 180s`
+at turn 0. With the K07 debug trace enabled, `ASSISTANT_OBSERVED` never fired,
+so `newAssistantTextAfterBaseline()` returned before its first trace point on
+every poll; `assistantPythonAttachmentCandidates()` also returns nothing when
+`[data-message-author-role="assistant"]` matches no node.
+
+First divergence: response-boundary detection after a committed send. Most
+consistent explanation, matching the 2026-09-28 finding that user turns lost
+their role wrappers: the assistant turn has no `data-message-author-role`
+wrapper either. Not yet proven by DOM evidence; no DOM snapshot was logged.
+
+Repair: `AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1` identifies the awaited
+response by the freshly assigned step number on a file card, independent of
+assistant wrappers (analogous to the send nonce), and
+`AGP_K07_ASSISTANT_WAIT_OBSERVATION_V1` logs bounded DOM evidence while
+waiting, so the next miss is diagnosable from the log. Real-Chromium spec
+`tests/e2e/test_k07_expected_step_attachment.spec.js` covers role-less turns,
+older numbered cards, prose mentions and composer/dialog copies.
+
+Stale-card guard: `1475` was rendered remotely but never materialized or
+reserved locally, so the next mission would again expect `1475` and would find
+the old card. Before the bootstrap is issued, every expected step that is
+already visible as a card is reserved (`visible-unmaterialized-remote-attachment`)
+and the number advances; before a continuation is sent, a visible card for the
+next step reserves it and fails closed instead of sending.
+
+Build identity: extension `0.3.15` / `expected-step-attachment-20260930`.
+
+## 2026-09-30: Live E2E 4abfe28e — Transport Through Execution Proven, Delivery Fails
+
+Extension `0.3.15`, bridge `send-commit-nonce-delivery-state-20260929`.
+Proven live: stale-card reservation (1475), nonce/rendered send commit,
+expected-step response detection without any assistant-role node
+(`role_any=0`, `message_ids=0`), browser download with byte match (4306),
+contract acceptance, exactly-once execution of `1476` (RUN_NEXT PASS, Kit rc 0,
+validation PASS, generated_head = HEAD).
+
+First divergence: result delivery. `result_file_attachment.js` reported
+`ChatGPT file input did not confirm the selected result evidence files` while
+both evidence files were visibly attached in the composer; the continuation was
+not sent. Because `content.js` had already advanced `STATE.nextLocalStep` to
+1477 before delivery, the replay/re-delivery path could not re-detect card 1476
+and the loop timed out. Additional finding: `TASK_START_REQUEST_ACCEPTED`
+invalidates the start request including `task_id`, so `/v1/file-loop/command`
+saw `task_id=null` and verified handoff completion could not engage.
+Details, priorities and design consequences:
+`docs/engineering/K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md` (D1–D7).
+
+## 2026-09-30: Repair D1–D3 — Delivery Confirmation, Step Advance, Task Binding
+
+D1 `AGP_K07_RESULT_ATTACHMENT_EVIDENCE_V2`: `result_file_attachment.js` no longer
+re-dispatches `input`/`change` after `DOM.setFileInputFiles` and no longer reads
+the transient `input.files`. Confirmation is the appearance of every step-scoped
+evidence file name (also visually truncated) in the composer after the
+selection; evidence already present in the composer is reused on re-delivery
+instead of attached twice; otherwise it fails closed with composer diagnostics.
+Proof: `tests/e2e/test_k07_result_attachment_evidence.spec.js` drives the seam
+through a real CDP session on Chromium. The previous implementation fails that
+spec with exactly the live message `ChatGPT file input did not confirm the
+selected result evidence files`, which confirms the diagnosed cause.
+
+D2 `AGP_K07_ADVANCE_STEP_AFTER_DELIVERY_V1`: `STATE.nextLocalStep` advances only
+after the continuation was committed (or when delivery is not required:
+terminal, already-delivered replay). A held (PAUSE) or failed delivery keeps
+the current step, so replay can re-detect the card and re-deliver.
+Proof: `tests/handoff_browser_completion.cjs`.
+
+D3 `AGP_K07_ACTIVE_TASK_BINDING_V1`: accepting a start request now records a
+durable mission-to-task binding (`active_task_binding.json`) before the one-shot
+trigger is invalidated. `/v1/file-loop/command` and
+`/v1/file-loop/result-delivered` resolve the task through that binding for the
+current mission only. Proof:
+`tests/test_handoff_completion.py::test_task_binding_survives_start_request_invalidation`
+(fails when the binding lookup is disabled).
+
+Build identity: extension `0.3.16` / bridge `delivery-and-task-binding-20260930`.
+Live acceptance pending.
+
+## 2026-09-30: Live E2E 0f655637 — Full Cycle With Confirmed Delivery; Old Bridge Running
+
+Extension `0.3.16` was active; the desktop bridge still ran build
+`send-commit-nonce-delivery-state-20260929` (app restarted without rebuild).
+Proven live for the first time end to end: bootstrap commit, expected-step card
+`1477`, browser download (4306 bytes), exactly-once execution (RUN_NEXT PASS,
+Kit rc 0, validation PASS), result attachment confirmed (D1) and continuation
+committed, followed by `K07_RESULT_DELIVERED` for the step's result hash (D2).
+Not reached: verified handoff completion. The old bridge still logged
+`K07_COMMAND_ACCEPTED task_id=null` (D3 not deployed), so it sent the ordinary
+continuation expecting step 1478; the remote answered with prose
+(`PASS — die Übergabe ist vollständig abgeschlossen.`), and the loop stopped
+with `K07_ASSISTANT_RESPONSE_TIMEOUT` at 14:50:55. The desktop Standard Tasks
+panel kept showing `WAITING_FOR_REMOTE` from the start message (stale UI state).
+Next: rebuild/restart the bridge with `delivery-and-task-binding-20260930` and
+repeat once.
+
+## 2026-09-30 — Live acceptance mission ab040cc1 (step 1478) and Standard Tasks status line
+
+- Build `delivery-and-task-binding-20260930` (bridge + extension 0.3.16). bridge.log sequence for mission `ab040cc1-0046-454e-a77a-0095a914ff24`:
+  MISSION_BOOTSTRAP_SENT → K07_ASSISTANT_ATTACHMENT_OBSERVED (1478) → K07_ATTACHMENT_DOWNLOAD_USED (4306 bytes) → K07_COMMAND_ACCEPTED → K07_RESULT_BUNDLE_CREATED → NATIVE_USER_TURN_COMMITTED (FINAL_RECEIPT_PROMPT, 222 chars) → DONE.
+  D1 (attachment confirmation), D2 (advance after delivery) and D3 (task binding across start-request invalidation) are live-proven.
+- Failure: the desktop Standard Tasks panel still showed "Lokaler Zustand: WAITING_FOR_REMOTE". The text was written once at start and never refreshed; mission (DONE) and durable task (VERIFIED_COMPLETE) were correct.
+- Repair (AGP_STANDARD_TASK_PROGRESS_V1): `core/standard_task_progress.py` derives the status from the bridge mission bound to the started mission id and the durable task state; the panel polls every 2 s until terminal. Mission DONE without VERIFIED_COMPLETE is reported as "Mensch muss prüfen", never as success; a foreign/absent mission is "Unklar".
+- Test: `tests/test_standard_task_progress.py`.
+- Second acceptance run (step 1479, 17:27): panel showed "Fertig ✓ … Mission: DONE · Lokaler Task: VERIFIED_COMPLETE"; remote acknowledged the final receipt.
+- Remaining display defect in that run: "Steps 0" although one command file executed. The file loop never incremented `step_count` (only the legacy `record_step_result` did). Repair AGP_K07_STEP_COUNT_V1: `BridgeRuntime.record_local_step()` once per newly executed command file, never on replay; HTTP test `test_mission_counts_each_executed_step_once_and_never_a_replay` (fails without the fix).

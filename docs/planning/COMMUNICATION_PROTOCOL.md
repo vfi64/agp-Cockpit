@@ -15,6 +15,11 @@ MISSION/READY → task-start persisted/accepted → bootstrap prepared → nativ
 ## Invariants
 Reload does not silently create or duplicate mission/task/generation/action/execution. A completed assistant response executes at most once for its identity. Remote work-order content never self-grants authority. No Protocol-v1 action bypasses the local Task Contract. Success requires authoritative commit/result evidence. BLOCKED/FAIL/NEEDS_HUMAN are not bypassed. Contradictory state fails loud.
 
+A bounded ChatGPT account/service-limit notice is remote service state, not an
+assistant work order. After checking for an authoritative command attachment, the
+browser must stop with `REMOTE_SERVICE_LIMIT` before the K07 attachment timer. This
+classification never permits ordinary prose to bypass the exactly-one-`.py` rule.
+
 ## Failure analysis
 Classify at the first failed transition. State recovery ownership and which identities retry/reuse/advance. Absence of a success event alone does not identify root cause.
 
@@ -38,6 +43,32 @@ local Task Contract authorization -> Protocol execution -> authoritative `result
 `RESULT_DELIVERED` -> `TURN_SUBMIT_OK` -> continuation or terminal transition.
 
 Mission/task state, start-request generation, content-script attachment generation, browser-message identity, Protocol action identity and executor attempt are correlated but not interchangeable.
+
+Native send acceptance requires decisive commit evidence after the send
+boundary (`AGP_K07_SEND_COMMIT_NONCE_V1`). Every native send prefixes the
+prompt with a fresh first line `AGP-SEND-<16 hex>` generated from
+`crypto.getRandomValues`. Its occurrence outside the composer in two
+consecutive observations after submit is decisive commit evidence; because the
+nonce did not exist before the send, this evidence is independent of ChatGPT's
+user-turn wrappers, message ids, Markdown projection, virtualization window and
+conversation URL. The rendered-turn match below remains an additional,
+equally decisive path. An emptied composer is never commit evidence.
+
+The rendered-turn path requires a persistent user-turn match after the send
+boundary. The browser may recognize that user turn through ChatGPT's semantic
+role/test-id wrappers or through the visible localized author-heading layout
+(`Du hast gesagt:` / `You said:`) when role wrappers are absent. The match must
+be exact, except that a new long collapsed rendering may count when it is a
+prefix of the exact text inserted by the native transport or has the same long
+rendered beginning as that exact inserted text.
+Generation activity, composer mutation, and assistant activity remain telemetry
+only and do not prove send acceptance.
+
+If send acceptance remains indeterminate and the prompt may have reached
+ChatGPT, the bridge reserves the expected local work-order number before
+stopping. Future `next_local_step` calculations include that reservation, even
+when no local command file was materialized, so a retry does not request a
+number that may already be visible in the conversation.
 
 ## Cross-layer transition table
 
@@ -97,6 +128,12 @@ This section is normative and overrides legacy text/JSON compatibility behavior 
 
 1. The command payload from ChatGPT is exactly one `.py` attachment. The visible assistant prose/text is not the command payload.
 2. Cockpit materializes that attachment and sends it through the existing file-loop ingress (`submitAssistantCommandFile` -> `/v1/file-loop/command`).
+   Attachment preview text is UI evidence only. For link-rendered files the payload
+   comes from the authenticated file fetch; for button-rendered files the payload
+   comes from the browser download materialized through `/v1/file-loop/download`.
+   Preview `innerText`/`textContent` must not be submitted as command content.
+   Download and command ingress validate the executable work-order contract
+   before returning `COMMAND_FILE_FETCHED` or accepting a local file-loop turn.
 3. A normal K07 cycle MUST NOT require, parse, repair, or execute a pure-JSON work order from visible ChatGPT text.
 4. If the required `.py` attachment is absent, K07 MUST fail loud with `K07_FILE_TRANSFER_ATTACHMENT_REQUIRED`. It MUST NOT send a JSON format-repair prompt.
 5. JSON remains permitted only as an internal control/serialization format and for explicitly named legacy/probe compatibility paths. It is not the normal K07 chat payload.
@@ -132,6 +169,9 @@ This section is normative for the local Python work-order boundary.
    Kit is invoked. The rejection produces one diagnostic return bundle with
    command-file byte size, line count, SHA-256, interpreter, CWD and runner
    argv.
+   The same contract is checked at the transport ingress, so a truncated or
+   non-executable download is rejected before it becomes an accepted local
+   work order.
 3. `py_compile` success, `--self-test` exit code 0, or a real-run exit code 0
    alone never proves that the requested work happened. Exactly one valid
    JSON return bundle is required.
@@ -143,3 +183,88 @@ This section is normative for the local Python work-order boundary.
    still possible. After three consecutive failures with the same failure
    signature and no proven progress, the loop enters terminal `BLOCKED` and
    sends no additional automatic remote turn.
+
+## Verified Standard-Task Handoff Completion
+
+The locally created chat-switch task carries `verified-successor-handoff-v1`.
+Only this explicit contract enables local terminal handoff verification.
+The file-loop reads desktop task authority from `tasks.sqlite3`, not the
+independent Protocol-v1 session database.
+
+A successful runner result must identify the canonical package, fresh required
+files, the current revision and a step-bound detailed prompt. The installed Kit
+validator independently checks the package. A receipt binds mission, task,
+cycle, result hash and artifact hashes; assistant prose is never authority.
+The unchanged result attachment/native-send path sends a final receipt request.
+Only its confirmed send permits `/v1/file-loop/result-delivered`; revalidation
+and the durable completion gate then produce `VERIFIED_COMPLETE` and `DONE`.
+The browser stops polling without issuing an operator STOP. It does not request
+another Python work order. Ordinary file turns still require exactly one .py.
+
+Missing, stale or changed evidence fails closed. Interrupted/uncertain delivery
+does not complete or blindly resend the work order. Matching delivery receipts
+are idempotent; existing tasks without this contract are not retroactively
+completed. Start a fresh standard task after installing the updated runtime.
+
+## K07 Delivery, Replay and In-Flight State (2026-09-29)
+
+This section is normative for the file loop after local execution.
+
+1. In-flight record (`AGP_K07_INFLIGHT_RECORD_V1`). After a command file is
+   accepted and numbered, and before `run_next.py` starts, the bridge persists
+   the step as `RUNNING` in `file-loop-state.json`. An exception during
+   execution turns it into `OUTCOME_UNKNOWN`. A `RUNNING` or `OUTCOME_UNKNOWN`
+   record found at admission means the bridge lost that outcome; the loop
+   enters `BLOCKED` and executes nothing, for the same or any other command
+   file (no blind replay). A new mission identity starts a fresh loop state.
+2. Delivery state (`AGP_K07_DELIVERY_STATE_V1`). Every executed step records
+   `result_sha256` and a delivery state: `PENDING` (result exists, delivery
+   unconfirmed), `DELIVERED` (browser confirmed a committed continuation via
+   `/v1/file-loop/delivery-ack`, or the handoff `/v1/file-loop/result-delivered`),
+   `DELIVERED_IMPLIED` (a newer remote command proves the remote continued) or
+   `WITHHELD` (terminal or operator STOP suppressed delivery).
+3. Replay. A byte-identical command file is never executed twice. If its
+   result is `PENDING`, the replay re-delivers the preserved result files with
+   the original continuation, prefixed by an explicit re-delivery notice. If it
+   was delivered, the replay is suppressed. A lost delivery acknowledgement is
+   never a reason to resend: only a replay of a `PENDING` result re-delivers.
+4. Operator control after execution
+   (`AGP_K07_POST_EXECUTION_OPERATOR_CONTROL_V1`). The bridge re-reads operator
+   control after `run_next.py` returns. `STOP` makes the response terminal,
+   sends no continuation and marks the result `WITHHELD`. `PAUSE` returns
+   `held: true` without a prompt; the attachment stays unconsumed and the
+   resumed loop replays and re-delivers the `PENDING` result. The browser also
+   refuses to send a continuation when its run generation changed.
+5. Download provenance (`AGP_K07_DOWNLOAD_PROVENANCE_V1`). `/v1/file-loop/download`
+   returns `bytes` and `sha256` of the materialized file. The browser rejects a
+   size mismatch against Chrome's download item and submits `download_sha256`;
+   `/v1/file-loop/command` rejects content that does not match it. Accepted
+   browser duplicate names are exactly `<stem>.py`, `<stem> (N).py` and
+   `<stem>(N).py`.
+6. Turn boundary (`AGP_K07_BASELINE_BEFORE_SEND_V1`). The assistant baseline
+   for the next turn is snapshotted before the continuation is sent and applied
+   only after the send is committed.
+7. Attachment settling (`AGP_K07_ATTACHMENT_STABILITY_V1`). A visible `.py`
+   attachment is consumed only after the same attachment identity was observed
+   on two consecutive polls with generation idle.
+8. Unknown outcome. A timeout or operator stop during `run_next.py` produces
+   `OUTCOME_UNKNOWN`; the recovery prompt states that the effect may have been
+   applied and that the replacement must inspect current state first.
+9. Response identity (`AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1`). While a
+   local step number is assigned, the awaited remote response is identified by
+   a file card named `<expected step>_*.py` anywhere in the conversation,
+   excluding composer, user-turn and dialog copies. This does not depend on
+   assistant-turn wrappers. While no response boundary is visible, the browser
+   emits a bounded `K07_ASSISTANT_WAIT_OBSERVATION` (every 20 s) with DOM
+   selector counts, author headings, visible `.py` labels and stop controls.
+10. Observability. Native-transport traces from the service worker are sent to
+   the originating tab with `chrome.tabs.sendMessage` and reach the bridge log
+   as `K07_NATIVE_TRACE`; `SEND_INDETERMINATE` additionally carries the native
+   diagnostics and the nonce evidence.
+
+Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
+in the committed user turn (expected, it is plain text), whether result files
+are fully uploaded before the continuation is committed, and whether the
+generation-activity selectors still match the current ChatGPT DOM. The next
+real E2E must confirm or refute each from `K07_NATIVE_TRACE`,
+`K07_RESULT_DELIVERED` and `SEND_INDETERMINATE` evidence.
