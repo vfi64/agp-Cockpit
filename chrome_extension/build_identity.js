@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "handoff-evidence-20260930";
+globalThis.AGP_EXTENSION_BUILD_ID = "reply-policy-20260930";

@@ -275,8 +275,15 @@ This section is normative for the file loop after local execution.
    contract that is not yet verified it becomes `NEEDS_HUMAN`
    (`authority: completion-contract-rejected`); without a contract it is
    `DONE` with `authority: remote-declared`. A `.py` and a terminal file for the
-   same step, or two terminal files, fail closed. Every step-assigning
-   continuation and the bootstrap prompt state this rule. The wait timeout names
+   same step, or two terminal files, fail closed.
+12. Reply policy (`AGP_TASK_REPLY_POLICY_V1`, `core/task_reply_policy.py`).
+   Task definition, reply policy and transport are separate. The bootstrap of
+   every mission offers only a work order or `NEEDS_HUMAN` (a new mission is
+   never completed by earlier results in the conversation). Continuations of
+   a task with a local completion contract offer only a work order or
+   `NEEDS_HUMAN`; only generic missions are offered a remote `DONE`. The
+   bridge still converts an unoffered remote `DONE` on a contract task into
+   `NEEDS_HUMAN`. The wait timeout names
    the awaited file names and says that a human must check.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line

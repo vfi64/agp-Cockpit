@@ -66,6 +66,8 @@ Evaluate validation_report.json and continue only when it is PASS. Create a sepa
 
 Pass on the communication contract: exactly one newly numbered Download/*.py work order per local step, no reused number, execution through run_next.py, exactly one canonical *_return_bundle.json per execution, complete result evaluation before the next work order, and large coherent steps.
 
+Every start of this task requires a fresh local run with a new work order, even if an earlier handoff was completed in this conversation; an earlier result never completes a new start.
+
 The attached Python file is the executable local work order. It must execute the authorized Kit command during its real run (for this task: `agentic-kit transfer chat-switch-complete --json`), capture its return code/stdout/stderr, validate the required handoff files and validation report, and write exactly one canonical return bundle into Download/. Printing a JSON object that merely describes an argv/cwd command is not execution evidence and is an invalid work order. `--self-test` must validate structure without running the Kit command or mutating the repository.
 
 Keep the attached Python work order deliberately small: at most 80 source lines and 16 KiB, with no long comments, embedded logs, recursive Download scans, or prose outside the attachment. Before attaching it, verify that the complete file parses, has a `main()` plus `if __name__ == "__main__"`, accepts `--self-test`, executes the Kit command during the real run, and writes the one return bundle. A truncated or incomplete attachment is worse than a short diagnostic response and must not be submitted.

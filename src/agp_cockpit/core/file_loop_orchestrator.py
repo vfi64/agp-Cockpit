@@ -18,6 +18,7 @@ from .file_loop_runner import (
     execute_with_run_next,
     step_from_command_file,
 )
+from .task_reply_policy import GENERIC, ReplyPolicy, terminal_reply_instruction
 
 MAX_CONSECUTIVE_FAILURES = 3
 MAX_PREFLIGHT_FAILURES = 2
@@ -86,7 +87,8 @@ def _continuation_for_run(run:FileLoopRun)->str:
         + f"Command file: {run.command_file}\n")
 
 
-def _with_next_local_step(text: str, root: Path, completed_step: int) -> str:
+def _with_next_local_step(text: str, root: Path, completed_step: int,
+                          reply_policy: ReplyPolicy = GENERIC) -> str:
     next_step = next_step_number(root / "Download", minimum_step=completed_step)
     return (
         text
@@ -94,17 +96,7 @@ def _with_next_local_step(text: str, root: Path, completed_step: int) -> str:
         + f"The next remote command file must be new; expected local step: {next_step}. "
         + f"Set its internal STEP constant and all step-scoped output names to {next_step}. "
         + "Do not reuse the previous command-file content or identity.\n"
-        + terminal_reply_instruction(next_step)
-    )
-
-
-def terminal_reply_instruction(step: int) -> str:
-    """AGP_K07_TERMINAL_REPLY_FILE_V1: prose is not read; terminal answers are files."""
-    return (
-        "If the task is finished, or a human decision is required, attach instead exactly one "
-        f"file named {step}_agp_terminal.json containing only "
-        '{"state": "DONE" or "NEEDS_HUMAN", "reason": "<evidence-backed reason>"}. '
-        "A prose-only reply is not read by the Cockpit.\n"
+        + terminal_reply_instruction(next_step, reply_policy)
     )
 
 
@@ -190,6 +182,7 @@ def consume_command_file(
     mission_id: str | None = None,
     guard: AutomationGuard | None = None,
     process_controller: RunNextProcessController | None = None,
+    reply_policy: ReplyPolicy = GENERIC,
 ) -> LoopOutcome:
     source=source.expanduser().resolve();fp=hashlib.sha256(source.read_bytes()).hexdigest();state=_load(state_file)
     if mission_id and state.get("mission_id") != mission_id:
@@ -262,7 +255,7 @@ def consume_command_file(
         delivery_pending = (not blocked) and previous.get("delivery") == DELIVERY_PENDING
         if delivery_pending:
             continuation = REDELIVERY_NOTICE + _with_next_local_step(
-                _continuation_for_run(run), root, run.step
+                _continuation_for_run(run), root, run.step, reply_policy
             )
             if guard is not None:
                 try:
@@ -378,7 +371,7 @@ def consume_command_file(
             human_reason=human_reason,
             continuation_text=None,
         )
-    continuation = None if terminal_blocked else _with_next_local_step(_continuation_for_run(run), root, run.step)
+    continuation = None if terminal_blocked else _with_next_local_step(_continuation_for_run(run), root, run.step, reply_policy)
     if guard is not None and continuation is not None:
         try:
             guard.record_prompt(continuation)

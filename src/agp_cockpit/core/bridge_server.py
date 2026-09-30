@@ -42,6 +42,7 @@ from agp_cockpit.core.handoff_completion import (
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
+from agp_cockpit.core.task_reply_policy import policy_for
 from agp_cockpit.core.terminal_reply import parse_terminal_reply, record_terminal_reply
 from agp_cockpit.core.transport_protocol_v1 import (
     ActionRegistry,
@@ -421,6 +422,9 @@ class CockpitBridgeServer:
                             ),
                             guard=engine.guard,
                             process_controller=run_next_controller,
+                            # AGP_TASK_REPLY_POLICY_V1: a locally verified task
+                            # is never offered a remote DONE.
+                            reply_policy=policy_for(handoff_contract),
                         )
                         terminal_loop = outcome.state.value in {"BLOCKED", "NEEDS_HUMAN", "DONE"}
                         # AGP_K07_POST_EXECUTION_OPERATOR_CONTROL_V1: STOP or

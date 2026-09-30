@@ -2000,7 +2000,10 @@
       ...(nextStep > 0 ? [
         "The local bridge is the numbering authority for this run.",
         `The next local work-order number is ${nextStep}. Use exactly ${nextStep}_...py as the attachment filename and use ${nextStep} in the embedded STEP constant and all step-scoped output names. Never reuse an older number.`,
-        `If the task is already finished, or a genuine human decision is required, attach instead exactly one file named ${nextStep}_agp_terminal.json containing only {"state": "DONE" or "NEEDS_HUMAN", "reason": "<evidence-backed reason>"}. A prose-only reply is not read by the Cockpit.`
+        // AGP_TASK_REPLY_POLICY_V1: the first turn of every mission is a fresh
+        // work order. A remote DONE is never offered here; earlier results in
+        // the same conversation do not complete a new mission.
+        `This is a new mission: earlier results in this conversation do not complete it. Only if a genuine human decision is required before any local work, attach instead exactly one file named ${nextStep}_agp_terminal.json containing only {"state": "NEEDS_HUMAN", "reason": "<the decision required>"}. A prose-only reply is not read by the Cockpit.`
       ] : []),
       "",
       "Use the repository and Agentic Project Kit contracts from the mission.",
