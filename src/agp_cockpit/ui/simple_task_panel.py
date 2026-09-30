@@ -10,6 +10,10 @@ from agp_cockpit.core.mission_http_client import create_live_full_auto
 from agp_cockpit.core.mission_http_client import status as mission_status
 from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
 from agp_cockpit.core.start_request_client import request_task_start
+from agp_cockpit.core.task_contract_text import (
+    contract_from_text,
+    editor_text_from_file,
+)
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 
 
@@ -21,6 +25,7 @@ class SimpleTaskPanel(ttk.Frame):
         self.repository_root = repository_root.expanduser().resolve()
         self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
         self.contract: dict | None = None
+        self._mission_id = ""
         self.workflow_phase = "EMPTY"
 
         self.columnconfigure(0, weight=1)
@@ -47,18 +52,20 @@ class SimpleTaskPanel(ttk.Frame):
         self.load_button = ttk.Button(actions, text="Auftrag laden", command=self.load_contract)
         self.load_button.grid(row=0, column=0, padx=(0, 8))
 
+        self.new_button = ttk.Button(actions, text="Neuer Auftrag", command=self.new_task)
+        self.new_button.grid(row=0, column=1, padx=(0, 8))
         self.start_button = ttk.Button(
             actions, text="Task starten", command=self.start_task, state="disabled"
         )
-        self.start_button.grid(row=0, column=1)
+        self.start_button.grid(row=0, column=2)
         self.pause_button = ttk.Button(actions, text="Pause", command=self.pause_file_loop)
-        self.pause_button.grid(row=0, column=2, padx=(8, 0))
+        self.pause_button.grid(row=0, column=3, padx=(8, 0))
         self.resume_button = ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop)
-        self.resume_button.grid(row=0, column=3, padx=(8, 0))
+        self.resume_button.grid(row=0, column=4, padx=(8, 0))
         self.stop_button = ttk.Button(actions, text="Stop", command=self.stop_file_loop)
-        self.stop_button.grid(row=0, column=4, padx=(8, 0))
+        self.stop_button.grid(row=0, column=5, padx=(8, 0))
         self.reset_button = ttk.Button(actions, text="Reset", command=self.reset_file_loop)
-        self.reset_button.grid(row=0, column=5, padx=(8, 0))
+        self.reset_button.grid(row=0, column=6, padx=(8, 0))
         self.approve_button = ttk.Button(
             actions,
             text="Entscheidung freigeben",
@@ -67,10 +74,24 @@ class SimpleTaskPanel(ttk.Frame):
         )
         self.approve_button.grid(row=0, column=7, padx=(8, 0))
 
-        self.summary = tk.Text(self, height=14, wrap="word", state="disabled")
-        self.summary.grid(row=3, column=0, sticky="nsew")
+        # AGP_TASK_EDITOR_V1: the task is typed, pasted (Cmd+V) or loaded into
+        # this editor and can be changed until it is started.
+        editor_frame = ttk.LabelFrame(
+            self,
+            text="Auftrag — eintippen, einfügen oder mit „Auftrag laden“ übernehmen (Text oder JSON-Task-Contract)",
+            padding=4,
+        )
+        editor_frame.grid(row=3, column=0, sticky="nsew")
+        editor_frame.columnconfigure(0, weight=1)
+        editor_frame.rowconfigure(0, weight=1)
+        self.editor = tk.Text(editor_frame, height=14, wrap="word", undo=True, font="TkFixedFont")
+        self.editor.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(editor_frame, orient="vertical", command=self.editor.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.editor.configure(yscrollcommand=scrollbar.set)
+        self.editor.bind("<<Modified>>", self._on_editor_modified)
 
-        self.state_var = tk.StringVar(value="Bereit — noch kein Auftrag geladen.")
+        self.state_var = tk.StringVar(value="Bereit — Auftrag eingeben, einfügen oder laden.")
         ttk.Label(
             self,
             textvariable=self.state_var,
@@ -114,11 +135,46 @@ class SimpleTaskPanel(ttk.Frame):
             )
         )
 
-    def _set_summary(self, text: str) -> None:
-        self.summary.configure(state="normal")
-        self.summary.delete("1.0", "end")
-        self.summary.insert("1.0", text)
-        self.summary.configure(state="disabled")
+    def _editor_text(self) -> str:
+        return self.editor.get("1.0", "end-1c")
+
+    def _set_editor(self, text: str, *, editable: bool = True) -> None:
+        self.editor.configure(state="normal")
+        self.editor.delete("1.0", "end")
+        self.editor.insert("1.0", text)
+        self.editor.edit_reset()
+        self.editor.edit_modified(False)
+        self.editor.configure(state="normal" if editable else "disabled")
+        self._update_start_button()
+
+    def _update_start_button(self) -> None:
+        startable = self.workflow_phase != "STARTED" and bool(self._editor_text().strip())
+        self.start_button.configure(state="normal" if startable else "disabled")
+
+    def _on_editor_modified(self, _event=None) -> None:
+        if not self.editor.edit_modified():
+            return
+        self.editor.edit_modified(False)
+        if self.workflow_phase == "STARTED":
+            return
+        self.workflow_phase = "LOADED" if self._editor_text().strip() else "EMPTY"
+        self._update_start_button()
+        self.state_var.set(
+            "Auftrag bereit — kann gestartet werden."
+            if self.workflow_phase == "LOADED"
+            else "Bereit — Auftrag eingeben, einfügen oder laden."
+        )
+
+    def new_task(self) -> None:
+        if self.workflow_phase == "STARTED":
+            self.state_var.set("Ein Auftrag läuft noch — erst stoppen oder abschließen lassen.")
+            return
+        self.contract = None
+        self._mission_id = ""
+        self.workflow_phase = "EMPTY"
+        self._set_editor("")
+        self.editor.focus_set()
+        self.state_var.set("Bereit — Auftrag eingeben, einfügen oder laden.")
 
     def load_contract(self) -> None:
         path = filedialog.askopenfilename(
@@ -128,38 +184,19 @@ class SimpleTaskPanel(ttk.Frame):
         )
         if not path:
             return
+        if self.workflow_phase == "STARTED":
+            self.state_var.set("Ein Auftrag läuft noch — erst stoppen oder abschließen lassen.")
+            return
         try:
-            source = Path(path)
-            raw = source.read_text(encoding="utf-8")
-            payload = json.loads(raw) if source.suffix.lower() == ".json" else {"goal": raw.strip()}
+            text = editor_text_from_file(Path(path))
         except Exception as exc:  # noqa: BLE001 - UI boundary surfaces file errors.
             messagebox.showerror("Auftrag laden", str(exc), parent=self.winfo_toplevel())
             return
 
-        self.contract = payload
         self.workflow_phase = "LOADED"
-        self.start_button.configure(state="normal")
+        self._set_editor(text)
         self.start_button.focus_set()
-        self._set_summary(self._human_summary(payload))
-        self.state_var.set("Auftrag geladen ✓ — bereit zum Starten.")
-
-    def _human_summary(self, payload: dict) -> str:
-        title = payload.get("title") or payload.get("task_id") or "—"
-        goal = payload.get("goal") or "—"
-        criteria = payload.get("acceptance_criteria") or []
-        checkpoints = payload.get("human_checkpoints") or []
-        return (
-            f"Titel: {title}\n\n"
-            f"Ziel:\n{goal}\n\n"
-            "Abnahmekriterien:\n"
-            + "".join(f"• {item}\n" for item in criteria)
-            + "\nNur hier soll der Nutzer wieder gefragt werden:\n"
-            + (
-                "".join(f"• {item}\n" for item in checkpoints)
-                if checkpoints
-                else "• keine expliziten Human-Checkpoints\n"
-            )
-        )
+        self.state_var.set("Auftrag geladen ✓ — bereit zum Starten; vor dem Start im Editor änderbar.")
 
     def _remote_mission_text(self) -> str:
         assert self.contract is not None
@@ -174,7 +211,10 @@ class SimpleTaskPanel(ttk.Frame):
         )
 
     def start_task(self) -> None:
-        if self.contract is None:
+        try:
+            self.contract = contract_from_text(self._editor_text())
+        except ValueError as exc:
+            self.state_var.set(f"Auftrag nicht startbereit — {exc}")
             return
         try:
             self.contract = self.api.prepare_task_contract(self.contract)
@@ -208,6 +248,7 @@ class SimpleTaskPanel(ttk.Frame):
             return
         self.workflow_phase = "STARTED"
         self.start_button.configure(state="disabled")
+        self.editor.configure(state="disabled")
         self.state_var.set(
             self._human_runtime_state(status.get("state"), status.get("suspension_reason"))
         )
@@ -253,12 +294,19 @@ class SimpleTaskPanel(ttk.Frame):
             # "Auftrag läuft" while the mission was STOPPED, because it showed
             # only the durable task state. The started mission decides.
             if getattr(self, "_mission_id", "") and not waiting_for_human:
-                self.state_var.set(describe_standard_task_progress(
+                progress = describe_standard_task_progress(
                     mission_id=self._mission_id,
                     task_status=status,
                     bridge_status=mission_status_payload,
                     locally_verified=False,
-                ).text)
+                )
+                self.state_var.set(progress.text)
+                if progress.terminal:
+                    # The finished task stays in the editor and can be
+                    # changed and started again.
+                    self.workflow_phase = "LOADED"
+                    self.editor.configure(state="normal")
+                    self._update_start_button()
             if mission is None:
                 self.activity_var.set(
                     "Aktivität: Task ist angelegt; Browser-Mission wurde noch nicht beobachtet."

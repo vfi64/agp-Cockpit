@@ -993,3 +993,8 @@ repeat once.
 - AGP_KIT_COMMAND_CATALOG_V1: digest of the manifest (254 commands, orchestrators first, ~58 KB) is attached to every mission start; work orders are rejected for unknown agentic-kit commands, git push/fetch/pull, or raw git/gh commands with a Kit wrapper. Checked against all real work orders 1458–1485: no false rejection (1462 is the known truncated file).
 - Open (Kit side): the manifest has no "remote effect" classification; Kit orchestrators that push (e.g. `work finish`, `transfer pr-complete`) cannot yet be distinguished mechanically from local ones.
 - Tests: `tests/test_kit_command_catalog.py`, `test_status_offers_the_kit_command_digest`, `tests/fail_fast_browser.cjs` (digest attached before the bootstrap send; attach failure sends nothing).
+
+## 2026-09-30 — Tab "Arbeiten": editable task editor (build task-editor-20260930, extension 0.3.24)
+
+- AGP_TASK_EDITOR_V1: the task is typed, pasted or loaded ("Auftrag laden", JSON shown formatted) into an editable editor; "Neuer Auftrag" empties it; "Task starten" is enabled for non-empty text and converts the editor text at start (plain text → goal, text starting with "{" → JSON task contract, invalid JSON reported, not started). While a task runs the editor is read-only; a terminal mission hands it back for change and restart.
+- Tests: `tests/test_task_editor_gui.py` (real Tk widgets under a display; parsing without).
