@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "lagebericht-20261001";
+globalThis.AGP_EXTENSION_BUILD_ID = "standard-tasks-20261001";

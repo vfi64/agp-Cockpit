@@ -299,7 +299,9 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    `.local/agp-cockpit/state/repo-state.json`; no installed Kit blocks every
    task start). Live check pending.
 3. P3 Standard Tasks tab: order, state card, stepper, groups, enabling by state,
-   badges, tooltip helper and text table.
+   badges, tooltip helper and text table. — Implemented 2026-10-01
+   (COMMUNICATION_PROTOCOL 20); verbs of later slices are shown disabled with
+   "in Vorbereitung (Plan Px)". Live check pending.
 4. P4 Repository switch: selection, checks (git, origin, Kit installed and
    version, `gh auth status`, workspace present → else offer Repo übernehmen),
    rebinding of bridge, Download/run_next and digest, recent list, new chat

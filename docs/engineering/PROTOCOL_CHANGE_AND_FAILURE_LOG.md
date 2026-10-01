@@ -1059,3 +1059,11 @@ repeat once.
 - AGP_REPO_STATE_V1 (plan P2): `core/repo_state.py` with read-only observation, pure classification, German Lagebericht, JSON report; Standard Tasks tab shows it (worker thread, refreshed on open, on request and after each task); no installed Kit blocks every task start (review sharpening). Rules text in the digest no longer claims a rejection where the Cockpit now asks the human.
 - Plan sharpenings from the external review: R1 no silent repository fallback, R4 approval limited to the task's declared effect classes, P6 acceptance criteria (visible protocol, Wiederherstellen offered after interruption).
 - Tests: `tests/test_repo_state.py` (all states incl. the live leftover-branch case, real git repository, report file, start block without Kit, Tk panel).
+
+## 2026-10-01 — P3 Standard Tasks tab (build standard-tasks-20261001, extension 0.3.33)
+
+- AGP_STANDARD_TASK_VERBS_V1 (plan P3): one text table `core/verbs.py` (label, group, step, effect badge, tooltip lines, plan slice); `availability()` enables a verb only if the repository state offers it, no task runs and its slice is implemented. The tab is now first (Standard Tasks → Arbeiten → System) with the Lage card, the main path ①–④, "Bei Problemen" and the collapsed "Weitere"; the recommendation is marked with ★ and bold; `ui/tooltip.py` provides delayed tooltips.
+- Arbeiten switches to the Arbeiten tab; Chat wechseln keeps the existing chat-switch task; all other verbs stay disabled until P5–P11.
+- Rendering note: the VM's default bitmap font lacks the circled digits and arrows; with a Unicode font (DejaVu) they render, and the macOS system font covers them. The "Weitere" toggle uses plain words instead of a triangle glyph.
+- Tests: `tests/test_standard_task_verbs.py` (table completeness and tooltip lines, availability per state incl. running task and pending slice, tab order, Tk panel enabling and recommendation, Arbeiten opens the tab, collapsed section, tooltip show/hide).
+

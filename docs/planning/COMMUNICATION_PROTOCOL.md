@@ -362,6 +362,19 @@ This section is normative for the file loop after local execution.
    STÖRUNG / UNKLAR with one recommendation, shows the Lagebericht and writes
    `.local/agp-cockpit/state/repo-state.json`. Kit-owned volatile paths do not
    count as changes. Without an installed Kit no task starts.
+20. Standard Tasks tab (`AGP_STANDARD_TASK_VERBS_V1`, plan P3,
+   `core/verbs.py`, `ui/standard_tasks_panel.py`, `ui/tooltip.py`). Tab order
+   Standard Tasks → Arbeiten → System. The tab shows the Lage card, the main path
+   ① Arbeit beginnen → ② Arbeiten → ③ Abschließen → ④ Chat wechseln, the group
+   "Bei Problemen" (Wiederherstellen) and the collapsed group "Weitere" (Repo
+   übernehmen, Release, Pflege). Each verb carries an effect badge (liest nur /
+   ändert lokal / wirkt auf GitHub / fragt vor Eingriffen / je nach Auftrag)
+   and a tooltip (what happens · effect · when available). A button is enabled
+   only when the repository state offers the verb, nothing runs and its plan
+   slice is implemented; the state's recommendation is marked with ★ and bold.
+   Arbeiten switches to the Arbeiten tab; Chat wechseln starts the existing
+   chat-switch standard task. Labels, badges and tooltip texts live only in
+   `core/verbs.py`.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
