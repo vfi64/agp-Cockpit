@@ -326,6 +326,29 @@ the worktree, a pinned Kit version and faster, non-duplicated runs in the
 managed CI template, and a post-merge refresh that does not demand a further
 refresh of itself.
 
+## 2026-10-01 — Slice T1: fixes, token diet, CI template
+
+Evidence: finish run 1547–1556 (P2 + P3, PR #141/#142) and its bundles.
+
+Implemented (COMMUNICATION_PROTOCOL 21–24, `AGP_CI_GATE_V2`):
+
+1. Fixes: first porcelain path of the Lagebericht no longer cut; accepted DONE
+   closes the local task; Standard Tasks hint line follows the repository state
+   (no "bereit" while a task runs); recommendation marked in the badge line
+   (equal button height); tests independent of the host's `gh`.
+2. Token diet: deterministic result projection (−71 % on the finish run) and a
+   compact command digest (−59 %).
+3. CI template: push runs only on main, PR runs cancel their predecessor, Kit
+   pinned to 1.0.13, Python and browser jobs in parallel with a browser cache,
+   required check `agentic-gate` as the aggregate.
+
+Next (T2, small): attach the digest once per chat while the manifest SHA is
+unchanged; a local pre-push gate that runs the CI test commands before any
+publishing work order; measure CI wall time after `AGP_CI_GATE_V2`; Bridge
+panel counts turns differently from the Cockpit and repeats the mission line
+(cosmetic). Then continue with P4 (or P6 first, see the review of run 1556:
+the finish path is proven and costs 3 approvals that P6 automates).
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

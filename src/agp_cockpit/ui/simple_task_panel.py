@@ -353,6 +353,8 @@ class SimpleTaskPanel(ttk.Frame):
             return "Deine Entscheidung ist erforderlich — die automatische Bearbeitung ist angehalten."
         if state == "VERIFIED_COMPLETE":
             return "Auftrag abgeschlossen ✓ — Ergebnis wurde verifiziert."
+        if state == "REMOTE_DONE":
+            return "Auftrag abgeschlossen — von der Remote-Seite gemeldet, lokal nicht geprüft."
         if state in {"ACTIVE", "WAITING_FOR_REMOTE", "COMPLETE_PROPOSED"}:
             return (
                 "Auftrag läuft — das Cockpit arbeitet bzw. wartet auf die nächste "

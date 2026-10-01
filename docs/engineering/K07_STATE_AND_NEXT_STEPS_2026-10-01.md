@@ -19,6 +19,13 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
   selbst geprüft (`ci-verified`): PR gemergt mit der lokalen Arbeit `843cb5d`,
   main synchron, `agentic-kit transfer post-merge-check` PASS, main-CI grün.
 
+- **Abschluss P2 + P3** (Schritte 1547–1556, Build `standard-tasks-20261001`):
+  drei Freigaben für `transfer pr-create-complete`, `pr-complete`,
+  `pr-closeout-complete`; CI von PR #141 zweimal rot (ein Test hing am
+  `gh`-Login des Entwicklerrechners), von ChatGPT selbst repariert (`bd7e3e9`);
+  PR #141 gemergt, Successor-Refresh #142, main `8d881c1`; Cockpit-Prüfung
+  `ci-verified`. P1–P3 damit live bestätigt.
+
 ## 2. Mechanismen (Marker im Code)
 
 | Marker | Datei | Wirkung |
@@ -30,6 +37,11 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
 | `AGP_REMOTE_EFFECT_ASKS_HUMAN_V1` | `core/bridge_server.py` | Wirkung nach außen ohne Freigabe → NEEDS_HUMAN statt Abbruch |
 | `AGP_CI_GREEN_COMPLETION_V1` / `AGP_CI_LIFECYCLE_COMPLETION_V2` | `core/ci_gate.py` | DONE erst nach lokal geprüftem GitHub-Zustand; Rückmeldung nennt Ziele, keine Kommandos |
 | `AGP_EFFECT_REFUND_V1` | `core/ci_gate.py`, `bridge_server.py` | Lauf ohne Änderung an origin (Refs vorher/nachher) verbraucht keine Freigabe |
+| `AGP_RESULT_PROJECTION_V1` | `core/result_projection.py`, `bridge_server.py` | ChatGPT erhält eine deterministische Kurzfassung jeder Rückgabe; Originale bleiben lokal |
+| `AGP_DIGEST_COMPACT_V1` | `core/kit_command_catalog.py` | Befehlsverzeichnis: Orchestratoren vollständig, Rest als Tabelle (81 → 33 KB) |
+| `AGP_TASK_CLOSE_ON_DONE_V1` | `core/task_store.py`, `bridge_server.py` | angenommenes DONE schließt den lokalen Task (`VERIFIED_COMPLETE` bzw. `REMOTE_DONE`) |
+| `AGP_GH_BINARY_V1` | `core/ci_gate.py`, `tests/conftest.py` | kein Test hängt am `gh` des Rechners |
+| `AGP_CI_GATE_V2` | `.agentic/ci/agentic-gate.yaml` | Push-Läufe nur auf main, Kit festgelegt, parallele Jobs, Pflicht-Check `agentic-gate` |
 | `AGP_STALE_APP_GUARD_V1` | `core/build_freshness.py`, UI, `scripts/build_macos_app.py --restart` | veraltete laufende App startet keine Tasks |
 
 ## 3. Offene Befunde im Kit (nicht im Cockpit lösbar)
@@ -55,11 +67,24 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
    über 300 s überschreiten die Standard-Wartezeit der Orchestratoren
    (`--timeout-seconds 300`). Vorschlag: Kit-Version festlegen, Push nur auf
    main, Browser-Cache mit Versionsschlüssel.
+   Stand 2026-10-01: Cockpit-seitig mit `AGP_CI_GATE_V2` umgesetzt (Kit 1.0.13
+   festgelegt, Push nur auf main, Browser-Cache, parallele Jobs). Bleibt für
+   das Kit: die Vorlage selbst so ausliefern; es gibt kein Kit-Kommando, das eine
+   geänderte Vorlage nach `.github/workflows/` überträgt (nur `workspace init`
+   schreibt sie), und `workspace remove` entfernt laut eigener Beschreibung nur
+   unveränderte Kit-Dateien — eine angepasste Vorlage blockiert es vermutlich
+   (nicht ausprobiert).
 8. Post-Merge-Refresh erzeugt eine weitere Refresh-Forderung: nach #140 schrieb das
    Kit `.agentic/state/status.md` erneut („refresh state after PR #139 …
    dd4a15d4“), lokal auf dem Rest-Branch `docs/post-pr139-handoff-refresh`.
    Das Cockpit fragte zu Recht vor `transfer post-merge-settle` (DESTRUCTIVE).
    Der Refresh sollte sich nicht selbst erneut als offen markieren.
+9. Orchestratoren geben ihre gesamte Schrittausgabe als JSON-Text aus
+   (`pr-closeout-complete`: 28 KB, `pr-create-complete`: 37 KB). Gewünscht:
+   eine kompakte Zusammenfassung (`--summary` oder Standard) mit Ergebnis,
+   nächster Aktion und nur den fehlgeschlagenen Schritten im Detail. Rückgabe-Code
+   ≠ 0 bei rotem CI (Schritt 1551) macht aus einem fachlichen Befund einen
+   Ausführungsfehler und kostete einen zusätzlichen Erholungsschritt.
 
 ## 4. Nächste Schritte
 

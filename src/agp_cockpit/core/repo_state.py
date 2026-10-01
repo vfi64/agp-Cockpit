@@ -17,12 +17,11 @@ UNKLAR and tasks are blocked (no silent fallback to a repository copy).
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from agp_cockpit.core.ci_gate import tool_env
+from agp_cockpit.core.ci_gate import gh_binary, tool_env
 
 KEIN_KIT = "KEIN_KIT"
 BEREIT = "BEREIT"
@@ -102,9 +101,13 @@ def _run(argv, root: Path, runner, timeout: int = 60):
         return subprocess.CompletedProcess(argv, 127, "", f"{type(exc).__name__}: {exc}")
 
 
-def _git(root: Path, runner, *args: str) -> str | None:
+def _git(root: Path, runner, *args: str, raw: bool = False) -> str | None:
     completed = _run(["git", *args], root, runner)
-    return completed.stdout.strip() if completed.returncode == 0 else None
+    if completed.returncode != 0:
+        return None
+    # raw: porcelain lines start with a status column that may be a space
+    # (" M path"); stripping it shifted the first path by one character.
+    return completed.stdout if raw else completed.stdout.strip()
 
 
 def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
@@ -127,8 +130,10 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
         count = _git(root, runner, "rev-list", "--count", f"{tracking}..HEAD")
         own = int(count) if count and count.isdigit() else None
     changes, volatile = [], []
-    status = _git(root, runner, "status", "--porcelain=v1", "--untracked-files=all") or ""
+    status = _git(root, runner, "status", "--porcelain=v1", "--untracked-files=all", raw=True) or ""
     for line in status.splitlines():
+        if len(line) < 4:
+            continue
         path = line[3:].split(" -> ")[-1].strip().strip('"')
         (volatile if path.startswith(KIT_VOLATILE_PREFIXES) else changes).append(path)
     origin_main = None
@@ -137,8 +142,9 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
         if remote is not None:
             origin_main = remote.split()[0] if remote.split() else ""
     gh_ok = None
-    if shutil.which("gh", path=tool_env(root).get("PATH")):
-        gh_ok = _run(["gh", "auth", "status"], root, runner).returncode == 0
+    gh = gh_binary(root)
+    if gh:
+        gh_ok = _run([gh, "auth", "status"], root, runner).returncode == 0
     post_merge, detail = None, ""
     if kit is not None and branch == "main" and workspace:
         check = _run([str(kit.binary), "transfer", "post-merge-check", "--main-branch", "main",

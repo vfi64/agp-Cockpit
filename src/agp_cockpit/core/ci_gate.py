@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -93,6 +94,22 @@ def tool_env(repository_root: Path, base: dict | None = None) -> dict:
             seen.append(part)
     env["PATH"] = os.pathsep.join(seen)
     return env
+
+
+def gh_binary(repository_root: Path) -> str | None:
+    """AGP_GH_BINARY_V1: the gh executable the Cockpit itself calls.
+
+    ``AGP_COCKPIT_GH_BINARY`` overrides discovery; ``none`` means "no gh".
+    The test suite sets ``none`` by default, so no test depends on whether the
+    host has gh installed or logged in (CI runners have gh but no login; PR
+    #141 went red twice because a test read the developer's gh login).
+    """
+    configured = os.environ.get("AGP_COCKPIT_GH_BINARY", "").strip()
+    if configured.lower() == "none":
+        return None
+    if configured:
+        return configured
+    return shutil.which("gh", path=tool_env(repository_root).get("PATH"))
 
 
 class CiGateStore:
@@ -250,7 +267,10 @@ FAILED_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "action_req
 
 def main_ci(repository_root: Path, sha: str, *, runner: Runner = subprocess.run) -> CiVerdict:
     """CI of a commit on main (no Kit read command exists for a branch head)."""
-    argv = ["gh", "run", "list", "--commit", sha, "--limit", "50",
+    gh = gh_binary(repository_root)
+    if gh is None:
+        return CiVerdict("blocked", "main CI could not be read: gh is not available")
+    argv = [gh, "run", "list", "--commit", sha, "--limit", "50",
             "--json", "databaseId,status,conclusion,workflowName,event"]
     completed = _run(argv, repository_root, runner)
     runs = _json_from(completed.stdout or "")
@@ -263,7 +283,7 @@ def main_ci(repository_root: Path, sha: str, *, runner: Runner = subprocess.run)
     if failed:
         parts = []
         for run in failed[:3]:
-            log = _run(["gh", "run", "view", str(run.get("databaseId")), "--log-failed"],
+            log = _run([gh, "run", "view", str(run.get("databaseId")), "--log-failed"],
                        repository_root, runner)
             tail = "\n".join((log.stdout or log.stderr or "").splitlines()[-80:])
             parts.append(f"## {run.get('workflowName')} ({run.get('conclusion')}) run "

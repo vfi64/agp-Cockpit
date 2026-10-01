@@ -15,3 +15,11 @@ def _isolate_agp_cockpit_user_state(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_installed_kit_discovery(monkeypatch):
     monkeypatch.setenv("AGP_COCKPIT_KIT_BINARY", "none")
+
+
+# AGP_GH_BINARY_V1: no test may depend on the host's gh installation or login
+# (PR #141: green on the developer's Mac, red on the CI runner). Tests that
+# need gh point AGP_COCKPIT_GH_BINARY at their own fake.
+@pytest.fixture(autouse=True)
+def _no_host_gh(monkeypatch):
+    monkeypatch.setenv("AGP_COCKPIT_GH_BINARY", "none")
