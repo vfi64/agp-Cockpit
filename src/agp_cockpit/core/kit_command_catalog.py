@@ -65,8 +65,9 @@ COMMAND_RULES = (
     "use diagnostic or primitive commands only when no orchestrator fits. "
     "Never run git push, git fetch or git pull. "
     "Raw git/gh commands that have a Kit wrapper (\"replaces_raw\") are rejected; use the wrapper. "
-    "Commands marked \"remote_effect\" (push, pull/fetch, PR, merge, publish) are rejected unless the "
-    "human has explicitly approved exactly that step; ask with NEEDS_HUMAN first."
+    "Commands marked \"remote_effect\" (push, pull/fetch, PR, merge, publish) or \"effect\": \"unknown\" "
+    "run only with an open human approval; without one the Cockpit does not execute the work order and "
+    "asks the human itself. Do not work around this."
 )
 
 

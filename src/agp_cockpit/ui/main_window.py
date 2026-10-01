@@ -102,17 +102,11 @@ class MainWindow(ttk.Frame):
         self.tabs = ttk.Notebook(self)
         self.tabs.grid(row=3, column=0, sticky="nsew")
 
+        # Plan P3: Standard Tasks first (the guided path), then the free
+        # "Arbeiten" tab, which is verb ② of that path.
         work_tab = ttk.Frame(self.tabs)
         work_tab.columnconfigure(0, weight=1)
         work_tab.rowconfigure(0, weight=1)
-        self.simple_task_panel = SimpleTaskPanel(
-            work_tab,
-            repository_root=self.repository_root,
-            local_contract=self.local_contract,
-        )
-        self.simple_task_panel.grid(row=0, column=0, sticky="nsew")
-        self.tabs.add(work_tab, text="Arbeiten")
-
         standard_tab = ttk.Frame(self.tabs)
         standard_tab.columnconfigure(0, weight=1)
         standard_tab.rowconfigure(0, weight=1)
@@ -120,9 +114,18 @@ class MainWindow(ttk.Frame):
             standard_tab,
             repository_root=self.repository_root,
             local_contract=self.local_contract,
+            on_open_work=lambda: self.tabs.select(work_tab),
         )
         self.standard_tasks_panel.grid(row=0, column=0, sticky="nsew")
         self.tabs.add(standard_tab, text="Standard Tasks")
+
+        self.simple_task_panel = SimpleTaskPanel(
+            work_tab,
+            repository_root=self.repository_root,
+            local_contract=self.local_contract,
+        )
+        self.simple_task_panel.grid(row=0, column=0, sticky="nsew")
+        self.tabs.add(work_tab, text="Arbeiten")
 
         system_tab = ttk.Frame(self.tabs)
         system_tab.columnconfigure(0, weight=1)

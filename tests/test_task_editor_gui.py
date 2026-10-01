@@ -59,6 +59,8 @@ def test_editor_widget_flow(monkeypatch, tmp_path):
 
     sent = {}
     monkeypatch.setattr(m, "TaskOperatorAPI", FakeAPI)
+    # AGP_REPO_STATE_V1: the test repository has no installed Kit
+    monkeypatch.setattr("agp_cockpit.core.build_freshness.kit_block_reason", lambda root: "")
     monkeypatch.setattr(m.messagebox, "askyesno", lambda *a, **k: True)
     monkeypatch.setattr(m, "require_allowed_active_chat", lambda: type("C", (), {"url": "https://chatgpt.com/c/x"})())
     monkeypatch.setattr(m, "create_live_full_auto", lambda **k: sent.update(k) or {"mission": {"mission_id": "M1"}})
