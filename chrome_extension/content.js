@@ -1640,6 +1640,12 @@
     });
   }
 
+  // Used by the native transport retry and stale-draft recovery; it was never
+  // defined (ReferenceError "sleep is not defined", live 1510 and 1518).
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   async function sendPrompt(prompt) {
     try {
       return await sendPromptNative(prompt);

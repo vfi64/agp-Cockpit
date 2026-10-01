@@ -67,8 +67,15 @@ def describe_standard_task_progress(
             f"Mensch muss eingreifen — Entscheidung erforderlich. Mission: {mstate} · {local}",
             False, "HUMAN_REQUIRED")
     if mstate == "DONE" and not locally_verified:
+        # The summary of the final state, not a stale earlier error
+        # (live 1519: "sleep is not defined" after a CI-verified DONE).
+        summary = " ".join(str(mission.get("last_summary") or "").split())[:240]
+        if summary.startswith("CI grün geprüft"):
+            # AGP_CI_GREEN_COMPLETION_V1: verified by the Cockpit itself.
+            return StandardTaskProgress(f"Fertig ✓ — {summary} ({counters}). {local}", True, "DONE")
+        done_suffix = f" — {summary}" if summary else suffix
         return StandardTaskProgress(
-            f"Fertig — von der Remote-Seite gemeldet ({counters}){suffix}. {local}",
+            f"Fertig — von der Remote-Seite gemeldet ({counters}){done_suffix}. {local}",
             True, "DONE")
     if mstate == "DONE":
         if task_state == "VERIFIED_COMPLETE":

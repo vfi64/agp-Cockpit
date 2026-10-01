@@ -6,6 +6,7 @@ import json
 import os
 import stat
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 from urllib.request import Request, urlopen
 
@@ -76,7 +77,7 @@ def test_approval_covers_repair_pushes_only_while_the_ci_gate_is_active(tmp_path
     assert store.permits("T", push, ci_gate_active=True)
     assert store.permits("T", ["agentic-kit transfer pr-create"], ci_gate_active=True)
     assert not store.permits("T", ["agentic-kit release-publish"], ci_gate_active=True)
-    for n in range(ci_gate.MAX_RED_HEADS + 1):
+    for n in range(ci_gate.REPAIR_BUDGET):
         store.consume("T", f"repair{n}")
     assert not store.permits("T", push, ci_gate_active=True)
 
@@ -90,9 +91,19 @@ RUNNER = (
 )
 FAKE_KIT = (
     "#!/usr/bin/env python3\nimport os, sys\n"
+    "if sys.argv[1:3] == ['transfer', 'post-merge-check']:\n"
+    "    print(os.environ.get('AGP_TEST_PMC', '{\"result_status\": \"PASS\"}')); sys.exit(0)\n"
     "assert sys.argv[1:3] == ['pr', 'status'], sys.argv\n"
     "print(open(os.environ['AGP_TEST_PR_STATUS']).read())\n"
     "print('FINAL_SIGNAL=d')\n"
+)
+FAKE_GH = (
+    "#!/usr/bin/env python3\nimport os, sys\n"
+    "if sys.argv[1:3] == ['run', 'list']:\n"
+    "    print(open(os.environ['AGP_TEST_RUNS']).read()); sys.exit(0)\n"
+    "if sys.argv[1:3] == ['run', 'view']:\n"
+    "    print('Error: main broke'); sys.exit(0)\n"
+    "sys.exit(2)\n"
 )
 
 
@@ -124,6 +135,14 @@ def bridge(tmp_path, monkeypatch):
     kit.parent.mkdir(parents=True)
     kit.write_text(FAKE_KIT)
     kit.chmod(kit.stat().st_mode | stat.S_IEXEC)
+    gh = tmp_path / ".venv" / "bin" / "gh"
+    gh.write_text(FAKE_GH)
+    gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
+    runs_file = tmp_path / "runs.json"
+    monkeypatch.setenv("AGP_TEST_RUNS", str(runs_file))
+    origin = tmp_path.parent / (tmp_path.name + "-origin.git")
+    subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "remote", "add", "origin", str(origin)], check=True)
     status_file = tmp_path / "pr-status.json"
     monkeypatch.setenv("AGP_TEST_PR_STATUS", str(status_file))
     manifest = tmp_path / "docs/reference/agentic-kit-commands.json"
@@ -132,7 +151,8 @@ def bridge(tmp_path, monkeypatch):
         {"qualified_name": f"agentic-kit {' '.join(path)}", "path": path, "surface": "primitive",
          "safety": "BOUNDED", "replaces_raw": [], "params": []}
         for path in (["transfer", "push-current"], ["transfer", "pr-create"], ["pr", "wait-ci"],
-                     ["transfer", "divergence-status"], ["release-publish"])
+                     ["transfer", "divergence-status"], ["release-publish"], ["work", "finish"],
+                     ["transfer", "post-merge-complete"])
     ]}))
     server = BridgeRuntimeServer(tmp_path, port=0)
     info = server.start()
@@ -146,7 +166,7 @@ def bridge(tmp_path, monkeypatch):
 
     try:
         yield SimpleNamespace(root=tmp_path, runtime=server.local_root, call=call, head=head,
-                              status=status_file)
+                              status=status_file, runs=runs_file, origin=origin)
     finally:
         server.stop()
 
@@ -185,7 +205,9 @@ def test_http_done_is_accepted_only_with_green_ci_for_the_local_head(bridge):
 
     no_pr = done(b)
     assert no_pr["state"] == "CONTINUE" and no_pr["terminal"] is False
-    assert "agentic-kit transfer pr-create" in no_pr["prompt"]
+    assert "pull request against main" in no_pr["prompt"]
+    assert "agentic-kit transfer" not in no_pr["prompt"]          # goals, not commands
+    assert "most comprehensive orchestrator" in no_pr["prompt"]
     assert f"{no_pr['next_step']}_" in no_pr["prompt"]
     assert b.call("/v1/status")["mission"]["state"] not in {"DONE", "NEEDS_HUMAN"}
 
@@ -210,7 +232,7 @@ def test_http_green_ci_completes_and_pending_waits(bridge):
     command(b, "push", ["transfer", "push-current"])
     b.status.write_text(json.dumps({"decision": "pending", "head_ref_oid": b.head}))
     waiting = done(b, pr=7)
-    assert waiting["state"] == "CONTINUE" and "agentic-kit pr wait-ci 7" in waiting["prompt"]
+    assert waiting["state"] == "CONTINUE" and "Wait for the CI" in waiting["prompt"]
     b.status.write_text(json.dumps({"decision": "green", "head_ref_oid": b.head}))
     finished = done(b)          # the PR number is remembered
     assert finished["state"] == "DONE" and finished["authority"] == "ci-verified"
@@ -236,3 +258,86 @@ def test_http_exhausted_repairs_end_with_needs_human(bridge):
     b.status.write_text(json.dumps(red(b.head)))
     final = done(b, pr=7)
     assert final["state"] == "NEEDS_HUMAN" and final["authority"] == "ci-gate-exhausted"
+
+
+# --- AGP_CI_LIFECYCLE_COMPLETION_V2: a merging orchestrator needs the merged lifecycle ---
+
+def test_merge_expected_follows_the_commands_that_ran():
+    assert ci_gate.merge_expected(["agentic-kit work finish"], "KIT=['agentic-kit','work','finish']")
+    assert not ci_gate.merge_expected(["agentic-kit work finish"], "... '--no-merge' ...")
+    assert not ci_gate.merge_expected(["agentic-kit transfer push-current"], "")
+    assert ci_gate.merge_expected(["agentic-kit transfer pr-create-complete"], "--no-merge")
+
+
+def approve_and_run_orchestrator(b):
+    first = start(b)
+    assert command(b, "finish", ["work", "finish"])["state"] == "NEEDS_HUMAN"
+    b.call("/v1/task/decision", {"mission_id": first, "decision": "APPROVE"})
+    start(b)
+    assert command(b, "finish", ["work", "finish"]).get("terminal") is not True
+    entry = ci_gate.CiGateStore(b.runtime).get("T")
+    assert entry["required"] and entry["merge_expected"]
+
+
+def merged_main(b):
+    git = ["git", "-C", str(b.root)]
+    subprocess.run([*git, "branch", "-m", "main"], check=True)
+
+
+def test_http_open_green_pr_is_not_enough_after_a_merging_orchestrator(bridge):
+    b = bridge
+    approve_and_run_orchestrator(b)
+    b.status.write_text(json.dumps({"decision": "green", "state": "OPEN", "head_ref_oid": b.head}))
+    rejected = done(b, pr=7)
+    assert rejected["state"] == "CONTINUE" and "merge the pull request" in rejected["prompt"]
+    # re-running the approved orchestrator is covered by the repair budget
+    assert command(b, "finish_again", ["work", "finish"]).get("terminal") is not True
+    assert command(b, "closeout", ["transfer", "post-merge-complete"]).get("terminal") is not True
+    assert command(b, "publish", ["release-publish"])["state"] == "NEEDS_HUMAN"
+
+
+def test_http_merged_lifecycle_needs_sync_closeout_and_green_main(bridge, monkeypatch):
+    b = bridge
+    approve_and_run_orchestrator(b)
+    b.status.write_text(json.dumps({"decision": "not-open", "state": "MERGED", "head_ref_oid": b.head}))
+    subprocess.run(["git", "-C", str(b.root), "push", "-q", "origin", "HEAD:refs/heads/main"], check=True)
+    behind = done(b, pr=7)                       # merged, but still on the feature branch
+    assert behind["state"] == "CONTINUE" and "synchronized with origin/main" in behind["prompt"]
+    merged_main(b)
+    monkeypatch.setenv("AGP_TEST_PMC", '{"result_status": "BLOCKED", "state": "NEEDS_SUCCESSOR_PACKAGE_REFRESH"}')
+    closeout = done(b)
+    assert closeout["state"] == "CONTINUE" and "post-merge closeout" in closeout["prompt"]
+    monkeypatch.setenv("AGP_TEST_PMC", '{"result_status": "PASS"}')
+    b.runs.write_text(json.dumps([{"databaseId": 9, "status": "completed", "conclusion": "failure",
+                                   "workflowName": "Agentic Gate"}]))
+    red = done(b)
+    assert red["state"] == "CONTINUE" and "Error: main broke" in red["prompt"], red
+    b.runs.write_text(json.dumps([{"databaseId": 10, "status": "in_progress", "conclusion": "",
+                                   "workflowName": "Agentic Gate"}]))
+    assert done(b)["state"] == "CONTINUE"
+    b.runs.write_text(json.dumps([{"databaseId": 11, "status": "completed", "conclusion": "success",
+                                   "workflowName": "Agentic Gate"}]))
+    finished = done(b)
+    assert finished["state"] == "DONE" and finished["authority"] == "ci-verified"
+    assert "gemergt" in finished["human_reason"]
+    evidence = json.loads((b.root / ".local/agp-cockpit/ci" / f"{b.head}.json").read_text())
+    assert evidence["lifecycle"]["origin_main"] == b.head
+
+
+def test_http_merged_pr_without_the_local_work_is_not_done(bridge):
+    b = bridge
+    git = ["git", "-C", str(b.root), "-c", "user.name=t", "-c", "user.email=t@t"]
+    (b.root / "fix.txt").write_text("local fix")
+    subprocess.run([*git, "add", "fix.txt"], check=True)
+    subprocess.run([*git, "commit", "-qm", "local fix not yet in the PR"], check=True)
+    approve_and_run_orchestrator(b)
+    # the PR was merged at the older head; the new local commit never reached it
+    b.status.write_text(json.dumps({"decision": "not-open", "state": "MERGED", "head_ref_oid": b.head}))
+    rejected = done(b, pr=7)
+    assert rejected["state"] == "CONTINUE"
+    assert "not part of the merged pull request" in rejected["prompt"]
+
+
+def test_content_script_defines_sleep():
+    source = (Path(__file__).resolve().parents[1] / "chrome_extension/content.js").read_text()
+    assert "function sleep(" in source and "await sleep(" in source

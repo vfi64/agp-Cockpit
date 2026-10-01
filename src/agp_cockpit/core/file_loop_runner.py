@@ -462,7 +462,9 @@ def _materialize_oversized_bundle_diagnostic(
 def execute_with_run_next(
     root: Path,
     command_file: Path,
-    timeout_seconds: int = 660,
+    # A Kit orchestrator that publishes, waits for CI, merges and closes out
+    # (two CI waits of up to 300 s each plus merges) exceeds 11 minutes.
+    timeout_seconds: int = 1800,
     process_controller: RunNextProcessController | None = None,
 ) -> FileLoopRun:
     download=root/"Download"; runner=download/"run_next.py"; output_log=download/"__run_next_output.txt"

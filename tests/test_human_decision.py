@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 import pytest
 
 from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
-from agp_cockpit.core.ci_gate import MAX_RED_HEADS
+from agp_cockpit.core.ci_gate import REPAIR_BUDGET
 from agp_cockpit.core.human_decision import (
     GRANT_TTL_SECONDS,
     HumanDecisionStore,
@@ -66,7 +66,7 @@ def test_store_grant_is_task_bound_one_shot_and_expires(tmp_path):
     push = ["agentic-kit transfer push-current"]
     assert not store.permits("T", push, ci_gate_active=False, now=1001.0)
     assert store.permits("T", push, ci_gate_active=True, now=1001.0)
-    for n in range(MAX_RED_HEADS + 1):
+    for n in range(REPAIR_BUDGET):
         store.consume("T", f"repair{n}")
     assert not store.remote_effects_allowed("T", now=1001.0)
     with pytest.raises(ValueError):
@@ -85,11 +85,14 @@ def test_decision_text_orders_the_approved_action_and_lifts_prepare_only():
     assert "APPROVED" in approved and "Q?" in approved
     assert "supersedes any \"prepare only\"" in approved
     assert "MUST perform the approved action now" in approved
-    assert "agentic-kit transfer push-current --branch" in approved
     assert "allow_network=true" in approved
+    # live 1501-1519: the text named primitives and steered away from the orchestrator
+    assert "agentic-kit" not in approved
+    assert "most comprehensive orchestrator" in approved
+    assert "post-merge check" in approved
     assert "Original task (context only; the decision above takes precedence)" in approved
     assert "Original task (unchanged)" not in approved
-    assert "Raw git push, git fetch and git pull stay" in approved
+    assert "Raw git push, git fetch, git pull and gh stay forbidden" in approved
     rejected = decision_mission_text(goal_text="G", decision="REJECT", question="Q?", note="")
     assert "REJECTED" in rejected and "Original task (unchanged)" in rejected
 
@@ -188,7 +191,7 @@ def test_http_push_without_approval_asks_the_human_and_approval_is_consumed(brid
     # after the push only the bounded CI repair budget remains (AGP_CI_GREEN_COMPLETION_V1);
     # once it is used up, the next push asks the human again instead of running
     step = 1481
-    for _ in range(MAX_RED_HEADS + 1):
+    for _ in range(REPAIR_BUDGET):
         repaired = call("/v1/file-loop/command", {"filename": f"{step}_push.py",
                                                   "content": work_order(["transfer", "push-current"])
                                                   + f"# repair {step}\n"})

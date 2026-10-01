@@ -541,6 +541,15 @@ class CockpitBridgeServer:
 
                         state_file = runtime_root / "file-loop-state.json"
                         handoff_before = package_snapshot(repo_root) if handoff_contract else {}
+                        # AGP_CI_LIFECYCLE_COMPLETION_V2: the local work a publishing
+                        # run starts from; a merged PR must contain it.
+                        pre_run_work = None
+                        if wanted:
+                            from agp_cockpit.core import ci_gate as _ci_pre
+                            pre_run_work = (
+                                _ci_pre.git_value(repo_root, "branch", "--show-current"),
+                                _ci_pre.git_value(repo_root, "rev-parse", "HEAD"),
+                            )
                         outcome = consume_command_file(
                             incoming,
                             repo_root,
@@ -608,15 +617,22 @@ class CockpitBridgeServer:
                                 HumanDecisionStore(runtime_root).consume(
                                     current_task_id,
                                     _k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
+                                    used,
                                 )
-                                # AGP_CI_GREEN_COMPLETION_V1: a task that pushed is
-                                # complete only with green CI for its HEAD.
-                                if "agentic-kit transfer push-current" in used and current_task_id:
-                                    from agp_cockpit.core.ci_gate import CiGateStore
-                                    CiGateStore(runtime_root).activate(
+                                # AGP_CI_GREEN_COMPLETION_V1: a task that published
+                                # work is complete only when GitHub is verified green
+                                # (after a merging command: the merged lifecycle).
+                                from agp_cockpit.core import ci_gate as _ci_gate
+                                if set(used) & _ci_gate.PUBLISHING_COMMANDS and current_task_id:
+                                    gate = _ci_gate.CiGateStore(runtime_root)
+                                    gate.activate(
                                         current_task_id,
                                         reason=_k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
+                                        merge=_ci_gate.merge_expected(used, content),
                                     )
+                                    if pre_run_work and pre_run_work[0] not in {"", "main"} and pre_run_work[1]:
+                                        gate._update(current_task_id, work_branch=pre_run_work[0],
+                                                     work_head=pre_run_work[1])
                                 diag.event(
                                     "HUMAN_APPROVAL_CONSUMED",
                                     component="file-loop",
@@ -802,21 +818,30 @@ class CockpitBridgeServer:
                                 ci_branch = ci_gate.git_value(repo_root, "branch", "--show-current")
                                 ci_pr = reply.pr or gate_entry.get("pr")
                                 ci_decision: dict = {}
+                                ci_facts: dict = {}
                                 if not ci_pr:
                                     verdict = ci_gate.CiVerdict(
-                                        "no-pr", "no pull request was named for the pushed HEAD"
+                                        "no-pr", "no pull request was named for the published work"
                                     )
                                 else:
                                     ci_decision = ci_gate.run_pr_status(
                                         repo_root, engine.kit_binary, int(ci_pr)
                                     )
-                                    verdict = ci_gate.evaluate(ci_decision, head=ci_head)
+                                    if (gate_entry.get("merge_expected")
+                                            or str(ci_decision.get("state") or "") == "MERGED"):
+                                        # AGP_CI_LIFECYCLE_COMPLETION_V2
+                                        verdict, ci_facts = ci_gate.verify_merged(
+                                            repo_root, engine.kit_binary, pr_decision=ci_decision,
+                                            work_head=str(gate_entry.get("work_head") or ""),
+                                        )
+                                    else:
+                                        verdict = ci_gate.evaluate(ci_decision, head=ci_head)
                                 gate_entry = gate.record_check(
                                     task_id, head=ci_head, pr=ci_pr, verdict=verdict.kind
                                 )
                                 evidence = ci_gate.write_evidence(
                                     repo_root, head=ci_head, pr=ci_pr, decision=ci_decision,
-                                    verdict=verdict,
+                                    verdict=verdict, facts=ci_facts,
                                 )
                                 diag.event(
                                     "CI_GATE_CHECKED",
@@ -833,8 +858,11 @@ class CockpitBridgeServer:
                                 )
                                 if verdict.kind == "green":
                                     authority = "ci-verified"
+                                    merged = bool(ci_facts)
                                     human_reason = (
-                                        f"CI grün geprüft (PR #{ci_pr}, {ci_head[:12]}) · {reply.reason}"
+                                        f"CI grün geprüft (PR #{ci_pr} "
+                                        + ("gemergt, main " if merged else "")
+                                        + f"{ci_head[:12]}) · {reply.reason}"
                                     )
                                 elif verdict.kind == "blocked" or exhausted:
                                     state = "NEEDS_HUMAN"

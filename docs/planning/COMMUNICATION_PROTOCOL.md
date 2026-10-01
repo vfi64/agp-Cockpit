@@ -324,6 +324,19 @@ This section is normative for the file loop after local execution.
    `transfer push-current` only) in the same continuation mission; any other
    remote effect needs a new decision. Local Kit runs get the project venv and
    Homebrew on PATH (an app started via `open` has no `gh` otherwise).
+16. Kit lifecycle completion (`AGP_CI_LIFECYCLE_COMPLETION_V2`). Neither the
+   approval text nor the Cockpit's DONE rejection names a Kit command; they name
+   the goal, and the remote side chooses from the command digest, the most
+   comprehensive orchestrator first. Every publishing Kit command (push, PR,
+   `work finish`, `pr-create-complete`, closeout commands) activates the gate;
+   a merging one requires the merged lifecycle: the PR merged and containing
+   the local work the run started from, local main equal to origin/main,
+   `agentic-kit transfer post-merge-check` PASS (handoff refresh and successor
+   package current) and green CI for the origin/main head (`gh run list`: no
+   Kit read command exists for a branch head). The repair budget (6 work
+   orders) re-runs the approved Kit commands and, after an approved merging
+   orchestrator, the publishing and closeout commands of that lifecycle.
+   Local run_next timeout: 30 minutes (an orchestrator waits for two CIs).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

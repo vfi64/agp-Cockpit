@@ -17,11 +17,14 @@ continuation mission does not use expires when that mission ends or another
 mission of the task starts.
 
 AGP_CI_GREEN_COMPLETION_V1: an approval also carries a bounded repair budget.
-Once the task pushed, the Cockpit accepts DONE only with green CI; repairing a
-red CI needs further pushes. Within the same continuation mission up to
-MAX_RED_HEADS further work orders may use `transfer push-current` or
-`transfer pr-create` (and nothing else with a remote effect) without asking
-again. Every other remote effect still needs a new decision.
+Once the task published work, the Cockpit accepts DONE only when GitHub is
+verified green (ci_gate); repairing needs further runs. Within the same
+continuation mission up to REPAIR_BUDGET further work orders may re-run the
+Kit commands the approval already ran, the push/PR primitives and, after an
+approved merging orchestrator, the publishing and closeout commands of that
+lifecycle, without asking again. Every other remote effect still needs a new
+decision. The approval text never prescribes a Kit command: the remote side
+chooses from the digest, orchestrators first (live 1501-1519).
 """
 
 from __future__ import annotations
@@ -67,10 +70,9 @@ class HumanDecisionStore:
             "grant": None,
         }
         if decision == "APPROVE":
-            from agp_cockpit.core.ci_gate import MAX_RED_HEADS
+            from agp_cockpit.core.ci_gate import REPAIR_BUDGET
             record["grant"] = {"effect": "remote", "remaining": 1,
-                               "repair_pushes": MAX_RED_HEADS + 1,  # + creating the PR
-                               "consumed_by": None}
+                               "repair_pushes": REPAIR_BUDGET, "consumed_by": None}
         self._save(record)
         return record
 
@@ -88,18 +90,32 @@ class HumanDecisionStore:
 
     def permits(self, task_id: str, wanted, *, ci_gate_active: bool,
                 now: float | None = None) -> bool:
-        """Whether the open approval covers exactly these remote-effect commands."""
-        from agp_cockpit.core.ci_gate import REPAIR_PUSH_COMMANDS
+        """Whether the open approval covers exactly these remote-effect commands.
+
+        The first executed work order may use any remote effect (the asked
+        action). Afterwards the repair budget covers the Kit commands that the
+        approval already ran, the push/PR primitives and, when the approved
+        run merges, the publishing and closeout commands of that lifecycle.
+        """
+        from agp_cockpit.core.ci_gate import (
+            LIFECYCLE_COMMANDS,
+            MERGE_COMMANDS,
+            REPAIR_PUSH_COMMANDS,
+        )
         if not self.remote_effects_allowed(task_id, now=now):
             return False
         grant = self.current().get("grant") or {}
         if grant.get("remaining", 0) > 0:
             return True
+        approved = set(grant.get("approved_commands") or ())
+        allowed = set(REPAIR_PUSH_COMMANDS) | approved
+        if approved & MERGE_COMMANDS:
+            allowed |= LIFECYCLE_COMMANDS
         return bool(
             ci_gate_active
             and grant.get("repair_pushes", 0) > 0
             and wanted
-            and set(wanted) <= REPAIR_PUSH_COMMANDS
+            and set(wanted) <= allowed
         )
 
     def _expire(self, record: dict, *, mission_id: str, reason: str) -> None:
@@ -140,7 +156,7 @@ class HumanDecisionStore:
                 "repair_pushes": grant.get("repair_pushes", 0),
                 "question": record.get("question", ""), "note": record.get("note", "")}
 
-    def consume(self, task_id: str, command_sha256: str) -> dict:
+    def consume(self, task_id: str, command_sha256: str, used=()) -> dict:
         record = self.current()
         grant = record.get("grant") or {}
         if record.get("task_id") != task_id or (
@@ -149,6 +165,7 @@ class HumanDecisionStore:
             raise ValueError("no approval available to consume")
         if grant.get("remaining", 0) > 0:
             grant["remaining"] = 0
+            grant["approved_commands"] = sorted(set(used))
         else:
             grant["repair_pushes"] = int(grant.get("repair_pushes", 0)) - 1
         grant["consumed_by"] = command_sha256
@@ -166,20 +183,23 @@ def decision_mission_text(*, goal_text: str, decision: str, question: str, note:
             "APPROVED. The human approves exactly the action asked about above.\n"
             "- This approval supersedes any \"prepare only\", \"do not execute\" or similar "
             "restriction in the original task, for exactly this approved action.\n"
-            "- Your next work order MUST perform the approved action now, through the matching "
-            "Kit command from the attached command digest (for a branch push: "
-            "`agentic-kit transfer push-current --branch <current branch> --json`, which sets "
-            "the upstream on origin itself), and report its real result in the return bundle.\n"
-            "- For exactly that one work order the local authority allows remote-effect Kit "
-            "commands and network access (allow_network=true); the approval is consumed by it "
-            "and expires when this mission ends.\n"
-            "- Do not ask for the same approval again. Raw git push, git fetch and git pull stay "
-            "forbidden; use only the Kit command.\n"
-            "- A task that pushed is complete only when the CI of its pull request is green for "
-            "the local HEAD; the Cockpit verifies this itself. Create the pull request with "
-            "`agentic-kit transfer pr-create`, wait with `agentic-kit pr wait-ci`, and name the "
-            "pull request as \"pr\" in the DONE file. If the CI is red, repair, commit and push "
-            "again: the approval covers creating the pull request and up to 3 repair pushes on this branch."
+            "- Your next work order MUST perform the approved action now and report its real "
+            "result in the return bundle. Choose the Kit command yourself from the attached "
+            "command digest: the most comprehensive orchestrator that covers the approved action "
+            "and the lifecycle the task asks for (publishing, CI, and a merge with its post-merge "
+            "closeout when the task includes one) in one run; use primitives only where no "
+            "orchestrator fits.\n"
+            "- For that work order the local authority allows remote-effect Kit commands and "
+            "network access (allow_network=true). Afterwards, within this mission, a bounded "
+            "repair budget lets you re-run the approved Kit commands and the publishing and "
+            "closeout commands of the same lifecycle to fix failures without asking again. The "
+            "approval expires when this mission ends.\n"
+            "- Do not ask for the same approval again. Raw git push, git fetch, git pull and gh "
+            "stay forbidden.\n"
+            "- Completion is verified locally by the Cockpit: a task that published work is DONE "
+            "only when the pull request CI is green for the local HEAD and, if the task includes "
+            "a merge, the pull request is merged, local main is synchronized, the Kit post-merge "
+            "check passes and main is green. Name the pull request as \"pr\" in the DONE file."
         )
     else:
         verdict = (

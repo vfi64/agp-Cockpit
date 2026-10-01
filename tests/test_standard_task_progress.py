@@ -86,3 +86,13 @@ def test_generic_mission_stopped_is_not_shown_as_running():
 def test_arbeiten_panel_uses_mission_progress():
     panel = (ROOT / "src/agp_cockpit/ui/simple_task_panel.py").read_text(encoding="utf-8")
     assert "describe_standard_task_progress(" in panel and "locally_verified=False" in panel
+
+
+def test_ci_verified_done_shows_the_verification_not_a_stale_error():
+    progress = describe_standard_task_progress(
+        mission_id="m", task_status={"state": "WAITING_FOR_REMOTE"}, locally_verified=False,
+        bridge_status={"mission": {"mission_id": "m", "state": "DONE", "turn_count": 3, "step_count": 3,
+                                   "last_error": "sleep is not defined",
+                                   "last_summary": "CI grün geprüft (PR #137 5c816fc9a668) · done"}})
+    assert progress.text.startswith("Fertig ✓ — CI grün geprüft (PR #137")
+    assert "sleep" not in progress.text
