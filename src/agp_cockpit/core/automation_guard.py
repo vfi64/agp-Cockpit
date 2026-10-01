@@ -12,6 +12,7 @@ class AutomationLimits:
     max_identical_assistant_messages: int = 2
     max_identical_prompts: int = 2
     max_consecutive_errors: int = 3
+    max_handshake_age_seconds: float = 300.0
 
 
 @dataclass

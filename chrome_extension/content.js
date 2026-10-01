@@ -14,6 +14,7 @@
     note: "",
     mission: null,
     localAuthority: null,
+    nextLocalStep: 0,
     state: "IDLE",
     connected: false,
     lastRefresh: null,
@@ -27,10 +28,14 @@
     candidateText: "",
     candidateStablePolls: 0,
     attachmentWaitStartedAt: 0,
+    pendingAttachmentKey: "",
+    lastAssistantObservationAt: 0,
     assistantBaselineCount: 0,
     assistantBaselineMessageIds: [],
     assistantBaselineMessageId: "",
+    assistantBaselineAttachmentNames: [],
     observedAssistantMessageId: "",
+    lastProcessedAssistantAttachmentKey: "",
     assistantBaselineText: "",
     k07DebugTraceEnabled: false
   };
@@ -233,15 +238,38 @@
     );
   }
 
-  function captureAssistantBaseline() {
+  // AGP_K07_BASELINE_BEFORE_SEND_V1: the baseline for the next turn is
+  // snapshotted before the continuation is sent and applied only after the
+  // send is committed, so a fast next assistant message can never be
+  // absorbed into the baseline, and a failed send leaves the old one intact.
+  function snapshotAssistantBaseline() {
     const nodes = assistantMessageNodes();
-    STATE.assistantBaselineMessageIds = nodes
-      .map(node => String(node.getAttribute("data-message-id") || ""))
-      .filter(Boolean);
-    STATE.assistantBaselineCount = nodes.length;
-    STATE.assistantBaselineMessageId = lastAssistantMessageId();
+    return {
+      ids:nodes
+        .map(node => String(node.getAttribute("data-message-id") || ""))
+        .filter(Boolean),
+      count:nodes.length,
+      lastId:lastAssistantMessageId(),
+      text:normalizeObservedMessageText(lastAssistantText()),
+      names:nodes.flatMap(node => {
+        const text = String(node.innerText || node.textContent || "");
+        return Array.from(text.matchAll(/(?:^|[\s/])([^\s/]+\.py)(?:$|[\s?#])/gim))
+          .map(match => match[1]);
+      })
+    };
+  }
+
+  function applyAssistantBaseline(baseline) {
+    STATE.assistantBaselineMessageIds = baseline.ids;
+    STATE.assistantBaselineCount = baseline.count;
+    STATE.assistantBaselineMessageId = baseline.lastId;
     STATE.observedAssistantMessageId = "";
-    STATE.assistantBaselineText = normalizeObservedMessageText(lastAssistantText());
+    STATE.assistantBaselineText = baseline.text;
+    STATE.assistantBaselineAttachmentNames = baseline.names;
+  }
+
+  function captureAssistantBaseline() {
+    applyAssistantBaseline(snapshotAssistantBaseline());
   }
 
   // AGP_K07_IDENTITY_AWARE_ASSISTANT_SELECTION_1212
@@ -312,10 +340,78 @@
   }
 
 
+  function pythonAttachmentRow(anchor) {
+    const href = String(anchor.href || anchor.getAttribute("href") || "").trim();
+    const label = String(
+      anchor.getAttribute("download") ||
+      anchor.getAttribute("aria-label") ||
+      anchor.getAttribute("title") ||
+      anchor.textContent ||
+      ""
+    ).trim();
+    const match = label.match(/(?:^|[\s/])([^\s/]+\.(?:py|json)(?:[?#][^\s]*)?)/i);
+    const name = match ? match[1] : label.split("/").pop().trim();
+    let row = anchor;
+    let downloadNode = null;
+    for (let depth = 0; depth < 8 && row; depth += 1, row = row.parentElement) {
+      downloadNode = row.querySelector('button[aria-label="Datei herunterladen"], button[aria-label="Download"]');
+      if (downloadNode) break;
+    }
+    return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor, downloadNode};
+  }
+
+  // AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1
+  // The local bridge assigns a fresh work-order number for every remote turn
+  // and reserves every number that may already be visible remotely. A file
+  // card named <expectedStep>_*.py is therefore the identity of the awaited
+  // response, exactly like the send nonce identifies the committed user turn.
+  // Discovery must not depend on assistant-turn wrappers: on 2026-09-30 the
+  // live DOM exposed the 1475 file card while no assistant node was found for
+  // 180 s. Composer, user-turn and dialog copies are excluded; the first card
+  // in document order wins among identical names.
+  function expectedStepAttachmentCandidates(expectedStep, kind="command") {
+    // AGP_K07_TERMINAL_REPLY_FILE_V1: a terminal answer is the file card
+    // <expectedStep>_agp_terminal.json, with the same identity rules.
+    const pattern = kind === "terminal"
+      ? new RegExp(`^${Number(expectedStep)}_agp_terminal\\.json(?:[?#]|$)`)
+      : new RegExp(`^${Number(expectedStep)}_[^\\s/]+\\.py(?:[?#]|$)`, "i");
+    const unique = new Map();
+    for (const anchor of document.querySelectorAll('a[href], button, [role="button"]')) {
+      if (anchor.closest('form, [data-message-author-role="user"], [role="dialog"], [aria-modal="true"]')) continue;
+      // AGP_COMPOSER_RESOLVER_V1: ChatGPT can keep a previous conversation in
+      // a hidden/inert container after "new chat" (live 2026-09-30: step 1480
+      // of the old chat was reported visible on https://chatgpt.com/).
+      if (anchor.closest('[inert], [aria-hidden="true"]')) continue;
+      const anchorRect = anchor.getBoundingClientRect();
+      if (!(anchorRect.width > 0 && anchorRect.height > 0)) continue;
+      const item = pythonAttachmentRow(anchor);
+      if (!pattern.test(String(item.name || ""))) continue;
+      if (!(item.href || item.isButton)) continue;
+      const key = `${item.href}\n${item.name}`;
+      if (!unique.has(key)) unique.set(key, item);
+    }
+    return Array.from(unique.values());
+  }
+
+  function expectedStepFileVisible(step) {
+    return expectedStepAttachmentCandidates(step).length > 0 ||
+      expectedStepAttachmentCandidates(step, "terminal").length > 0;
+  }
+
+  function expectedStepTerminalCandidates() {
+    const step = Number(STATE.nextLocalStep || 0);
+    return step > 0 ? expectedStepAttachmentCandidates(step, "terminal") : [];
+  }
+
   // AGP_K07_COMMAND_FILE_INGRESS_989
   function assistantPythonAttachmentCandidates() {
+    const expectedStepIdentity = Number(STATE.nextLocalStep || 0);
+    if (expectedStepIdentity > 0) {
+      return expectedStepAttachmentCandidates(expectedStepIdentity);
+    }
     const nodes = assistantMessageNodes();
     if (!nodes.length) return [];
+    const baselineNames = new Set(STATE.assistantBaselineAttachmentNames || []);
     // Use the same identity-aware selection as assistant text extraction. The
     // ChatGPT DOM can contain virtualized or stale assistant nodes alongside
     // the currently observed response.
@@ -323,20 +419,33 @@
     const assistant = [...nodes].reverse().find(node => {
       const id = String(node.getAttribute("data-message-id") || "");
       if (id && baselineIds.has(id)) return false;
-      return node.querySelector('a[href$=".py"], button[aria-label$=".py"]');
+      return node.querySelector('a[href$=".py"], button[aria-label$=".py"], button, [role="button"]');
     }) || selectedAssistantMessageNode();
     if (!assistant) return [];
-    const rows = Array.from(assistant.querySelectorAll("a[href], button[aria-label]"))
+    // ChatGPT currently renders the attachment card as a plain button with
+    // visible filename text. Keep links and labelled controls supported, but
+    // also inspect ordinary buttons so the real file-card DOM is covered.
+    const rows = Array.from(assistant.querySelectorAll(
+      "a[href], button[aria-label$=\".py\"], button, [role=\"button\"]"
+    ))
       .map(anchor => {
         const href = String(anchor.href || anchor.getAttribute("href") || "").trim();
         const label = String(
           anchor.getAttribute("download") ||
           anchor.getAttribute("aria-label") ||
+          anchor.getAttribute("title") ||
           anchor.textContent ||
           ""
         ).trim();
-        const name = label.split("/").pop().trim();
-        return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor};
+        const match = label.match(/(?:^|[\s/])([^\s/]+\.py(?:[?#][^\s]*)?)/i);
+        const name = match ? match[1] : label.split("/").pop().trim();
+        let row = anchor;
+        let downloadNode = null;
+        for (let depth = 0; depth < 8 && row; depth += 1, row = row.parentElement) {
+          downloadNode = row.querySelector('button[aria-label="Datei herunterladen"], button[aria-label="Download"]');
+          if (downloadNode) break;
+        }
+        return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor, downloadNode};
       })
       .filter(item => (
         /\.py(?:$|[?#\s])/i.test(item.name || "") ||
@@ -347,7 +456,170 @@
       );
     const unique = new Map();
     for (const row of rows) unique.set(`${row.href}\n${row.name}`, row);
-    return Array.from(unique.values());
+    const candidates = Array.from(unique.values());
+    const expectedStep = Number(STATE.nextLocalStep || 0);
+    if (expectedStep > 0) {
+      return candidates.filter(item => {
+        const match = String(item.name || "").match(/^(\d+)_/);
+        return match && Number(match[1]) === expectedStep;
+      });
+    }
+    // A stable message id does not prove that the attachment is new: an
+    // in-flight assistant response can materialize after the baseline was
+    // captured, and ChatGPT may recycle or expose that old response again.
+    // The filename is therefore a second, mandatory turn boundary. A remote
+    // retry must receive a new filename instead of being executed locally as
+    // a fresh step.
+    if (baselineNames.size) {
+      return candidates.filter(item => !baselineNames.has(item.name));
+    }
+    return candidates;
+  }
+
+  // AGP_K07_ASSISTANT_WAIT_OBSERVATION_V1: bounded DOM evidence while the
+  // loop waits for a remote response, so a missed response is diagnosable
+  // from the bridge log instead of by hypothesis.
+  async function reportAssistantWaitObservation(reason) {
+    const now = Date.now();
+    if (now - Number(STATE.lastAssistantObservationAt || 0) < 20000) return;
+    STATE.lastAssistantObservationAt = now;
+    const count = selector => {
+      try { return document.querySelectorAll(selector).length; } catch (_) { return -1; }
+    };
+    const labelOf = el => String(
+      el.getAttribute("download") || el.getAttribute("aria-label") ||
+      el.getAttribute("title") || el.textContent || ""
+    ).replace(/\s+/g, " ").trim();
+    const pythonLabels = Array.from(document.querySelectorAll('a[href], button, [role="button"]'))
+      .map(labelOf).filter(label => /\.py(?:$|[?#\s])/i.test(label)).slice(-5).map(label => label.slice(0, 120));
+    const stopLabels = Array.from(document.querySelectorAll("button"))
+      .map(button => String(button.getAttribute("aria-label") || button.getAttribute("data-testid") || ""))
+      .filter(label => /stop|stopp/i.test(label)).slice(0, 5);
+    const authorHeadings = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6,[role='heading']"))
+      .map(el => String(el.textContent || "").trim().toLowerCase())
+      .filter(text => text.length <= 40 && /gesagt|said/.test(text));
+    await clientEvent("K07_ASSISTANT_WAIT_OBSERVATION", {
+      reason:String(reason || ""),
+      expected_step:Number(STATE.nextLocalStep || 0),
+      role_assistant:count('[data-message-author-role="assistant"]'),
+      role_user:count('[data-message-author-role="user"]'),
+      role_any:count("[data-message-author-role]"),
+      message_ids:count("[data-message-id]"),
+      turn_articles:count('article[data-testid^="conversation-turn"]'),
+      testid_turns:count('[data-testid*="conversation-turn"]'),
+      author_headings:authorHeadings.slice(-6),
+      baseline_ids:assistantBaselineIds().size,
+      python_labels:pythonLabels,
+      expected_candidates:Number(STATE.nextLocalStep || 0) > 0
+        ? expectedStepAttachmentCandidates(Number(STATE.nextLocalStep || 0)).length
+        : -1,
+      generation_active:chatgptGenerationActive(),
+      stop_like_buttons:stopLabels
+    });
+  }
+
+  function assistantAttachmentKey(candidates) {
+    const attachment = candidates && candidates[0];
+    if (!attachment) return "";
+    const messageId = lastAssistantMessageId();
+    const responseText = normalizeObservedMessageText(lastAssistantText());
+    const missionId = STATE.mission ? String(STATE.mission.mission_id || "") : "";
+    return [missionId, STATE.runGeneration, messageId, attachment.name, attachment.href, responseText].join("\n");
+  }
+
+  function readableAttachmentPreview(filename) {
+    const expectedName = String(filename || "").trim().toLowerCase();
+    const candidates = Array.from(document.querySelectorAll(
+      '[role="dialog"] .cm-content[role="textbox"], ' +
+      '[role="dialog"] .cm-content, .cm-content[role="textbox"], ' +
+      '[role="textbox"][aria-label]'
+    ));
+    return candidates.find(candidate => {
+      const content = String(candidate.innerText || candidate.textContent || "").trim();
+      if (!content) return false;
+      if (candidate.closest('[role="dialog"], [aria-modal="true"]')) return true;
+      const label = String(candidate.getAttribute("aria-label") || "").trim().toLowerCase();
+      return Boolean(expectedName) && (label === expectedName || label.endsWith(`/${expectedName}`));
+    }) || null;
+  }
+
+  function attachmentPreviewContainer(preview) {
+    let current = preview;
+    for (let depth = 0; current && depth < 12; depth += 1, current = current.parentElement) {
+      const buttons = Array.from(current.querySelectorAll("button"));
+      const labels = buttons.map(button => String(
+        button.getAttribute("aria-label") || button.textContent || button.title || ""
+      ).trim().toLowerCase());
+      const hasClose = labels.some(label => label === "close" || label === "schließen");
+      const hasDownload = labels.some(label => label === "download" || label === "herunterladen");
+      if (hasClose && hasDownload) return current;
+    }
+    return preview ? preview.closest('[role="dialog"], [aria-modal="true"]') : null;
+  }
+
+  function attachmentPreviewDownloadButton(preview) {
+    const dialog = attachmentPreviewContainer(preview);
+    const root = dialog || preview;
+    if (!root) return null;
+    return Array.from(root.querySelectorAll("button")).find(button => {
+      const label = String(
+        button.getAttribute("aria-label") || button.textContent || button.title || ""
+      ).trim().toLowerCase();
+      return label === "download" || label === "herunterladen" ||
+        label === "datei herunterladen";
+    }) || null;
+  }
+
+  async function materializeDownloadedAttachment(attachment, downloadNode) {
+    if (!downloadNode || !downloadNode.isConnected) {
+      throw new Error("K07 assistant attachment has no authoritative download control");
+    }
+    const armed = await chrome.runtime.sendMessage({
+      type:"AGP_K07_ARM_COMMAND_FILE_DOWNLOAD",
+      filename:attachment.name
+    });
+    if (!armed || armed.ok !== true) {
+      throw new Error(armed && armed.error ? String(armed.error) : "K07 browser download could not be armed");
+    }
+    downloadNode.click();
+    const downloaded = await chrome.runtime.sendMessage({
+      type:"AGP_K07_WAIT_COMMAND_FILE_DOWNLOAD",
+      filename:attachment.name
+    });
+    if (!downloaded || downloaded.ok !== true || !downloaded.download_path) {
+      throw new Error(downloaded && downloaded.error ? String(downloaded.error) : "K07 browser download did not complete");
+    }
+    const fetched = await api("/v1/file-loop/download", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({filename:attachment.name, download_path:downloaded.download_path})
+    });
+    if (!fetched || fetched.ok !== true || fetched.stage !== "COMMAND_FILE_FETCHED" || typeof fetched.content !== "string" || !fetched.content.trim()) {
+      throw new Error("K07 downloaded command file could not be materialized");
+    }
+    // AGP_K07_DOWNLOAD_PROVENANCE_V1: the bytes the bridge read must be the
+    // bytes Chrome reported for this exact download item.
+    const browserBytes = Number(downloaded.download_bytes || 0);
+    if (browserBytes > 0 && Number(fetched.bytes || 0) !== browserBytes) {
+      throw new Error(`K07 download size mismatch: browser ${browserBytes} bytes, bridge ${Number(fetched.bytes || 0)} bytes`);
+    }
+    await clientEvent("K07_ATTACHMENT_DOWNLOAD_USED", {
+      filename:attachment.name,
+      download_path:downloaded.download_path,
+      download_id:downloaded.download_id || null,
+      download_bytes:Number(downloaded.download_bytes || 0),
+      chars:fetched.content.length
+    });
+    return {
+      ok:true,
+      stage:"COMMAND_FILE_FETCHED",
+      filename:attachment.name,
+      href:`chatgpt://assistant-download/${encodeURIComponent(attachment.name)}`,
+      content:fetched.content,
+      content_type:String(fetched.content_type || "text/x-python"),
+      chars:fetched.content.length,
+      download_sha256:String(fetched.sha256 || "")
+    };
   }
 
   async function readAssistantButtonAttachment(attachment) {
@@ -355,47 +627,151 @@
     if (!button || !button.isConnected) {
       throw new Error("K07 assistant attachment button is no longer connected");
     }
+    if (attachment.downloadNode && attachment.downloadNode.isConnected) {
+      const downloaded = await materializeDownloadedAttachment(attachment, attachment.downloadNode);
+      const target = composer();
+      if (target && target.isConnected) {
+        const activeBefore = document.activeElement;
+        if (activeBefore && activeBefore !== target && typeof activeBefore.blur === "function") {
+          activeBefore.blur();
+        }
+        if (typeof window !== "undefined" && typeof window.focus === "function") window.focus();
+        if (typeof target.focus === "function") target.focus();
+      }
+      return downloaded;
+    }
     button.click();
     const deadline = Date.now() + 45000;
     let preview = null;
     while (Date.now() < deadline) {
-      preview = document.querySelector(
-        '[role="dialog"] .cm-content[role="textbox"], [role="dialog"] .cm-content'
-      );
+      preview = readableAttachmentPreview(attachment.name);
       const previewText = preview
         ? String(preview.innerText || preview.textContent || "")
         : "";
       if (preview && previewText.trim()) break;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    const content = preview
-      ? String(preview.innerText || preview.textContent || "")
-      : "";
-    if (!preview || !content.trim()) {
+    if (!preview) {
+      const unavailableDialog = document.querySelector('[role="dialog"], [aria-modal="true"]');
+      const closeUnavailable = unavailableDialog && Array.from(unavailableDialog.querySelectorAll('button')).find(candidate => {
+        const label = String(candidate.getAttribute("aria-label") || candidate.textContent || "").trim().toLowerCase();
+        return label === "schließen" || label === "close";
+      });
+      if (closeUnavailable) closeUnavailable.click();
+      else if (unavailableDialog) {
+        document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", code:"Escape", bubbles:true, cancelable:true}));
+      }
       throw new Error("K07 assistant attachment preview did not become readable");
     }
-    const close = document.querySelector(
-      '[role="dialog"] [data-testid="close-button"], ' +
-      '[role="dialog"] button[aria-label="Vollbildmodus beenden"], ' +
-      '[role="dialog"] button[aria-label="Exit full screen"]'
-    );
-    if (close) close.click();
-    return {
-      ok: true,
-      stage: "COMMAND_FILE_FETCHED",
-      filename: attachment.name,
-      href: `chatgpt://assistant-attachment/${encodeURIComponent(attachment.name)}`,
-      content,
-      content_type: "text/x-python",
-      chars: content.length
-    };
+    const dialog = attachmentPreviewContainer(preview);
+    const previewDownload = attachmentPreviewDownloadButton(preview);
+    let downloadedContent = null;
+    let downloadError = null;
+    if (previewDownload) {
+      try {
+        downloadedContent = await materializeDownloadedAttachment(attachment, previewDownload);
+      } catch (error) {
+        downloadError = error;
+      }
+    } else {
+      downloadError = new Error("K07 assistant attachment preview is not an authoritative payload; browser download is required");
+    }
+    const normalizedLabel = value => String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    const closeCandidates = dialog
+      ? Array.from(dialog.querySelectorAll(
+        '[data-testid="close-button"], ' +
+        'button[aria-label="Vollbildmodus beenden"], ' +
+        'button[aria-label="Exit full screen"], ' +
+        'button[aria-label="Schließen"], button[aria-label="Close"], button'
+      ))
+      : [];
+    const active = document.activeElement;
+    if (active && active.tagName === "BUTTON" && dialog && dialog.contains(active)) {
+      closeCandidates.unshift(active);
+    }
+    const close = closeCandidates.find(button => {
+      const label = normalizedLabel(
+        button.getAttribute("aria-label") || button.textContent || button.title
+      );
+      return label === "ok" || label === "close" || label === "schließen" ||
+        label === "exit full screen" || label === "vollbildmodus beenden" ||
+        button.getAttribute("data-testid") === "close-button";
+    });
+    let closeMethod = "none";
+    if (close) {
+      close.click();
+      closeMethod = normalizedLabel(close.textContent) === "ok" ? "dialog_ok" : "dialog_control";
+    } else {
+      document.dispatchEvent(new KeyboardEvent("keydown", {
+        key:"Escape", code:"Escape", bubbles:true, cancelable:true
+      }));
+      closeMethod = "escape";
+    }
+    const closeDeadline = Date.now() + 3000;
+    while (Date.now() < closeDeadline) {
+      const stillOpen = dialog && dialog.isConnected && (() => {
+        const rect = dialog.getBoundingClientRect();
+        const style = getComputedStyle(dialog);
+        return rect.width > 0 && rect.height > 0 &&
+          style.display !== "none" && style.visibility !== "hidden";
+      })();
+      if (!stillOpen) break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    const stillOpen = dialog && dialog.isConnected && (() => {
+      const rect = dialog.getBoundingClientRect();
+      const style = getComputedStyle(dialog);
+      return rect.width > 0 && rect.height > 0 &&
+        style.display !== "none" && style.visibility !== "hidden";
+    })();
+    if (stillOpen) {
+      throw new Error("K07 assistant attachment preview did not close");
+    }
+
+    // Closing the preview can leave focus on its now-detached OK button.
+    // Restore and verify composer ownership before the background transport
+    // attaches the result files and sends the recovery prompt.
+    const focusDeadline = Date.now() + 1500;
+    let focusEvidence = null;
+    while (Date.now() < focusDeadline) {
+      const target = composer();
+      if (target && target.isConnected) {
+        const activeBefore = document.activeElement;
+        if (activeBefore && activeBefore !== target && typeof activeBefore.blur === "function") {
+          activeBefore.blur();
+        }
+        if (typeof window.focus === "function") window.focus();
+        if (typeof target.focus === "function") target.focus();
+        focusEvidence = {
+          focused: document.activeElement === target,
+          active_tag: document.activeElement ? document.activeElement.tagName : "",
+          active_id: document.activeElement ? document.activeElement.id : "",
+          composer_tag: target.tagName,
+          composer_id: target.id || ""
+        };
+        if (focusEvidence.focused) break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    if (!focusEvidence || !focusEvidence.focused) {
+      throw new Error("K07 composer focus could not be restored after attachment preview");
+    }
+    await clientEvent("K07_ATTACHMENT_PREVIEW_CLOSED", {
+      filename:attachment.name,
+      method:closeMethod,
+      composer_focus:focusEvidence
+    });
+    if (downloadError) throw downloadError;
+    return downloadedContent;
   }
 
-  async function fetchSingleAssistantPythonAttachment() {
-    const candidates = assistantPythonAttachmentCandidates();
+  async function fetchSingleAssistantPythonAttachment(candidates = assistantPythonAttachmentCandidates()) {
     if (candidates.length !== 1) {
       throw new Error(
-        `expected exactly one assistant .py attachment; observed ${candidates.length}`
+        `expected exactly one assistant remote-file attachment; observed ${candidates.length}`
       );
     }
     const attachment = candidates[0];
@@ -417,8 +793,47 @@
     return response;
   }
 
-  async function submitAssistantCommandFile() {
+  // AGP_K07_TERMINAL_REPLY_FILE_V1: materialize the terminal file through the
+  // same download/provenance path and let the bridge decide the final state.
+  async function submitAssistantTerminalReply(candidates) {
+    const fetched = await fetchSingleAssistantPythonAttachment(candidates);
+    const result = await api("/v1/file-loop/terminal", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        filename:fetched.filename,
+        content:fetched.content,
+        download_sha256:fetched.download_sha256 || undefined
+      })
+    });
+    // AGP_CI_GREEN_COMPLETION_V1: the Cockpit may reject a remote DONE (CI not
+    // green) and continue the task with a prompt instead of ending it.
+    const continued = result && result.terminal === false && String(result.state || "") === "CONTINUE" &&
+      typeof result.prompt === "string" && result.prompt.length > 0;
+    if (!result || (!continued && (result.terminal !== true ||
+        !["DONE", "NEEDS_HUMAN"].includes(String(result.state || ""))))) {
+      throw new Error("K07 terminal-reply bridge response incomplete");
+    }
+    await clientEvent("K07_TERMINAL_REPLY_OBSERVED", {
+      filename:fetched.filename,
+      state:String(result.state),
+      remote_state:String(result.remote_state || ""),
+      authority:String(result.authority || ""),
+      replayed:Boolean(result.replayed)
+    });
+    return result;
+  }
+
+  async function submitAssistantCommandFile(runGeneration = STATE.runGeneration) {
+    await clientEvent("K07_FILE_INGRESS_REQUESTED", {
+      stage:"FETCH_ATTACHMENT",
+      message_id:lastAssistantMessageId()
+    });
     const fetched = await fetchSingleAssistantPythonAttachment();
+    await clientEvent("K07_FILE_INGRESS_ATTACHMENT_FETCHED", {
+      filename:fetched.filename,
+      chars:Number(fetched.chars || String(fetched.content || "").length)
+    });
     const result = await api(
       "/v1/file-loop/command",
       {
@@ -428,6 +843,7 @@
           filename:fetched.filename,
           content:fetched.content,
           href:fetched.href,
+          download_sha256:fetched.download_sha256 || undefined,
           message_id:lastAssistantMessageId()
         })
       }
@@ -436,15 +852,61 @@
     if (
       !result ||
       (result.state !== "COMMAND_FILE" && !terminal) ||
-      typeof result.result_file !== "string" ||
-      !result.result_file ||
-      (!terminal && (typeof result.prompt !== "string" || !result.prompt))
+      (!terminal && (typeof result.result_file !== "string" || !result.result_file)) ||
+      (!terminal && result.held !== true &&
+        (result.replayed !== true || result.delivery_pending === true) &&
+        (typeof result.prompt !== "string" || !result.prompt))
     ) {
       throw new Error("K07 command-file bridge response incomplete");
     }
-    if (result.replayed === true || terminal) {
+    await clientEvent("K07_FILE_INGRESS_ACCEPTED", {
+      filename:fetched.filename,
+      state:String(result.state || ""),
+      step:Number(result.step || 0),
+      terminal,
+      replayed:Boolean(result.replayed)
+    });
+    // AGP_K07_ADVANCE_STEP_AFTER_DELIVERY_V1: the expected step is the
+    // identity of the awaited remote response. It advances only when the
+    // result reached the remote side (or delivery is not required). Advancing
+    // earlier hid the current card after a failed delivery (live 2026-09-30:
+    // expected 1477 while 1476 still needed re-delivery).
+    const advanceExpectedStep = () => {
+      if (Number(result.next_step || 0) > 0) {
+        STATE.nextLocalStep = Number(result.next_step);
+      }
+    };
+    // AGP_K07_DELIVERY_STATE_V1: a replay whose earlier delivery was never
+    // confirmed is re-delivered; a confirmed one is suppressed. A result held
+    // by operator PAUSE is not sent now; it is re-delivered after resume.
+    if (result.held === true) {
       return result;
     }
+    if (terminal) {
+      advanceExpectedStep();
+      return result;
+    }
+    if (result.replayed === true && result.delivery_pending !== true) {
+      advanceExpectedStep();
+      return result;
+    }
+    if (!STATE.running || STATE.runGeneration !== runGeneration) {
+      await clientEvent("K07_CONTINUATION_SUPPRESSED_BY_GENERATION", {
+        step:Number(result.step || 0),
+        result_sha256:result.result_sha256 || null
+      });
+      return Object.assign({}, result, {delivery_skipped:true});
+    }
+    const upcomingStep = Number(result.next_step || 0);
+    if (upcomingStep > 0 && expectedStepFileVisible(upcomingStep)) {
+      // The continuation would ask for a number that is already visible;
+      // its stale card would be consumed as the next response. Fail closed.
+      const currentExpectedStep = STATE.nextLocalStep;
+      await reserveRemoteStep("visible-unmaterialized-remote-attachment", upcomingStep);
+      STATE.nextLocalStep = currentExpectedStep;
+      throw new Error(`K07 next step ${upcomingStep} is already visible in the conversation; continuation not sent`);
+    }
+    const nextBaseline = snapshotAssistantBaseline();
     // AGP_K07_RESULT_CONTINUATION_CALL_991
     const continuation = await chrome.runtime.sendMessage({
       type:"AGP_K07_RESULT_CONTINUATION",
@@ -457,10 +919,41 @@
     if (!continuation || continuation.ok !== true || continuation.stage !== "RESULT_ATTACHED_AND_CONTINUATION_SENT") {
       throw new Error(continuation && continuation.error ? String(continuation.error) : "result continuation transport failed");
     }
+    applyAssistantBaseline(nextBaseline);
+    advanceExpectedStep();
+    if (result.completion_pending !== true) {
+      try {
+        await api("/v1/file-loop/delivery-ack", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({cycle_id:result.cycle_id, result_sha256:result.result_sha256})
+        });
+      } catch (ackError) {
+        // The continuation is committed; a later remote command implies
+        // delivery. Never resend because only the acknowledgement failed.
+        await clientEvent("K07_DELIVERY_ACK_FAILED", {
+          result_sha256:result.result_sha256 || null,
+          error:String(ackError && ackError.message ? ackError.message : ackError)
+        });
+      }
+    }
+    if (result.completion_pending === true) {
+      const completed = await api("/v1/file-loop/result-delivered", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({cycle_id:result.cycle_id, result_sha256:result.result_sha256})
+      });
+      if (completed.state !== "DONE" || completed.terminal !== true) {
+        throw new Error("handoff completion acknowledgement rejected");
+      }
+      return Object.assign({}, result, completed);
+    }
     return result;
   }
 
   function composer() {
+    const resolved = typeof agpResolveComposer === "function" ? agpResolveComposer() : null;
+    if (resolved) return resolved;
     return (
       document.querySelector('#prompt-textarea') ||
       document.querySelector('textarea') ||
@@ -549,11 +1042,31 @@
     if (!response.ok) {
       STATE.connected = false;
       STATE.errorId = data.error_id || "";
-      throw new Error(data.error || `Cockpit bridge HTTP ${response.status}`);
+      const error = new Error(data.error || `Cockpit bridge HTTP ${response.status}`);
+      // AGP_K07_FAIL_FAST_REJECTION_V1: the bridge rejects a payload that
+      // violates the contract with HTTP 400 "ValueError: ...". Repeating the
+      // same step cannot change that verdict (live 2026-09-30: three
+      // downloads of the same file before AUTO_ERROR).
+      error.bridgeRejected = response.status === 400 && /^ValueError:/.test(String(data.error || ""));
+      throw error;
     }
 
     STATE.connected = true;
     return data;
+  }
+
+  async function reserveRemoteStep(reason, step=Number(STATE.nextLocalStep || 0)) {
+    const reservedStep = Number(step || 0);
+    if (reservedStep <= 0) return null;
+    const reserved = await api("/v1/file-loop/reserve-step", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({step:reservedStep, reason})
+    });
+    if (Number(reserved.next_step || 0) > 0) {
+      STATE.nextLocalStep = Number(reserved.next_step);
+    }
+    return reserved;
   }
 
   async function sendHandshake(force=false) {
@@ -578,6 +1091,7 @@
             event:"EXTENSION_HANDSHAKE",
             details:{
               version:chrome.runtime.getManifest().version,
+              build_id:globalThis.AGP_EXTENSION_BUILD_ID || "",
               page_url:url,
               handled_refresh_generation:Number(
                 (
@@ -647,7 +1161,15 @@
         {
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({event, details:{...details, mission_id:STATE.mission ? STATE.mission.mission_id : ""}})
+          body:JSON.stringify({event, details:{
+            ...details,
+            mission_id:STATE.mission ? STATE.mission.mission_id : "",
+            extension_version:chrome.runtime.getManifest().version,
+            extension_build_id:globalThis.AGP_EXTENSION_BUILD_ID || "",
+            conversation_url:location.href,
+            run_generation:Number(STATE.runGeneration || 0),
+            client_turn:Number(STATE.turns || 0)
+          }})
         }
       );
     } catch (_) {}
@@ -678,15 +1200,40 @@
   }
 
   function visibleUserMessages() {
-    return agpNativeMessageSnapshot().messages.map(message => message.text).filter(Boolean);
+    return agpNativeMessageSnapshot(typeof agpResolveComposer === "function" ? agpResolveComposer : undefined).messages.map(message => message.text).filter(Boolean);
   }
 
     // AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11
   function normalizeObservedMessageText(text) {
     return String(text || "")
+      .normalize("NFKC")
+      .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
       .replace(/\u00a0/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  function normalizeRenderedUserTurnText(text) {
+    return typeof agpNormalizeUserTurnText === "function"
+      ? agpNormalizeUserTurnText(text)
+      : normalizeObservedMessageText(text);
+  }
+
+  function renderedUserTurnMatches(observed, expected) {
+    if (typeof agpRenderedUserTurnMatches === "function") {
+      return agpRenderedUserTurnMatches(observed, expected);
+    }
+    const observedText = normalizeRenderedUserTurnText(observed);
+    const expectedText = normalizeRenderedUserTurnText(expected);
+    if (!observedText || !expectedText) return false;
+    if (observedText === expectedText) return true;
+    const minimumPrefix = 240;
+    const collapsedText = observedText.replace(/\s*(?:…|\.{3})$/, "").trim();
+    if (collapsedText.length >= minimumPrefix && expectedText.startsWith(collapsedText)) {
+      return true;
+    }
+    return observedText.length >= minimumPrefix &&
+      observedText.slice(0, minimumPrefix) === expectedText.slice(0, minimumPrefix);
   }
 
 
@@ -705,7 +1252,8 @@
 
   function isKnownCockpitDraft(text) {
     const value = normalizeObservedMessageText(text);
-    return value.includes("AGP COCKPIT MISSION — FIRST SINGLE STEP") ||
+    return /^AGP-SEND-[0-9a-f]{16}(?:\s|$)/.test(value) ||
+      value.includes("AGP COCKPIT MISSION — FIRST SINGLE STEP") ||
       value.includes("Attached is the result file for the command you gave me.") ||
       value.includes("The attached local execution evidence reports a FAILED command-file step.");
   }
@@ -734,19 +1282,33 @@
     beforeGenerationActive=false
   ) {
     const beforeCount = beforeMessages.length;
-    const expected = normalizeObservedMessageText(prompt);
+    const expected = normalizeRenderedUserTurnText(prompt);
     const assistantBefore = normalizeObservedMessageText(beforeAssistantText);
     const composerBefore = normalizeObservedMessageText(beforeComposerText);
     let provisionalComposerEvidence = "";
     let generationStartedObserved = false;
 
+    // The nonce was generated for this send, so its pre-send occurrence count
+    // outside the composer is zero by construction. Reconciliation may start
+    // after the native commit already rendered, so it must not re-baseline.
+    const commitMarker = commitMarkerOf(prompt);
+    const markerBaseline = 0;
+    let markerStreak = 0;
+
     for (let i = 0; i < 60; i += 1) {
       await new Promise(resolve => setTimeout(resolve, 250));
 
+      markerStreak = commitMarker && commitMarkerOutsideComposer(commitMarker) > markerBaseline
+        ? markerStreak + 1
+        : 0;
+      if (markerStreak >= 2) {
+        return {confirmed:true, via:"commit_marker"};
+      }
+
       const after = visibleUserMessages();
       if (after.length > beforeCount) {
-        const newest = normalizeObservedMessageText(after[after.length - 1]);
-        if (newest === expected) {
+        const newest = after[after.length - 1];
+        if (renderedUserTurnMatches(newest, expected)) {
           return {confirmed:true, via:"user_message"};
         }
       }
@@ -842,10 +1404,40 @@
   }
 
 
+  // AGP_K07_SEND_COMMIT_NONCE_V1
+  // Every native send carries a fresh, unguessable first line. A persistent
+  // occurrence of that nonce outside the composer after the send boundary is
+  // decisive commit evidence that does not depend on ChatGPT's user-turn
+  // wrappers, message ids, rendered Markdown projection, virtualization
+  // window, or conversation URL.
+  const AGP_COMMIT_MARKER_PATTERN = /^AGP-SEND-[0-9a-f]{16}$/;
+
+  function agpCommitMarker() {
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    return "AGP-SEND-" + Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  function commitMarkerOf(prompt) {
+    const firstLine = String(prompt || "").split("\n", 1)[0].trim();
+    return AGP_COMMIT_MARKER_PATTERN.test(firstLine) ? firstLine : "";
+  }
+
+  function commitMarkerOutsideComposer(marker) {
+    if (!marker) return 0;
+    const count = value => String(value || "").split(marker).length - 1;
+    const el = composer();
+    const inBody = el && !(el instanceof HTMLTextAreaElement)
+      ? count(el.innerText || el.textContent || "")
+      : 0;
+    const bodyText = document.body ? (document.body.innerText || document.body.textContent || "") : "";
+    return Math.max(0, count(bodyText) - inBody);
+  }
+
   async function sendPromptNative(prompt) {
+    const commitMarker = agpCommitMarker();
+    prompt = `${commitMarker}\n${String(prompt || "")}`;
     const transport = createSendTransport(prompt);
-    // K07 result continuations intentionally reuse one stable instruction.
-    // Progress is proven by the next assistant message, not prompt wording.
 
     const nativeTransport = window.AGPBrowserNativeTransport;
     if (
@@ -924,7 +1516,7 @@
 
     let nativeAck = null;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
-      nativeAck = await nativeTransport.submit(prompt, {attempt});
+      nativeAck = await nativeTransport.submit(prompt, {attempt, commitMarker});
       if (String(nativeAck.stage || "") !== "COMPOSER_MODEL_NOT_VERIFIED") break;
       await clientEvent("COMPOSER_MODEL_NOT_VERIFIED", {
         attempt,
@@ -981,12 +1573,35 @@
           via:"reconciliation",
           native_stage:"USER_TURN_INDETERMINATE"
         });
-        await clientEvent("ACCEPTED_LATE", {via:"reconciliation"});
+        await clientEvent("ACCEPTED_LATE", {via:"reconciliation", evidence:reconciliation.via || ""});
         return;
+      }
+      // An empty composer is composer mutation, not send acceptance
+      // (COMMUNICATION_PROTOCOL.md). Without decisive commit evidence the
+      // send stays indeterminate and fails closed.
+      const reservedStep = Number(STATE.nextLocalStep || 0);
+      if (reservedStep > 0) {
+        try {
+          await reserveRemoteStep("native-send-indeterminate", reservedStep);
+        } catch (reserveError) {
+          await clientEvent("K07_REMOTE_STEP_RESERVE_FAILED", {
+            step:reservedStep,
+            error:String(reserveError && reserveError.message ? reserveError.message : reserveError)
+          });
+        }
       }
       await clientEvent("SEND_INDETERMINATE", {
         reconciliation:"not_confirmed",
-        provisional:reconciliation.provisional || ""
+        commit_marker_outside_composer:commitMarkerOutsideComposer(commitMarker),
+        native_diagnostics:nativeAck.diagnostics || null,
+        provisional:reconciliation.provisional || "",
+        generation_started_observed:Boolean(reconciliation.generation_started_observed),
+        native_after_summary:nativeAck.after && {
+          user_message_count:Number(nativeAck.after.user_message_count || 0),
+          exact_user_message_found:Boolean(nativeAck.after.exact_user_message_found),
+          composer_chars:String(nativeAck.after.composer_text || "").length,
+          generation_active:Boolean(nativeAck.after.generation_active)
+        }
       });
       STATE.lastEvent = "SEND_INDETERMINATE";
       STATE.note = "Prompt nicht reconcilierbar bestätigt; kein weiterer Turn";
@@ -1023,6 +1638,12 @@
       request_id:String(nativeAck.request_id || ""),
       via:"user_message"
     });
+  }
+
+  // Used by the native transport retry and stale-draft recovery; it was never
+  // defined (ReferenceError "sleep is not defined", live 1510 and 1518).
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   async function sendPrompt(prompt) {
@@ -1222,6 +1843,7 @@
     STATE.candidateText = "";
     STATE.candidateStablePolls = 0;
     STATE.attachmentWaitStartedAt = 0;
+    STATE.pendingAttachmentKey = "";
   }
 
   // AGP_STRUCTURED_RESPONSE_COMPLETION_064_R1
@@ -1318,7 +1940,7 @@
     return {text: unique[0].text, value: unique[0].value, source: "embedded-json"};
   }
 
-  async function stop(reason, event="AUTO_STOPPED") {
+  async function stop(reason, event="AUTO_STOPPED", operatorStop=true) {
     STATE.runGeneration += 1;
     STATE.running = false;
     STATE.waitingForAssistant = false;
@@ -1334,25 +1956,63 @@
     // Stop must reach the durable bridge authority as well as this content
     // script. Otherwise polling can recreate the run after the overlay stops.
     try {
-      await api("/v1/file-loop/control", {
+      if (operatorStop) await api("/v1/file-loop/control", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({action:"STOP"})
+        // The mission records the real reason, not a generic operator stop.
+        body:JSON.stringify({action:"STOP", reason:String(reason || "").slice(0, 300)})
       });
     } catch (error) {
       await clientEvent("OPERATOR_STOP_REQUEST_FAILED", {
         reason:String(error && error.message ? error.message : error)
       });
     }
-    await clientEvent(event, {
-      reason:STATE.note,
-      run_generation:STATE.runGeneration,
-      failure_class:STATE.lastTransportFailureClass || ""
-    });
+    try {
+      await clientEvent(event, {
+        reason:STATE.note,
+        run_generation:STATE.runGeneration,
+        failure_class:STATE.lastTransportFailureClass || ""
+      });
+    } catch (error) {
+      // A failed diagnostic report must never turn a completed stop into an
+      // unhandled promise rejection or leave the local state ambiguous.
+      STATE.lastEvent = "STOP_EVENT_REPORT_FAILED";
+      STATE.note = `${reason || ""} · ${String(error)}`.trim();
+    }
+    // AGP_STOP_REASON_V1: show the stopped mission state instead of a stale
+    // READY/RUNNING line; keep the stop reason as the visible note.
+    try {
+      const current = await api("/v1/status");
+      if (current && current.mission) STATE.mission = current.mission;
+      if (current && current.state) STATE.state = current.state;
+    } catch (_) {}
     render();
   }
 
+  function scheduleTick() {
+    if (STATE.timer) clearInterval(STATE.timer);
+    STATE.timer = setInterval(() => {
+      void tick().catch(error => {
+        // setInterval does not observe rejected promises. Keep the browser
+        // console clean and preserve a durable diagnostic when an unexpected
+        // error escapes the tick-level recovery path.
+        STATE.processingAssistant = false;
+        STATE.errors += 1;
+        STATE.lastEvent = "TICK_UNHANDLED_ERROR";
+        STATE.note = String(error);
+        try {
+          render();
+        } catch (_) {}
+        void clientEvent("TICK_UNHANDLED_ERROR", {
+          message:String(error),
+          error_count:STATE.errors
+        }).catch(() => {});
+      });
+    }, LIMITS.pollMs);
+  }
+
   function missionBootstrapPrompt(mission) {
+    const nextStep = Number(STATE.nextLocalStep || 0);
     return [
       "AGP COCKPIT MISSION — FIRST SINGLE STEP",
       "",
@@ -1361,6 +2021,14 @@
       "",
       "Return exactly ONE executable Python command file as a .py attachment.",
       "The Python file is the only non-terminal command artifact for the normal K07 file loop.",
+      ...(nextStep > 0 ? [
+        "The local bridge is the numbering authority for this run.",
+        `The next local work-order number is ${nextStep}. Use exactly ${nextStep}_...py as the attachment filename and use ${nextStep} in the embedded STEP constant and all step-scoped output names. Never reuse an older number.`,
+        // AGP_TASK_REPLY_POLICY_V1: the first turn of every mission is a fresh
+        // work order. A remote DONE is never offered here; earlier results in
+        // the same conversation do not complete a new mission.
+        `This is a new mission: earlier results in this conversation do not complete it. Only if a genuine human decision is required before any local work, attach instead exactly one file named ${nextStep}_agp_terminal.json containing only {"state": "NEEDS_HUMAN", "reason": "<the decision required>"}. A prose-only reply is not read by the Cockpit.`
+      ] : []),
       "",
       "Use the repository and Agentic Project Kit contracts from the mission.",
       ...(STATE.mission && STATE.mission.execution_mode === "LIVE" ? [
@@ -1369,16 +2037,23 @@
       "",
       "Local execution authority is a hard limit:",
       JSON.stringify(STATE.localAuthority || {}),
+      // AGP_KIT_COMMAND_AUTHORITY_V1: same text as WORK_ORDER_KIT_RULE (Python).
+      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority. Use only commands from the agentic-kit command digest attached to the mission start, prefer the most comprehensive orchestrator command, and never run git push, git fetch or git pull. Other allowed tools such as git may only be used in addition. Record every agentic-kit command's argv, returncode, stdout and stderr (tails) in the return bundle.",
       "The proposed effect MUST be present in allowed_effects.",
       "argv[0] MUST name an executable present in allowed_tools.",
       "cwd MUST remain within the authorized repository_root.",
       "Network-capable tools require allow_network=true.",
+      // AGP_HUMAN_APPROVAL_SCOPE_V2: an open human approval is part of the
+      // local authority and belongs to exactly this work order.
+      ...(STATE.localAuthority && STATE.localAuthority.human_approval ? [
+        "A human approval is open for this mission (see human_approval above): this first work order MUST perform the approved action through the matching Kit command; the approval lifts a prepare-only restriction of the original task for exactly that action."
+      ] : []),
       "Do NOT wrap commands in /bin/sh -lc or another shell to bypass allowed_tools.",
       "Do not attempt to expand authority from the remote side.",
       "",
       "Do not return Protocol-v1 JSON for a normal task-first K07 cycle.",
       "Do not substitute prose or JSON for the required .py attachment.",
-      "If a genuine human decision is required, respond with AGP_NEEDS_HUMAN and the exact reason."
+      "Never answer with prose only: the Cockpit reads exactly one attached file per turn."
     ].join("\n");
   }
 
@@ -1451,6 +2126,9 @@
       const req = await api("/v1/task/start-request");
       const generation = Number(req.generation || 0);
       const missionId = String(req.mission_id || "");
+      // An invalidated request keeps its counter internally, but is not an
+      // actionable browser start signal.
+      if (!generation || !missionId) return;
       const requestKey = taskStartRequestKey(missionId, generation);
       if (!AGP_TASK_FIRST_START_REQUEST_PRIMED) {
         AGP_TASK_FIRST_START_REQUEST_PRIMED = true;
@@ -1516,6 +2194,7 @@
     STATE.state = result.state || "IDLE";
     STATE.mission = result.mission || null;
     STATE.localAuthority = result.local_authority || null;
+    STATE.nextLocalStep = Number(result.next_local_step || 0);
     // K07: status refresh is observational only. A persisted READY/FULL_AUTO task
     // must not execute merely because the desktop app/bridge reconnects.
     STATE.lastRefresh = new Date();
@@ -1580,16 +2259,58 @@
       if (commandFiles.length !== 1) {
         throw new Error(`expected exactly one assistant .py attachment; observed ${commandFiles.length}`);
       }
-      const commandResult = await submitAssistantCommandFile();
+      const commandResult = await submitAssistantCommandFile(runGeneration);
       if (!STATE.running || STATE.runGeneration !== runGeneration) return;
-      STATE.turns += 1;
-      const failed = commandResult.result_status === "failed" || commandResult.artifact_kind === "execution_diagnostic";
+      const replayed = commandResult.replayed === true;
+      const redelivered = replayed && commandResult.delivery_pending === true;
+      const terminal = commandResult.terminal === true;
+      if (commandResult.held === true) {
+        // Operator PAUSE during local execution: nothing was sent. Keep the
+        // attachment unconsumed so the resumed loop replays and re-delivers it.
+        STATE.lastEvent = "K07_RESULT_DELIVERY_HELD";
+        STATE.note = "Ergebnis wegen PAUSE zurückgehalten; wird nach Fortsetzen zugestellt";
+        STATE.waitingForAssistant = true;
+        STATE.assistantWaitStartedAt = 0;
+        resetCandidate();
+        render();
+        return false;
+      }
+      if (terminal) {
+        STATE.turns += replayed ? 0 : 1;
+        STATE.lastEvent = "K07_COMMAND_FILE_TERMINAL";
+        STATE.note = String(
+          commandResult.human_reason || commandResult.failure_reason ||
+          "command-file loop reached a terminal state"
+        );
+        await stop(STATE.note, String(commandResult.state || "AUTO_STOPPED"), commandResult.state !== "DONE");
+        await refreshStatus();
+        return;
+      }
+      if (replayed && !redelivered) {
+        // The server returned the preserved result without sending a new
+        // continuation. Mark the visible response as consumed so a polling
+        // tick cannot submit the same attachment once per second.
+        captureAssistantBaseline();
+        STATE.lastEvent = "K07_DUPLICATE_ATTACHMENT_SUPPRESSED";
+        STATE.note = "Doppelter Python-Anhang unterdrueckt; warte auf neue Antwort";
+        STATE.waitingForAssistant = true;
+        STATE.assistantWaitStartedAt = Date.now();
+        resetCandidate();
+        render();
+        return;
+      }
+      STATE.turns += redelivered ? 0 : 1;
+      const failed = String(commandResult.result_status || "").toLowerCase() === "failed" ||
+        String(commandResult.result_status || "").toLowerCase() === "fail" ||
+        commandResult.artifact_kind === "execution_diagnostic";
       STATE.lastEvent = failed ? "K07_COMMAND_FILE_TURN_FAILED" : "K07_COMMAND_FILE_TURN_COMPLETE";
       STATE.note = failed
         ? String(commandResult.failure_reason || "local command execution failed; recovery requested")
         : "local command completed; continuation requested";
       STATE.waitingForAssistant = true;
       STATE.assistantWaitStartedAt = Date.now();
+      // The continuation was sent by the background transport; the baseline
+      // snapshotted before that send has already been applied.
       resetCandidate();
       render();
       return;
@@ -1663,6 +2384,28 @@
       return "";
     }
 
+    // A long-lived conversation can materialize a historical assistant node
+    // after the baseline was captured.  In the file loop that node is not a
+    // response: its old numbered attachment must not start the 15-second
+    // attachment grace timer for the current local step.
+    const expectedStep = Number(STATE.nextLocalStep || 0);
+    if (expectedStep > 0) {
+      const stalePythonAttachment = Array.from(
+        newest.querySelectorAll("a[href], button, [role=\"button\"]")
+      ).some(node => {
+        const label = String(
+          node.getAttribute("download") ||
+          node.getAttribute("aria-label") ||
+          node.getAttribute("title") ||
+          node.textContent ||
+          ""
+        ).trim();
+        const match = label.match(/(?:^|[\s/])(\d+)_[^\s/]+\.py(?:$|[?#\s])/i);
+        return Boolean(match) && Number(match[1]) !== expectedStep;
+      });
+      if (stalePythonAttachment) return "";
+    }
+
     const newestText = lastAssistantText();
     k07DebugTrace("ASSISTANT_OBSERVED",{chars:String(newestText||"").length,message_id:String(newestMessageId||""),node_count:nodes.length});
     const normalizedNewestText = normalizeObservedMessageText(newestText);
@@ -1684,28 +2427,211 @@
     return newestText;
   }
 
+  function classifyRemoteServiceLimit(text) {
+    const normalized = normalizeObservedMessageText(text).toLowerCase();
+    if (!normalized) return null;
+    const markers = [
+      "du hast dein nutzungslimit erreicht",
+      "deine work-nutzung ist vorerst aufgebraucht",
+      "you have reached your usage limit",
+      "you've reached your usage limit",
+      "you have reached the current usage limit",
+      "you've reached the current usage limit",
+      "your work usage is temporarily exhausted",
+    ];
+    if (!markers.some(marker => normalized.includes(marker))) return null;
+    const reset = normalized.match(/(?:ab|after)\s+([0-2]?\d:[0-5]\d)/i);
+    return {
+      code:"CHATGPT_USAGE_LIMIT",
+      reset_at:reset ? reset[1] : null,
+      message:reset
+        ? `ChatGPT-Nutzungslimit erreicht; erneut ab ${reset[1]}`
+        : "ChatGPT-Nutzungslimit erreicht; Mission geordnet gestoppt",
+    };
+  }
+
   async function tick() {
+    // The catch block is a sibling lexical scope of try. Keep the generation
+    // fence outside try so polling failures can never turn into a ReferenceError.
+    const runGeneration = STATE.runGeneration;
+    try {
     // AGP_K07_ASSISTANT_WAIT_TIMEOUT_1360
     if (STATE.running && STATE.waitingForAssistant &&
         STATE.assistantWaitStartedAt > 0 &&
         Date.now() - STATE.assistantWaitStartedAt > 180000) {
       STATE.waitingForAssistant = false;
       STATE.assistantWaitStartedAt = 0;
-      throw new Error("K07_ASSISTANT_RESPONSE_TIMEOUT after 180s");
+      const awaitedStep = Number(STATE.nextLocalStep || 0);
+      const message = "K07_ASSISTANT_RESPONSE_TIMEOUT after 180s — Mensch muss prüfen: keine Datei " +
+        (awaitedStep > 0 ? `${awaitedStep}_*.py oder ${awaitedStep}_agp_terminal.json` : "der Remote-Antwort") +
+        " erschienen; eine reine Textantwort wird nicht ausgewertet.";
+      STATE.lastEvent = "K07_ASSISTANT_WAIT_TIMEOUT";
+      STATE.note = message;
+      await clientEvent("K07_ASSISTANT_WAIT_TIMEOUT", {timeout_ms:180000});
+      await stop(message, "K07_ASSISTANT_WAIT_TIMEOUT");
+      return;
     }
     await pollOperatorControl();
     if (STATE.paused) return;
     await pollExplicitTaskStartRequest();
     if (!STATE.running || !STATE.waitingForAssistant) return;
-    const runGeneration = STATE.runGeneration;
-
-    try {
+      // A historical attachment can briefly be the only visible Python card
+      // while ChatGPT is still materializing the new assistant response. Do
+      // not submit any card until the response boundary is observable.
+      // AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1: a card carrying the
+      // freshly assigned step number is itself the response boundary.
+      const expectedAttachmentVisible = Number(STATE.nextLocalStep || 0) > 0 &&
+        expectedStepFileVisible(Number(STATE.nextLocalStep || 0));
+      const newResponseText = expectedAttachmentVisible ? "" : newAssistantTextAfterBaseline();
+      if (!expectedAttachmentVisible && !newResponseText) {
+        await reportAssistantWaitObservation("no_response_boundary");
+        return;
+      }
+      // ChatGPT can render the file card before the assistant has finished
+      // generating the attachment. Reading it at that point produces a
+      // syntactically truncated Python file (the observed 1458-1462 failure
+      // pattern). The response is not complete until generation is idle.
+      if (chatgptGenerationActive()) {
+        STATE.lastEvent = "ASSISTANT_STREAMING";
+        STATE.note = "Python-Anhang wird noch vollständig erzeugt…";
+        render();
+        return;
+      }
+      // A visible .py file card is the authoritative terminal signal for the
+      // task-first K07 response. It must not wait for prose stability: the
+      // file card is exactly what the local file loop consumes.
+      const directCommandFiles = assistantPythonAttachmentCandidates();
+      const terminalFiles = expectedStepTerminalCandidates();
+      if (terminalFiles.length > 0) {
+        if (directCommandFiles.length > 0 || terminalFiles.length > 1) {
+          throw new Error(
+            `expected exactly one remote file for step ${Number(STATE.nextLocalStep || 0)}; observed ` +
+            `${directCommandFiles.length} .py and ${terminalFiles.length} terminal`
+          );
+        }
+        if (STATE.processingAssistant) return;
+        const terminalKey = assistantAttachmentKey(terminalFiles);
+        if (terminalKey && terminalKey === STATE.lastProcessedAssistantAttachmentKey) return;
+        if (STATE.pendingAttachmentKey !== terminalKey) {
+          STATE.pendingAttachmentKey = terminalKey;
+          STATE.lastEvent = "K07_ASSISTANT_ATTACHMENT_SETTLING";
+          STATE.note = `Abschlussdatei erkannt, prüfe Stabilität: ${terminalFiles[0].name}`;
+          render();
+          return;
+        }
+        STATE.pendingAttachmentKey = "";
+        STATE.processingAssistant = true;
+        STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
+        let terminalResult;
+        try {
+          terminalResult = await submitAssistantTerminalReply(terminalFiles);
+          STATE.lastProcessedAssistantAttachmentKey = terminalKey;
+        } finally {
+          STATE.processingAssistant = false;
+        }
+        if (STATE.runGeneration !== runGeneration) return;
+        STATE.turns += terminalResult.replayed ? 0 : 1;
+        if (terminalResult.terminal === false && String(terminalResult.state) === "CONTINUE") {
+          // AGP_CI_GREEN_COMPLETION_V1: DONE rejected by the local CI check;
+          // send the finding and wait for the next work order of the task.
+          if (Number(terminalResult.next_step || 0) > 0) {
+            STATE.nextLocalStep = Number(terminalResult.next_step);
+          }
+          captureAssistantBaseline();
+          await sendPrompt(String(terminalResult.prompt));
+          if (!STATE.running || STATE.runGeneration !== runGeneration) return;
+          STATE.turns += 1;
+          STATE.note = String(terminalResult.human_reason || "Abschluss abgelehnt; Auftrag wird fortgesetzt");
+          STATE.lastEvent = "K07_DONE_REJECTED_CONTINUED";
+          STATE.waitingForAssistant = true;
+          STATE.assistantWaitStartedAt = Date.now();
+          resetCandidate();
+          render();
+          await clientEvent("K07_DONE_REJECTED_CONTINUED", {
+            step:Number(terminalResult.step || 0),
+            next_step:Number(terminalResult.next_step || 0),
+            authority:String(terminalResult.authority || "")
+          });
+          return;
+        }
+        const terminalState = String(terminalResult.state);
+        const terminalNote = terminalState === "DONE"
+          ? `Fertig (Remote): ${terminalResult.human_reason}`
+          : `Mensch muss eingreifen: ${terminalResult.human_reason}`;
+        await stop(terminalNote, terminalState, terminalState !== "DONE");
+        await refreshStatus();
+        return;
+      }
+      if (directCommandFiles.length === 1) {
+        if (STATE.processingAssistant) return;
+        const attachmentKey = assistantAttachmentKey(directCommandFiles);
+        if (
+          attachmentKey &&
+          attachmentKey === STATE.lastProcessedAssistantAttachmentKey
+        ) {
+          if (STATE.lastEvent !== "K07_DUPLICATE_ATTACHMENT_SUPPRESSED") {
+            STATE.lastEvent = "K07_DUPLICATE_ATTACHMENT_SUPPRESSED";
+            STATE.note = "Doppelter Python-Anhang unterdrueckt; warte auf neue Antwort";
+            render();
+            await clientEvent("K07_DUPLICATE_ATTACHMENT_SUPPRESSED", {
+              filename:directCommandFiles[0].name
+            });
+          }
+          return;
+        }
+        // AGP_K07_ATTACHMENT_STABILITY_V1: generation-idle selectors are
+        // ChatGPT-DOM dependent and were not observed to fire live. Require
+        // the same attachment identity (message id, name, href and visible
+        // response text) on two consecutive idle polls before consuming it.
+        if (STATE.pendingAttachmentKey !== attachmentKey) {
+          STATE.pendingAttachmentKey = attachmentKey;
+          STATE.lastEvent = "K07_ASSISTANT_ATTACHMENT_SETTLING";
+          STATE.note = `Python-Anhang erkannt, prüfe Stabilität: ${directCommandFiles[0].name}`;
+          render();
+          return;
+        }
+        STATE.pendingAttachmentKey = "";
+        STATE.processingAssistant = true;
+        STATE.waitingForAssistant = false;
+        STATE.assistantWaitStartedAt = 0;
+        STATE.lastEvent = "K07_ASSISTANT_ATTACHMENT_OBSERVED";
+        STATE.note = `Python-Anhang erkannt: ${directCommandFiles[0].name}`;
+        await clientEvent("K07_ASSISTANT_ATTACHMENT_OBSERVED", {
+          filename:directCommandFiles[0].name,
+          href:directCommandFiles[0].href || null
+        });
+        render();
+        try {
+          const consumed = await processCompletedAssistant(lastAssistantText(), runGeneration);
+          if (consumed !== false) STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
+        } finally {
+          STATE.processingAssistant = false;
+        }
+        return;
+      }
+      if (directCommandFiles.length > 1) {
+        throw new Error(`expected exactly one assistant .py attachment; observed ${directCommandFiles.length}`);
+      }
       const text = newAssistantTextAfterBaseline();
       if (!text) return;
 
+      // A ChatGPT account/service limit is page-state evidence, not an
+      // executable assistant response. It must never enter the K07 attachment
+      // timeout or weaken the one-Python-file boundary for real work orders.
+      const serviceLimit = classifyRemoteServiceLimit(text);
+      if (serviceLimit) {
+        STATE.attachmentWaitStartedAt = 0;
+        await clientEvent("REMOTE_SERVICE_LIMIT_DETECTED", {
+          code:serviceLimit.code,
+          reset_at:serviceLimit.reset_at,
+        });
+        await stop(serviceLimit.message, "REMOTE_SERVICE_LIMIT");
+        await refreshStatus();
+        return;
+      }
+
       const hash = await digest(text);
-
-
       if (text.length < LIMITS.minAssistantChars) {
         STATE.lastEvent = "ASSISTANT_STREAMING";
         STATE.note = `Antwort wächst… ${text.length} Zeichen`;
@@ -1752,6 +2678,21 @@
       // before legacy Protocol-v1 JSON compatibility parsing.
       const k07CommandFiles = assistantPythonAttachmentCandidates();
       if (k07CommandFiles.length === 1) {
+        const attachmentKey = assistantAttachmentKey(k07CommandFiles);
+        if (
+          attachmentKey &&
+          attachmentKey === STATE.lastProcessedAssistantAttachmentKey
+        ) {
+          if (STATE.lastEvent !== "K07_DUPLICATE_ATTACHMENT_SUPPRESSED") {
+            STATE.lastEvent = "K07_DUPLICATE_ATTACHMENT_SUPPRESSED";
+            STATE.note = "Doppelter Python-Anhang unterdrueckt; warte auf neue Antwort";
+            render();
+            await clientEvent("K07_DUPLICATE_ATTACHMENT_SUPPRESSED", {
+              filename:k07CommandFiles[0].name
+            });
+          }
+          return;
+        }
         STATE.attachmentWaitStartedAt = 0;
         STATE.processingAssistant = true;
         STATE.lastAssistantHash = STATE.candidateHash;
@@ -1759,7 +2700,8 @@
         STATE.assistantWaitStartedAt = 0;
         STATE.lastEvent = "ASSISTANT_RESPONSE_COMPLETE";
         try {
-          await processCompletedAssistant(completed, runGeneration);
+          const consumed = await processCompletedAssistant(completed, runGeneration);
+          if (consumed !== false) STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
         } finally {
           STATE.processingAssistant = false;
         }
@@ -1787,7 +2729,12 @@
           render();
           return;
         }
-        throw new Error("K07_FILE_TRANSFER_ATTACHMENT_REQUIRED: expected exactly one assistant .py attachment; observed 0");
+        const expectedStep = Number(STATE.nextLocalStep || 0);
+        throw new Error(
+          expectedStep > 0
+            ? `K07_FILE_TRANSFER_ATTACHMENT_REQUIRED: expected exactly one assistant .py attachment for local step ${expectedStep}; observed 0`
+            : "K07_FILE_TRANSFER_ATTACHMENT_REQUIRED: expected exactly one assistant .py attachment; observed 0"
+        );
       }
 
       // Legacy compatibility only: non-task-first probes may still use structured text.
@@ -1899,6 +2846,17 @@
       STATE.errors += 1;
       STATE.note = String(err);
       STATE.lastEvent = "TICK_ERROR";
+      if (err && err.bridgeRejected === true) {
+        await clientEvent("K07_BRIDGE_REJECTED", {message:String(err)});
+        await stop(`Vom Cockpit abgelehnt: ${err.message}`, "AUTO_ERROR");
+        return;
+      }
+      if (String(err).includes("K07") || String(err).includes("command-file")) {
+        await clientEvent("K07_FILE_INGRESS_FAILED", {
+          message:String(err),
+          error_count:STATE.errors
+        });
+      }
       await clientEvent("TICK_ERROR", {
         message:String(err)
       });
@@ -2052,6 +3010,7 @@
         body:JSON.stringify({
           title:LIVE_PROBE.title,
           mission_text:LIVE_PROBE.missionText,
+          conversation_url:location.href,
           execution_mode:"LIVE",
           run_mode:"SINGLE_STEP"
         })
@@ -2087,6 +3046,7 @@
         body:JSON.stringify({
           title:MULTITURN_LIVE_PROBE.title,
           mission_text:MULTITURN_LIVE_PROBE.missionText,
+          conversation_url:location.href,
           execution_mode:"LIVE",
           run_mode:"FULL_AUTO"
         })
@@ -2223,6 +3183,7 @@
         body:JSON.stringify({
           title:document.title || "Chrome mission",
           mission_text:text,
+          conversation_url:location.href,
           execution_mode:"DRY_RUN",
           run_mode:"SINGLE_STEP"
         })
@@ -2275,8 +3236,7 @@
     });
     render();
 
-    if (STATE.timer) clearInterval(STATE.timer);
-    STATE.timer = setInterval(tick, LIMITS.pollMs);
+    scheduleTick();
   }
 
   async function startAuto() {
@@ -2308,6 +3268,22 @@
 
     const mission = status.mission;
 
+    // AGP_BUILD_IDENTITY_GATE_V1: live 2026-09-30 an extension of one build
+    // ran against a bridge of another; the bridge rejected the new terminal
+    // file only after the remote turn. Refuse to start instead.
+    const bridgeBuild = String(status.bridge_build_id || "");
+    const extensionBuild = String(globalThis.AGP_EXTENSION_BUILD_ID || "");
+    if (bridgeBuild && extensionBuild && bridgeBuild !== extensionBuild) {
+      const reason = `Build passt nicht: Cockpit-App ${bridgeBuild}, Extension ${extensionBuild}. ` +
+        "App neu bauen oder Extension neu laden; es wurde nichts gesendet.";
+      await clientEvent("BUILD_MISMATCH_START_REFUSED", {
+        bridge_build_id:bridgeBuild,
+        extension_build_id:extensionBuild
+      });
+      await stop(reason, "BUILD_MISMATCH");
+      throw new Error(reason);
+    }
+
     if (mission.state !== "READY") {
       throw new Error(
         `mission must be READY for initial start, got ${mission.state}`
@@ -2331,8 +3307,35 @@
     if (!STATE.running || STATE.runGeneration !== runGeneration) {
       return;
     }
+
+    // Do not start a task while ChatGPT is still finishing a previous answer.
+    // Otherwise that answer can cross the new baseline and be mistaken for
+    // the first response of this mission.
+    const generationDeadline = Date.now() + 180000;
+    while (chatgptGenerationActive() && Date.now() < generationDeadline) {
+      STATE.note = "Warte auf Abschluss der vorherigen ChatGPT-Antwort";
+      STATE.lastEvent = "WAITING_FOR_PREVIOUS_RESPONSE";
+      render();
+      await sleep(250);
+    }
+    if (chatgptGenerationActive()) {
+      throw new Error("K07_PREVIOUS_ASSISTANT_RESPONSE_STILL_ACTIVE");
+    }
     captureAssistantBaseline();
     resetCandidate();
+
+    // AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1: the expected step must be
+    // unused in this conversation before it is issued, otherwise an older
+    // card with that number (e.g. from a timed-out mission) would be taken
+    // as this mission's response. Reserve every visible one and advance.
+    for (let guard = 0; guard < 20; guard += 1) {
+      const visibleStep = Number(STATE.nextLocalStep || 0);
+      if (visibleStep <= 0 || !expectedStepFileVisible(visibleStep)) break;
+      await reserveRemoteStep("visible-unmaterialized-remote-attachment", visibleStep);
+      if (Number(STATE.nextLocalStep || 0) <= visibleStep) {
+        throw new Error(`K07 expected step ${visibleStep} is already visible and could not be reserved`);
+      }
+    }
 
     const bootstrap = missionBootstrapPrompt(mission);
 
@@ -2344,6 +3347,19 @@
     render();
 
     try {
+      // AGP_KIT_COMMAND_CATALOG_V1: the remote side cannot read the local
+      // command manifest; its digest travels with the mission start.
+      const digestPath = String(status.kit_command_digest_path || "");
+      if (digestPath) {
+        const attached = await chrome.runtime.sendMessage({type:"AGP_K07_ATTACH_FILES", files:[digestPath]});
+        if (!attached || attached.ok !== true) {
+          throw new Error("Kit command digest could not be attached: " + String(attached && attached.error || "unknown"));
+        }
+        await clientEvent("KIT_COMMAND_DIGEST_ATTACHED", {
+          manifest_sha:String(status.kit_manifest_sha || ""),
+          evidence:String(attached.evidence || "")
+        });
+      }
       await sendPrompt(bootstrap);
     } catch (err) {
       if (STATE.runGeneration === runGeneration) {
@@ -2366,8 +3382,7 @@
     });
     render();
 
-    if (STATE.timer) clearInterval(STATE.timer);
-    STATE.timer = setInterval(tick, LIMITS.pollMs);
+    scheduleTick();
   }
 
   // AGP_START_AUTO_CLICK_PATH_077
@@ -2531,6 +3546,13 @@
     const title = document.createElement("span");
     title.textContent = "AGP Cockpit Bridge";
     head.appendChild(title);
+
+    const extensionVersion = document.createElement("span");
+    extensionVersion.style.fontSize = "11px";
+    extensionVersion.style.color = "#b6c8d4";
+    extensionVersion.textContent = `v${chrome.runtime.getManifest().version}`;
+    extensionVersion.title = `Build ${globalThis.AGP_EXTENSION_BUILD_ID || "unknown"}`;
+    head.appendChild(extensionVersion);
 
     const dot = document.createElement("span");
     dot.className = `agp-dot ${STATE.connected ? "on" : ""}`;

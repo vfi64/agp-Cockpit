@@ -34,6 +34,16 @@ def test_next_request_after_invalidation_gets_a_new_generation(tmp_path: Path) -
     assert second["mission_id"] == "mission-2"
 
 
+def test_pending_hides_invalidated_request_but_keeps_counter(tmp_path: Path) -> None:
+    store = StartRequestStore(tmp_path)
+    first = store.request("mission-1")
+    store.invalidate_pending()
+
+    assert store.current()["generation"] == first["generation"]
+    assert store.pending() == {"generation": 0, "mission_id": "", "task_id": ""}
+    assert store.request("mission-2")["generation"] == first["generation"] + 1
+
+
 def _post(base: str, token: str, path: str, body: dict) -> dict:
     request = Request(
         base + path,

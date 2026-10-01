@@ -6,7 +6,11 @@ from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
 
 
 def test_extension_handshake_via_client_event(tmp_path):
-    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    runtime = BridgeRuntimeServer(
+        tmp_path,
+        port=0,
+        runtime_root=tmp_path / "production-runtime",
+    )
     info = runtime.start()
     try:
         req = Request(
@@ -27,10 +31,11 @@ def test_extension_handshake_via_client_event(tmp_path):
         with urlopen(req, timeout=3) as response:
             data = json.loads(response.read().decode())
         assert data["ok"] is True
-        path = tmp_path / ".local/agp-cockpit/bridge/extension.json"
+        path = runtime.server.runtime_root / "extension.json"
         saved = json.loads(path.read_text(encoding="utf-8"))
         assert saved["version"] == "0.2.0"
         assert saved["page_url"].startswith("https://chatgpt.com/")
         assert time.time() - saved["timestamp_unix"] < 5
+        assert not (tmp_path / ".local/agp-cockpit/bridge/extension.json").exists()
     finally:
         runtime.stop()

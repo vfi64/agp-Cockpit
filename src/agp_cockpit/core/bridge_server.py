@@ -8,22 +8,49 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from agp_cockpit import __version__
+from agp_cockpit.adapters.macos_extension import (
+    _manifest_build_id,
+    _manifest_version,
+    local_extension_root,
+)
 from agp_cockpit.core.bridge_engine import BridgeEngine
 from agp_cockpit.core.bridge_protocol import (
     encode_turn_response,
     parse_turn_request,
 )
+from agp_cockpit.core.command_file_contract import validate_command_content
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
-from agp_cockpit.core.file_loop_orchestrator import consume_command_file
+from agp_cockpit.core.download_ingress import read_downloaded_command
+from agp_cockpit.core.file_loop_orchestrator import (
+    consume_command_file,
+    mark_result_delivered,
+    withhold_result_delivery,
+)
+from agp_cockpit.core.file_loop_protocol import (
+    next_step_number,
+    reserve_remote_issued_steps,
+)
+from agp_cockpit.core.file_loop_runner import RunNextProcessController
+from agp_cockpit.core.handoff_completion import (
+    FINAL_RECEIPT_PROMPT,
+    acknowledge_delivery,
+    contract_enabled,
+    package_snapshot,
+    prepare_receipt,
+)
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
+from agp_cockpit.core.task_reply_policy import policy_for
+from agp_cockpit.core.terminal_reply import parse_terminal_reply, record_terminal_reply
 from agp_cockpit.core.transport_protocol_v1 import (
     ActionRegistry,
     parse_action_frame,
     parse_result_frame,
 )
 from agp_cockpit.core.work_order import parse_work_order_json
+from agp_cockpit.version import BRIDGE_BUILD_ID, BRIDGE_PROTOCOL_VERSION
 
 
 @dataclass(frozen=True)
@@ -31,6 +58,95 @@ class BridgeServerConfig:
     host: str = "127.0.0.1"
     port: int = 8765
     token: str = ""
+
+
+_KIT_DIGEST_CACHE: dict[str, tuple[int, str, str]] = {}
+
+
+def _kit_command_digest(repo_root: Path) -> dict[str, str]:
+    """AGP_KIT_COMMAND_CATALOG_V1: digest of the manifest for the mission start."""
+    from agp_cockpit.core.kit_command_catalog import MANIFEST, KitCommandCatalog
+
+    manifest = repo_root / MANIFEST
+    if not manifest.is_file():
+        return {}
+    mtime = manifest.stat().st_mtime_ns
+    cached = _KIT_DIGEST_CACHE.get(str(repo_root))
+    if cached is None or cached[0] != mtime:
+        catalog = KitCommandCatalog.load(repo_root)
+        if catalog is None:
+            return {}
+        target = catalog.write_digest(
+            repo_root / ".local" / "agp-cockpit" / "kit" / "agentic-kit-command-digest.json"
+        )
+        cached = (mtime, str(target), catalog.manifest_sha)
+        _KIT_DIGEST_CACHE[str(repo_root)] = cached
+    return {"kit_command_digest_path": cached[1], "kit_manifest_sha": cached[2]}
+
+
+_MISSION_ENDED_STATES = frozenset(
+    {"DONE", "COMPLETED", "NEEDS_HUMAN", "BLOCKED", "FAILED", "ERROR", "STOPPED", "CANCELLED"}
+)
+
+
+def _approval_grant(runtime_root: Path, engine) -> dict | None:
+    """AGP_HUMAN_APPROVAL_SCOPE_V2: the open approval for the current mission.
+
+    Claims the grant for the continuation mission and expires it once that
+    mission has ended (or another mission of the task is current).
+    """
+    from agp_cockpit.core.human_decision import HumanDecisionStore
+    from agp_cockpit.core.start_request import resolve_task_binding
+
+    mission = engine.runtime.state
+    if mission is None:
+        return None
+    binding = resolve_task_binding(runtime_root, mission.mission_id)
+    task_id = str(binding.get("task_id") or "").strip()
+    return HumanDecisionStore(runtime_root).grant_for_mission(
+        task_id, mission.mission_id, mission_ended=mission.state in _MISSION_ENDED_STATES
+    )
+
+
+def _current_task_id(runtime_root: Path, engine) -> str:
+    from agp_cockpit.core.start_request import resolve_task_binding
+
+    mission = engine.runtime.state
+    binding = resolve_task_binding(runtime_root, None if mission is None else mission.mission_id)
+    return str(binding.get("task_id") or "").strip()
+
+
+def _remote_effects_permitted(runtime_root: Path, engine, wanted) -> bool:
+    """AGP_HUMAN_DECISION_V1 + AGP_CI_GREEN_COMPLETION_V1: the open approval
+    of the bound task covers exactly these remote-effect commands."""
+    from agp_cockpit.core.ci_gate import CiGateStore
+    from agp_cockpit.core.human_decision import HumanDecisionStore
+
+    if _approval_grant(runtime_root, engine) is None:
+        return False
+    task_id = _current_task_id(runtime_root, engine)
+    return HumanDecisionStore(runtime_root).permits(
+        task_id, wanted, ci_gate_active=CiGateStore(runtime_root).required(task_id)
+    )
+
+
+def _runtime_identity_payload() -> dict[str, str | int]:
+    payload: dict[str, str | int] = {
+        "application_version": __version__,
+        "bridge_build_id": BRIDGE_BUILD_ID,
+        "bridge_protocol_version": BRIDGE_PROTOCOL_VERSION,
+        "extension_expected_version": "",
+        "extension_expected_build_id": "",
+    }
+    try:
+        staged = local_extension_root()
+        payload["extension_expected_version"] = _manifest_version(staged)
+        payload["extension_expected_build_id"] = _manifest_build_id(staged)
+    except Exception as exc:  # noqa: BLE001 - status remains useful while staging is repaired.
+        payload["extension_identity_error"] = (
+            f"{type(exc).__name__}: {str(exc)[:240]}"
+        )
+    return payload
 
 
 class CockpitBridgeServer:
@@ -55,7 +171,9 @@ class CockpitBridgeServer:
         self.config = cfg
         self.runtime_root = (runtime_root.expanduser().resolve() if runtime_root is not None else (self.repository_root / ".local" / "agp-cockpit" / "bridge"))
         self.runtime_root.mkdir(parents=True, exist_ok=True)
+        self._run_next_controller = RunNextProcessController()
         self.engine = BridgeEngine(self.repository_root)
+        self.engine.runtime.bind_execution_stop(self._run_next_controller.stop)
         self.diag = DiagnosticLogger(self.repository_root)
         self.protocol_v1_actions = ActionRegistry()
         self.protocol_v1_results: dict[str, str] = {}
@@ -63,7 +181,6 @@ class CockpitBridgeServer:
         self.local_task_contract = local_task_contract
         self._durable_controllers: dict[str, DurableTaskController] = {}
         self._file_loop_lock = threading.Lock()
-
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -101,11 +218,12 @@ class CockpitBridgeServer:
         repo_root = self.repository_root
         protocol_v1_actions = self.protocol_v1_actions
         protocol_v1_results = self.protocol_v1_results
-        durable_db_path = self._durable_db_path
+        task_db_path = self.runtime_root / "tasks.sqlite3"
         durable_controller_for = self._durable_controller
         runtime_root = self.runtime_root
         local_task_contract = self.local_task_contract
         file_loop_lock = self._file_loop_lock
+        run_next_controller = self._run_next_controller
 
         class Handler(BaseHTTPRequestHandler):
             def _cors(self) -> None:
@@ -192,7 +310,7 @@ class CockpitBridgeServer:
 
                 if path == "/v1/task/start-request":
                     from agp_cockpit.core.start_request import StartRequestStore
-                    request = StartRequestStore(runtime_root).current()
+                    request = StartRequestStore(runtime_root).pending()
                     state = engine.runtime.state
                     diag.event("TASK_START_REQUEST_POLLED", mission_id=(None if state is None else state.mission_id), state_after=("IDLE" if state is None else state.state), component="http", details={"generation": request.get("generation"), "request_mission_id": request.get("mission_id"), "request_task_id": request.get("task_id")})
                     self._json(200, request)
@@ -200,6 +318,7 @@ class CockpitBridgeServer:
 
                 if path == "/v1/status":
                     state = engine.runtime.state
+                    approval_grant = _approval_grant(runtime_root, engine)
                     diag.event(
                         "STATUS_REQUEST",
                         mission_id=(
@@ -213,6 +332,16 @@ class CockpitBridgeServer:
                     self._json(
                         200,
                         {
+                            **_runtime_identity_payload(),
+                            "diagnostics_log_path": str(diag.log_path),
+                            "repository_root": str(repo_root),
+                            **_kit_command_digest(repo_root),
+                            "runtime_root": str(runtime_root),
+                            "next_local_step": (
+                                next_step_number(repo_root / "Download")
+                                if (repo_root / "Download").is_dir()
+                                else 1
+                            ),
                             "state": (
                                 "IDLE"
                                 if state is None
@@ -230,7 +359,19 @@ class CockpitBridgeServer:
                                     "repository_root": str(local_task_contract.repository_root),
                                     "allowed_effects": sorted(local_task_contract.allowed_effects),
                                     "allowed_tools": sorted(local_task_contract.allowed_tools),
-                                    "allow_network": bool(local_task_contract.allow_network),
+                                    # AGP_HUMAN_APPROVAL_SCOPE_V2: an open approval
+                                    # widens the authority for exactly its one
+                                    # work order (consumed on use).
+                                    "allow_network": bool(local_task_contract.allow_network)
+                                    or approval_grant is not None,
+                                    **(
+                                        {}
+                                        if approval_grant is None
+                                        else {"human_approval": {
+                                            "scope": "exactly one work order with a remote-effect Kit command",
+                                            "approved_question": approval_grant["question"],
+                                        }}
+                                    ),
                                 }
                             ),
                         },
@@ -262,7 +403,12 @@ class CockpitBridgeServer:
                     self._json(403, {"error": "forbidden"})
                     return
 
-                file_loop_locked = path == "/v1/file-loop/command"
+                file_loop_locked = path in {
+                    "/v1/file-loop/command",
+                    "/v1/file-loop/result-delivered",
+                    "/v1/file-loop/delivery-ack",
+                    "/v1/file-loop/terminal",
+                }
                 if file_loop_locked:
                     file_loop_lock.acquire()
                 try:
@@ -292,15 +438,89 @@ class CockpitBridgeServer:
                             raise ValueError("exactly one safe .py filename required")
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
+                        from agp_cockpit.core.kit_command_catalog import (
+                            KitCommandCatalog,
+                            remote_effect_commands,
+                        )
+                        wanted = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
+                        remote_effects_allowed = bool(wanted) and _remote_effects_permitted(
+                            runtime_root, engine, wanted
+                        )
+                        # AGP_REMOTE_EFFECT_ASKS_HUMAN_V1 (live 1495/1496): a
+                        # remote-effect work order without an open approval is
+                        # not a technical failure but a decision. When it is
+                        # otherwise valid it ends the mission with NEEDS_HUMAN
+                        # and is not executed; the human answers in the app.
+                        validate_command_content(
+                            content, filename=filename, repository_root=repo_root,
+                            allow_remote_effects=True,
+                        )
+                        if not remote_effects_allowed and wanted:
+                            question = (
+                                f"Arbeitsauftrag {filename} will eine Wirkung nach außen "
+                                f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
+                                "Freigabe vor (keine erteilt, oder die letzte wurde von "
+                                "einem früheren Auftrag verbraucht). Der Auftrag wurde "
+                                "nicht ausgeführt. Darf er ausgeführt werden?"
+                            )
+                            mission = engine.runtime.state
+                            if mission is not None and mission.state not in _MISSION_ENDED_STATES:
+                                engine.runtime.final("NEEDS_HUMAN", question)
+                            # A NEEDS_HUMAN ends the mission: an unused
+                            # approval of this mission expires with it.
+                            _approval_grant(runtime_root, engine)
+                            diag.event(
+                                "REMOTE_EFFECT_APPROVAL_REQUESTED",
+                                component="file-loop",
+                                details={"filename": filename, "commands": wanted,
+                                         "cycle_id": cycle_id},
+                            )
+                            self._json(200, {
+                                "state": "NEEDS_HUMAN",
+                                "step": None,
+                                "result_file": None,
+                                "prompt": None,
+                                "terminal": True,
+                                "human_reason": question,
+                                "cycle_id": cycle_id,
+                                "replayed": False,
+                            })
+                            return
+                        # AGP_K07_DOWNLOAD_PROVENANCE_V1: when the browser
+                        # materialized the payload through /download, the
+                        # submitted content must be byte-identical to it.
+                        download_sha256 = str(data.get("download_sha256") or "").strip()
+                        if download_sha256 and download_sha256 != _k07_cycle_hash.sha256(
+                            content.encode("utf-8")
+                        ).hexdigest():
+                            raise ValueError("command content does not match the materialized browser download")
 
-                        from agp_cockpit.core.start_request import StartRequestStore
-                        current_start = StartRequestStore(runtime_root).current()
+                        from agp_cockpit.core.operator_control import (
+                            OperatorControlStore,
+                        )
+                        operator_action = str(
+                            OperatorControlStore(runtime_root).current().get("action") or ""
+                        ).upper()
+                        if operator_action in {"PAUSE", "STOP"}:
+                            raise RuntimeError(
+                                f"file-loop admission blocked by operator control: {operator_action}"
+                            )
+
+                        from agp_cockpit.core.start_request import resolve_task_binding
+                        current_start = resolve_task_binding(
+                            runtime_root,
+                            None if engine.runtime.state is None else engine.runtime.state.mission_id,
+                        )
                         current_task_id = str(current_start.get("task_id") or "").strip()
+                        handoff_contract = False
                         if current_task_id:
-                            durable = DurableTaskController(current_task_id, durable_db_path)
+                            durable = DurableTaskController(current_task_id, task_db_path)
                             try:
                                 if durable.snapshot.get("suspension_reason") == "WAITING_FOR_HUMAN":
                                     raise RuntimeError("WAITING_FOR_HUMAN")
+                                handoff_contract = contract_enabled(durable)
+                                if handoff_contract and durable.snapshot["state"] == "VERIFIED_COMPLETE":
+                                    raise ValueError("handoff task is already complete; no further command permitted")
                             finally:
                                 durable.close()
 
@@ -320,19 +540,170 @@ class CockpitBridgeServer:
                         )
 
                         state_file = runtime_root / "file-loop-state.json"
+                        handoff_before = package_snapshot(repo_root) if handoff_contract else {}
+                        # AGP_CI_LIFECYCLE_COMPLETION_V2: the local work a publishing
+                        # run starts from; a merged PR must contain it.
+                        pre_run_work = None
+                        if wanted:
+                            from agp_cockpit.core import ci_gate as _ci_pre
+                            pre_run_work = (
+                                _ci_pre.git_value(repo_root, "branch", "--show-current"),
+                                _ci_pre.git_value(repo_root, "rev-parse", "HEAD"),
+                            )
                         outcome = consume_command_file(
                             incoming,
                             repo_root,
                             state_file,
                             stem=Path(filename).stem,
+                            mission_id=(
+                                None
+                                if engine.runtime.state is None
+                                else engine.runtime.state.mission_id
+                            ),
+                            guard=engine.guard,
+                            process_controller=run_next_controller,
+                            # AGP_TASK_REPLY_POLICY_V1: a locally verified task
+                            # is never offered a remote DONE.
+                            reply_policy=policy_for(handoff_contract),
                         )
                         terminal_loop = outcome.state.value in {"BLOCKED", "NEEDS_HUMAN", "DONE"}
+                        # AGP_K07_POST_EXECUTION_OPERATOR_CONTROL_V1: STOP or
+                        # PAUSE requested while run_next was executing must
+                        # suppress the outgoing continuation. The result stays
+                        # PENDING (PAUSE: re-delivered on resume via replay) or
+                        # WITHHELD (STOP).
+                        post_operator_action = str(
+                            OperatorControlStore(runtime_root).current().get("action") or ""
+                        ).upper()
+                        held_by_operator = (
+                            outcome.run is not None
+                            and not terminal_loop
+                            and post_operator_action in {"PAUSE", "STOP"}
+                        )
+                        if outcome.run is None and terminal_loop:
+                            if outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
+                                engine.runtime.final("BLOCKED", outcome.human_reason or "file-loop guard blocked")
+                            self._json(
+                                200,
+                                {
+                                    "state": outcome.state.value,
+                                    "step": None,
+                                    "result_file": None,
+                                    "prompt": None,
+                                    "terminal": True,
+                                    "human_reason": outcome.human_reason,
+                                    "cycle_id": cycle_id,
+                                    "replayed": outcome.replayed,
+                                },
+                            )
+                            return
                         if outcome.run is None or (outcome.continuation_text is None and not terminal_loop):
                             raise RuntimeError("command-file execution produced no return bundle")
+                        if not outcome.replayed and engine.runtime.state is not None:
+                            engine.runtime.record_assistant(content)
+                            engine.runtime.record_local_step()
+                        # AGP_HUMAN_DECISION_V1: an executed remote-effect work
+                        # order consumes the one-shot approval.
+                        if not outcome.replayed and outcome.run is not None and remote_effects_allowed:
+                            from agp_cockpit.core.human_decision import (
+                                HumanDecisionStore,
+                            )
+                            from agp_cockpit.core.kit_command_catalog import (
+                                KitCommandCatalog,
+                                remote_effect_commands,
+                            )
+                            used = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
+                            if used:
+                                HumanDecisionStore(runtime_root).consume(
+                                    current_task_id,
+                                    _k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
+                                    used,
+                                )
+                                # AGP_CI_GREEN_COMPLETION_V1: a task that published
+                                # work is complete only when GitHub is verified green
+                                # (after a merging command: the merged lifecycle).
+                                from agp_cockpit.core import ci_gate as _ci_gate
+                                if set(used) & _ci_gate.PUBLISHING_COMMANDS and current_task_id:
+                                    gate = _ci_gate.CiGateStore(runtime_root)
+                                    gate.activate(
+                                        current_task_id,
+                                        reason=_k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
+                                        merge=_ci_gate.merge_expected(used, content),
+                                    )
+                                    if pre_run_work and pre_run_work[0] not in {"", "main"} and pre_run_work[1]:
+                                        gate._update(current_task_id, work_branch=pre_run_work[0],
+                                                     work_head=pre_run_work[1])
+                                diag.event(
+                                    "HUMAN_APPROVAL_CONSUMED",
+                                    component="file-loop",
+                                    details={"task_id": current_task_id, "commands": used, "cycle_id": cycle_id},
+                                )
+                        if terminal_loop and outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
+                            engine.runtime.final(
+                                "BLOCKED",
+                                outcome.human_reason or "file-loop reached a terminal blocked state",
+                            )
                         result_path = Path(outcome.run.return_bundle)
                         result_sha256 = _k07_cycle_hash.sha256(result_path.read_bytes()).hexdigest()
                         output_path = Path(outcome.run.run_next_output)
                         output_sha256 = _k07_cycle_hash.sha256(output_path.read_bytes()).hexdigest()
+                        completion_pending = False
+                        if held_by_operator:
+                            if post_operator_action == "STOP":
+                                withhold_result_delivery(state_file, result_sha256)
+                            diag.event(
+                                "K07_RESULT_DELIVERY_HELD",
+                                component="file-loop",
+                                details={
+                                    "cycle_id": cycle_id,
+                                    "step": outcome.run.step,
+                                    "operator_action": post_operator_action,
+                                    "result_sha256": result_sha256,
+                                },
+                            )
+                            self._json(
+                                200,
+                                {
+                                    "state": "STOPPED" if post_operator_action == "STOP" else outcome.state.value,
+                                    "step": outcome.run.step,
+                                    "result_file": str(outcome.run.return_bundle),
+                                    "prompt": None,
+                                    "terminal": post_operator_action == "STOP",
+                                    "held": post_operator_action == "PAUSE",
+                                    "delivery_pending": post_operator_action == "PAUSE",
+                                    "human_reason": (
+                                        f"operator {post_operator_action} during local execution; "
+                                        "result retained locally and not delivered"
+                                    ),
+                                    "cycle_id": cycle_id,
+                                    "result_sha256": result_sha256,
+                                    "replayed": outcome.replayed,
+                                },
+                            )
+                            return
+                        if (
+                            handoff_contract
+                            and outcome.replayed
+                            and outcome.delivery_pending
+                            and (runtime_root / "handoff-completion.json").is_file()
+                        ):
+                            receipt = json.loads(
+                                (runtime_root / "handoff-completion.json").read_text(encoding="utf-8")
+                            )
+                            completion_pending = (
+                                receipt.get("cycle_id") == cycle_id
+                                and receipt.get("result_sha256") == result_sha256
+                                and receipt.get("delivered") is False
+                            )
+                        if handoff_contract and not outcome.replayed and not terminal_loop:
+                            mission = engine.runtime.state
+                            if mission is None or current_start.get("mission_id") != mission.mission_id:
+                                raise ValueError("handoff task does not match active mission")
+                            completion_pending = prepare_receipt(
+                                repo_root, runtime_root, mission_id=mission.mission_id,
+                                task_id=current_task_id, cycle_id=cycle_id,
+                                run=outcome.run, before=handoff_before,
+                            ) is not None
                         try:
                             parsed_result = json.loads(result_path.read_text(encoding="utf-8"))
                             result_validation = {"valid": isinstance(parsed_result, dict), "error": None if isinstance(parsed_result, dict) else "result artifact must be a JSON object"}
@@ -358,8 +729,13 @@ class CockpitBridgeServer:
                             {
                                 "state": outcome.state.value,
                                 "step": outcome.run.step,
+                                "next_step": next_step_number(
+                                    repo_root / "Download",
+                                    minimum_step=outcome.run.step,
+                                ),
                                 "result_file": str(outcome.run.return_bundle),
-                                "prompt": outcome.continuation_text,
+                                "prompt": FINAL_RECEIPT_PROMPT if completion_pending else outcome.continuation_text,
+                                "completion_pending": completion_pending,
                                 "terminal": terminal_loop,
                                 "human_reason": outcome.human_reason,
                                 "cycle_id": cycle_id,
@@ -372,6 +748,315 @@ class CockpitBridgeServer:
                                 "result_execution": parsed_result.get("execution") if isinstance(parsed_result, dict) else None,
                                 "failure_reason": parsed_result.get("failure_reason") if isinstance(parsed_result, dict) else None,
                                 "replayed": outcome.replayed,
+                                "delivery_pending": bool(outcome.delivery_pending and not terminal_loop),
+                            },
+                        )
+                        return
+
+                    # AGP_K07_TERMINAL_REPLY_FILE_V1 (D4): a terminal remote
+                    # answer is a step-scoped JSON file, never visible prose.
+                    if path == "/v1/file-loop/terminal":
+                        data = self._body()
+                        filename = str(data.get("filename") or "").strip()
+                        content = data.get("content")
+                        reply = parse_terminal_reply(filename, content)
+                        download_sha256 = str(data.get("download_sha256") or "").strip()
+                        if download_sha256 and download_sha256 != reply.sha256:
+                            raise ValueError("terminal reply does not match the materialized browser download")
+                        from agp_cockpit.core.operator_control import (
+                            OperatorControlStore,
+                        )
+                        operator_action = str(
+                            OperatorControlStore(runtime_root).current().get("action") or ""
+                        ).upper()
+                        if operator_action in {"PAUSE", "STOP"}:
+                            raise RuntimeError(
+                                f"terminal reply blocked by operator control: {operator_action}"
+                            )
+                        download_dir = repo_root / "Download"
+                        replayed = record_terminal_reply(
+                            download_dir, reply, content, next_step_number(download_dir)
+                        )
+                        from agp_cockpit.core.start_request import resolve_task_binding
+                        mission = engine.runtime.state
+                        binding = resolve_task_binding(
+                            runtime_root, None if mission is None else mission.mission_id
+                        )
+                        task_id = str(binding.get("task_id") or "").strip()
+                        contract_pending = False
+                        if task_id:
+                            durable = DurableTaskController(task_id, task_db_path)
+                            try:
+                                contract_pending = (
+                                    contract_enabled(durable)
+                                    and durable.snapshot["state"] != "VERIFIED_COMPLETE"
+                                )
+                            finally:
+                                durable.close()
+                        state = reply.state
+                        authority = "remote-declared"
+                        human_reason = reply.reason
+                        if state == "DONE" and contract_pending:
+                            # Remote DONE is only a request. A task with a local
+                            # completion contract is complete only by local
+                            # verification, which has not happened.
+                            state = "NEEDS_HUMAN"
+                            authority = "completion-contract-rejected"
+                            human_reason = (
+                                "Remote meldet DONE ohne lokal verifizierten Abschluss: " + reply.reason
+                            )
+                        # AGP_CI_GREEN_COMPLETION_V1: once the task pushed, DONE
+                        # needs green CI for the local HEAD, checked here with the
+                        # Kit. Red or unfinished CI rejects the DONE and continues
+                        # the task with the finding (bounded by ci_gate limits).
+                        if state == "DONE" and task_id:
+                            from agp_cockpit.core import ci_gate
+                            gate = ci_gate.CiGateStore(runtime_root)
+                            if gate.required(task_id):
+                                gate_entry = gate.get(task_id)
+                                ci_head = ci_gate.git_value(repo_root, "rev-parse", "HEAD")
+                                ci_branch = ci_gate.git_value(repo_root, "branch", "--show-current")
+                                ci_pr = reply.pr or gate_entry.get("pr")
+                                ci_decision: dict = {}
+                                ci_facts: dict = {}
+                                if not ci_pr:
+                                    verdict = ci_gate.CiVerdict(
+                                        "no-pr", "no pull request was named for the published work"
+                                    )
+                                else:
+                                    ci_decision = ci_gate.run_pr_status(
+                                        repo_root, engine.kit_binary, int(ci_pr)
+                                    )
+                                    if (gate_entry.get("merge_expected")
+                                            or str(ci_decision.get("state") or "") == "MERGED"):
+                                        # AGP_CI_LIFECYCLE_COMPLETION_V2
+                                        verdict, ci_facts = ci_gate.verify_merged(
+                                            repo_root, engine.kit_binary, pr_decision=ci_decision,
+                                            work_head=str(gate_entry.get("work_head") or ""),
+                                        )
+                                    else:
+                                        verdict = ci_gate.evaluate(ci_decision, head=ci_head)
+                                gate_entry = gate.record_check(
+                                    task_id, head=ci_head, pr=ci_pr, verdict=verdict.kind
+                                )
+                                evidence = ci_gate.write_evidence(
+                                    repo_root, head=ci_head, pr=ci_pr, decision=ci_decision,
+                                    verdict=verdict, facts=ci_facts,
+                                )
+                                diag.event(
+                                    "CI_GATE_CHECKED",
+                                    component="task",
+                                    details={"task_id": task_id, "pr": ci_pr, "head": ci_head,
+                                             "verdict": verdict.kind, "summary": verdict.summary[:300],
+                                             "evidence": str(evidence),
+                                             "red_heads": len(gate_entry.get("red_heads") or []),
+                                             "checks": gate_entry.get("checks")},
+                                )
+                                exhausted = (
+                                    len(gate_entry.get("red_heads") or []) > ci_gate.MAX_RED_HEADS
+                                    or int(gate_entry.get("checks") or 0) > ci_gate.MAX_CHECKS
+                                )
+                                if verdict.kind == "green":
+                                    authority = "ci-verified"
+                                    merged = bool(ci_facts)
+                                    human_reason = (
+                                        f"CI grün geprüft (PR #{ci_pr} "
+                                        + ("gemergt, main " if merged else "")
+                                        + f"{ci_head[:12]}) · {reply.reason}"
+                                    )
+                                elif verdict.kind == "blocked" or exhausted:
+                                    state = "NEEDS_HUMAN"
+                                    authority = "ci-gate-exhausted" if exhausted else "ci-gate-blocked"
+                                    human_reason = (
+                                        "Remote meldet DONE, die CI ist nicht grün"
+                                        + (" (Reparaturversuche erschöpft)" if exhausted else "")
+                                        + f": {verdict.summary}. Nachweis: {evidence.name}"
+                                    )
+                                else:
+                                    continuation = ci_gate.continuation_prompt(
+                                        verdict, pr=ci_pr, head=ci_head, branch=ci_branch,
+                                        next_step=next_step_number(download_dir), entry=gate_entry,
+                                    )
+                                    rejected_reason = "Abschluss abgelehnt — " + verdict.summary
+                                    diag.event(
+                                        "K07_TERMINAL_REPLY_CONTINUED",
+                                        component="file-loop",
+                                        details={"filename": reply.filename, "verdict": verdict.kind,
+                                                 "next_step": next_step_number(download_dir)},
+                                    )
+                                    self._json(200, {
+                                        "state": "CONTINUE",
+                                        "remote_state": reply.state,
+                                        "terminal": False,
+                                        "step": reply.step,
+                                        "next_step": next_step_number(download_dir),
+                                        "prompt": continuation,
+                                        "human_reason": rejected_reason,
+                                        "authority": "ci-gate",
+                                        "replayed": replayed,
+                                    })
+                                    return
+                        if mission is not None and mission.state not in {
+                            "DONE", "NEEDS_HUMAN", "BLOCKED", "FAILED", "STOPPED"
+                        }:
+                            engine.runtime.final(state, human_reason)
+                        _approval_grant(runtime_root, engine)  # expires an unused approval
+                        diag.event(
+                            "K07_TERMINAL_REPLY_ACCEPTED",
+                            component="file-loop",
+                            details={
+                                "filename": reply.filename,
+                                "step": reply.step,
+                                "remote_state": reply.state,
+                                "state": state,
+                                "authority": authority,
+                                "sha256": reply.sha256,
+                                "replayed": replayed,
+                                "cycle_id": str(data.get("cycle_id") or "")[:40],
+                            },
+                        )
+                        self._json(
+                            200,
+                            {
+                                "state": state,
+                                "remote_state": reply.state,
+                                "terminal": True,
+                                "step": reply.step,
+                                "human_reason": human_reason,
+                                "authority": authority,
+                                "replayed": replayed,
+                                "sha256": reply.sha256,
+                                "mission_state": None if engine.runtime.state is None else engine.runtime.state.state,
+                            },
+                        )
+                        return
+
+                    if path == "/v1/file-loop/result-delivered":
+                        from agp_cockpit.core.operator_control import (
+                            OperatorControlStore,
+                        )
+                        from agp_cockpit.core.start_request import resolve_task_binding
+
+                        data = self._body()
+                        mission = engine.runtime.state
+                        start = resolve_task_binding(
+                            runtime_root, None if mission is None else mission.mission_id
+                        )
+                        if (mission is None or start.get("mission_id") != mission.mission_id
+                                or mission.state in {"STOPPED", "BLOCKED", "FAILED", "NEEDS_HUMAN"}
+                                or OperatorControlStore(runtime_root).current().get("action") in {"STOP", "PAUSE"}):
+                            raise ValueError("no active mission for handoff receipt")
+                        durable = DurableTaskController(str(start.get("task_id") or ""), task_db_path)
+                        def require_active_handoff():
+                            current = engine.runtime.state
+                            if (current is None or current.mission_id != mission.mission_id
+                                    or current.state in {"STOPPED", "BLOCKED", "FAILED", "NEEDS_HUMAN"}
+                                    or resolve_task_binding(runtime_root, current.mission_id) != start
+                                    or OperatorControlStore(runtime_root).current().get("action") in {"STOP", "PAUSE"}):
+                                raise ValueError("handoff interrupted during completion verification")
+                        try:
+                            completed = acknowledge_delivery(
+                                repo_root, runtime_root, durable, mission_id=mission.mission_id,
+                                cycle_id=str(data.get("cycle_id") or ""),
+                                result_sha256=str(data.get("result_sha256") or ""),
+                                require_active=require_active_handoff,
+                            )
+                        finally:
+                            durable.close()
+                        try:
+                            mark_result_delivered(
+                                runtime_root / "file-loop-state.json",
+                                str(data.get("result_sha256") or ""),
+                            )
+                        except ValueError:
+                            pass
+                        if mission.state != "DONE":
+                            require_active_handoff()
+                            engine.runtime.final("DONE", completed["human_reason"])
+                        self._json(200, completed)
+                        return
+
+                    if path == "/v1/file-loop/delivery-ack":
+                        # AGP_K07_DELIVERY_STATE_V1: the browser confirms that
+                        # the result evidence and continuation were committed
+                        # as a new user turn for exactly this result hash.
+                        data = self._body()
+                        result_sha256 = str(data.get("result_sha256") or "").strip()
+                        if len(result_sha256) != 64:
+                            raise ValueError("result_sha256 required")
+                        acknowledged = mark_result_delivered(
+                            runtime_root / "file-loop-state.json",
+                            result_sha256,
+                            None if engine.runtime.state is None else engine.runtime.state.mission_id,
+                        )
+                        diag.event(
+                            "K07_RESULT_DELIVERED",
+                            component="file-loop",
+                            details={
+                                "cycle_id": str(data.get("cycle_id") or "")[:40],
+                                "result_sha256": result_sha256,
+                                "step": acknowledged.get("step"),
+                                "idempotent": acknowledged.get("idempotent"),
+                                "commit_via": str(data.get("commit_via") or "")[:40],
+                            },
+                        )
+                        self._json(200, {"ok": True, "stage": "RESULT_DELIVERY_ACKNOWLEDGED", **acknowledged})
+                        return
+
+                    if path == "/v1/file-loop/download":
+                        data = self._body()
+                        filename, content, content_type = read_downloaded_command(
+                            data.get("download_path", ""),
+                            data.get("filename", ""),
+                            repo_root,
+                            # The approval decision belongs to /v1/file-loop/command
+                            # (AGP_REMOTE_EFFECT_ASKS_HUMAN_V1); fetching must not
+                            # turn a decision into a hard rejection.
+                            allow_remote_effects=True,
+                        )
+                        self._json(
+                            200,
+                            {
+                                "ok": True,
+                                "stage": "COMMAND_FILE_FETCHED",
+                                "filename": filename,
+                                "href": "chatgpt://assistant-download/" + filename,
+                                "content": content,
+                                "content_type": content_type,
+                                "chars": len(content),
+                                "bytes": len(content.encode("utf-8")),
+                                "sha256": __import__("hashlib").sha256(content.encode("utf-8")).hexdigest(),
+                            },
+                        )
+                        return
+
+                    if path == "/v1/file-loop/reserve-step":
+                        data = self._body()
+                        step = int(data.get("step", 0) or 0)
+                        if step <= 0:
+                            raise ValueError("positive step required")
+                        reserved = reserve_remote_issued_steps(
+                            repo_root / "Download",
+                            [step],
+                        )
+                        next_step = next_step_number(repo_root / "Download")
+                        diag.event(
+                            "K07_REMOTE_STEP_RESERVED",
+                            component="file-loop",
+                            details={
+                                "step": step,
+                                "next_step": next_step,
+                                "reason": str(data.get("reason", ""))[:120],
+                            },
+                        )
+                        self._json(
+                            200,
+                            {
+                                "ok": True,
+                                "stage": "REMOTE_STEP_RESERVED",
+                                "step": step,
+                                "next_step": next_step,
+                                **reserved,
                             },
                         )
                         return
@@ -547,6 +1232,33 @@ class CockpitBridgeServer:
 
                     data = self._body()
 
+                    # AGP_HUMAN_DECISION_V1: the human answers a NEEDS_HUMAN
+                    # question of the current mission (desktop app only).
+                    if path == "/v1/task/decision":
+                        from agp_cockpit.core.human_decision import HumanDecisionStore
+                        from agp_cockpit.core.start_request import resolve_task_binding
+                        mission = engine.runtime.state
+                        mission_id = str(data.get("mission_id") or "")
+                        if mission is None or mission.mission_id != mission_id:
+                            raise ValueError("decision does not belong to the current mission")
+                        if mission.state != "NEEDS_HUMAN":
+                            raise ValueError(f"mission is {mission.state}, not waiting for a human decision")
+                        task_id = str(resolve_task_binding(runtime_root, mission_id).get("task_id") or "")
+                        record = HumanDecisionStore(runtime_root).record(
+                            mission_id=mission_id, task_id=task_id,
+                            decision=str(data.get("decision") or ""),
+                            question=mission.last_summary, note=str(data.get("note") or ""),
+                        )
+                        diag.event(
+                            "HUMAN_DECISION_RECORDED",
+                            component="task",
+                            mission_id=mission_id,
+                            details={"task_id": task_id, "decision": record["decision"],
+                                     "grant": bool(record["grant"])},
+                        )
+                        self._json(200, record)
+                        return
+
                     if path == "/v1/task/complete-proposal":
                         session_id = str(data.get("session_id", "")).strip()
                         if not session_id:
@@ -610,6 +1322,18 @@ class CockpitBridgeServer:
                                 and requested_generation == int(pending.get("generation", 0) or 0)
                                 and requested_mission == str(pending.get("mission_id", "")).strip()
                             ):
+                                from agp_cockpit.core.start_request import (
+                                    ActiveTaskStore,
+                                )
+
+                                # AGP_K07_ACTIVE_TASK_BINDING_V1: keep the
+                                # mission's task identity beyond the one-shot
+                                # trigger invalidation below.
+                                ActiveTaskStore(runtime_root).bind(
+                                    requested_mission,
+                                    str(pending.get("task_id", "") or ""),
+                                    requested_generation,
+                                )
                                 StartRequestStore(runtime_root).invalidate_pending()
                                 client_response["task_start_request"] = "CONSUMED"
                                 diag.event(
@@ -651,11 +1375,7 @@ class CockpitBridgeServer:
                         if event_name == "EXTENSION_HANDSHAKE":
                             import time as _time
                             handshake_path = (
-                                repo_root
-                                / ".local"
-                                / "agp-cockpit"
-                                / "bridge"
-                                / "extension.json"
+                                runtime_root / "extension.json"
                             )
                             handshake_path.parent.mkdir(
                                 parents=True, exist_ok=True
@@ -664,6 +1384,7 @@ class CockpitBridgeServer:
                                 json.dumps({
                                     "timestamp_unix": _time.time(),
                                     "version": str(details.get("version", ""))[:80],
+                                    "build_id": str(details.get("build_id", ""))[:120],
                                     "page_url": str(details.get("page_url", ""))[:500],
                                 }, indent=2) + "\n",
                                 encoding="utf-8",
@@ -704,6 +1425,9 @@ class CockpitBridgeServer:
                                         "version": str(
                                             details.get("version", "")
                                         )[:80],
+                                        "build_id": str(
+                                            details.get("build_id", "")
+                                        )[:120],
                                         "page_url": str(
                                             details.get("page_url", "")
                                         )[:500],
@@ -783,11 +1507,31 @@ class CockpitBridgeServer:
                         from agp_cockpit.core.start_request import StartRequestStore
                         action = str(data.get("action", "")).strip()
                         control = OperatorControlStore(runtime_root).request(action)
-                        if action.upper() == "STOP" and engine.runtime.state is not None:
-                            engine.runtime.stop("Stopped by operator control")
-                            StartRequestStore(runtime_root).invalidate_pending()
+                        if action.upper() == "STOP":
+                            if engine.runtime.state is not None:
+                                # AGP_STOP_REASON_V1: keep the real cause
+                                # (send failure, rejection, build mismatch).
+                                stop_reason = " ".join(str(data.get("reason") or "").split())[:300]
+                                engine.runtime.stop(stop_reason or "Stopped by operator control")
+                                process_stop = engine.runtime.last_execution_stop or {
+                                    "requested": False,
+                                    "active": False,
+                                    "pid": None,
+                                }
+                                StartRequestStore(runtime_root).invalidate_pending()
+                                _approval_grant(runtime_root, engine)  # expires an unused approval
+                            else:
+                                process_stop = run_next_controller.stop()
+                        else:
+                            process_snapshot = run_next_controller.snapshot()
+                            process_stop = {
+                                "requested": False,
+                                "active": process_snapshot["active"],
+                                "pid": process_snapshot["pid"],
+                            }
                         self._json(200, {
                             **control,
+                            "process_stop": process_stop,
                             "mission_state": (
                                 None
                                 if engine.runtime.state is None
@@ -797,12 +1541,26 @@ class CockpitBridgeServer:
                         return
 
                     if path == "/v1/task/start-request":
+                        from agp_cockpit.core.runtime_identity import (
+                            runtime_identity_status,
+                        )
                         from agp_cockpit.core.start_request import StartRequestStore
                         mission_id=str(data.get("mission_id","")).strip()
                         task_id=str(data.get("task_id","")).strip()
                         state=engine.runtime.state
                         if not mission_id or state is None or state.mission_id != mission_id:
                             raise ValueError("start request must target current mission")
+                        identity = runtime_identity_status(
+                            repo_root,
+                            runtime_root,
+                            expected_conversation_url=state.conversation_url,
+                            max_handshake_age_seconds=engine.limits.max_handshake_age_seconds,
+                        )
+                        if not identity["ready"]:
+                            raise RuntimeError(
+                                "runtime identity is not ready: "
+                                + ", ".join(identity["reasons"])
+                            )
                         if state.browser_transport_blocked:
                             model_recovery = "COMPOSER_MODEL_NOT_VERIFIED" in (
                                 state.browser_transport_block_reason or ""
@@ -837,6 +1595,7 @@ class CockpitBridgeServer:
                         mission_text = str(
                             data.get("mission_text", "")
                         ).strip()
+                        conversation_url = str(data.get("conversation_url", "")).strip()
                         execution_mode = str(
                             data.get(
                                 "execution_mode",
@@ -858,6 +1617,7 @@ class CockpitBridgeServer:
                         state = engine.runtime.create_mission(
                             title=title,
                             mission_text=mission_text,
+                            conversation_url=conversation_url,
                             execution_mode=execution_mode,
                             run_mode=run_mode,
                         )
@@ -976,6 +1736,10 @@ class CockpitBridgeServer:
         )
 
     def stop(self) -> None:
+        if self.engine.runtime.state is not None:
+            self.engine.runtime.stop("Bridge server stopped")
+        else:
+            self._run_next_controller.stop()
         if self._server is not None:
             self.diag.event(
                 "BRIDGE_SERVER_STOPPING",

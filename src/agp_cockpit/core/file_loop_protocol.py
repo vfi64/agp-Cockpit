@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import ast
+import json
 import re
-import shutil
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
 DONE="AGP_DONE"; HUMAN="AGP_NEEDS_HUMAN"
+REMOTE_ISSUED_STEPS = ".agp-remote-issued-steps.json"
 class RemoteState(str,Enum):
     COMMAND_FILE="COMMAND_FILE"; DONE="DONE"; NEEDS_HUMAN="NEEDS_HUMAN"; BLOCKED="BLOCKED"
 @dataclass(frozen=True)
@@ -19,16 +21,127 @@ def parse_terminal_reply(text:str)->RemoteReply:
         reason=raw[len(HUMAN):].strip()
         return RemoteReply(RemoteState.NEEDS_HUMAN,human_reason=reason or None)
     raise ValueError("remote prose is not executable; expected a .py command attachment or terminal sentinel")
-def next_step_number(download_dir:Path)->int:
-    nums=[]
-    for p in download_dir.iterdir():
-        m=re.match(r"^(\d+)_",p.name)
-        if m:nums.append(int(m.group(1)))
-    return max(nums,default=0)+1
-def accept_command_file(source:Path,download_dir:Path,stem:str="remote_command")->Path:
+
+
+def _reserved_remote_steps(download_dir: Path) -> set[int]:
+    path = download_dir / REMOTE_ISSUED_STEPS
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    raw_steps = data.get("steps") if isinstance(data, dict) else data
+    if not isinstance(raw_steps, list):
+        return set()
+    steps: set[int] = set()
+    for value in raw_steps:
+        try:
+            step = int(value)
+        except (TypeError, ValueError):
+            continue
+        if step > 0:
+            steps.add(step)
+    return steps
+
+
+def reserve_remote_issued_steps(download_dir: Path, steps: list[int] | tuple[int, ...]) -> dict:
+    """Record remote-visible step numbers that must not be reused locally."""
+    safe_steps: set[int] = set()
+    for value in steps:
+        try:
+            step = int(value)
+        except (TypeError, ValueError):
+            continue
+        if step > 0:
+            safe_steps.add(step)
+    if not safe_steps:
+        return {"reserved_steps": sorted(_reserved_remote_steps(download_dir))}
+    download_dir.mkdir(parents=True, exist_ok=True)
+    reserved = _reserved_remote_steps(download_dir) | safe_steps
+    payload = {"steps": sorted(reserved)}
+    (download_dir / REMOTE_ISSUED_STEPS).write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {"reserved_steps": payload["steps"]}
+
+
+def next_step_number(download_dir:Path, minimum_step:int=0)->int:
+    nums=list(_reserved_remote_steps(download_dir))
+    if download_dir.exists():
+        for p in download_dir.iterdir():
+            m=re.match(r"^(\d+)_",p.name)
+            if m:nums.append(int(m.group(1)))
+    return max([*nums, int(minimum_step)], default=0)+1
+
+
+def remote_step_number(stem: str) -> int | None:
+    """Return the step explicitly assigned by the remote filename, if any."""
+    match = re.match(r"^(\d+)_", str(stem))
+    return int(match.group(1)) if match else None
+
+
+def _localize_embedded_step(source_text: str, local_step: int) -> str:
+    """Make a valid remote work order use the local execution number."""
+    try:
+        tree = ast.parse(source_text)
+    except SyntaxError:
+        return source_text
+    lines = source_text.splitlines(keepends=True)
+    offsets: list[int] = []
+    total = 0
+    for line in lines:
+        offsets.append(total)
+        total += len(line)
+
+    def position(line: int, column: int) -> int:
+        return offsets[line - 1] + column
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            value = node.value
+            if isinstance(target, ast.Name) and target.id == "STEP":
+                step_value = value
+            elif isinstance(target, (ast.Tuple, ast.List)) and isinstance(value, (ast.Tuple, ast.List)):
+                names = [item.id if isinstance(item, ast.Name) else None for item in target.elts]
+                if "STEP" not in names:
+                    continue
+                index = names.index("STEP")
+                if index >= len(value.elts):
+                    continue
+                step_value = value.elts[index]
+            else:
+                continue
+            if not isinstance(step_value, ast.Constant) or not isinstance(step_value.value, int):
+                continue
+            if int(step_value.value) == local_step:
+                return source_text
+            start = position(step_value.lineno, step_value.col_offset)
+            end = position(step_value.end_lineno, step_value.end_col_offset)
+            return source_text[:start] + str(local_step) + source_text[end:]
+    return source_text
+
+
+def accept_command_file(source:Path,download_dir:Path,stem:str="remote_command",minimum_step:int=0)->Path:
     source=source.expanduser().resolve()
     if not source.is_file() or source.suffix.lower()!=".py":raise ValueError("remote command attachment must be one existing .py file")
-    n=next_step_number(download_dir);safe=re.sub(r"[^a-z0-9_]+","_",stem.lower()).strip("_") or "remote_command"
+    # The local Download directory is the only numbering authority. The
+    # numeric prefix generated by the remote chat is only a correlation hint;
+    # remote retries can repeat it and must still receive a fresh local step.
+    n = next_step_number(download_dir, minimum_step)
+    safe=re.sub(r"[^a-z0-9_]+","_",stem.lower()).strip("_")
+    safe=re.sub(r"^(?:\d+_)+", "", safe) or "remote_command"
     target=download_dir/f"{n:03d}_{safe}.py"
-    if source==target.resolve():return target
-    shutil.copyfile(source,target);return target
+    source_text = source.read_text(encoding="utf-8")
+    localized_text = _localize_embedded_step(source_text, n)
+    if target.exists():
+        if target.read_text(encoding="utf-8") == localized_text:
+            return target
+        raise ValueError(f"remote command step {n} already exists with different content")
+    if source==target.resolve():
+        if localized_text != source_text:
+            target.write_text(localized_text, encoding="utf-8")
+        return target
+    target.write_text(localized_text, encoding="utf-8")
+    return target

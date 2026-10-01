@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from agp_cockpit.adapters.macos_settings import bridge_runtime_root
 from agp_cockpit.core.file_loop_lifecycle import FileLoopLifecycle
 from agp_cockpit.core.operator_control import OperatorControlStore
 from agp_cockpit.core.task_contract import LocalTaskContract
@@ -12,7 +13,7 @@ class TaskOperatorAPI:
         if local_contract is not None and local_contract.repository_root != self.repository_root:
             raise ValueError("local_contract repository_root does not match TaskOperatorAPI repository")
         self.local_contract = local_contract or LocalTaskContract(self.repository_root)
-        runtime_root = Path.home()/".local"/"share"/"agp-cockpit"/"runtime"
+        runtime_root = bridge_runtime_root()
         runtime_root.mkdir(parents=True, exist_ok=True)
         self.controller = DurableTaskController(task_id, runtime_root/"tasks.sqlite3")
         self.file_loop = FileLoopLifecycle()
@@ -79,7 +80,7 @@ class TaskOperatorAPI:
         payload = self.prepare_task_contract(payload)
         task_id = str(payload["task_id"])
         self.controller.close()
-        runtime_root = Path.home()/".local"/"share"/"agp-cockpit"/"runtime"
+        runtime_root = bridge_runtime_root()
         runtime_root.mkdir(parents=True, exist_ok=True)
         self.controller = DurableTaskController(task_id, runtime_root/"tasks.sqlite3")
         scope = {
@@ -102,6 +103,10 @@ class TaskOperatorAPI:
             allowed_tools=self.local_contract.allowed_tools,
             allow_network=self.local_contract.allow_network,
         )
+        # Operator controls are durable evidence for the previous task. A
+        # newly accepted task must start from a clean running control state;
+        # otherwise a stale STOP would immediately terminate every retry.
+        self.operator_control.request("RESUME")
         self.controller.store.set_states(task_id, state="WAITING_FOR_REMOTE")
         self.file_loop.start()
         return self.status()

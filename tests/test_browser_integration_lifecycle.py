@@ -39,6 +39,8 @@ def test_background_has_reload_loop_guard():
     source = Path("chrome_extension/background.js").read_text(encoding="utf-8")
     assert "generation <= handled" in source
     assert "chrome.runtime.reload()" in source
+    assert "Persist the tab work" in source
+    assert "setTimeout(() => {\n    chrome.runtime.reload()" not in source
     assert "chrome.tabs.reload(tabId)" in source
     assert "chrome.alarms.create" in source
 

@@ -11,6 +11,11 @@
   }
 
   function resolveComposer() {
+    // AGP_COMPOSER_RESOLVER_V1: same identity as the service worker.
+    if (typeof globalThis.agpResolveComposer === "function") {
+      const resolved = globalThis.agpResolveComposer();
+      if (resolved) return resolved;
+    }
     if (typeof document.querySelector === "function") {
       const canonical = document.querySelector("#prompt-textarea");
       if (canonical && canonical.getBoundingClientRect().width > 0 &&
@@ -100,6 +105,7 @@
       request_id: requestId,
       operation: "insert_and_submit",
       text: prompt,
+      commit_marker: String(options.commitMarker || ""),
       attempt: Number(options.attempt || 1),
       page_url: location.href
     });
@@ -116,6 +122,7 @@
         inserted: response.inserted || null,
         submit_attempts: response.submit_attempts || [],
         after: response.after || null
+        ,diagnostics: response.diagnostics || null
       };
     }
     if (response.stage === "COMPOSER_MODEL_NOT_VERIFIED") {
@@ -140,7 +147,8 @@
       stage: response.stage,
       tab_id: response.tab_id,
       commit: response.commit || null,
-      inserted: response.inserted || null
+      inserted: response.inserted || null,
+      diagnostics: response.diagnostics || null
     };
   }
 

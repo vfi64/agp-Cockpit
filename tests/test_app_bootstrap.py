@@ -11,6 +11,39 @@ from agp_cockpit.app_bootstrap import (
 )
 
 
+def test_extension_matches_staged_manifest_version(tmp_path):
+    from agp_cockpit.app_bootstrap import extension_matches_staged_build
+
+    (tmp_path / "manifest.json").write_text(
+        json.dumps({"version": "0.3.2"}), encoding="utf-8"
+    )
+    (tmp_path / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "build-a";\n', encoding="utf-8"
+    )
+    assert extension_matches_staged_build(
+        {"version": "0.3.2", "build_id": "build-a"}, tmp_path
+    )
+    assert not extension_matches_staged_build(
+        {"version": "0.3.2", "build_id": "old-build"}, tmp_path
+    )
+    assert not extension_matches_staged_build(
+        {"version": "0.3.1", "build_id": "build-a"}, tmp_path
+    )
+
+
+def test_stage_marker_reader_defaults_to_empty_mapping(tmp_path):
+    from agp_cockpit.app_bootstrap import _stage_marker
+
+    assert _stage_marker(tmp_path) == {}
+
+
+def test_reload_active_chatgpt_tab_is_bounded(monkeypatch):
+    from agp_cockpit import app_bootstrap as boot
+
+    monkeypatch.setattr(boot, "run_chrome_automation", lambda script: (True, "RELOADED:https://chatgpt.com/c/test"))
+    assert boot.reload_active_chatgpt_tab() == (True, "RELOADED:https://chatgpt.com/c/test")
+
+
 def test_startup_status_written_locally(tmp_path):
     status = StartupStatus(
         chrome_installed=True,
@@ -54,6 +87,7 @@ def test_recent_extension_handshake(tmp_path):
 
     result = recent_extension_handshake(
         tmp_path,
+        runtime_root=tmp_path / ".local/agp-cockpit/bridge",
         max_age_seconds=5,
     )
 
@@ -84,7 +118,10 @@ def test_browser_navigation_failure_is_bounded_and_reported(monkeypatch, failure
     assert note
 
 
-@pytest.mark.parametrize("handshake", [None, {"version": "0.3.0"}])
+@pytest.mark.parametrize(
+    "handshake",
+    [None, {"version": "0.3.0", "build_id": "test-build"}],
+)
 def test_navigation_failure_keeps_desktop_and_runtime_available(monkeypatch, tmp_path, handshake):
     import threading
 
@@ -104,6 +141,10 @@ def test_navigation_failure_keeps_desktop_and_runtime_available(monkeypatch, tmp
             events.append("stop")
 
     monkeypatch.setattr(boot, "chrome_app_path", lambda: tmp_path)
+    (tmp_path / "manifest.json").write_text(json.dumps({"version": "0.3.0"}), encoding="utf-8")
+    (tmp_path / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "test-build";\n', encoding="utf-8"
+    )
     monkeypatch.setattr(macos_extension, "stage_extension", lambda root: tmp_path)
     monkeypatch.setattr(boot, "require_stable_production_runtime_root", lambda root: root)
     monkeypatch.setattr(boot, "BridgeRuntimeServer", Runtime)

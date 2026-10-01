@@ -21,10 +21,31 @@ class Widget:
 def shell():
     w=main_window.MainWindow.__new__(main_window.MainWindow)
     w.ollama_var=Var(); w.hermes_var=Var(); w.model_var=Var(); w.status_var=Var()
+    w.bridge_identity_var=Var(); w.repository_root=object(); w.after=lambda *args: None
     w.model_box=Widget(); w.repair_button=Widget(); w.hermes_model_button=Widget()
     w.update_idletasks=lambda: None
     w.winfo_toplevel=lambda: object()
     return w
+
+def test_bridge_identity_refresh_uses_production_runtime_and_reschedules(monkeypatch):
+    w=shell(); scheduled=[]; runtime=object(); identity={"ready": True}
+    w.after=lambda *args: scheduled.append(args)
+    monkeypatch.setattr(main_window,"bridge_runtime_root",lambda: runtime)
+    monkeypatch.setattr(main_window,"runtime_identity_status",lambda repo,root: identity if (repo,root)==(w.repository_root,runtime) else None)
+    monkeypatch.setattr(main_window,"format_bridge_identity_status",lambda value:"BRIDGE OK" if value is identity else "wrong")
+
+    w.refresh_bridge_identity()
+
+    assert w.bridge_identity_var.get()=="BRIDGE OK"
+    assert scheduled==[(2_000,w.refresh_bridge_identity)]
+
+def test_bridge_identity_refresh_surfaces_diagnostic_error(monkeypatch):
+    w=shell()
+    monkeypatch.setattr(main_window,"runtime_identity_status",lambda *args: (_ for _ in ()).throw(RuntimeError("identity failed")))
+
+    w.refresh_bridge_identity()
+
+    assert w.bridge_identity_var.get()=="Status: Diagnosefehler\nidentity failed"
 
 def test_refresh_runtime_status_delegates_and_prefers_hermes_model(monkeypatch):
     w=shell()

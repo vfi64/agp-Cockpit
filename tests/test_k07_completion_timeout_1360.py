@@ -11,3 +11,19 @@ def test_k07_assistant_wait_is_bounded_and_accounting_remains_transition_derived
     assert "K07_ASSISTANT_RESPONSE_TIMEOUT after 180s" in s
     assert "assistantWaitStartedAt" in s
     assert "STATE.turns += 1;" in s
+
+
+def test_k07_tick_scheduler_observes_async_failures():
+    s=Path("chrome_extension/content.js").read_text()
+    assert "function scheduleTick()" in s
+    assert "void tick().catch(error =>" in s
+    assert 'clientEvent("TICK_UNHANDLED_ERROR"' in s
+    assert "setInterval(tick, LIMITS.pollMs)" not in s
+    assert "scheduleTick();" in s
+
+
+def test_k07_tick_captures_generation_before_polling_can_fail():
+    s=Path("chrome_extension/content.js").read_text()
+    tick=s[s.index("async function tick()"):s.index("const LIVE_PROBE")]
+    assert tick.index("const runGeneration = STATE.runGeneration;") < tick.index("try {")
+    assert tick.index("try {") < tick.index("await pollOperatorControl();")

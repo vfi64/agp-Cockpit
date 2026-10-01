@@ -37,6 +37,11 @@ Never bypass Kit BLOCKED/FAIL through raw Git/GitHub.
 
 ## Runtime authority
 
+The authoritative runtime and artifact locations are documented in
+`docs/engineering/RUNTIME_PATH_AUTHORITY.md`. Read it before changing any
+Bridge, task-operator, browser transport, file-loop, build, or local-evidence
+path. Do not introduce a second runtime root.
+
 Cockpit may validate protocol/state/capabilities, persist task state, enforce
 effects, collect bounded evidence, manage budgets/checkpoints, reconcile
 unknown outcomes, transport messages and verify completion evidence.

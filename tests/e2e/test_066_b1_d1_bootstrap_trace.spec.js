@@ -22,10 +22,14 @@ async function installCryptoSubtleHarness(page) {
       !globalThis.crypto.subtle ||
       typeof globalThis.crypto.subtle.digest !== "function"
     ) {
+      const original = globalThis.crypto;
       Object.defineProperty(globalThis, "crypto", {
         configurable: true,
         value: {
-          subtle: {digest}
+          subtle: {digest},
+          getRandomValues: original && typeof original.getRandomValues === "function"
+            ? original.getRandomValues.bind(original)
+            : array => { for (let i = 0; i < array.length; i += 1) array[i] = Math.floor(Math.random() * 256); return array; }
         }
       });
     }

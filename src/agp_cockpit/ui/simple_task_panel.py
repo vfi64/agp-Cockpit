@@ -5,9 +5,16 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from agp_cockpit.core.mission_http_client import create_live_full_auto
+from agp_cockpit.core.chrome_automation import require_allowed_active_chat
+from agp_cockpit.core.human_decision import decision_mission_text
+from agp_cockpit.core.mission_http_client import create_live_full_auto, record_decision
 from agp_cockpit.core.mission_http_client import status as mission_status
+from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
 from agp_cockpit.core.start_request_client import request_task_start
+from agp_cockpit.core.task_contract_text import (
+    contract_from_text,
+    editor_text_from_file,
+)
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 
 
@@ -19,6 +26,7 @@ class SimpleTaskPanel(ttk.Frame):
         self.repository_root = repository_root.expanduser().resolve()
         self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
         self.contract: dict | None = None
+        self._mission_id = ""
         self.workflow_phase = "EMPTY"
 
         self.columnconfigure(0, weight=1)
@@ -45,18 +53,20 @@ class SimpleTaskPanel(ttk.Frame):
         self.load_button = ttk.Button(actions, text="Auftrag laden", command=self.load_contract)
         self.load_button.grid(row=0, column=0, padx=(0, 8))
 
+        self.new_button = ttk.Button(actions, text="Neuer Auftrag", command=self.new_task)
+        self.new_button.grid(row=0, column=1, padx=(0, 8))
         self.start_button = ttk.Button(
             actions, text="Task starten", command=self.start_task, state="disabled"
         )
-        self.start_button.grid(row=0, column=1)
+        self.start_button.grid(row=0, column=2)
         self.pause_button = ttk.Button(actions, text="Pause", command=self.pause_file_loop)
-        self.pause_button.grid(row=0, column=2, padx=(8, 0))
+        self.pause_button.grid(row=0, column=3, padx=(8, 0))
         self.resume_button = ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop)
-        self.resume_button.grid(row=0, column=3, padx=(8, 0))
+        self.resume_button.grid(row=0, column=4, padx=(8, 0))
         self.stop_button = ttk.Button(actions, text="Stop", command=self.stop_file_loop)
-        self.stop_button.grid(row=0, column=4, padx=(8, 0))
+        self.stop_button.grid(row=0, column=5, padx=(8, 0))
         self.reset_button = ttk.Button(actions, text="Reset", command=self.reset_file_loop)
-        self.reset_button.grid(row=0, column=5, padx=(8, 0))
+        self.reset_button.grid(row=0, column=6, padx=(8, 0))
         self.approve_button = ttk.Button(
             actions,
             text="Entscheidung freigeben",
@@ -65,10 +75,24 @@ class SimpleTaskPanel(ttk.Frame):
         )
         self.approve_button.grid(row=0, column=7, padx=(8, 0))
 
-        self.summary = tk.Text(self, height=14, wrap="word", state="disabled")
-        self.summary.grid(row=3, column=0, sticky="nsew")
+        # AGP_TASK_EDITOR_V1: the task is typed, pasted (Cmd+V) or loaded into
+        # this editor and can be changed until it is started.
+        editor_frame = ttk.LabelFrame(
+            self,
+            text="Auftrag — eintippen, einfügen oder mit „Auftrag laden“ übernehmen (Text oder JSON-Task-Contract)",
+            padding=4,
+        )
+        editor_frame.grid(row=3, column=0, sticky="nsew")
+        editor_frame.columnconfigure(0, weight=1)
+        editor_frame.rowconfigure(0, weight=1)
+        self.editor = tk.Text(editor_frame, height=14, wrap="word", undo=True, font="TkFixedFont")
+        self.editor.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(editor_frame, orient="vertical", command=self.editor.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.editor.configure(yscrollcommand=scrollbar.set)
+        self.editor.bind("<<Modified>>", self._on_editor_modified)
 
-        self.state_var = tk.StringVar(value="Bereit — noch kein Auftrag geladen.")
+        self.state_var = tk.StringVar(value="Bereit — Auftrag eingeben, einfügen oder laden.")
         ttk.Label(
             self,
             textvariable=self.state_var,
@@ -85,6 +109,32 @@ class SimpleTaskPanel(ttk.Frame):
             wraplength=760,
             justify="left",
         ).grid(row=5, column=0, sticky="ew", pady=(4, 0))
+
+        # AGP_HUMAN_DECISION_V1: answer a NEEDS_HUMAN question and continue the
+        # same task; "Freigeben" is a one-shot approval of remote effects.
+        self._decision_mission_id = ""
+        self._decision_question = ""
+        self.decision_frame = ttk.LabelFrame(self, text="Deine Entscheidung ist gefragt", padding=8)
+        self.decision_frame.columnconfigure(0, weight=1)
+        self.decision_question_var = tk.StringVar(value="")
+        ttk.Label(
+            self.decision_frame, textvariable=self.decision_question_var, wraplength=760, justify="left"
+        ).grid(row=0, column=0, columnspan=3, sticky="ew")
+        ttk.Label(self.decision_frame, text="Antwort / Hinweis (optional):").grid(
+            row=1, column=0, columnspan=3, sticky="w", pady=(8, 2)
+        )
+        self.decision_note = tk.Text(self.decision_frame, height=3, wrap="word", undo=True)
+        self.decision_note.grid(row=2, column=0, columnspan=3, sticky="ew")
+        self.approve_decision_button = ttk.Button(
+            self.decision_frame, text="Freigeben", command=lambda: self.decide("APPROVE")
+        )
+        self.approve_decision_button.grid(row=3, column=1, sticky="e", pady=(8, 0), padx=(0, 8))
+        self.reject_decision_button = ttk.Button(
+            self.decision_frame, text="Ablehnen", command=lambda: self.decide("REJECT")
+        )
+        self.reject_decision_button.grid(row=3, column=2, sticky="e", pady=(8, 0))
+        self.decision_frame.grid(row=6, column=0, sticky="ew", pady=(10, 0))
+        self.decision_frame.grid_remove()
 
         self.after(750, self.refresh_status)
 
@@ -112,11 +162,101 @@ class SimpleTaskPanel(ttk.Frame):
             )
         )
 
-    def _set_summary(self, text: str) -> None:
-        self.summary.configure(state="normal")
-        self.summary.delete("1.0", "end")
-        self.summary.insert("1.0", text)
-        self.summary.configure(state="disabled")
+    def _editor_text(self) -> str:
+        return self.editor.get("1.0", "end-1c")
+
+    def _set_editor(self, text: str, *, editable: bool = True) -> None:
+        self.editor.configure(state="normal")
+        self.editor.delete("1.0", "end")
+        self.editor.insert("1.0", text)
+        self.editor.edit_reset()
+        self.editor.edit_modified(False)
+        self.editor.configure(state="normal" if editable else "disabled")
+        self._update_start_button()
+
+    def _update_start_button(self) -> None:
+        startable = self.workflow_phase != "STARTED" and bool(self._editor_text().strip())
+        self.start_button.configure(state="normal" if startable else "disabled")
+
+    def _on_editor_modified(self, _event=None) -> None:
+        if not self.editor.edit_modified():
+            return
+        self.editor.edit_modified(False)
+        if self.workflow_phase == "STARTED":
+            return
+        self.workflow_phase = "LOADED" if self._editor_text().strip() else "EMPTY"
+        self._update_start_button()
+        self.state_var.set(
+            "Auftrag bereit — kann gestartet werden."
+            if self.workflow_phase == "LOADED"
+            else "Bereit — Auftrag eingeben, einfügen oder laden."
+        )
+
+    def _show_decision(self, mission_id: str, question: str) -> None:
+        if self._decision_mission_id == mission_id:
+            return
+        self._decision_mission_id = mission_id
+        self._decision_question = question
+        self.decision_question_var.set(question or "Die Remote-Seite braucht eine Entscheidung.")
+        self.decision_note.delete("1.0", "end")
+        self.decision_frame.grid()
+        self.approve_decision_button.focus_set()
+
+    def _hide_decision(self) -> None:
+        self._decision_mission_id = ""
+        self._decision_question = ""
+        self.decision_frame.grid_remove()
+
+    def decide(self, decision: str) -> None:
+        mission_id = self._decision_mission_id
+        if not mission_id or self.contract is None:
+            return
+        note = self.decision_note.get("1.0", "end-1c").strip()
+        try:
+            record_decision(mission_id=mission_id, decision=decision, note=note)
+            # The NEEDS_HUMAN stop left a durable STOP; the continuation of
+            # the same task starts from a clean running control state.
+            self.api.operator_control.request("RESUME")
+            mission = create_live_full_auto(
+                title="Task · " + str(
+                    self.contract.get("title") or self.contract.get("task_id") or "AGP Task"
+                ) + " · Entscheidung",
+                mission_text=decision_mission_text(
+                    goal_text=self._remote_mission_text(),
+                    decision=decision,
+                    question=self._decision_question,
+                    note=note,
+                ),
+                conversation_url=require_allowed_active_chat().url,
+            )["mission"]
+            request_task_start(
+                str(mission["mission_id"]),
+                task_id=str(self.contract.get("task_id") or ""),
+            )
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces decision failures.
+            self.state_var.set(f"Entscheidung nicht übermittelt — {exc}")
+            return
+        self._mission_id = str(mission["mission_id"])
+        self._hide_decision()
+        self.workflow_phase = "STARTED"
+        self.editor.configure(state="disabled")
+        self.start_button.configure(state="disabled")
+        self.state_var.set(
+            ("Freigegeben" if decision == "APPROVE" else "Abgelehnt")
+            + " — der Auftrag läuft im selben Chat weiter."
+        )
+
+    def new_task(self) -> None:
+        if self.workflow_phase == "STARTED":
+            self.state_var.set("Ein Auftrag läuft noch — erst stoppen oder abschließen lassen.")
+            return
+        self.contract = None
+        self._mission_id = ""
+        self._hide_decision()
+        self.workflow_phase = "EMPTY"
+        self._set_editor("")
+        self.editor.focus_set()
+        self.state_var.set("Bereit — Auftrag eingeben, einfügen oder laden.")
 
     def load_contract(self) -> None:
         path = filedialog.askopenfilename(
@@ -126,38 +266,19 @@ class SimpleTaskPanel(ttk.Frame):
         )
         if not path:
             return
+        if self.workflow_phase == "STARTED":
+            self.state_var.set("Ein Auftrag läuft noch — erst stoppen oder abschließen lassen.")
+            return
         try:
-            source = Path(path)
-            raw = source.read_text(encoding="utf-8")
-            payload = json.loads(raw) if source.suffix.lower() == ".json" else {"goal": raw.strip()}
+            text = editor_text_from_file(Path(path))
         except Exception as exc:  # noqa: BLE001 - UI boundary surfaces file errors.
             messagebox.showerror("Auftrag laden", str(exc), parent=self.winfo_toplevel())
             return
 
-        self.contract = payload
         self.workflow_phase = "LOADED"
-        self.start_button.configure(state="normal")
+        self._set_editor(text)
         self.start_button.focus_set()
-        self._set_summary(self._human_summary(payload))
-        self.state_var.set("Auftrag geladen ✓ — bereit zum Starten.")
-
-    def _human_summary(self, payload: dict) -> str:
-        title = payload.get("title") or payload.get("task_id") or "—"
-        goal = payload.get("goal") or "—"
-        criteria = payload.get("acceptance_criteria") or []
-        checkpoints = payload.get("human_checkpoints") or []
-        return (
-            f"Titel: {title}\n\n"
-            f"Ziel:\n{goal}\n\n"
-            "Abnahmekriterien:\n"
-            + "".join(f"• {item}\n" for item in criteria)
-            + "\nNur hier soll der Nutzer wieder gefragt werden:\n"
-            + (
-                "".join(f"• {item}\n" for item in checkpoints)
-                if checkpoints
-                else "• keine expliziten Human-Checkpoints\n"
-            )
-        )
+        self.state_var.set("Auftrag geladen ✓ — bereit zum Starten; vor dem Start im Editor änderbar.")
 
     def _remote_mission_text(self) -> str:
         assert self.contract is not None
@@ -172,7 +293,10 @@ class SimpleTaskPanel(ttk.Frame):
         )
 
     def start_task(self) -> None:
-        if self.contract is None:
+        try:
+            self.contract = contract_from_text(self._editor_text())
+        except ValueError as exc:
+            self.state_var.set(f"Auftrag nicht startbereit — {exc}")
             return
         try:
             self.contract = self.api.prepare_task_contract(self.contract)
@@ -187,13 +311,16 @@ class SimpleTaskPanel(ttk.Frame):
             return
         try:
             status = self.api.start_task_from_contract(self.contract)
+            conversation_url = require_allowed_active_chat().url
             mission_response = create_live_full_auto(
                 title="Task · " + str(
                     self.contract.get("title") or self.contract.get("task_id") or "AGP Task"
                 ),
                 mission_text=self._remote_mission_text(),
+                conversation_url=conversation_url,
             )
             mission = mission_response["mission"]
+            self._mission_id = str(mission["mission_id"])
             request_task_start(
                 str(mission["mission_id"]),
                 task_id=str(self.contract.get("task_id") or ""),
@@ -202,7 +329,9 @@ class SimpleTaskPanel(ttk.Frame):
             self.state_var.set(f"Blockiert — Start fehlgeschlagen: {exc}")
             return
         self.workflow_phase = "STARTED"
+        self._hide_decision()
         self.start_button.configure(state="disabled")
+        self.editor.configure(state="disabled")
         self.state_var.set(
             self._human_runtime_state(status.get("state"), status.get("suspension_reason"))
         )
@@ -244,6 +373,30 @@ class SimpleTaskPanel(ttk.Frame):
             )
             mission_status_payload = mission_status()
             mission = mission_status_payload.get("mission")
+            # AGP_TASK_PROGRESS_FROM_MISSION_V1: live 2026-09-30 the panel said
+            # "Auftrag läuft" while the mission was STOPPED, because it showed
+            # only the durable task state. The started mission decides.
+            if getattr(self, "_mission_id", "") and not waiting_for_human:
+                progress = describe_standard_task_progress(
+                    mission_id=self._mission_id,
+                    task_status=status,
+                    bridge_status=mission_status_payload,
+                    locally_verified=False,
+                )
+                self.state_var.set(progress.text)
+                current = mission_status_payload.get("mission") or {}
+                if (
+                    progress.outcome == "HUMAN_REQUIRED"
+                    and current.get("state") == "NEEDS_HUMAN"
+                    and current.get("mission_id") == self._mission_id
+                ):
+                    self._show_decision(self._mission_id, str(current.get("last_summary") or ""))
+                if progress.terminal:
+                    # The finished task stays in the editor and can be
+                    # changed and started again.
+                    self.workflow_phase = "LOADED"
+                    self.editor.configure(state="normal")
+                    self._update_start_button()
             if mission is None:
                 self.activity_var.set(
                     "Aktivität: Task ist angelegt; Browser-Mission wurde noch nicht beobachtet."
@@ -264,7 +417,11 @@ class SimpleTaskPanel(ttk.Frame):
                     self.activity_var.set(
                         f"Aktivität: abgeschlossen · {turns} Remote-Turns · {steps} Schritte."
                     )
-                elif mstate in {"ERROR", "FAILED", "STOPPED", "CANCELLED"}:
+                elif mstate == "NEEDS_HUMAN":
+                    self.activity_var.set(
+                        f"Aktivität: wartet auf deine Entscheidung · {turns} Remote-Turns · {steps} Schritte."
+                    )
+                elif mstate in {"ERROR", "FAILED", "STOPPED", "CANCELLED", "BLOCKED"}:
                     self.activity_var.set(
                         f"Aktivität: angehalten/fehlgeschlagen · {turns} Remote-Turns · {steps} Schritte."
                     )

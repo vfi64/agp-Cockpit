@@ -5,7 +5,10 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
 
+from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.mission_http_client import create_live_full_auto
+from agp_cockpit.core.mission_http_client import status as bridge_status
+from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
 from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
@@ -21,6 +24,10 @@ class StandardTasksPanel(ttk.Frame):
         self.tasks = standard_tasks()
         self.status_var = tk.StringVar(value="Standard Tasks bereit.")
         self.detail_var = tk.StringVar(value="Wähle einen standardisierten Auftrag.")
+        # AGP_STANDARD_TASK_PROGRESS_V1: status line follows the started
+        # mission and durable task instead of the one-shot start message.
+        self._tracked_mission_id = ""
+        self._poll_job: str | None = None
 
         self.columnconfigure(0, weight=1)
         ttk.Label(self, text="Standard Tasks", font=("TkDefaultFont", 18, "bold")).grid(
@@ -65,9 +72,11 @@ class StandardTasksPanel(ttk.Frame):
         try:
             prepared = self.api.prepare_task_contract(contract)
             status = self.api.start_task_from_contract(prepared)
+            conversation_url = require_allowed_active_chat().url
             mission = create_live_full_auto(
                 title=f"Standard · {task.label}",
                 mission_text=task.prompt(self.repository_root),
+                conversation_url=conversation_url,
             )["mission"]
             request_task_start(
                 str(mission["mission_id"]),
@@ -81,3 +90,30 @@ class StandardTasksPanel(ttk.Frame):
             "Gestartet — das Cockpit wartet auf die erste Remote-Antwort. "
             f"Lokaler Zustand: {json.dumps(status.get('state', ''), ensure_ascii=False)}"
         )
+        self._track(str(mission["mission_id"]))
+
+    def _track(self, mission_id: str) -> None:
+        if self._poll_job is not None:
+            self.after_cancel(self._poll_job)
+            self._poll_job = None
+        self._tracked_mission_id = mission_id
+        self._poll_job = self.after(2000, self.refresh_progress)
+
+    def refresh_progress(self) -> None:
+        self._poll_job = None
+        mission_id = self._tracked_mission_id
+        if not mission_id:
+            return
+        try:
+            progress = describe_standard_task_progress(
+                mission_id=mission_id,
+                task_status=self.api.status(),
+                bridge_status=bridge_status(),
+            )
+        except Exception as exc:  # noqa: BLE001 - polling survives transient bridge/DB errors.
+            self.status_var.set(f"Status momentan nicht verfügbar ({exc}) — neuer Versuch läuft.")
+            self._poll_job = self.after(3000, self.refresh_progress)
+            return
+        self.status_var.set(progress.text)
+        if not progress.terminal:
+            self._poll_job = self.after(2000, self.refresh_progress)

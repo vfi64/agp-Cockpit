@@ -8,7 +8,7 @@ def test_state_has_generation_and_processor_guard():
     assert "processingAssistant: false" in C
 
 def test_stop_invalidates_before_reset():
-    block = C[C.index('function stop(reason, event="AUTO_STOPPED")'):C.index('function missionBootstrapPrompt')]
+    block = C[C.index('function stop(reason, event="AUTO_STOPPED", operatorStop=true)'):C.index('function missionBootstrapPrompt')]
     assert block.index("STATE.runGeneration += 1") < block.index("STATE.running = false")
     assert "PENDING_SEND_TRANSPORT = null" in block
     assert "AGP_FORMAT_REPAIR_ATTEMPTS = 0" in block

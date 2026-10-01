@@ -38,11 +38,11 @@
       "branch": "main",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "f6f4dc0e1e56d95688beb67790c077086c291d98",
+      "head": "c6f854ac08f5f0c7d0797807ae08d0db53c57769",
       "head_matches_origin_main": true,
       "local_path": "cd /path/to/",
-      "origin_main": "f6f4dc0e1e56d95688beb67790c077086c291d98",
-      "worktree_clean": true
+      "origin_main": "c6f854ac08f5f0c7d0797807ae08d0db53c57769",
+      "worktree_clean": false
     },
     "scope": "current-continuation-state"
   },
@@ -188,11 +188,11 @@
     "branch": "main",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "f6f4dc0e1e56d95688beb67790c077086c291d98",
+    "head": "c6f854ac08f5f0c7d0797807ae08d0db53c57769",
     "head_matches_origin_main": true,
     "local_path": "cd /path/to/",
-    "origin_main": "f6f4dc0e1e56d95688beb67790c077086c291d98",
-    "worktree_clean": true
+    "origin_main": "c6f854ac08f5f0c7d0797807ae08d0db53c57769",
+    "worktree_clean": false
   },
   "rules": [
     {

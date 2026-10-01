@@ -1,3 +1,5 @@
 """AGP Cockpit package."""
 
-__version__ = "0.1.0.dev0"
+from agp_cockpit.version import APP_VERSION
+
+__version__ = APP_VERSION

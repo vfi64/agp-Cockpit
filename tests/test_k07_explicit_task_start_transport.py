@@ -86,7 +86,9 @@ def test_stop_calls_durable_bridge_control() -> None:
     end = text.index("\n  function missionBootstrapPrompt", start)
     block = text[start:end]
     assert 'api("/v1/file-loop/control"' in block
-    assert 'body:JSON.stringify({action:"STOP"})' in block
+    # AGP_STOP_REASON_V1: the stop carries its real cause (behavior:
+    # tests/fail_fast_browser.cjs, tests/test_k07_delivery_http.py).
+    assert 'body:JSON.stringify({action:"STOP", reason:' in block
     assert 'clientEvent("OPERATOR_STOP_REQUEST_FAILED"' in block
 
 

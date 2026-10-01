@@ -4,7 +4,10 @@ from __future__ import annotations
 import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+
+import pytest
 
 from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
 
@@ -28,17 +31,25 @@ def valid_command_file(label: str) -> str:
 def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     manifest = json.loads((ROOT / "chrome_extension/manifest.json").read_text())
     assert "debugger" in manifest["permissions"]
-    assert "downloads" not in manifest["permissions"]
+    assert "downloads" in manifest["permissions"]
     background = (ROOT / "chrome_extension/background.js").read_text()
     assert "AGP_K07_COMMAND_FILE_FETCH_989" in background
     assert '"Runtime.evaluate"' in background
     assert 'fetch(href, {credentials:"include"})' in background
-    assert "chrome.downloads" not in background
+    assert "chrome.downloads.search" in background
+    assert "chrome.storage.session" in background
+    assert "AGP_K07_ARM_COMMAND_FILE_DOWNLOAD" in background
+    assert "AGP_K07_WAIT_COMMAND_FILE_DOWNLOAD" in background
+    assert "k07DownloadStartedAfterArm" in background
     content = (ROOT / "chrome_extension/content.js").read_text()
     assert "AGP_K07_COMMAND_FILE_INGRESS_989" in content
     assert "assistantPythonAttachmentCandidates" in content
     assert 'button[aria-label$=".py"]' in content
+    assert 'button, [role="button"]' in content
     assert "readAssistantButtonAttachment" in content
+    assert 'button[aria-label="Datei herunterladen"]' in content
+    assert '"/v1/file-loop/download"' in content
+    assert "K07_ATTACHMENT_DOWNLOAD_USED" in content
     assert '[role="dialog"] .cm-content[role="textbox"]' in content
     assert 'startsWith("request-placeholder")' in content
     assert "root.appendChild(actions)" in content
@@ -47,6 +58,20 @@ def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     assert "Date.now() + 45000" in content
     assert "expected exactly one assistant .py attachment" in content
     assert '"/v1/file-loop/command"' in content
+    assert 'K07_ASSISTANT_ATTACHMENT_OBSERVED' in content
+    assert 'lastProcessedAssistantAttachmentKey' in content
+    assert 'K07_DUPLICATE_ATTACHMENT_SUPPRESSED' in content
+    assert 'assistantAttachmentKey' in content
+    assert '[missionId, STATE.runGeneration, messageId, attachment.name' in content
+    assert 'captureAssistantBaseline();' in content
+    assert 'candidates.filter(item => !baselineNames.has(item.name))' in content
+    assert 'K07_FILE_INGRESS_ACCEPTED' in content
+    assert 'K07_ASSISTANT_WAIT_TIMEOUT' in content
+    assert 'Python-Anhang wird noch vollständig erzeugt' in content
+    assert 'if (chatgptGenerationActive()) {' in content
+    assert 'WAITING_FOR_PREVIOUS_RESPONSE' in content
+    assert 'matchAll(/(?:^|[\\s/])([^\\s/]+\\.py)' in content
+    assert '[\\\\s/]' not in content
 
 def test_command_file_http_executes_only_through_run_next(tmp_path):
     download = tmp_path / "Download"
@@ -97,10 +122,128 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         runtime.stop()
 
 
+def test_command_file_http_rejects_truncated_python_before_acceptance(tmp_path):
+    download = tmp_path / "Download"
+    download.mkdir()
+    (download / "run_next.py").write_text(
+        "from pathlib import Path\nPath('runner_invoked').write_text('bad')\n",
+        encoding="utf-8",
+    )
+    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    info = runtime.start()
+    try:
+        payload = {
+            "filename": "next_command.py",
+            "content": "def main():\n    if True:\n",
+            "href": "https://chatgpt.com/backend-api/files/x",
+            "message_id": "m1",
+        }
+        req = Request(
+            f"http://127.0.0.1:{info.port}/v1/file-loop/command",
+            method="POST",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "X-AGP-Token": info.token,
+                "Content-Type": "application/json",
+            },
+        )
+        with pytest.raises(HTTPError) as caught:
+            urlopen(req, timeout=10)
+        assert caught.value.code == 400
+        assert "not executable Python" in caught.value.read().decode("utf-8")
+        assert not (tmp_path / "file-loop-incoming" / "next_command.py").exists()
+        assert not (tmp_path / "runner_invoked").exists()
+        assert not list(download.glob("*_next_command.py"))
+    finally:
+        runtime.stop()
+
+
 def test_file_loop_handler_uses_server_database_path_closure():
     server = (ROOT / "src/agp_cockpit/core/bridge_server.py").read_text()
-    assert "durable_db_path = self._durable_db_path" in server
-    assert "DurableTaskController(current_task_id, durable_db_path)" in server
+    assert 'task_db_path = self.runtime_root / "tasks.sqlite3"' in server
+    assert "DurableTaskController(current_task_id, task_db_path)" in server
+
+
+def test_download_ingress_materializes_only_allowed_download_file(tmp_path):
+    download = tmp_path / "Download"
+    download.mkdir()
+    command = download / "1464_chat_switch_standard_task.py"
+    content = valid_command_file("download")
+    command.write_text(content, encoding="utf-8")
+    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    info = runtime.start()
+    try:
+        payload = {
+            "filename": command.name,
+            "download_path": str(command),
+        }
+        req = Request(
+            f"http://127.0.0.1:{info.port}/v1/file-loop/download",
+            method="POST",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"X-AGP-Token": info.token, "Content-Type": "application/json"},
+        )
+        with urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        assert data["stage"] == "COMMAND_FILE_FETCHED"
+        assert data["filename"] == command.name
+        assert data["content"] == content
+    finally:
+        runtime.stop()
+
+
+def test_download_ingress_rejects_truncated_python_before_fetch(tmp_path):
+    download = tmp_path / "Download"
+    download.mkdir()
+    command = download / "1464_chat_switch_standard_task.py"
+    command.write_text("def main():\n    if True:\n", encoding="utf-8")
+    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    info = runtime.start()
+    try:
+        payload = {
+            "filename": command.name,
+            "download_path": str(command),
+        }
+        req = Request(
+            f"http://127.0.0.1:{info.port}/v1/file-loop/download",
+            method="POST",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"X-AGP-Token": info.token, "Content-Type": "application/json"},
+        )
+        with pytest.raises(HTTPError) as caught:
+            urlopen(req, timeout=10)
+        assert caught.value.code == 400
+        assert "not executable Python" in caught.value.read().decode("utf-8")
+    finally:
+        runtime.stop()
+
+
+def test_reserve_step_advances_next_local_step(tmp_path):
+    download = tmp_path / "Download"
+    download.mkdir()
+    runtime = BridgeRuntimeServer(tmp_path, port=0)
+    info = runtime.start()
+    try:
+        req = Request(
+            f"http://127.0.0.1:{info.port}/v1/file-loop/reserve-step",
+            method="POST",
+            data=json.dumps({"step": 1472, "reason": "send-indeterminate"}).encode("utf-8"),
+            headers={"X-AGP-Token": info.token, "Content-Type": "application/json"},
+        )
+        with urlopen(req, timeout=10) as response:
+            reserved = json.loads(response.read().decode("utf-8"))
+        assert reserved["stage"] == "REMOTE_STEP_RESERVED"
+        assert reserved["next_step"] == 1473
+
+        status_req = Request(
+            f"http://127.0.0.1:{info.port}/v1/status",
+            headers={"X-AGP-Token": info.token},
+        )
+        with urlopen(status_req, timeout=10) as response:
+            status = json.loads(response.read().decode("utf-8"))
+        assert status["next_local_step"] == 1473
+    finally:
+        runtime.stop()
 
 
 def test_concurrent_duplicate_command_file_is_executed_once(tmp_path):

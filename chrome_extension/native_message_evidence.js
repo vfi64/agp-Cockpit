@@ -1,13 +1,85 @@
 // Shared by the content script and the serialized CDP observation.
 // Keep this function self-contained: toString() preserves regex escapes in CDP.
-function agpNativeMessageSnapshot() {
-  const norm = value => String(value || "").replace(/\s+/g, " ").trim();
-  const nodes = Array.from(document.querySelectorAll('[data-message-author-role="user"]'))
-    .filter(node => {
-      const r = node.getBoundingClientRect();
-      return r.width > 0 && r.height > 0;
-    });
-  const messages = nodes.map(node => {
+function agpNormalizeUserTurnText(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
+    .replace(/\u00a0/g, " ")
+    // ChatGPT exposes the rendered user Markdown, not the raw composer text.
+    .replace(/```[^\n]*\n?/g, "")
+    .replace(/`/g, "")
+    .replace(/\\([\\`*_{}\[\]()#+.!>~-])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function agpRenderedUserTurnMatches(observed, expected) {
+  const observedText = agpNormalizeUserTurnText(observed);
+  const expectedText = agpNormalizeUserTurnText(expected);
+  if (!observedText || !expectedText) return false;
+  if (observedText === expectedText) return true;
+  const minimumPrefix = 240;
+  const collapsedText = observedText.replace(/\s*(?:…|\.{3})$/, "").trim();
+  if (collapsedText.length >= minimumPrefix && expectedText.startsWith(collapsedText)) {
+    return true;
+  }
+  return observedText.length >= minimumPrefix &&
+    observedText.slice(0, minimumPrefix) === expectedText.slice(0, minimumPrefix);
+}
+
+// AGP_COMPOSER_RESOLVER_V1: one self-contained composer identity for the
+// content script and every serialized CDP expression (toString()).
+// Live 2026-09-30 on a new chat (https://chatgpt.com/): the focus step took
+// the first [contenteditable][role=textbox] in document order, blurred the
+// focused visible composer and could not focus its choice
+// (COMPOSER_FOCUS_NOT_VERIFIED, active element BODY). Only visible, enabled,
+// non-inert candidates count; the focused candidate wins.
+function agpResolveComposer() {
+  const usable = el => {
+    if (!el || el.disabled || el.isConnected === false) return false;
+    if (typeof el.closest === "function" && el.closest('[inert], [aria-hidden="true"]')) return false;
+    const rect = el.getBoundingClientRect();
+    if (!(rect.width > 0 && rect.height > 0)) return false;
+    const style = getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden";
+  };
+  const candidates = Array.from(document.querySelectorAll(
+    '#prompt-textarea, textarea[data-id="root"], [contenteditable="true"][role="textbox"], form [contenteditable="true"]'
+  )).filter(usable);
+  if (!candidates.length) return null;
+  const active = document.activeElement;
+  if (active && candidates.includes(active)) return active;
+  const byId = candidates.find(el => el.id === "prompt-textarea");
+  if (byId) return byId;
+  return candidates.find(el => typeof el.closest === "function" && el.closest("form")) || candidates[0];
+}
+
+function agpNativeMessageSnapshot(resolveComposer) {
+  // Keep the snapshot self-contained: background.js serializes this function
+  // into the page through Runtime.evaluate(...toString()).
+  const norm = value => String(value || "")
+    .normalize("NFKC")
+    .replace(/[\u200b\u200c\u200d\ufeff]/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/```[^\n]*\n?/g, "")
+    .replace(/`/g, "")
+    .replace(/\\([\\`*_{}\[\]()#+.!>~-])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+  // ChatGPT has used several equivalent user-turn wrappers. Prefer the
+  // semantic role selector, then fall back to the turn/test-id wrappers. Do
+  // not combine selector results: nested wrappers would double-count a turn.
+  const userSelectors = [
+    '[data-message-author-role="user"]',
+    'article[data-testid^="conversation-turn-user"]',
+    '[data-testid*="conversation-turn"][data-testid*="user"]'
+  ];
+  const visibleElement = node => {
+    if (!node || typeof node.getBoundingClientRect !== "function") return false;
+    const r = node.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const cloneMessageText = node => {
     const content = node.querySelector('[data-testid="collapsible-user-message-content"]');
     const copy = (content || node).cloneNode(true);
     copy.querySelectorAll('button, [role="button"], [aria-hidden="true"]').forEach(control => control.remove());
@@ -16,10 +88,61 @@ function agpNativeMessageSnapshot() {
       block.prepend(document.createTextNode("\n"));
       block.append(document.createTextNode("\n"));
     });
-    const text = copy.textContent || "";
-    return {id:node.getAttribute("data-message-id") || "", text:norm(text)};
-  });
-  const composer = document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
+    return norm(copy.textContent || "");
+  };
+  let nodes = [];
+  for (const selector of userSelectors) {
+    const candidates = Array.from(document.querySelectorAll(selector))
+      .filter(visibleElement);
+    if (candidates.length) {
+      nodes = candidates;
+      break;
+    }
+  }
+  nodes = nodes.filter(visibleElement);
+  let messages = nodes.map(node => ({
+    id:node.getAttribute("data-message-id") || "",
+    text:cloneMessageText(node)
+  }));
+  if (!messages.length) {
+    const userLabels = new Set(["du hast gesagt", "du hast gesagt:", "you said", "you said:"]);
+    const authorLabels = new Set([
+      "du hast gesagt", "du hast gesagt:", "you said", "you said:",
+      "chatgpt hat gesagt", "chatgpt hat gesagt:", "chatgpt said", "chatgpt said:"
+    ]);
+    const labelCandidates = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6,[role='heading'],strong,span,div"))
+      .filter(visibleElement)
+      .filter(node => {
+        const value = norm(node.textContent).toLowerCase();
+        return value.length <= 40 && userLabels.has(value);
+      });
+    const textFromLabel = label => {
+      for (let base = label; base; base = base.parentElement) {
+        const parent = base.parentElement;
+        if (!parent || parent === document.body || parent === document.documentElement) break;
+        const parts = [];
+        for (let sibling = base.nextElementSibling; sibling; sibling = sibling.nextElementSibling) {
+          const boundary = norm(sibling.textContent).toLowerCase();
+          if (boundary.length <= 40 && authorLabels.has(boundary)) break;
+          if (!visibleElement(sibling)) continue;
+          const text = cloneMessageText(sibling);
+          if (text) parts.push(text);
+          if (parts.length) break;
+        }
+        if (parts.length) return parts.join(" ");
+      }
+      return "";
+    };
+    messages = labelCandidates
+      .map(label => ({
+        id:label.getAttribute("data-message-id") || "",
+        text:textFromLabel(label)
+      }))
+      .filter(message => message.text);
+  }
+  const composer = typeof resolveComposer === "function"
+    ? resolveComposer()
+    : document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
   return {
     url:location.href,
     messages,

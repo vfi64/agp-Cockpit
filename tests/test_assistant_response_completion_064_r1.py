@@ -24,8 +24,9 @@ def test_completion_is_not_committed_before_json_gate():
 def test_turn_counting_happens_after_successful_submit():
     s = source()
     fn = s[s.index("async function processCompletedAssistant(text, runGeneration)"):s.index("async function tick()")]
-    command_submit = fn.index("await submitAssistantCommandFile();")
-    command_increment = fn.index("STATE.turns += 1;", command_submit)
+    command_submit = fn.index("await submitAssistantCommandFile(runGeneration);")
+    # A re-delivered replay is not a new executed turn.
+    command_increment = fn.index("STATE.turns += redelivered ? 0 : 1;", command_submit)
     legacy_submit = fn.index("const result = await submitAssistant(text);")
     legacy_increment = fn.index("STATE.turns += 1;", legacy_submit)
     prompt_increment = fn.rindex("STATE.turns += 1;")
@@ -34,7 +35,7 @@ def test_turn_counting_happens_after_successful_submit():
     assert command_submit < command_increment < legacy_submit
     assert legacy_submit < legacy_branch < legacy_increment
     assert prompt_send < prompt_increment
-    assert fn.count("STATE.turns += 1;") == 3
+    assert fn.count("STATE.turns += 1;") == 2
 
 def test_old_prompt_based_turn_increment_removed():
     s = source()
@@ -51,7 +52,7 @@ def test_k07_requires_new_assistant_node_after_submit() -> None:
     assert "function assistantMessageNodes()" in source
     assert "function assistantBaselineIds()" in source
     assert "function captureAssistantBaseline()" in source
-    assert "STATE.assistantBaselineMessageIds = nodes" in source
+    assert "STATE.assistantBaselineMessageIds = baseline.ids" in source
     assert "function newAssistantTextAfterBaseline()" in source
     assert "nodes.length <= STATE.assistantBaselineCount" in source
     tick = source[source.index("async function tick()"):]
