@@ -20,7 +20,7 @@ from pathlib import Path
 
 TERMINAL_NAME = re.compile(r"^(\d+)_agp_terminal\.json$")
 TERMINAL_STATES = frozenset({"DONE", "NEEDS_HUMAN"})
-ALLOWED_KEYS = frozenset({"state", "reason", "step"})
+ALLOWED_KEYS = frozenset({"state", "reason", "step", "pr"})
 MAX_TERMINAL_BYTES = 16_384
 MAX_REASON_CHARS = 2_000
 
@@ -32,6 +32,8 @@ class TerminalReply:
     state: str
     reason: str
     sha256: str
+    # AGP_CI_GREEN_COMPLETION_V1: pull request whose CI the Cockpit verifies.
+    pr: int | None = None
 
 
 def is_terminal_filename(name: str) -> bool:
@@ -68,7 +70,10 @@ def parse_terminal_reply(filename: str, content: str) -> TerminalReply:
     step = int(match.group(1))
     if "step" in data and data["step"] != step:
         raise ValueError("terminal reply step does not match its filename")
-    return TerminalReply(filename, step, str(state), reason, hashlib.sha256(raw).hexdigest())
+    pr = data.get("pr")
+    if pr is not None and (isinstance(pr, bool) or not isinstance(pr, int) or pr <= 0):
+        raise ValueError("terminal reply pr must be a positive pull request number")
+    return TerminalReply(filename, step, str(state), reason, hashlib.sha256(raw).hexdigest(), pr)
 
 
 def record_terminal_reply(download_dir: Path, reply: TerminalReply, content: str,

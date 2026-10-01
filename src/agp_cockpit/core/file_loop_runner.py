@@ -505,12 +505,10 @@ def execute_with_run_next(
     before={p.resolve() for p in download.glob(f"{step:03d}_*_return_bundle.json")}
     controller = process_controller or RunNextProcessController()
     try:
-        runner_env = dict(os.environ)
-        project_bin = root / ".venv" / "bin"
-        if project_bin.is_dir():
-            runner_env["PATH"] = os.pathsep.join(
-                [str(project_bin), runner_env.get("PATH", "")]
-            )
+        # AGP_CI_GREEN_COMPLETION_V1: the project venv plus Homebrew, so Kit
+        # commands that query GitHub find `gh` in an app started via `open`.
+        from agp_cockpit.core.ci_gate import tool_env
+        runner_env = tool_env(root)
         runner_env["AGP_COCKPIT_REPOSITORY_ROOT"] = str(root.resolve())
         execution = controller.run(
             runner_argv,

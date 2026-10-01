@@ -806,7 +806,12 @@
         download_sha256:fetched.download_sha256 || undefined
       })
     });
-    if (!result || result.terminal !== true || !["DONE", "NEEDS_HUMAN"].includes(String(result.state || ""))) {
+    // AGP_CI_GREEN_COMPLETION_V1: the Cockpit may reject a remote DONE (CI not
+    // green) and continue the task with a prompt instead of ending it.
+    const continued = result && result.terminal === false && String(result.state || "") === "CONTINUE" &&
+      typeof result.prompt === "string" && result.prompt.length > 0;
+    if (!result || (!continued && (result.terminal !== true ||
+        !["DONE", "NEEDS_HUMAN"].includes(String(result.state || ""))))) {
       throw new Error("K07 terminal-reply bridge response incomplete");
     }
     await clientEvent("K07_TERMINAL_REPLY_OBSERVED", {
@@ -2521,6 +2526,29 @@
         }
         if (STATE.runGeneration !== runGeneration) return;
         STATE.turns += terminalResult.replayed ? 0 : 1;
+        if (terminalResult.terminal === false && String(terminalResult.state) === "CONTINUE") {
+          // AGP_CI_GREEN_COMPLETION_V1: DONE rejected by the local CI check;
+          // send the finding and wait for the next work order of the task.
+          if (Number(terminalResult.next_step || 0) > 0) {
+            STATE.nextLocalStep = Number(terminalResult.next_step);
+          }
+          captureAssistantBaseline();
+          await sendPrompt(String(terminalResult.prompt));
+          if (!STATE.running || STATE.runGeneration !== runGeneration) return;
+          STATE.turns += 1;
+          STATE.note = String(terminalResult.human_reason || "Abschluss abgelehnt; Auftrag wird fortgesetzt");
+          STATE.lastEvent = "K07_DONE_REJECTED_CONTINUED";
+          STATE.waitingForAssistant = true;
+          STATE.assistantWaitStartedAt = Date.now();
+          resetCandidate();
+          render();
+          await clientEvent("K07_DONE_REJECTED_CONTINUED", {
+            step:Number(terminalResult.step || 0),
+            next_step:Number(terminalResult.next_step || 0),
+            authority:String(terminalResult.authority || "")
+          });
+          return;
+        }
         const terminalState = String(terminalResult.state);
         const terminalNote = terminalState === "DONE"
           ? `Fertig (Remote): ${terminalResult.human_reason}`

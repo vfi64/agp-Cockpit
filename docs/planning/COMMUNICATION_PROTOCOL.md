@@ -308,6 +308,22 @@ This section is normative for the file loop after local execution.
    and is then consumed (expires after 24 h). Raw git push/fetch/pull remain
    forbidden in every case. The wait timeout names
    the awaited file names and says that a human must check.
+15. Green CI before DONE (`AGP_CI_GREEN_COMPLETION_V1`, `core/ci_gate.py`).
+   Once a task executed `agentic-kit transfer push-current`, a remote DONE is
+   accepted only when the Cockpit itself has run `agentic-kit pr status <pr>
+   --json` and the Kit reports `green` for exactly the local HEAD. The DONE
+   file names the pull request (`"pr": <number>`, remembered per task). No PR,
+   pending CI, a PR head behind HEAD or red CI reject the DONE; the bridge
+   answers `{"state": "CONTINUE", "terminal": false, "prompt": ...}` and the
+   extension sends that finding (for red CI with the failed-run log excerpt
+   from the Kit) as the next turn of the same mission. Evidence of every check:
+   `.local/agp-cockpit/ci/<head>.json`. Limits: after 3 red commits or 12
+   rejected DONEs, or when the CI cannot be read, the mission ends with
+   NEEDS_HUMAN. An approval also carries a repair budget for this loop:
+   creating the PR plus 3 repair pushes (`transfer pr-create`,
+   `transfer push-current` only) in the same continuation mission; any other
+   remote effect needs a new decision. Local Kit runs get the project venv and
+   Homebrew on PATH (an app started via `open` has no `gh` otherwise).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

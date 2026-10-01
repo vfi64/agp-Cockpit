@@ -37,6 +37,7 @@ src/agp_cockpit/core/browser_refresh.py
 src/agp_cockpit/core/browser_transport.py
 src/agp_cockpit/core/chatgpt_session.py
 src/agp_cockpit/core/chrome_automation.py
+src/agp_cockpit/core/ci_gate.py
 src/agp_cockpit/core/clipboard.py
 src/agp_cockpit/core/clipboard_text.py
 src/agp_cockpit/core/command_file_contract.py

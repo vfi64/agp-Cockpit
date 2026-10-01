@@ -108,9 +108,26 @@ def _approval_grant(runtime_root: Path, engine) -> dict | None:
     )
 
 
-def _remote_effects_allowed(runtime_root: Path, engine) -> bool:
-    """AGP_HUMAN_DECISION_V1: one-shot human approval for the bound task."""
-    return _approval_grant(runtime_root, engine) is not None
+def _current_task_id(runtime_root: Path, engine) -> str:
+    from agp_cockpit.core.start_request import resolve_task_binding
+
+    mission = engine.runtime.state
+    binding = resolve_task_binding(runtime_root, None if mission is None else mission.mission_id)
+    return str(binding.get("task_id") or "").strip()
+
+
+def _remote_effects_permitted(runtime_root: Path, engine, wanted) -> bool:
+    """AGP_HUMAN_DECISION_V1 + AGP_CI_GREEN_COMPLETION_V1: the open approval
+    of the bound task covers exactly these remote-effect commands."""
+    from agp_cockpit.core.ci_gate import CiGateStore
+    from agp_cockpit.core.human_decision import HumanDecisionStore
+
+    if _approval_grant(runtime_root, engine) is None:
+        return False
+    task_id = _current_task_id(runtime_root, engine)
+    return HumanDecisionStore(runtime_root).permits(
+        task_id, wanted, ci_gate_active=CiGateStore(runtime_root).required(task_id)
+    )
 
 
 def _runtime_identity_payload() -> dict[str, str | int]:
@@ -421,7 +438,14 @@ class CockpitBridgeServer:
                             raise ValueError("exactly one safe .py filename required")
                         if not isinstance(content, str) or not content or len(content) > 2_000_000:
                             raise ValueError("bounded Python command content required")
-                        remote_effects_allowed = _remote_effects_allowed(runtime_root, engine)
+                        from agp_cockpit.core.kit_command_catalog import (
+                            KitCommandCatalog,
+                            remote_effect_commands,
+                        )
+                        wanted = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
+                        remote_effects_allowed = bool(wanted) and _remote_effects_permitted(
+                            runtime_root, engine, wanted
+                        )
                         # AGP_REMOTE_EFFECT_ASKS_HUMAN_V1 (live 1495/1496): a
                         # remote-effect work order without an open approval is
                         # not a technical failure but a decision. When it is
@@ -431,42 +455,37 @@ class CockpitBridgeServer:
                             content, filename=filename, repository_root=repo_root,
                             allow_remote_effects=True,
                         )
-                        if not remote_effects_allowed:
-                            from agp_cockpit.core.kit_command_catalog import (
-                                KitCommandCatalog,
-                                remote_effect_commands,
+                        if not remote_effects_allowed and wanted:
+                            question = (
+                                f"Arbeitsauftrag {filename} will eine Wirkung nach außen "
+                                f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
+                                "Freigabe vor (keine erteilt, oder die letzte wurde von "
+                                "einem früheren Auftrag verbraucht). Der Auftrag wurde "
+                                "nicht ausgeführt. Darf er ausgeführt werden?"
                             )
-                            wanted = remote_effect_commands(
-                                content, KitCommandCatalog.load(repo_root)
+                            mission = engine.runtime.state
+                            if mission is not None and mission.state not in _MISSION_ENDED_STATES:
+                                engine.runtime.final("NEEDS_HUMAN", question)
+                            # A NEEDS_HUMAN ends the mission: an unused
+                            # approval of this mission expires with it.
+                            _approval_grant(runtime_root, engine)
+                            diag.event(
+                                "REMOTE_EFFECT_APPROVAL_REQUESTED",
+                                component="file-loop",
+                                details={"filename": filename, "commands": wanted,
+                                         "cycle_id": cycle_id},
                             )
-                            if wanted:
-                                question = (
-                                    f"Arbeitsauftrag {filename} will eine Wirkung nach außen "
-                                    f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
-                                    "Freigabe vor (keine erteilt, oder die letzte wurde von "
-                                    "einem früheren Auftrag verbraucht). Der Auftrag wurde "
-                                    "nicht ausgeführt. Darf er ausgeführt werden?"
-                                )
-                                mission = engine.runtime.state
-                                if mission is not None and mission.state not in _MISSION_ENDED_STATES:
-                                    engine.runtime.final("NEEDS_HUMAN", question)
-                                diag.event(
-                                    "REMOTE_EFFECT_APPROVAL_REQUESTED",
-                                    component="file-loop",
-                                    details={"filename": filename, "commands": wanted,
-                                             "cycle_id": cycle_id},
-                                )
-                                self._json(200, {
-                                    "state": "NEEDS_HUMAN",
-                                    "step": None,
-                                    "result_file": None,
-                                    "prompt": None,
-                                    "terminal": True,
-                                    "human_reason": question,
-                                    "cycle_id": cycle_id,
-                                    "replayed": False,
-                                })
-                                return
+                            self._json(200, {
+                                "state": "NEEDS_HUMAN",
+                                "step": None,
+                                "result_file": None,
+                                "prompt": None,
+                                "terminal": True,
+                                "human_reason": question,
+                                "cycle_id": cycle_id,
+                                "replayed": False,
+                            })
+                            return
                         # AGP_K07_DOWNLOAD_PROVENANCE_V1: when the browser
                         # materialized the payload through /download, the
                         # submitted content must be byte-identical to it.
@@ -590,6 +609,14 @@ class CockpitBridgeServer:
                                     current_task_id,
                                     _k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
                                 )
+                                # AGP_CI_GREEN_COMPLETION_V1: a task that pushed is
+                                # complete only with green CI for its HEAD.
+                                if "agentic-kit transfer push-current" in used and current_task_id:
+                                    from agp_cockpit.core.ci_gate import CiGateStore
+                                    CiGateStore(runtime_root).activate(
+                                        current_task_id,
+                                        reason=_k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
+                                    )
                                 diag.event(
                                     "HUMAN_APPROVAL_CONSUMED",
                                     component="file-loop",
@@ -762,6 +789,85 @@ class CockpitBridgeServer:
                             human_reason = (
                                 "Remote meldet DONE ohne lokal verifizierten Abschluss: " + reply.reason
                             )
+                        # AGP_CI_GREEN_COMPLETION_V1: once the task pushed, DONE
+                        # needs green CI for the local HEAD, checked here with the
+                        # Kit. Red or unfinished CI rejects the DONE and continues
+                        # the task with the finding (bounded by ci_gate limits).
+                        if state == "DONE" and task_id:
+                            from agp_cockpit.core import ci_gate
+                            gate = ci_gate.CiGateStore(runtime_root)
+                            if gate.required(task_id):
+                                gate_entry = gate.get(task_id)
+                                ci_head = ci_gate.git_value(repo_root, "rev-parse", "HEAD")
+                                ci_branch = ci_gate.git_value(repo_root, "branch", "--show-current")
+                                ci_pr = reply.pr or gate_entry.get("pr")
+                                ci_decision: dict = {}
+                                if not ci_pr:
+                                    verdict = ci_gate.CiVerdict(
+                                        "no-pr", "no pull request was named for the pushed HEAD"
+                                    )
+                                else:
+                                    ci_decision = ci_gate.run_pr_status(
+                                        repo_root, engine.kit_binary, int(ci_pr)
+                                    )
+                                    verdict = ci_gate.evaluate(ci_decision, head=ci_head)
+                                gate_entry = gate.record_check(
+                                    task_id, head=ci_head, pr=ci_pr, verdict=verdict.kind
+                                )
+                                evidence = ci_gate.write_evidence(
+                                    repo_root, head=ci_head, pr=ci_pr, decision=ci_decision,
+                                    verdict=verdict,
+                                )
+                                diag.event(
+                                    "CI_GATE_CHECKED",
+                                    component="task",
+                                    details={"task_id": task_id, "pr": ci_pr, "head": ci_head,
+                                             "verdict": verdict.kind, "summary": verdict.summary[:300],
+                                             "evidence": str(evidence),
+                                             "red_heads": len(gate_entry.get("red_heads") or []),
+                                             "checks": gate_entry.get("checks")},
+                                )
+                                exhausted = (
+                                    len(gate_entry.get("red_heads") or []) > ci_gate.MAX_RED_HEADS
+                                    or int(gate_entry.get("checks") or 0) > ci_gate.MAX_CHECKS
+                                )
+                                if verdict.kind == "green":
+                                    authority = "ci-verified"
+                                    human_reason = (
+                                        f"CI grün geprüft (PR #{ci_pr}, {ci_head[:12]}) · {reply.reason}"
+                                    )
+                                elif verdict.kind == "blocked" or exhausted:
+                                    state = "NEEDS_HUMAN"
+                                    authority = "ci-gate-exhausted" if exhausted else "ci-gate-blocked"
+                                    human_reason = (
+                                        "Remote meldet DONE, die CI ist nicht grün"
+                                        + (" (Reparaturversuche erschöpft)" if exhausted else "")
+                                        + f": {verdict.summary}. Nachweis: {evidence.name}"
+                                    )
+                                else:
+                                    continuation = ci_gate.continuation_prompt(
+                                        verdict, pr=ci_pr, head=ci_head, branch=ci_branch,
+                                        next_step=next_step_number(download_dir), entry=gate_entry,
+                                    )
+                                    rejected_reason = "Abschluss abgelehnt — " + verdict.summary
+                                    diag.event(
+                                        "K07_TERMINAL_REPLY_CONTINUED",
+                                        component="file-loop",
+                                        details={"filename": reply.filename, "verdict": verdict.kind,
+                                                 "next_step": next_step_number(download_dir)},
+                                    )
+                                    self._json(200, {
+                                        "state": "CONTINUE",
+                                        "remote_state": reply.state,
+                                        "terminal": False,
+                                        "step": reply.step,
+                                        "next_step": next_step_number(download_dir),
+                                        "prompt": continuation,
+                                        "human_reason": rejected_reason,
+                                        "authority": "ci-gate",
+                                        "replayed": replayed,
+                                    })
+                                    return
                         if mission is not None and mission.state not in {
                             "DONE", "NEEDS_HUMAN", "BLOCKED", "FAILED", "STOPPED"
                         }:
@@ -875,7 +981,10 @@ class CockpitBridgeServer:
                             data.get("download_path", ""),
                             data.get("filename", ""),
                             repo_root,
-                            allow_remote_effects=_remote_effects_allowed(runtime_root, engine),
+                            # The approval decision belongs to /v1/file-loop/command
+                            # (AGP_REMOTE_EFFECT_ASKS_HUMAN_V1); fetching must not
+                            # turn a decision into a hard rejection.
+                            allow_remote_effects=True,
                         )
                         self._json(
                             200,

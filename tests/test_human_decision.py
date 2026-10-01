@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 import pytest
 
 from agp_cockpit.core.bridge_runtime_server import BridgeRuntimeServer
+from agp_cockpit.core.ci_gate import MAX_RED_HEADS
 from agp_cockpit.core.human_decision import (
     GRANT_TTL_SECONDS,
     HumanDecisionStore,
@@ -61,6 +62,12 @@ def test_store_grant_is_task_bound_one_shot_and_expires(tmp_path):
     assert not store.remote_effects_allowed("other", now=1001.0)
     assert not store.remote_effects_allowed("T", now=1000.0 + GRANT_TTL_SECONDS + 1)
     store.consume("T", "sha")
+    # one-shot for the asked action; afterwards only the bounded CI repair budget
+    push = ["agentic-kit transfer push-current"]
+    assert not store.permits("T", push, ci_gate_active=False, now=1001.0)
+    assert store.permits("T", push, ci_gate_active=True, now=1001.0)
+    for n in range(MAX_RED_HEADS + 1):
+        store.consume("T", f"repair{n}")
     assert not store.remote_effects_allowed("T", now=1001.0)
     with pytest.raises(ValueError):
         store.consume("T", "sha")
@@ -178,8 +185,16 @@ def test_http_push_without_approval_asks_the_human_and_approval_is_consumed(brid
     assert accepted["replayed"] is False and accepted["terminal"] is not True
     assert HumanDecisionStore(runtime).current()["grant"]["remaining"] == 0
 
-    # one-shot: the next push asks again instead of running
-    again = call("/v1/file-loop/command", {"filename": "1481_push.py",
+    # after the push only the bounded CI repair budget remains (AGP_CI_GREEN_COMPLETION_V1);
+    # once it is used up, the next push asks the human again instead of running
+    step = 1481
+    for _ in range(MAX_RED_HEADS + 1):
+        repaired = call("/v1/file-loop/command", {"filename": f"{step}_push.py",
+                                                  "content": work_order(["transfer", "push-current"])
+                                                  + f"# repair {step}\n"})
+        assert repaired.get("terminal") is not True, repaired
+        step += 1
+    again = call("/v1/file-loop/command", {"filename": f"{step}_push.py",
                                            "content": work_order(["transfer", "push-current", "--again"])})
     assert again["state"] == "NEEDS_HUMAN" and again["terminal"] is True
 

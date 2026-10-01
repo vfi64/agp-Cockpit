@@ -15,6 +15,13 @@ the original task for exactly that action; while the grant is open the
 local authority reports allow_network=true for it. A grant that the
 continuation mission does not use expires when that mission ends or another
 mission of the task starts.
+
+AGP_CI_GREEN_COMPLETION_V1: an approval also carries a bounded repair budget.
+Once the task pushed, the Cockpit accepts DONE only with green CI; repairing a
+red CI needs further pushes. Within the same continuation mission up to
+MAX_RED_HEADS further work orders may use `transfer push-current` or
+`transfer pr-create` (and nothing else with a remote effect) without asking
+again. Every other remote effect still needs a new decision.
 """
 
 from __future__ import annotations
@@ -60,24 +67,45 @@ class HumanDecisionStore:
             "grant": None,
         }
         if decision == "APPROVE":
-            record["grant"] = {"effect": "remote", "remaining": 1, "consumed_by": None}
+            from agp_cockpit.core.ci_gate import MAX_RED_HEADS
+            record["grant"] = {"effect": "remote", "remaining": 1,
+                               "repair_pushes": MAX_RED_HEADS + 1,  # + creating the PR
+                               "consumed_by": None}
         self._save(record)
         return record
 
     def remote_effects_allowed(self, task_id: str, now: float | None = None) -> bool:
+        """True while any part of the task's approval is open."""
         record = self.current()
         grant = record.get("grant") or {}
         age = (time.time() if now is None else now) - float(record.get("decided_at") or 0)
         return bool(
             task_id
             and record.get("task_id") == task_id
-            and grant.get("remaining", 0) > 0
+            and (grant.get("remaining", 0) > 0 or grant.get("repair_pushes", 0) > 0)
             and age <= GRANT_TTL_SECONDS
+        )
+
+    def permits(self, task_id: str, wanted, *, ci_gate_active: bool,
+                now: float | None = None) -> bool:
+        """Whether the open approval covers exactly these remote-effect commands."""
+        from agp_cockpit.core.ci_gate import REPAIR_PUSH_COMMANDS
+        if not self.remote_effects_allowed(task_id, now=now):
+            return False
+        grant = self.current().get("grant") or {}
+        if grant.get("remaining", 0) > 0:
+            return True
+        return bool(
+            ci_gate_active
+            and grant.get("repair_pushes", 0) > 0
+            and wanted
+            and set(wanted) <= REPAIR_PUSH_COMMANDS
         )
 
     def _expire(self, record: dict, *, mission_id: str, reason: str) -> None:
         grant = record["grant"]
         grant["remaining"] = 0
+        grant["repair_pushes"] = 0
         grant["expired_reason"] = reason
         grant["expired_with_mission"] = mission_id
         self._save(record)
@@ -108,16 +136,23 @@ class HumanDecisionStore:
         if not claimed:
             grant["claimed_by"] = mission_id
             self._save(record)
-        return {"effect": "remote", "remaining": grant["remaining"],
+        return {"effect": "remote", "remaining": grant.get("remaining", 0),
+                "repair_pushes": grant.get("repair_pushes", 0),
                 "question": record.get("question", ""), "note": record.get("note", "")}
 
     def consume(self, task_id: str, command_sha256: str) -> dict:
         record = self.current()
         grant = record.get("grant") or {}
-        if record.get("task_id") != task_id or grant.get("remaining", 0) <= 0:
+        if record.get("task_id") != task_id or (
+            grant.get("remaining", 0) <= 0 and grant.get("repair_pushes", 0) <= 0
+        ):
             raise ValueError("no approval available to consume")
-        grant["remaining"] = 0
+        if grant.get("remaining", 0) > 0:
+            grant["remaining"] = 0
+        else:
+            grant["repair_pushes"] = int(grant.get("repair_pushes", 0)) - 1
         grant["consumed_by"] = command_sha256
+        grant["consumed"] = [*grant.get("consumed", []), command_sha256]
         record["grant"] = grant
         self._save(record)
         return record
@@ -139,7 +174,12 @@ def decision_mission_text(*, goal_text: str, decision: str, question: str, note:
             "commands and network access (allow_network=true); the approval is consumed by it "
             "and expires when this mission ends.\n"
             "- Do not ask for the same approval again. Raw git push, git fetch and git pull stay "
-            "forbidden; use only the Kit command."
+            "forbidden; use only the Kit command.\n"
+            "- A task that pushed is complete only when the CI of its pull request is green for "
+            "the local HEAD; the Cockpit verifies this itself. Create the pull request with "
+            "`agentic-kit transfer pr-create`, wait with `agentic-kit pr wait-ci`, and name the "
+            "pull request as \"pr\" in the DONE file. If the CI is red, repair, commit and push "
+            "again: the approval covers creating the pull request and up to 3 repair pushes on this branch."
         )
     else:
         verdict = (

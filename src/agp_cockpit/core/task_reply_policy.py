@@ -41,6 +41,10 @@ def terminal_reply_instruction(step: int, policy: ReplyPolicy) -> str:
             "If the task is finished, or a human decision is required, attach instead exactly one "
             f"file named {step}_agp_terminal.json containing only "
             '{"state": "DONE" or "NEEDS_HUMAN", "reason": "<evidence-backed reason>"}. '
+            # AGP_CI_GREEN_COMPLETION_V1
+            'If this task pushed commits, DONE must also carry "pr": <pull request number>; '
+            "the Cockpit then verifies that the CI of that pull request is green for the local "
+            "HEAD and otherwise rejects the DONE. "
             "A prose-only reply is not read by the Cockpit.\n"
         )
     return (

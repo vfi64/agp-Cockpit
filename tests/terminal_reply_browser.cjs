@@ -11,6 +11,7 @@ const code = section("  async function submitAssistantTerminalReply(", "  async 
 
 async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
   const calls = [];
+  const sent = [];
   const events = [];
   const card = {name:"1480_agp_terminal.json", href:"", isButton:true};
   const context = {
@@ -31,6 +32,8 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
     },
     clientEvent:async (name, details) => { events.push([name, details]); },
     resetCandidate:() => {}, render:() => {}, refreshStatus:async () => { calls.push("refresh"); },
+    captureAssistantBaseline:() => { calls.push("baseline"); },
+    sendPrompt:async prompt => { sent.push(prompt); },
     clearInterval:() => {},
     api:async (path, options) => {
       calls.push(path);
@@ -38,6 +41,12 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
         const body = JSON.parse(options.body);
         assert.equal(body.filename, "1480_agp_terminal.json");
         assert.equal(body.download_sha256, "abc");
+        if (bridgeState === "CONTINUE") {
+          // AGP_CI_GREEN_COMPLETION_V1: DONE rejected by the local CI check
+          return {state:"CONTINUE", remote_state:"DONE", terminal:false, step:1480, next_step:1481,
+                  prompt:"AGP COCKPIT — DONE NOT ACCEPTED", human_reason:"Abschluss abgelehnt — CI red",
+                  authority:"ci-gate", replayed:false};
+        }
         return {state:bridgeState, remote_state:"DONE", terminal:true, human_reason:"credentials",
                 authority:"remote-declared", replayed:false};
       }
@@ -55,6 +64,16 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
   assert.equal(context.STATE.lastEvent, "K07_ASSISTANT_ATTACHMENT_SETTLING");
   assert.equal(calls.length, 0);
   await context.tick();  // second identical poll: consumed
+  if (bridgeState === "CONTINUE") {
+    assert.equal(context.STATE.running, true);
+    assert.deepEqual(sent, ["AGP COCKPIT — DONE NOT ACCEPTED"]);
+    assert.equal(context.STATE.nextLocalStep, 1481);
+    assert.equal(context.STATE.waitingForAssistant, true);
+    assert.equal(context.STATE.lastEvent, "K07_DONE_REJECTED_CONTINUED");
+    assert.deepEqual(calls, ["/v1/file-loop/terminal", "baseline"]);
+    assert.ok(!calls.includes("/v1/file-loop/control"));
+    return;
+  }
   assert.equal(context.STATE.running, false);
   assert.equal(context.STATE.turns, 4);
   assert.equal(context.STATE.lastEvent, bridgeState);
@@ -69,6 +88,7 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
 (async () => {
   await scenario();
   await scenario({bridgeState:"DONE"});
+  await scenario({bridgeState:"CONTINUE"});
   await scenario({python:1});     // ambiguous: .py and terminal for one step
   await scenario({terminal:2});
 })().catch(error => { console.error(error); process.exitCode = 1; });
