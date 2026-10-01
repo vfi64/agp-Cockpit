@@ -207,6 +207,110 @@ Acceptance requires fail-loud, resumable behavior at browser boundaries and prot
 5. Preserve the resulting trace as acceptance evidence.
 6. Only after that evidence adjudicate whether legacy Protocol-v1 complexity can be further isolated or removed.
 
+## 2026-10-01 — Standard tasks as lifecycle verbs, repository switch
+
+Status: planned (maintainer agreement 2026-10-01). Basis: live acceptance of the
+complete Kit lifecycle (steps 1520–1532, see
+`docs/engineering/K07_STATE_AND_NEXT_STEPS_2026-10-01.md`).
+
+### Goal
+
+Ordinary users operate the Cockpit through a few lifecycle verbs instead of
+Kit knowledge. The Kit keeps all repository semantics; the remote LLM still
+chooses the concrete Kit command (SCOPE_BOUNDARY §4: the Cockpit never chooses
+a Kit workflow on its behalf). Simplicity is the goal: the UI offers only what
+is valid in the current repository state and recommends exactly one next step.
+
+### Verbs
+
+| # | Name (UI) | Kit area (examples, not prescribed) | Effect class | Local completion verifier |
+|---|---|---|---|---|
+| 1 | Lagebericht | read-only diagnostics, `workspace adopt` for foreign repos | E0 | none (report) |
+| 2 | Arbeit beginnen | `work start`, `transfer remote-work-start` | E3 (sync) | new branch from current origin/main, clean worktree, rules confirmed |
+| 3 | Arbeiten (own tab) | any, task-defined | as authorized | task contract |
+| 4 | Abschließen | `work finish`, `pr-create-complete`, `pr-closeout-complete` | E3/E4, approved by the start click | `AGP_CI_LIFECYCLE_COMPLETION_V2` |
+| 5 | Wiederherstellen | `work recover`; destructive settle only after NEEDS_HUMAN | E0 → E3 | main synchronized, clean, Kit post-merge-check PASS |
+| 6 | Chat wechseln | `transfer chat-switch-complete` | E2 | existing handoff verifier |
+| 7 | Repo übernehmen | `workspace adopt` → `workspace init`; new repo: `init`, `github-create` | E2 / E4 | workspace present, `agentic-kit check` PASS |
+| 8 | Release | `release ready/prepare`, `release-publish` | E4, always asks | release evidence (to be specified) |
+| 9 | Pflege | `artifact-gc`, `docs lifecycle sweep`, `workspace upgrade`, Kit update | E1/E2 | Kit check/doctor PASS |
+
+### Enforced rules (code, not prose)
+
+- R1 Command authority from the installed Kit: the command digest comes from the
+  Kit installation used for the active repository (packaged manifest), not from
+  a file in the repository. New Kit orchestrators appear without Cockpit changes.
+- R2 Every work order of a standard task executes at least one command with
+  `surface: orchestrator` from that manifest; primitives only additionally and
+  only without remote effect.
+- R3 Remote effects are limited to the verb's effect class. A command whose
+  effect the Cockpit cannot classify counts as "unknown effect" and asks the
+  human (fail closed). Destructive commands and Release always ask.
+- R4 "Abschließen": the start click after an explicit dialog is the approval
+  (maintainer decision 2026-10-01). Code limits: never from main, never force
+  push, merge only through the Kit's green-CI gates, bounded budget, every
+  auto-approved effect shown in the UI.
+- R5 One task at a time per repository; repository switch only while idle.
+- R6 An interrupted Abschließen offers Wiederherstellen instead of only stopping.
+
+### Repository state model (deterministic, local, read-only)
+
+| State | Condition | Offered |
+|---|---|---|
+| KEIN_KIT | no Kit workspace | Repo übernehmen |
+| BEREIT | on main, main == origin/main, clean, post-merge-check PASS | Arbeit beginnen, Release, Pflege |
+| IN_ARBEIT | on a work branch, rules confirmed | Arbeiten, Abschließen, Chat wechseln |
+| LÄUFT | a task is running | nothing new (Stop in its tab) |
+| STÖRUNG | drift, unexpected changes, post-merge not PASS, interrupted task | Wiederherstellen |
+| UNKLAR | state unreadable (Kit missing, `gh` not logged in) | Lagebericht with the fix |
+
+Lagebericht and Chat wechseln stay available except in LÄUFT.
+
+### UI
+
+- Tab order: Standard Tasks | Arbeiten | System.
+- Repository switch is global context, not a task: the header line
+  "Repository: …" becomes a button with recent repositories and "Anderes Repo…".
+- Standard Tasks tab, top to bottom: state card (Lagebericht, refreshed on open,
+  after each task and on request, with one sentence and "Empfohlen: …"); the
+  main path as a numbered stepper ① Arbeit beginnen → ② Arbeiten → ③
+  Abschließen → ④ Chat wechseln; "Bei Problemen": Wiederherstellen; collapsed
+  "Weitere": Repo übernehmen, Release, Pflege.
+- The recommended step is the only primary button; invalid buttons are
+  disabled and their tooltip says why.
+- Every button carries an effect badge: "liest nur" (E0), "ändert lokal"
+  (E1/E2), "wirkt auf GitHub" (E3/E4), "fragt immer" (destructive/release).
+- Tooltips (three lines: what happens · effect · when available) come from one
+  text table that also feeds the documentation.
+
+### Slices (each: tests, live check, protocol log entry)
+
+1. P1 Command authority: digest from the installed Kit (R1), orchestrator
+   obligation for standard tasks (R2), unknown effect asks (R3).
+2. P2 State model and Lagebericht: `core/repo_state.py`, local read-only Kit and
+   git observation (E0, human-initiated), states above, recommendation.
+3. P3 Standard Tasks tab: order, state card, stepper, groups, enabling by state,
+   badges, tooltip helper and text table.
+4. P4 Repository switch: selection, checks (git, origin, Kit installed and
+   version, `gh auth status`, workspace present → else offer Repo übernehmen),
+   rebinding of bridge, Download/run_next and digest, recent list, new chat
+   required, only while idle (R5).
+5. P5 Standard-task framework: declarative definition (goal text without
+   command names, effect class, input fields, verifier), single-task lock,
+   abort → Wiederherstellen (R6); migrate Chat wechseln.
+6. P6 Abschließen: auto approval with code limits (R4), audit view, offer Chat
+   wechseln afterwards.
+7. P7 Arbeit beginnen (inputs: branch name, kind).
+8. P8 Wiederherstellen (diagnosis first, destructive steps ask).
+9. P9 Repo übernehmen, proven on a separate test repository.
+10. P10 Pflege (including Kit update and `workspace upgrade`).
+11. P11 Release (always asks; verifier to be specified first).
+
+Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
+handoff, not Cockpit work): effect classification in the manifest, a read
+command for branch/commit CI, pure JSON output, Kit-owned volatile files out of
+the worktree.
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

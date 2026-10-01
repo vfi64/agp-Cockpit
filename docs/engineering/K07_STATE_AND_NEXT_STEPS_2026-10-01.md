@@ -50,9 +50,8 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
 
 ## 4. Nächste Schritte
 
-1. Weitere Standard-Tasks als Verben über den Kit-Orchestratoren (Beratung
-   2026-10-01): Lagebericht (lesend), Arbeit beginnen, Abschließen, Aufräumen/
-   Recover, Repo übernehmen; je Task: Ziel, zulässige Orchestratoren (vorab
-   freigegebener Wirkungsumfang), lokaler Abschlussprüfer.
+1. Standard-Tasks als Lebenszyklus-Verben und Repo-Wechsel: Arbeitsplan P1–P11
+   in `docs/planning/MASTER_PLAN.md`, Abschnitt „2026-10-01 — Standard tasks as
+   lifecycle verbs, repository switch“.
 2. D5 (Generierungserkennung) bleibt Risiko; Live-Belege sammeln.
 3. Kit-Befunde aus Abschnitt 3 im Kit-Repository bearbeiten.
