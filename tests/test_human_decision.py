@@ -203,11 +203,16 @@ def test_http_push_without_approval_asks_the_human_and_approval_is_consumed(brid
 
 
 def test_invalid_remote_effect_work_order_is_still_rejected(bridge):
-    _root, runtime, call = bridge
+    root, runtime, call = bridge
     mission(call, runtime)
     bad = work_order(["transfer", "push-current"]) + "import os\nos.system('git push')\n"
-    with pytest.raises(HTTPError):
-        call("/v1/file-loop/command", {"filename": "1480_push.py", "content": bad})
+    # AGP_CORRECTABLE_REJECTION_V1: not executed; the remote side gets a correction
+    rejected = call("/v1/file-loop/command", {"filename": "1480_push.py", "content": bad})
+    assert rejected["state"] == "CONTINUE" and rejected["terminal"] is False
+    assert "git push is not permitted" in rejected["prompt"]
+    assert (root / "Download" / "1480_agp_rejected.json").is_file()
+    assert not list((root / "Download").glob("1480_*return_bundle.json"))
+    assert rejected["next_step"] == 1481 and "1481_...py" in rejected["prompt"]
 
 
 def test_read_only_work_order_needs_no_approval(bridge):

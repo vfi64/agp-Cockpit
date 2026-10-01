@@ -83,13 +83,11 @@ class MainWindow(ttk.Frame):
         context.grid(row=1, column=0, sticky="ew", pady=(2, 8))
         context.columnconfigure(0, weight=1)
         ttk.Label(context, textvariable=self.context_var).grid(row=0, column=0, sticky="w")
-        ttk.Label(
-            context,
-            text=(
-                f"Bridge protocol v{BRIDGE_PROTOCOL_VERSION} · "
-                f"build {BRIDGE_BUILD_ID}"
-            ),
-        ).grid(row=0, column=1, sticky="e")
+        self.build_var = tk.StringVar(
+            value=f"Bridge protocol v{BRIDGE_PROTOCOL_VERSION} · build {BRIDGE_BUILD_ID}"
+        )
+        self._build_label = ttk.Label(context, textvariable=self.build_var)
+        self._build_label.grid(row=0, column=1, sticky="e")
 
         ttk.Separator(
             self,
@@ -133,6 +131,7 @@ class MainWindow(ttk.Frame):
         self.tabs.add(system_tab, text="System")
         self.after(80, self.refresh_runtime_status)
         self.after(120, self.refresh_bridge_identity)
+        self.after(500, self.refresh_build_freshness)
 
     def _build_system_tab(self, parent: ttk.Frame) -> None:
         bridge = ttk.LabelFrame(
@@ -312,6 +311,22 @@ class MainWindow(ttk.Frame):
         }
         for widget,name in system_focus_names.items():
             widget.bind("<FocusIn>",lambda _e,n=name:self.system_focus_var.set(f"Tastaturfokus: {n}"),add="+")
+
+    def refresh_build_freshness(self) -> None:
+        """AGP_STALE_APP_GUARD_V1: warn while a newer build or source is on disk."""
+        from agp_cockpit.core.build_freshness import check
+        base = f"Bridge protocol v{BRIDGE_PROTOCOL_VERSION} · build {BRIDGE_BUILD_ID}"
+        try:
+            freshness = check(self.repository_root)
+        except Exception:  # noqa: BLE001 - a status label must never break the UI
+            freshness = None
+        if freshness is not None and freshness.stale:
+            self.build_var.set(f"{base} · ⚠ {freshness.message}")
+            self._build_label.configure(foreground="#b00020")
+        else:
+            self.build_var.set(base)
+            self._build_label.configure(foreground="")
+        self.after(10_000, self.refresh_build_freshness)
 
     def refresh_bridge_identity(self) -> None:
         try:

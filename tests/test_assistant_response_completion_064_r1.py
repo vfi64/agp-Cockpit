@@ -35,7 +35,12 @@ def test_turn_counting_happens_after_successful_submit():
     assert command_submit < command_increment < legacy_submit
     assert legacy_submit < legacy_branch < legacy_increment
     assert prompt_send < prompt_increment
-    assert fn.count("STATE.turns += 1;") == 2
+    # AGP_CORRECTABLE_REJECTION_V1: the correction prompt is a turn too, counted
+    # only after its send succeeded.
+    correction_send = fn.index("await sendPrompt(String(commandResult.prompt));")
+    correction_increment = fn.index("STATE.turns += 1;", correction_send)
+    assert command_submit < correction_send < correction_increment < command_increment
+    assert fn.count("STATE.turns += 1;") == 3
 
 def test_old_prompt_based_turn_increment_removed():
     s = source()

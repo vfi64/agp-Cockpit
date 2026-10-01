@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AGP Cockpit Bridge",
-  "version": "0.3.29",
+  "version": "0.3.31",
   "description": "Experimental automated bridge between ChatGPT and AGP Cockpit.",
   "permissions": [
     "storage",

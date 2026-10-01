@@ -136,6 +136,8 @@ def validate_command_content(
     expected_step: int | None = None,
     repository_root: Path | None = None,
     allow_remote_effects: bool = False,
+    require_orchestrator: bool = False,
+    catalog_checks: bool = True,
 ) -> None:
     try:
         violations = command_content_contract_violations(
@@ -148,9 +150,11 @@ def validate_command_content(
             KitCommandCatalog,
             command_catalog_violations,
         )
-        catalog = KitCommandCatalog.load(repository_root) if repository_root is not None else None
+        catalog = (KitCommandCatalog.load(repository_root)
+                   if repository_root is not None and catalog_checks else None)
         violations = violations + command_catalog_violations(
-            source, catalog, allow_remote_effects=allow_remote_effects
+            source, catalog, allow_remote_effects=allow_remote_effects,
+            require_orchestrator=require_orchestrator,
         )
     except SyntaxError as exc:
         raise ValueError(

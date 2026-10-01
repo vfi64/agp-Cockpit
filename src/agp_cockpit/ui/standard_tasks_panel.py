@@ -60,6 +60,12 @@ class StandardTasksPanel(ttk.Frame):
     def start_standard_task(self, task: StandardTask) -> None:
         contract = task.contract(self.repository_root)
         self.detail_var.set(task.description)
+        # AGP_STALE_APP_GUARD_V1: never start a task on an outdated app.
+        from agp_cockpit.core.build_freshness import start_block_reason
+        blocked = start_block_reason(self.repository_root)
+        if blocked:
+            self.status_var.set(blocked)
+            return
         required_tools = {"git", "agentic-kit"}
         missing_tools = sorted(required_tools - set(self.api.local_contract.allowed_tools))
         if missing_tools:

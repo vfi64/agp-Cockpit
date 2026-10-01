@@ -199,6 +199,26 @@ def git_value(repository_root: Path, *args: str, runner: Runner = subprocess.run
     return (completed.stdout or "").strip() if completed.returncode == 0 else ""
 
 
+def remote_refs(repository_root: Path, *, runner: Runner = subprocess.run) -> dict | None:
+    """All refs of origin (branches, tags, pull/*), or None when unreadable.
+
+    AGP_EFFECT_REFUND_V1 (live 1504-1513): a Kit run that the Kit itself
+    blocked before any mutation consumed approval budget. Comparing the refs
+    of origin before and after a run shows, independent of the remote side's
+    own bundle, whether anything changed on GitHub (a push, a new pull
+    request ref, a merge, a new branch).
+    """
+    completed = _run(["git", "ls-remote", "origin"], repository_root, runner, timeout=60)
+    if completed.returncode != 0:
+        return None
+    refs = {}
+    for line in (completed.stdout or "").splitlines():
+        parts = line.split()
+        if len(parts) == 2:
+            refs[parts[1]] = parts[0]
+    return refs
+
+
 def evaluate(decision: dict, *, head: str) -> CiVerdict:
     """Open pull request: green for exactly the local HEAD."""
     kind = str(decision.get("decision") or "error")

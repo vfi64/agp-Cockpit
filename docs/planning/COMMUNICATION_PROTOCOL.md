@@ -337,6 +337,23 @@ This section is normative for the file loop after local execution.
    orders) re-runs the approved Kit commands and, after an approved merging
    orchestrator, the publishing and closeout commands of that lifecycle.
    Local run_next timeout: 30 minutes (an orchestrator waits for two CIs).
+17. Approval budget and app identity (`AGP_EFFECT_REFUND_V1`,
+   `AGP_STALE_APP_GUARD_V1`). A remote-effect work order consumes approval
+   budget only when a ref of origin changed (compared with `git ls-remote
+   origin` before and after). A packaged app whose build id differs from the
+   bundle on disk or from the source tree refuses to start tasks or record
+   decisions until it is restarted.
+18. Kit command authority (`AGP_KIT_INSTALLATION_AUTHORITY_V1`,
+   `AGP_STANDARD_TASK_ORCHESTRATOR_V1`, `AGP_UNKNOWN_EFFECT_ASKS_V1`,
+   `AGP_CORRECTABLE_REJECTION_V1`; plan P1). The command digest comes from the
+   manifest of the installed Kit (its interpreter is asked for the packaged
+   manifest; the repository copy is a fallback). Work orders of standard tasks
+   (mission title "Standard · …") must run at least one orchestrator and may
+   have remote effects only through orchestrators. An orchestrator the Cockpit
+   cannot classify counts as remote effect and asks. A work order that breaks
+   these rules is not executed: its step is recorded as `<step>_agp_rejected.json`
+   and the remote side receives the violations and the next step number;
+   after three rejections in one mission the human decides (NEEDS_HUMAN).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

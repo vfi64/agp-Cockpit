@@ -13,6 +13,12 @@ Enforced rules:
 1. every agentic-kit command in a work order exists in the manifest;
 2. no git push / fetch / pull (network git is never part of a work order);
 3. no raw git/gh command for which the manifest names a Kit wrapper.
+
+AGP_KIT_INSTALLATION_AUTHORITY_V1 (plan P1): the manifest comes from the
+installed Kit (``kit_installation``); the repository copy is a fallback.
+Standard tasks (R2) must run at least one orchestrator per work order, and
+their remote effects only through orchestrators. An orchestrator whose effect
+the Cockpit does not know counts as remote effect (R3, fail closed).
 """
 
 from __future__ import annotations
@@ -41,10 +47,20 @@ REMOTE_EFFECT_COMMANDS = frozenset({
     "transfer pull-current", "transfer push-current", "transfer remote-next",
     "transfer remote-work-start", "transfer sync-main", "work finish",
 })
+# Orchestrators known to act only locally (read, local files, local branches).
+# Every other orchestrator either has a known remote effect or an unknown one;
+# both need an approval (AGP_UNKNOWN_EFFECT_ASKS_V1). A new Kit orchestrator
+# therefore asks until it is classified here or the Kit declares its effect.
+LOCAL_ORCHESTRATORS = frozenset({
+    "artifact-gc", "chat session-start", "docs lifecycle sweep", "dpa final-closeout-check",
+    "init", "post-release-doi-closeout", "release prepare", "release ready", "release-prep",
+    "transfer chat-switch-complete", "work recover", "workspace adopt", "workspace dpa-intake",
+    "workspace init", "workspace remove", "workspace upgrade",
+})
 COMMAND_RULES = (
     "Command authority (standing rules for every work order): "
     "use only agentic-kit commands listed in the attached agentic-kit-command-digest.json "
-    "(generated from docs/reference/agentic-kit-commands.json); never reconstruct commands from memory. "
+    "(generated from the manifest of the installed Kit); never reconstruct commands from memory. "
     "Prefer the most comprehensive orchestrator command (surface \"orchestrator\") that covers the task; "
     "use diagnostic or primitive commands only when no orchestrator fits. "
     "Never run git push, git fetch or git pull. "
@@ -58,15 +74,45 @@ COMMAND_RULES = (
 class KitCommandCatalog:
     manifest_sha: str
     commands: tuple[dict, ...]
+    source: str = str(MANIFEST)
+
+    @classmethod
+    def from_data(cls, data: dict, source: str) -> KitCommandCatalog:
+        commands = tuple(c for c in data.get("commands", []) if isinstance(c, dict) and c.get("path"))
+        return cls(str((data.get("meta") or {}).get("manifest_sha") or ""), commands, source)
+
+    @classmethod
+    def manifest_location(cls, root: Path) -> tuple[Path, str] | None:
+        """The manifest file and a label: installed Kit first, repository copy as fallback."""
+        from agp_cockpit.core.kit_installation import discover
+        installation = discover(Path(root))
+        if installation is not None:
+            return installation.manifest_path, f"installed agentic-kit {installation.version}".strip()
+        path = Path(root) / MANIFEST
+        return (path, str(MANIFEST)) if path.is_file() else None
 
     @classmethod
     def load(cls, root: Path) -> KitCommandCatalog | None:
-        path = Path(root) / MANIFEST
-        if not path.is_file():
+        location = cls.manifest_location(root)
+        if location is None:
             return None
-        data = json.loads(path.read_text(encoding="utf-8"))
-        commands = tuple(c for c in data.get("commands", []) if isinstance(c, dict) and c.get("path"))
-        return cls(str((data.get("meta") or {}).get("manifest_sha") or ""), commands)
+        path, source = location
+        return cls.from_data(json.loads(path.read_text(encoding="utf-8")), source)
+
+    def command(self, qualified_name: str) -> dict | None:
+        for command in self.commands:
+            if command.get("qualified_name") == qualified_name:
+                return command
+        return None
+
+    @staticmethod
+    def is_orchestrator(command: dict) -> bool:
+        return command.get("surface") == "orchestrator"
+
+    def effect_known(self, command: dict) -> bool:
+        name = " ".join(str(p) for p in command["path"])
+        return (not self.is_orchestrator(command) or name in REMOTE_EFFECT_COMMANDS
+                or name in LOCAL_ORCHESTRATORS or command.get("safety") == "READ_ONLY")
 
     @property
     def paths(self) -> tuple[tuple[str, ...], ...]:
@@ -85,6 +131,8 @@ class KitCommandCatalog:
         name = " ".join(str(p) for p in command["path"])
         if name in REMOTE_EFFECT_COMMANDS:
             return True
+        if not self.effect_known(command):
+            return True   # AGP_UNKNOWN_EFFECT_ASKS_V1: fail closed
         return any(
             str(raw).startswith(("git push", "gh ")) for raw in command.get("replaces_raw") or []
         )
@@ -102,7 +150,7 @@ class KitCommandCatalog:
         ordered = sorted(self.commands, key=lambda c: (SURFACE_ORDER.get(c.get("surface"), 3), c["qualified_name"]))
         return {
             "kind": "agentic_kit_command_digest",
-            "source": str(MANIFEST),
+            "source": self.source,
             "manifest_sha": self.manifest_sha,
             "rules": COMMAND_RULES,
             "commands": [
@@ -114,6 +162,7 @@ class KitCommandCatalog:
                     "options": [o for p in c.get("params", []) for o in (p.get("opts") or [])][:12],
                     "replaces_raw": list(c.get("replaces_raw") or []),
                     "remote_effect": self.has_remote_effect(c),
+                    **({} if self.effect_known(c) else {"effect": "unknown"}),
                 }
                 for c in ordered
             ],
@@ -154,11 +203,11 @@ def _program(token: str) -> str:
     return Path(str(token)).name
 
 
-def remote_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
-    """Qualified names of remote-effect Kit commands used by a work order."""
+def kit_commands_used(source: str, catalog: KitCommandCatalog | None) -> list[dict]:
+    """Manifest entries of every agentic-kit invocation in a work order."""
     if catalog is None:
         return []
-    found = set()
+    found: dict[str, dict] = {}
     for argv in _invocations(ast.parse(source)):
         if _program(argv[0]) != "agentic-kit":
             continue
@@ -168,15 +217,49 @@ def remote_effect_commands(source: str, catalog: KitCommandCatalog | None) -> li
                 break
             subcommands.append(token)
         command = catalog.resolve(subcommands) if subcommands else None
-        if command is not None and catalog.has_remote_effect(command):
-            found.add(command["qualified_name"])
-    return sorted(found)
+        if command is not None:
+            found[command["qualified_name"]] = command
+    return [found[name] for name in sorted(found)]
+
+
+def remote_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    """Qualified names of remote-effect Kit commands used by a work order."""
+    return [c["qualified_name"] for c in kit_commands_used(source, catalog)
+            if catalog is not None and catalog.has_remote_effect(c)]
+
+
+def unknown_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    return [c["qualified_name"] for c in kit_commands_used(source, catalog)
+            if catalog is not None and not catalog.effect_known(c)]
+
+
+def orchestrator_violations(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    """AGP_STANDARD_TASK_ORCHESTRATOR_V1 (R2) for work orders of standard tasks."""
+    if catalog is None:
+        return []
+    used = kit_commands_used(source, catalog)
+    violations = []
+    if not any(catalog.is_orchestrator(c) for c in used):
+        violations.append(
+            "a standard task work order must run at least one agentic-kit orchestrator "
+            f"(surface \"orchestrator\" in {catalog.source})"
+        )
+    for command in used:
+        if catalog.has_remote_effect(command) and not catalog.is_orchestrator(command):
+            violations.append(
+                f"{command['qualified_name']} has a remote effect; in a standard task remote "
+                "effects run only through an orchestrator"
+            )
+    return violations
 
 
 def command_catalog_violations(source: str, catalog: KitCommandCatalog | None,
-                               *, allow_remote_effects: bool = False) -> list[str]:
+                               *, allow_remote_effects: bool = False,
+                               require_orchestrator: bool = False) -> list[str]:
     tree = ast.parse(source)
     violations: list[str] = []
+    if require_orchestrator:
+        violations.extend(orchestrator_violations(source, catalog))
     if not allow_remote_effects:
         violations.extend(
             f"{name} has a remote effect and requires an explicit human approval"
@@ -210,6 +293,6 @@ def command_catalog_violations(source: str, catalog: KitCommandCatalog | None,
             if subcommands and catalog.resolve(subcommands) is None:
                 violations.append(
                     "unknown agentic-kit command 'agentic-kit " + " ".join(subcommands)
-                    + f"' (not in {MANIFEST})"
+                    + f"' (not in {catalog.source})"
                 )
     return sorted(set(violations))

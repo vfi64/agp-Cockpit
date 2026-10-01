@@ -32,6 +32,7 @@ src/agp_cockpit/core/bridge_protocol.py
 src/agp_cockpit/core/bridge_runtime.py
 src/agp_cockpit/core/bridge_runtime_server.py
 src/agp_cockpit/core/bridge_server.py
+src/agp_cockpit/core/build_freshness.py
 src/agp_cockpit/core/browser_readiness.py
 src/agp_cockpit/core/browser_refresh.py
 src/agp_cockpit/core/browser_transport.py

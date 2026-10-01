@@ -66,12 +66,38 @@ def main() -> int:
         default=project_root() / ".local" / "agp-cockpit" / "dist",
     )
     parser.add_argument("--verify", type=Path, default=None)
+    parser.add_argument(
+        "--restart",
+        action="store_true",
+        help="After building, quit a running AGP Cockpit and open the new bundle.",
+    )
     args = parser.parse_args()
     if args.verify is not None:
         print(verify_bundle(args.verify))
         return 0
     app = build(args.output_dir)
     print(app)
+    # AGP_STALE_APP_GUARD_V1: opening the new bundle while the old instance runs
+    # only activates the old one (same bundle id).
+    running = subprocess.run(["pgrep", "-f", "AGP Cockpit.app/Contents/MacOS/AGP Cockpit"],
+                             capture_output=True, text=True, check=False).stdout.split()
+    if running and not args.restart:
+        print("WARNING: AGP Cockpit is still running (pid " + ", ".join(running) + "). Quit it "
+              "with Cmd+Q and start the new bundle, or build again with --restart.")
+    elif args.restart:
+        if running:
+            subprocess.run(["osascript", "-e", 'tell application id "de.vfi64.agp-cockpit" to quit'],
+                           check=False)
+            for _ in range(40):
+                if not subprocess.run(["pgrep", "-f", "AGP Cockpit.app/Contents/MacOS/AGP Cockpit"],
+                                      capture_output=True, check=False).stdout:
+                    break
+                subprocess.run(["sleep", "0.5"], check=False)
+            else:
+                print("ERROR: the running AGP Cockpit did not quit; the new bundle was not opened.")
+                return 1
+        subprocess.run(["open", str(app)], check=True)
+        print("Opened " + str(app))
     return 0
 
 
