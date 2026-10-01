@@ -96,8 +96,12 @@ test("visually truncated chip names still confirm the step-scoped files", async 
 test("a page that ignores the selection fails closed with diagnostics", async ({page}) => {
   await composerPage(page, "ignore");
   const {api} = await chromeApiFor(page);
-  await expect(loadAttachment().attachResultFiles(api, {tabId:1}, evidenceFiles(),
-    {settleMs:0, confirmTimeoutMs:1000})).rejects.toThrow("did not show the selected result evidence files");
+  // The promise comes from a vm context (another realm); @playwright/test 1.62
+  // rejects `.rejects` on it (CI #481). Settle it explicitly instead.
+  const failure = await loadAttachment().attachResultFiles(api, {tabId:1}, evidenceFiles(),
+    {settleMs:0, confirmTimeoutMs:1000}).then(() => null, error => error);
+  expect(failure).not.toBeNull();
+  expect(String(failure.message)).toContain("did not show the selected result evidence files");
 });
 
 test("re-delivery reuses evidence already attached in the composer", async ({page}) => {

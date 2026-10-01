@@ -132,8 +132,12 @@ test("an emptied composer without a persisted turn is never commit evidence", as
 test("a marker that is not the first prompt line is refused", async ({page}) => {
   await openFixture(page, "commit");
   const background = loadBackground(page);
-  await expect(background.agpNativeTransportV1(
+  // The promise comes from a vm context (another realm); @playwright/test 1.62
+  // rejects `.rejects` on it (CI #481). Settle it explicitly instead.
+  const failure = await background.agpNativeTransportV1(
     {request_id:"r-bad", operation:"insert_and_submit", text:LONG_PROMPT, commit_marker:MARKER},
     {tab:{id:1}},
-  )).rejects.toThrow("invalid native transport commit marker");
+  ).then(() => null, error => error);
+  expect(failure).not.toBeNull();
+  expect(String(failure.message)).toContain("invalid native transport commit marker");
 });
