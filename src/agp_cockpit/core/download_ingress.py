@@ -54,6 +54,9 @@ def read_downloaded_command(
     if terminal:
         parse_terminal_reply(expected, content)
         return expected, content, "application/json"
+    # The command authority checks (manifest, orchestrator, remote effects)
+    # belong to /v1/file-loop/command, which can answer a violation with a
+    # correction instead of a hard stop (AGP_CORRECTABLE_REJECTION_V1).
     validate_command_content(content, filename=expected, repository_root=repository_root,
-                             allow_remote_effects=allow_remote_effects)
+                             allow_remote_effects=allow_remote_effects, catalog_checks=False)
     return expected, content, "text/x-python"

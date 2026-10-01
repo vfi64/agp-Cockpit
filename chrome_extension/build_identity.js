@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "stale-guard-20261001";
+globalThis.AGP_EXTENSION_BUILD_ID = "kit-authority-20261001";

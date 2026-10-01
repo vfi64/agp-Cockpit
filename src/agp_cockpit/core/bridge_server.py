@@ -65,12 +65,14 @@ _KIT_DIGEST_CACHE: dict[str, tuple[int, str, str]] = {}
 
 def _kit_command_digest(repo_root: Path) -> dict[str, str]:
     """AGP_KIT_COMMAND_CATALOG_V1: digest of the manifest for the mission start."""
-    from agp_cockpit.core.kit_command_catalog import MANIFEST, KitCommandCatalog
+    from agp_cockpit.core.kit_command_catalog import KitCommandCatalog
 
-    manifest = repo_root / MANIFEST
-    if not manifest.is_file():
+    # AGP_KIT_INSTALLATION_AUTHORITY_V1: the installed Kit's manifest first.
+    location = KitCommandCatalog.manifest_location(repo_root)
+    if location is None:
         return {}
-    mtime = manifest.stat().st_mtime_ns
+    manifest = location[0]
+    mtime = (str(manifest), manifest.stat().st_mtime_ns)
     cached = _KIT_DIGEST_CACHE.get(str(repo_root))
     if cached is None or cached[0] != mtime:
         catalog = KitCommandCatalog.load(repo_root)
@@ -82,6 +84,59 @@ def _kit_command_digest(repo_root: Path) -> dict[str, str]:
         cached = (mtime, str(target), catalog.manifest_sha)
         _KIT_DIGEST_CACHE[str(repo_root)] = cached
     return {"kit_command_digest_path": cached[1], "kit_manifest_sha": cached[2]}
+
+
+MAX_POLICY_REJECTIONS = 3
+
+
+def _correctable(error: Exception) -> bool:
+    text = str(error)
+    return ("semantic contract rejected" in text) or ("is not executable Python" in text)
+
+
+def _policy_rejection_response(runtime_root: Path, repo_root: Path, engine, diag, *,
+                               filename: str, reason: str, cycle_id: str) -> dict:
+    """AGP_CORRECTABLE_REJECTION_V1: record the rejected work order under the
+    expected step (the step is used up) and ask the remote side for a new one;
+    after MAX_POLICY_REJECTIONS in one mission the human decides."""
+    mission = engine.runtime.state
+    store = runtime_root / "policy-rejections.json"
+    try:
+        counts = json.loads(store.read_text(encoding="utf-8")) if store.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        counts = {}
+    count = int(counts.get(mission.mission_id, 0)) + 1
+    counts[mission.mission_id] = count
+    store.write_text(json.dumps(counts, indent=1, sort_keys=True), encoding="utf-8")
+    download = repo_root / "Download"
+    step = next_step_number(download)
+    download.mkdir(parents=True, exist_ok=True)
+    (download / f"{step}_agp_rejected.json").write_text(json.dumps(
+        {"rejected_filename": filename, "reason": reason, "count": count}, indent=1) + "\n",
+        encoding="utf-8")
+    diag.event("K07_WORK_ORDER_REJECTED", component="file-loop",
+               details={"filename": filename, "step": step, "count": count,
+                        "reason": reason[:400], "cycle_id": cycle_id})
+    if count > MAX_POLICY_REJECTIONS:
+        human = (f"Arbeitsaufträge wurden {count}-mal wegen der Kommando-Regeln abgelehnt; "
+                 f"zuletzt {filename}: {reason[:600]}")
+        if mission.state not in _MISSION_ENDED_STATES:
+            engine.runtime.final("NEEDS_HUMAN", human)
+        return {"state": "NEEDS_HUMAN", "step": None, "result_file": None, "prompt": None,
+                "terminal": True, "human_reason": human, "cycle_id": cycle_id, "replayed": False}
+    next_step = next_step_number(download)
+    prompt = (
+        "AGP COCKPIT — WORK ORDER NOT EXECUTED\n\n"
+        f"Your work order {filename} was rejected by the local command authority and was not "
+        f"run (attempt {count} of {MAX_POLICY_REJECTIONS}):\n{reason}\n\n"
+        "Return a corrected work order. Choose the agentic-kit commands from the attached "
+        "command digest of the installed Kit; prefer the most comprehensive orchestrator. "
+        f"Use exactly {next_step}_...py as the attachment filename and {next_step} as STEP."
+    )
+    return {"state": "CONTINUE", "terminal": False, "step": step, "next_step": next_step,
+            "result_file": None, "prompt": prompt, "authority": "command-authority",
+            "human_reason": "Auftrag abgelehnt — " + reason[:300], "cycle_id": cycle_id,
+            "replayed": False}
 
 
 _MISSION_ENDED_STATES = frozenset(
@@ -441,6 +496,7 @@ class CockpitBridgeServer:
                         from agp_cockpit.core.kit_command_catalog import (
                             KitCommandCatalog,
                             remote_effect_commands,
+                            unknown_effect_commands,
                         )
                         wanted = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
                         remote_effects_allowed = bool(wanted) and _remote_effects_permitted(
@@ -451,14 +507,34 @@ class CockpitBridgeServer:
                         # not a technical failure but a decision. When it is
                         # otherwise valid it ends the mission with NEEDS_HUMAN
                         # and is not executed; the human answers in the app.
-                        validate_command_content(
-                            content, filename=filename, repository_root=repo_root,
-                            allow_remote_effects=True,
-                        )
+                        mission_now = engine.runtime.state
+                        # AGP_STANDARD_TASK_ORCHESTRATOR_V1 (R2)
+                        standard_task = mission_now is not None and str(
+                            mission_now.title or ""
+                        ).startswith("Standard · ")
+                        try:
+                            validate_command_content(
+                                content, filename=filename, repository_root=repo_root,
+                                allow_remote_effects=True, require_orchestrator=standard_task,
+                            )
+                        except ValueError as rejection:
+                            # AGP_CORRECTABLE_REJECTION_V1: a work order that breaks the
+                            # command authority is not executed; the remote side gets
+                            # the violations and the next step number (bounded).
+                            if mission_now is None or not _correctable(rejection):
+                                raise
+                            self._json(200, _policy_rejection_response(
+                                runtime_root, repo_root, engine, diag,
+                                filename=filename, reason=str(rejection), cycle_id=cycle_id,
+                            ))
+                            return
                         if not remote_effects_allowed and wanted:
+                            unknown = unknown_effect_commands(content, KitCommandCatalog.load(repo_root))
                             question = (
                                 f"Arbeitsauftrag {filename} will eine Wirkung nach außen "
-                                f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
+                                + (f"oder eine noch nicht eingestufte Wirkung ({', '.join(unknown)}) "
+                                   if unknown else "")
+                                + f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
                                 "Freigabe vor (keine erteilt, oder die letzte wurde von "
                                 "einem früheren Auftrag verbraucht). Der Auftrag wurde "
                                 "nicht ausgeführt. Darf er ausgeführt werden?"

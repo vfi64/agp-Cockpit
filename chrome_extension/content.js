@@ -849,6 +849,17 @@
       }
     );
     const terminal = Boolean(result && result.terminal === true);
+    // AGP_CORRECTABLE_REJECTION_V1: the work order broke the command authority,
+    // was not executed and the remote side gets a correction prompt.
+    const rejectedForCorrection = Boolean(result && result.terminal === false &&
+      String(result.state || "") === "CONTINUE" && typeof result.prompt === "string" && result.prompt);
+    if (rejectedForCorrection) {
+      await clientEvent("K07_WORK_ORDER_REJECTED_FOR_CORRECTION", {
+        filename:fetched.filename,
+        next_step:Number(result.next_step || 0)
+      });
+      return result;
+    }
     if (
       !result ||
       (result.state !== "COMMAND_FILE" && !terminal) ||
@@ -2261,6 +2272,22 @@
       }
       const commandResult = await submitAssistantCommandFile(runGeneration);
       if (!STATE.running || STATE.runGeneration !== runGeneration) return;
+      if (commandResult.terminal === false && String(commandResult.state) === "CONTINUE") {
+        if (Number(commandResult.next_step || 0) > 0) {
+          STATE.nextLocalStep = Number(commandResult.next_step);
+        }
+        captureAssistantBaseline();
+        await sendPrompt(String(commandResult.prompt));
+        if (!STATE.running || STATE.runGeneration !== runGeneration) return;
+        STATE.turns += 1;
+        STATE.note = String(commandResult.human_reason || "Auftrag abgelehnt; Korrektur angefordert");
+        STATE.lastEvent = "K07_WORK_ORDER_REJECTED_FOR_CORRECTION";
+        STATE.waitingForAssistant = true;
+        STATE.assistantWaitStartedAt = Date.now();
+        resetCandidate();
+        render();
+        return;
+      }
       const replayed = commandResult.replayed === true;
       const redelivered = replayed && commandResult.delivery_pending === true;
       const terminal = commandResult.terminal === true;

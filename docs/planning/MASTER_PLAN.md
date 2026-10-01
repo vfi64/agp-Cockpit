@@ -286,7 +286,9 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 ### Slices (each: tests, live check, protocol log entry)
 
 1. P1 Command authority: digest from the installed Kit (R1), orchestrator
-   obligation for standard tasks (R2), unknown effect asks (R3).
+   obligation for standard tasks (R2), unknown effect asks (R3). — Implemented
+   2026-10-01 (COMMUNICATION_PROTOCOL 18), live check pending; includes
+   correction instead of a fatal stop for rule violations.
 2. P2 State model and Lagebericht: `core/repo_state.py`, local read-only Kit and
    git observation (E0, human-initiated), states above, recommendation.
 3. P3 Standard Tasks tab: order, state card, stepper, groups, enabling by state,

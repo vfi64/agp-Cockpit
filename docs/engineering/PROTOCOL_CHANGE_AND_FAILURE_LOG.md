@@ -1043,3 +1043,11 @@ repeat once.
 - AGP_EFFECT_REFUND_V1: refs of origin (`git ls-remote origin`) are compared before and after a remote-effect work order; unchanged refs (e.g. a run the Kit blocked, 1504–1513) do not consume approval budget. Unreadable refs consume (conservative).
 - Handoff for Codex: `docs/engineering/K07_STATE_AND_NEXT_STEPS_2026-10-01.md` (supersedes the 2026-09-30 summary; lists the Kit findings).
 - Tests: `tests/test_build_freshness.py`, `tests/test_ci_gate.py` (refund), all suites green.
+
+## 2026-10-01 — P1 Kit command authority (build kit-authority-20261001, extension 0.3.31)
+
+- Finding: the digest came from `docs/reference/agentic-kit-commands.json` (sha `ce455b7df8c5`), the installed Kit packages `ffae97536a52`; the remote side was offered a stale command list, and foreign repositories have no such file.
+- AGP_KIT_INSTALLATION_AUTHORITY_V1: `core/kit_installation.py` finds `<repo>/.venv/bin/agentic-kit` or `agentic-kit` on the tool PATH, asks its interpreter for the packaged manifest and version; the repository copy is the fallback. `AGP_COCKPIT_KIT_BINARY` overrides (tests: `none`).
+- AGP_STANDARD_TASK_ORCHESTRATOR_V1 / AGP_UNKNOWN_EFFECT_ASKS_V1: standard-task work orders need an orchestrator; remote effects only through orchestrators; unclassified orchestrators (e.g. `workflow go`) count as remote effect and are marked `"effect": "unknown"` in the digest.
+- AGP_CORRECTABLE_REJECTION_V1: rule violations (manifest, raw network git, wrappers, orchestrator rule, contract violations) no longer stop the run with HTTP 400; the step is recorded as `<step>_agp_rejected.json` and the remote side gets the violations and the next step; after three rejections per mission NEEDS_HUMAN. The download path no longer applies the command-authority checks (they belong to the command endpoint).
+- Tests: `tests/test_kit_authority.py` (installed manifest wins, fallback, unknown effect, orchestrator rule, HTTP correction and bound, status digest source), `tests/correction_browser.cjs` (actual content script sends the correction), adapted `test_human_decision.py`, `test_assistant_response_completion_064_r1.py`.
