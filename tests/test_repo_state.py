@@ -75,6 +75,9 @@ def repo(tmp_path):
     kit.parent.mkdir(parents=True)
     kit.write_text("#!/bin/sh\necho '{\"result_status\": \"PASS\"}'\n")
     kit.chmod(kit.stat().st_mode | stat.S_IEXEC)
+    gh = root / ".venv/bin/gh"
+    gh.write_text("#!/bin/sh\nexit 0\n")
+    gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
     return root, SimpleNamespace(binary=kit, version="9.9.9")
 
 
