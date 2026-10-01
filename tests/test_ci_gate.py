@@ -85,9 +85,12 @@ def test_approval_covers_repair_pushes_only_while_the_ci_gate_is_active(tmp_path
 # --- HTTP: approve -> push -> DONE rejected until the Kit reports green ------
 
 RUNNER = (
-    "import sys, json\nfrom pathlib import Path\n"
+    "import sys, json, subprocess\nfrom pathlib import Path\n"
     "n=int(sys.argv[1]);d=Path(__file__).parent\n"
     "(d/f'{n:03d}_ok_return_bundle.json').write_text(json.dumps({'status':'PASS'}))\n"
+    # every run publishes a ref, unless the test simulates a run the Kit blocked
+    "if not (d.parent/'no-remote-effect').exists():\n"
+    "    subprocess.run(['git','push','-q','origin',f'HEAD:refs/heads/run-{n}'],cwd=d.parent,check=True)\n"
 )
 FAKE_KIT = (
     "#!/usr/bin/env python3\nimport os, sys\n"
@@ -341,3 +344,22 @@ def test_http_merged_pr_without_the_local_work_is_not_done(bridge):
 def test_content_script_defines_sleep():
     source = (Path(__file__).resolve().parents[1] / "chrome_extension/content.js").read_text()
     assert "function sleep(" in source and "await sleep(" in source
+
+
+# --- AGP_EFFECT_REFUND_V1 ---------------------------------------------------
+
+def test_http_a_run_without_any_change_on_origin_keeps_the_approval(bridge):
+    b = bridge
+    first = start(b)
+    command(b, "push", ["transfer", "push-current"])
+    b.call("/v1/task/decision", {"mission_id": first, "decision": "APPROVE"})
+    start(b)
+    (b.root / "no-remote-effect").write_text("the Kit blocked before any mutation")
+    assert command(b, "push", ["transfer", "push-current"]).get("terminal") is not True
+    grant = HumanDecisionStore(b.runtime).current()["grant"]
+    assert grant["remaining"] == 1 and not grant.get("consumed")
+    assert not ci_gate.CiGateStore(b.runtime).required("T")
+    (b.root / "no-remote-effect").unlink()
+    assert command(b, "push_again", ["transfer", "push-current", "--json"]).get("terminal") is not True
+    assert HumanDecisionStore(b.runtime).current()["grant"]["remaining"] == 0
+    assert ci_gate.CiGateStore(b.runtime).required("T")

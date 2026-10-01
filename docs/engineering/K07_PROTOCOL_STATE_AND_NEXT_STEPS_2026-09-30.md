@@ -1,5 +1,7 @@
 # K07 File-Loop-Protokoll — Stand, Änderungen, Folgerungen (2026-09-30)
 
+> Abgelöst durch `K07_STATE_AND_NEXT_STEPS_2026-10-01.md` (D1–D4, D7 repariert und live bestätigt).
+
 Adressat: Codex bzw. jede nachfolgende Entwicklungs-LLM. Quelle der Wahrheit
 bleiben Code, Tests, `docs/planning/COMMUNICATION_PROTOCOL.md` und
 `docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md`. Dieses Dokument ist eine

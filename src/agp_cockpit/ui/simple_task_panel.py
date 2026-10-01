@@ -211,6 +211,11 @@ class SimpleTaskPanel(ttk.Frame):
         mission_id = self._decision_mission_id
         if not mission_id or self.contract is None:
             return
+        from agp_cockpit.core.build_freshness import start_block_reason
+        blocked = start_block_reason(self.repository_root)
+        if blocked:   # AGP_STALE_APP_GUARD_V1: the continuation would run the old build
+            self.state_var.set(blocked)
+            return
         note = self.decision_note.get("1.0", "end-1c").strip()
         try:
             record_decision(mission_id=mission_id, decision=decision, note=note)
@@ -293,6 +298,12 @@ class SimpleTaskPanel(ttk.Frame):
         )
 
     def start_task(self) -> None:
+        # AGP_STALE_APP_GUARD_V1: never start a task on an outdated app.
+        from agp_cockpit.core.build_freshness import start_block_reason
+        blocked = start_block_reason(self.repository_root)
+        if blocked:
+            self.state_var.set(blocked)
+            return
         try:
             self.contract = contract_from_text(self._editor_text())
         except ValueError as exc:

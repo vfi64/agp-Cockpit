@@ -544,12 +544,15 @@ class CockpitBridgeServer:
                         # AGP_CI_LIFECYCLE_COMPLETION_V2: the local work a publishing
                         # run starts from; a merged PR must contain it.
                         pre_run_work = None
+                        pre_run_refs = None
                         if wanted:
                             from agp_cockpit.core import ci_gate as _ci_pre
                             pre_run_work = (
                                 _ci_pre.git_value(repo_root, "branch", "--show-current"),
                                 _ci_pre.git_value(repo_root, "rev-parse", "HEAD"),
                             )
+                            # AGP_EFFECT_REFUND_V1
+                            pre_run_refs = _ci_pre.remote_refs(repo_root)
                         outcome = consume_command_file(
                             incoming,
                             repo_root,
@@ -613,7 +616,23 @@ class CockpitBridgeServer:
                                 remote_effect_commands,
                             )
                             used = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
-                            if used:
+                            # AGP_EFFECT_REFUND_V1: nothing changed on origin -> the
+                            # run had no remote effect (e.g. blocked by a Kit gate);
+                            # the approval budget is kept. Unreadable refs consume.
+                            unchanged_remote = False
+                            if used and pre_run_refs is not None:
+                                from agp_cockpit.core.ci_gate import (
+                                    remote_refs as _refs_after,
+                                )
+                                unchanged_remote = _refs_after(repo_root) == pre_run_refs
+                            if used and unchanged_remote:
+                                diag.event(
+                                    "HUMAN_APPROVAL_NOT_CONSUMED",
+                                    component="file-loop",
+                                    details={"task_id": current_task_id, "commands": used,
+                                             "reason": "no ref of origin changed", "cycle_id": cycle_id},
+                                )
+                            if used and not unchanged_remote:
                                 HumanDecisionStore(runtime_root).consume(
                                     current_task_id,
                                     _k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),

@@ -337,6 +337,12 @@ This section is normative for the file loop after local execution.
    orders) re-runs the approved Kit commands and, after an approved merging
    orchestrator, the publishing and closeout commands of that lifecycle.
    Local run_next timeout: 30 minutes (an orchestrator waits for two CIs).
+17. Approval budget and app identity (`AGP_EFFECT_REFUND_V1`,
+   `AGP_STALE_APP_GUARD_V1`). A remote-effect work order consumes approval
+   budget only when a ref of origin changed (compared with `git ls-remote
+   origin` before and after). A packaged app whose build id differs from the
+   bundle on disk or from the source tree refuses to start tasks or record
+   decisions until it is restarted.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
