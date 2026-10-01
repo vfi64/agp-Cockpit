@@ -354,6 +354,14 @@ This section is normative for the file loop after local execution.
    these rules is not executed: its step is recorded as `<step>_agp_rejected.json`
    and the remote side receives the violations and the next step number;
    after three rejections in one mission the human decides (NEEDS_HUMAN).
+19. Repository state (`AGP_REPO_STATE_V1`, plan P2, `core/repo_state.py`). The
+   Cockpit observes the active repository read-only (git, `git ls-remote
+   origin`, `gh auth status`, installed Kit, Kit workspace, on main `agentic-kit
+   transfer post-merge-check`) when the Standard Tasks tab opens, after each
+   task and on request, classifies KEIN_KIT / BEREIT / IN_ARBEIT / LÄUFT /
+   STÖRUNG / UNKLAR with one recommendation, shows the Lagebericht and writes
+   `.local/agp-cockpit/state/repo-state.json`. Kit-owned volatile paths do not
+   count as changes. Without an installed Kit no task starts.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

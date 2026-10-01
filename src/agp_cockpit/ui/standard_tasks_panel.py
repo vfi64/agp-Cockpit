@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
@@ -40,8 +41,22 @@ class StandardTasksPanel(ttk.Frame):
             justify="left",
         ).grid(row=1, column=0, sticky="ew", pady=(4, 16))
 
+        # AGP_REPO_STATE_V1 (plan P2): Lagebericht of the active repository.
+        lage = ttk.LabelFrame(self, text="Lage", padding=10)
+        lage.grid(row=2, column=0, sticky="ew", pady=(0, 16))
+        lage.columnconfigure(0, weight=1)
+        self.lage_var = tk.StringVar(value="Lagebericht wird erstellt …")
+        ttk.Label(lage, textvariable=self.lage_var, wraplength=700, justify="left").grid(
+            row=0, column=0, sticky="ew"
+        )
+        self.lage_button = ttk.Button(lage, text="Aktualisieren", command=self.refresh_lage)
+        self.lage_button.grid(row=0, column=1, sticky="ne", padx=(12, 0))
+        self.repo_state = None
+        self._lage_result: list = []
+        self.after(300, self.refresh_lage)
+
         buttons = ttk.Frame(self)
-        buttons.grid(row=2, column=0, sticky="w")
+        buttons.grid(row=3, column=0, sticky="w")
         for column, task in enumerate(self.tasks):
             button = ttk.Button(
                 buttons,
@@ -51,10 +66,10 @@ class StandardTasksPanel(ttk.Frame):
             button.grid(row=0, column=column, padx=(0 if column == 0 else 8, 0))
 
         ttk.Label(self, textvariable=self.detail_var, wraplength=760, justify="left").grid(
-            row=3, column=0, sticky="ew", pady=(16, 4)
+            row=4, column=0, sticky="ew", pady=(16, 4)
         )
         ttk.Label(self, textvariable=self.status_var, wraplength=760, justify="left").grid(
-            row=4, column=0, sticky="ew"
+            row=5, column=0, sticky="ew"
         )
 
     def start_standard_task(self, task: StandardTask) -> None:
@@ -98,6 +113,50 @@ class StandardTasksPanel(ttk.Frame):
         )
         self._track(str(mission["mission_id"]))
 
+    def _task_running(self) -> bool:
+        try:
+            mission = (bridge_status() or {}).get("mission") or {}
+        except Exception:  # noqa: BLE001 - an unreachable bridge runs no task
+            return False
+        return bool(mission) and str(mission.get("state") or "") not in {
+            "", "IDLE", "DONE", "COMPLETED", "NEEDS_HUMAN", "BLOCKED", "FAILED", "ERROR",
+            "STOPPED", "CANCELLED",
+        }
+
+    def refresh_lage(self) -> None:
+        """Observe in a worker thread (network reads); the UI polls the result."""
+        from agp_cockpit.core.repo_state import lagebericht
+        if self._lage_result is None:
+            return  # a run is in progress
+        self.lage_button.configure(state="disabled")
+        self.lage_var.set("Lagebericht wird erstellt …")
+        running = self._task_running()
+        holder: list = []
+        self._lage_result = None
+
+        def work() -> None:
+            try:
+                holder.append(lagebericht(self.repository_root, task_running=running))
+            except Exception as exc:  # noqa: BLE001 - shown to the operator
+                holder.append(exc)
+
+        threading.Thread(target=work, daemon=True).start()
+        self._poll_lage(holder)
+
+    def _poll_lage(self, holder: list) -> None:
+        if not holder:
+            self.after(200, self._poll_lage, holder)
+            return
+        from agp_cockpit.core.repo_state import describe
+        result = holder[0]
+        self._lage_result = holder
+        self.lage_button.configure(state="normal")
+        if isinstance(result, Exception):
+            self.lage_var.set(f"Lagebericht fehlgeschlagen: {result}")
+            return
+        self.repo_state = result
+        self.lage_var.set(describe(result))
+
     def _track(self, mission_id: str) -> None:
         if self._poll_job is not None:
             self.after_cancel(self._poll_job)
@@ -123,3 +182,5 @@ class StandardTasksPanel(ttk.Frame):
         self.status_var.set(progress.text)
         if not progress.terminal:
             self._poll_job = self.after(2000, self.refresh_progress)
+        else:
+            self.refresh_lage()   # the finished task changed the repository state

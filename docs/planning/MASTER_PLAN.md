@@ -240,6 +240,8 @@ is valid in the current repository state and recommends exactly one next step.
 - R1 Command authority from the installed Kit: the command digest comes from the
   Kit installation used for the active repository (packaged manifest), not from
   a file in the repository. New Kit orchestrators appear without Cockpit changes.
+  No installed Kit means state UNKLAR and no task starts; the repository copy
+  is used only by tests and diagnosis (review 2026-10-01).
 - R2 Every work order of a standard task executes at least one command with
   `surface: orchestrator` from that manifest; primitives only additionally and
   only without remote effect.
@@ -249,7 +251,9 @@ is valid in the current repository state and recommends exactly one next step.
 - R4 "Abschließen": the start click after an explicit dialog is the approval
   (maintainer decision 2026-10-01). Code limits: never from main, never force
   push, merge only through the Kit's green-CI gates, bounded budget, every
-  auto-approved effect shown in the UI.
+  auto-approved effect shown in the UI. The approval covers only the effect
+  classes the task declares (publish, PR, merge, post-merge closeout); any
+  other remote effect the remote side proposes still asks (review 2026-10-01).
 - R5 One task at a time per repository; repository switch only while idle.
 - R6 An interrupted Abschließen offers Wiederherstellen instead of only stopping.
 
@@ -290,7 +294,10 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    2026-10-01 (COMMUNICATION_PROTOCOL 18), live check pending; includes
    correction instead of a fatal stop for rule violations.
 2. P2 State model and Lagebericht: `core/repo_state.py`, local read-only Kit and
-   git observation (E0, human-initiated), states above, recommendation.
+   git observation (E0, human-initiated), states above, recommendation. —
+   Implemented 2026-10-01 (report in the Standard Tasks tab and
+   `.local/agp-cockpit/state/repo-state.json`; no installed Kit blocks every
+   task start). Live check pending.
 3. P3 Standard Tasks tab: order, state card, stepper, groups, enabling by state,
    badges, tooltip helper and text table.
 4. P4 Repository switch: selection, checks (git, origin, Kit installed and
@@ -300,8 +307,10 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 5. P5 Standard-task framework: declarative definition (goal text without
    command names, effect class, input fields, verifier), single-task lock,
    abort → Wiederherstellen (R6); migrate Chat wechseln.
-6. P6 Abschließen: auto approval with code limits (R4), audit view, offer Chat
-   wechseln afterwards.
+6. P6 Abschließen: auto approval with code limits (R4), offer Chat wechseln
+   afterwards. Acceptance criteria (not optional): a visible protocol of every
+   auto-approved effect (commands, changed refs, PR, CI runs) and, after an
+   interruption, Wiederherstellen offered automatically (R6).
 7. P7 Arbeit beginnen (inputs: branch name, kind).
 8. P8 Wiederherstellen (diagnosis first, destructive steps ask).
 9. P9 Repo übernehmen, proven on a separate test repository.
@@ -311,7 +320,9 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read
 command for branch/commit CI, pure JSON output, Kit-owned volatile files out of
-the worktree.
+the worktree, a pinned Kit version and faster, non-duplicated runs in the
+managed CI template, and a post-merge refresh that does not demand a further
+refresh of itself.
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority

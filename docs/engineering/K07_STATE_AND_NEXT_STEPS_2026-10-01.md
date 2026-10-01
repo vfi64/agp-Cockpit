@@ -47,6 +47,19 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
    Orchestratoren sollten die Träger selbst auffrischen.
 6. Eine Regelbestätigung veraltet, sobald sich eine Regelquelle auf main ändert
    (#134); der Push blieb blockiert, bis `rules acknowledge` lief.
+7. Verwaltete CI-Vorlage (`.agentic/ci/agentic-gate.yaml` → `.github/workflows/agentic-gate.yaml`):
+   `agentic-project-kit` und Testabhängigkeiten ohne festgelegte Version (jeder
+   Lauf kann ein anderes Kit bekommen als das lokale 1.0.13); `push` und
+   `pull_request` für alle Branches (doppelte Läufe); Playwright-Browser und apt
+   bei jedem Lauf neu (Laufzeit 3–8 min bei gleichem Code, #490 vs. #491). Läufe
+   über 300 s überschreiten die Standard-Wartezeit der Orchestratoren
+   (`--timeout-seconds 300`). Vorschlag: Kit-Version festlegen, Push nur auf
+   main, Browser-Cache mit Versionsschlüssel.
+8. Post-Merge-Refresh erzeugt eine weitere Refresh-Forderung: nach #140 schrieb das
+   Kit `.agentic/state/status.md` erneut („refresh state after PR #139 …
+   dd4a15d4“), lokal auf dem Rest-Branch `docs/post-pr139-handoff-refresh`.
+   Das Cockpit fragte zu Recht vor `transfer post-merge-settle` (DESTRUCTIVE).
+   Der Refresh sollte sich nicht selbst erneut als offen markieren.
 
 ## 4. Nächste Schritte
 

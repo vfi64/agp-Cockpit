@@ -59,7 +59,18 @@ def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
     return BuildFreshness(running, bundle, source, False, "")
 
 
+def kit_block_reason(repository_root: Path) -> str:
+    """AGP_REPO_STATE_V1 (P2): no installed Kit, no task (fail closed)."""
+    from agp_cockpit.core.kit_installation import discover
+    if discover(Path(repository_root)) is None:
+        return ("Blockiert — Agentic Project Kit ist nicht installiert (weder <repo>/.venv/bin/agentic-kit "
+                "noch agentic-kit im Pfad). Der Lagebericht zeigt den Zustand.")
+    return ""
+
+
 def start_block_reason(repository_root: Path) -> str:
     """Empty when tasks may start; otherwise the operator-facing reason."""
     freshness = check(repository_root)
-    return f"Blockiert — {freshness.message}" if freshness.stale else ""
+    if freshness.stale:
+        return f"Blockiert — {freshness.message}"
+    return kit_block_reason(repository_root)
