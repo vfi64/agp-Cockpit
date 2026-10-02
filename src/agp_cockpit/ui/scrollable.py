@@ -69,8 +69,14 @@ class ScrollableTab(ttk.Frame):
         self.canvas.yview_scroll(int(step), "units")
 
 
+# AGP_INITIAL_WINDOW_SIZE_V2 (owner 2026-10-02): the size the owner chose by hand
+# (986x754 pt outer window on macOS, minus the 28 pt title bar); smaller screens
+# shrink it. Longer tabs scroll (ScrollableFrame).
+INITIAL_WIDTH, INITIAL_HEIGHT = 986, 726
+
+
 def initial_geometry(screen_width: int, screen_height: int) -> str:
-    """Large enough for every tab without scrolling on a common laptop screen."""
-    width = max(1020, min(1500, int(screen_width * 0.9)))
-    height = max(600, min(1100, int(screen_height * 0.9)))
+    """The owner's chosen size, clamped to the screen."""
+    width = min(INITIAL_WIDTH, int(screen_width * 0.95))
+    height = min(INITIAL_HEIGHT, int(screen_height * 0.9))
     return f"{width}x{height}"

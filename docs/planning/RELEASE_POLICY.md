@@ -8,9 +8,13 @@ agp-Cockpit is the owner's private tool. It is not published anywhere.
 - A release is private: version bump, changelog entry, annotated git tag and a
   local app build. Pushing the tag to the private repository is allowed
   (owner's decision 2026-10-02, `tag_push` in the JSON); it is a remote effect
-  and needs the owner's approval of the release run. A pushed tag never becomes
-  a GitHub Release.
-- No GitHub Release, no PyPI package, no Zenodo record. There is no Zenodo
+  and needs the owner's approval of the release run.
+- A GitHub Release entry in the private repository is allowed when the owner
+  creates it by hand (owner's decision 2026-10-02, `owner_github_release` in
+  the JSON): `gh release create <tag> --verify-tag`, visible only to the owner
+  while the repository stays private. Cockpit work orders still never create,
+  edit or delete GitHub Releases.
+- No PyPI package, no Zenodo record. There is no Zenodo
   record for this repository; none may be created, updated or queried, and a
   release must not attempt a Zenodo or DOI step.
 - Enforced in code: the Cockpit rejects work orders that run

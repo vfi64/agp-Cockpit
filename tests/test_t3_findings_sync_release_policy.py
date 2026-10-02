@@ -127,16 +127,21 @@ def test_policy_documents_exist_and_agree():
     policy = json.loads((ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"))
     text = (ROOT / "docs/planning/RELEASE_POLICY.md").read_text(encoding="utf-8")
     assert policy["publication"] == "none" and "zenodo.org" in policy["forbidden_hosts"]
-    assert "No GitHub Release, no PyPI package, no Zenodo record" in text and "KIT-GF-029" in text
+    assert "No PyPI package, no Zenodo record" in text and "KIT-GF-029" in text
+    # Owner's decision 2026-10-02: a hand-made Release entry in the private repo;
+    # work orders still may not create one (the rejection test above).
+    assert policy["owner_github_release"]["allowed"] is True
+    assert "release create" in policy["forbidden_gh"] and "owner_github_release" in text
 
 
 # --- AGP_SCROLLABLE_TABS_V1 and the recommendation hint ----------------------------
 
 def test_initial_geometry_uses_the_screen():
     from agp_cockpit.ui.scrollable import initial_geometry
-    assert initial_geometry(1440, 900) == "1296x810"
-    assert initial_geometry(2560, 1440) == "1500x1100"
-    assert initial_geometry(800, 600) == "1020x600"
+    # AGP_INITIAL_WINDOW_SIZE_V2: the owner's size, clamped to small screens.
+    assert initial_geometry(1512, 982) == "986x726"
+    assert initial_geometry(2560, 1440) == "986x726"
+    assert initial_geometry(800, 600) == "760x540"
 
 
 def test_tabs_scroll_when_the_window_is_too_small():
