@@ -18,6 +18,7 @@ REGISTER = Path("docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json")
 SEVERITY_ORDER = {"critical": 0, "major": 1, "high": 1, "medium-high": 2, "medium": 3, "low": 4}
 
 OPEN = "offen"
+IN_PROGRESS = "im Kit in Arbeit"
 FIXED_NOT_INSTALLED = "behoben, nicht installiert"
 FIXED_UNVERIFIED = "behoben, nicht bestätigt"
 VERIFIED = "bestätigt behoben"
@@ -35,14 +36,21 @@ class KitFinding:
     details: dict = field(default_factory=dict)
     mitigations: tuple = ()
     extensions: tuple = ()
+    kit: dict = field(default_factory=dict)     # AGP_KIT_FINDINGS_SYNC_V1 statement of the Kit repo
 
     def effective_status(self, installed: str | None) -> str:
         if self.status == "VERIFIED_FIXED":
             return VERIFIED
-        if self.status == "FIXED" or self.fixed_in:
-            if installed and _version(installed) >= _version(self.fixed_in or "0"):
+        fixed_in = self.fixed_in
+        fixed = self.status == "FIXED" or bool(fixed_in)
+        if not fixed and self.kit.get("kit_state") == "CLOSED":
+            fixed, fixed_in = True, str(self.kit.get("fixed_in") or "")
+        if fixed:
+            if installed and fixed_in and _version(installed) >= _version(fixed_in):
                 return FIXED_UNVERIFIED
             return FIXED_NOT_INSTALLED
+        if self.kit.get("kit_state") == "PARTIAL":
+            return IN_PROGRESS
         return OPEN
 
     def detail_text(self, installed: str | None) -> str:
@@ -52,6 +60,10 @@ class KitFinding:
                  f"Schwere: {self.severity} · zuerst gesehen: {self.first_observed or '?'}"]
         if self.verified_by:
             lines.append(f"Bestätigt durch: {self.verified_by}")
+        if self.kit:
+            lines.append(
+                f"Kit-Repo: {self.kit.get('kit_state')} — {self.kit.get('raw')} ({self.kit.get('report')}, "
+                f"{self.kit.get('date')})" + (f"; behoben in {self.kit['fixed_in']}" if self.kit.get("fixed_in") else ""))
         for key, label in (("expected", "Erwartet"), ("observed", "Beobachtet"), ("impact", "Wirkung"),
                            ("workaround", "Umgehung"), ("repair", "Reparatur im Kit"),
                            ("regression", "Prüfkriterium"), ("required_action", "Nötige Aktion"),
@@ -84,8 +96,10 @@ def _version(text: str) -> tuple[int, ...]:
 
 
 def load(repository_root: Path) -> list[KitFinding]:
+    from agp_cockpit.core.kit_findings_sync import load_overlay
     path = Path(repository_root) / REGISTER
     data = json.loads(path.read_text(encoding="utf-8"))
+    overlay = (load_overlay(repository_root).get("findings") or {})
     findings = []
     for family in data.get("families") or []:
         if not isinstance(family, dict) or not family.get("id"):
@@ -101,6 +115,7 @@ def load(repository_root: Path) -> list[KitFinding]:
             details=family,
             mitigations=tuple(m for m in family.get("cockpit_mitigation") or () if isinstance(m, dict)),
             extensions=tuple(e for e in family.get("extensions") or () if isinstance(e, dict)),
+            kit=dict(overlay.get(str(family["id"])) or family.get("kit_repo_status") or {}),
         ))
     findings.sort(key=lambda f: (f.effective_status(None) != OPEN, SEVERITY_ORDER.get(f.severity, 5), f.id))
     return findings
@@ -108,6 +123,6 @@ def load(repository_root: Path) -> list[KitFinding]:
 
 def summary(findings: list[KitFinding], installed: str | None) -> str:
     states = [f.effective_status(installed) for f in findings]
-    return (f"{len(findings)} Befunde · {states.count(OPEN)} offen · "
+    return (f"{len(findings)} Befunde · {states.count(OPEN)} offen · {states.count(IN_PROGRESS)} im Kit in Arbeit · "
             f"{states.count(FIXED_NOT_INSTALLED)} behoben, nicht installiert · "
             f"{states.count(FIXED_UNVERIFIED)} behoben, nicht bestätigt · {states.count(VERIFIED)} bestätigt behoben")

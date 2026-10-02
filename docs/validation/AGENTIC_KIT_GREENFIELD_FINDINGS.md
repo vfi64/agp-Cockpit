@@ -1133,3 +1133,46 @@ Extensions of existing families:
 - Repair: Use tempfile.gettempdir() / repository tmp; include the diffs in artifact-gc.
 - Regression: With TMPDIR set, no Kit file appears under /tmp.
 
+<!-- AGP_FINDINGS_2026_10_02 -->
+## Kit-side adjudication (snapshot 2026-10-02, Kit commit `26be95becefb`)
+
+Read from the Kit repository's `docs/reports/*.json` by `core/kit_findings_sync.py`
+(AGP_KIT_FINDINGS_SYNC_V1). `fixed_in` is derived from CHANGELOG release dates
+(first release after the first statement of the final closed streak; a statement
+about a released package names that release). This snapshot does not change the
+ledger `status`; a finding becomes VERIFIED_FIXED only with evidence from this
+workspace.
+
+| Family | Kit state | Fixed in | Latest Kit statement | Report |
+|---|---|---|---|---|
+| `KIT-GF-001` | PARTIAL | — | external_init_retested_pass_remaining_provenance_under_gf_007 | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-002` | CLOSED | 1.0.9 | fixed | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-003` | PARTIAL | — | partially_addressed_post_merge_successor_evidence_deferred | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-004` | CLOSED | 1.0.9 | fixed | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-005` | PARTIAL | — | external_first_cycle_start_retested_pass_closeout_tied_to_gf_009_and_g | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-006` | CLOSED | 1.0.9 | fixed | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-007` | CLOSED | 1.0.13 | closed_current_main_external_fixture | POST_V1_0_12_GREENFIELD_PROVENANCE_RETEST_20260915.json |
+| `KIT-GF-008` | CLOSED | 1.0.9 | fixed | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-009` | CLOSED | 1.0.13 | PASS | KIT-GF-009 is externally closed for the tested boundary. | POST_V1_0_13_GF009_PRIVATE_RELEASED_PACKAGE_RETEST_20260916.json |
+| `KIT-GF-010` | CLOSED | 1.0.9 | fixed_released_package_retest_pass_for_rule_ack_routing | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-011` | OPEN | — | open_external_released_package_evidence_required | POST_V1_0_12_RELEASED_PACKAGE_CONTEXT_RETEST_20260916.json |
+| `KIT-GF-012` | CLOSED | 1.0.9 | fixed | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-013` | CLOSED | 1.0.9 | fixed_in_v1_0_9 | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+| `KIT-GF-014` | CLOSED | 1.0.13 | closed_current_checkout_external_fixture | POST_V1_0_12_GREENFIELD_REMAINING_CLOSEOUT_20260915.json |
+| `KIT-GF-015` | CLOSED | 1.0.13 | closed_current_checkout | POST_V1_0_12_GREENFIELD_REMAINING_CLOSEOUT_20260915.json |
+| `KIT-GF-016` | CLOSED | 1.0.13 | closed_current_checkout_external_smoke | POST_V1_0_12_GREENFIELD_REMAINING_CLOSEOUT_20260915.json |
+| `KIT-GF-017` | OPEN | — | open_repair_and_released_package_retest_required | POST_V1_0_12_RELEASED_PACKAGE_CONTEXT_RETEST_20260916.json |
+| `KIT-GF-018` | CLOSED | 1.0.10 | fixed_in_this_slice | POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json |
+
+Note: KIT-GF-011 remains open on the Kit side; the 2026-10-01 runs with Kit 1.0.13
+(steps 1534-1549) still showed the post-merge refresh re-marking itself and
+Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
+
+## KIT-GF-029 — Release lifecycle assumes public publication; no private-release policy
+
+- Status: OPEN · Severity: high · First observed: 2026-10-02
+- Expected: a managed repository can declare that it is never published; then no GitHub Release is required and no Zenodo/DOI record is created, updated or queried; the managed repository's documentation states the policy.
+- Observed (Kit 1.0.13 / main 26be95b): `post-release-check` FAILs without a GitHub Release; Zenodo is skipped only with a WARN when CITATION.cff has no DOI; the CHANGELOG quality check requires a Zenodo DOI or pending marker per release (Kit's own checks; external applicability not verified); closeout templates assume GitHub Release, PyPI and Zenodo; no publication policy switch exists.
+- Workaround / Cockpit mitigation (`AGP_RELEASE_POLICY_V1`): `docs/planning/release_policy.json` and `docs/planning/RELEASE_POLICY.md`; work orders with publication steps are rejected.
+- Repair: publication policy in the workspace manifest (none | github | github+pypi | github+pypi+zenodo) gating publish, DOI closeout, post-release checks and CHANGELOG markers; rendered into the managed repository's docs.
+

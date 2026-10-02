@@ -8,7 +8,7 @@ from tkinter import ttk
 
 from agp_cockpit.core import kit_findings as kf
 
-FILTERS = ("Alle", "Offen", "Behoben")
+FILTERS = ("Alle", "Offen", "In Arbeit", "Behoben")
 
 
 class KitFindingsWindow(tk.Toplevel):
@@ -39,6 +39,11 @@ class KitFindingsWindow(tk.Toplevel):
         self.filter_box.bind("<<ComboboxSelected>>", lambda _e: self.populate())
         ttk.Label(bar, text="Quelle: docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json (nur lesen)",
                   foreground="#888888").grid(row=0, column=2, padx=(16, 0))
+        # AGP_KIT_FINDINGS_SYNC_V1: the Kit's own adjudication from its public repository.
+        self.sync_button = ttk.Button(bar, text="Mit Kit-Repo abgleichen", command=self.sync_with_kit)
+        self.sync_button.grid(row=0, column=3, padx=(16, 0))
+        self.sync_var = tk.StringVar()
+        ttk.Label(bar, textvariable=self.sync_var, foreground="#888888").grid(row=0, column=4, padx=(8, 0))
 
         body = ttk.Panedwindow(self, orient="vertical")
         body.grid(row=2, column=0, sticky="nsew", padx=12, pady=(4, 12))
@@ -51,7 +56,8 @@ class KitFindingsWindow(tk.Toplevel):
                                   ("status", "Status", 170), ("first", "Seit", 90)):
             self.tree.heading(key, text=label)
             self.tree.column(key, width=width, stretch=key == "title", anchor="w")
-        self.tree.tag_configure("fixed", foreground="#d0a000")
+        self.tree.tag_configure("fixed", foreground="#3c7fd0")
+        self.tree.tag_configure("progress", foreground="#d0a000")
         self.tree.tag_configure("verified", foreground="#3c9a3c")
         scroll = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scroll.set)
@@ -72,7 +78,39 @@ class KitFindingsWindow(tk.Toplevel):
         self.findings: list[kf.KitFinding] = []
         self.reload()
 
+    def sync_with_kit(self) -> None:
+        import threading
+
+        from agp_cockpit.core.kit_findings_sync import sync
+        self.sync_button.configure(state="disabled")
+        self.sync_var.set("Abgleich läuft …")
+        holder: list = []
+
+        def work() -> None:
+            try:
+                holder.append(sync(self.repository_root))
+            except Exception as exc:  # noqa: BLE001 - shown in the window
+                holder.append(exc)
+
+        def poll() -> None:
+            if not holder:
+                self.after(200, poll)
+                return
+            self.sync_button.configure(state="normal")
+            if isinstance(holder[0], Exception):
+                self.sync_var.set(f"Abgleich fehlgeschlagen: {holder[0]}")
+                return
+            self.reload()
+
+        threading.Thread(target=work, daemon=True).start()
+        poll()
+
     def reload(self) -> None:
+        from agp_cockpit.core.kit_findings_sync import load_overlay
+        overlay = load_overlay(self.repository_root)
+        self.sync_var.set(
+            f"Kit-Repo-Stand {str(overlay.get('kit_commit') or '')[:12]} (letztes Release {overlay.get('latest_release')})"
+            if overlay else "noch nicht abgeglichen — Stand des Registers")
         try:
             self.findings = kf.load(self.repository_root)
         except (OSError, ValueError) as exc:
@@ -86,15 +124,18 @@ class KitFindingsWindow(tk.Toplevel):
         wanted = self.filter_var.get()
         if wanted == "Offen":
             return [f for f in self.findings if f.effective_status(self.installed) == kf.OPEN]
+        if wanted == "In Arbeit":
+            return [f for f in self.findings if f.effective_status(self.installed) == kf.IN_PROGRESS]
         if wanted == "Behoben":
-            return [f for f in self.findings if f.effective_status(self.installed) != kf.OPEN]
+            return [f for f in self.findings
+                    if f.effective_status(self.installed) not in {kf.OPEN, kf.IN_PROGRESS}]
         return list(self.findings)
 
     def populate(self) -> None:
         self.tree.delete(*self.tree.get_children())
         for finding in self.visible():
             status = finding.effective_status(self.installed)
-            tag = {kf.OPEN: "open", kf.VERIFIED: "verified"}.get(status, "fixed")
+            tag = {kf.OPEN: "open", kf.IN_PROGRESS: "progress", kf.VERIFIED: "verified"}.get(status, "fixed")
             self.tree.insert("", "end", iid=finding.id, tags=(tag,), values=(
                 finding.id, finding.title, finding.severity, status, finding.first_observed))
         children = self.tree.get_children()

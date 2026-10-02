@@ -67,6 +67,30 @@
   let AGP_TASK_FIRST_START_REQUEST_TIMER = null;
   let AGP_TASK_FIRST_START_REQUEST_PRIMED = false;
   const AGP_TASK_FIRST_AUTOSTART_ACK_STORAGE_KEY = "agpTaskFirstAutostartAck";
+  // AGP_ORPHANED_CONTENT_SCRIPT_GUARD_V1 (live 2026-10-02: after the automatic
+  // extension reload the old content script in the open tab kept its timers and
+  // threw "Extension context invalidated"; it could also keep polling the
+  // bridge). An orphaned script stops its timers, removes its overlay and never
+  // talks to the bridge again; the reloaded tab runs the new script.
+  let AGP_ORPHANED = false;
+  let AGP_HANDSHAKE_TIMER = null;
+  function extensionAlive() {
+    try { return Boolean(chrome.runtime && chrome.runtime.id); } catch (_) { return false; }
+  }
+  function retireIfOrphaned() {
+    if (AGP_ORPHANED) return true;
+    if (extensionAlive()) return false;
+    AGP_ORPHANED = true;
+    STATE.running = false;
+    for (const timer of [STATE.timer, AGP_TASK_FIRST_START_REQUEST_TIMER, AGP_HANDSHAKE_TIMER]) {
+      try { if (timer) clearInterval(timer); } catch (_) {}
+    }
+    try {
+      const root = document.getElementById("agp-cockpit-bridge");
+      if (root) root.remove();
+    } catch (_) {}
+    return true;
+  }
 
   function taskStartRequestKey(missionId, generation) {
     return `${String(missionId || "")}:${Number(generation || 0)}`;
@@ -1058,6 +1082,7 @@
   }
 
   async function api(path, options={}) {
+    if (retireIfOrphaned()) throw new Error("AGP extension was reloaded; this page script is retired");
     const cfg = await settings();
     if (!cfg.token) throw new Error("AGP bridge token missing");
 
@@ -1104,6 +1129,7 @@
   }
 
   async function sendHandshake(force=false) {
+    if (retireIfOrphaned()) return;
     const now = Date.now();
     const url = location.href;
 
@@ -2072,7 +2098,7 @@
       "Local execution authority is a hard limit:",
       JSON.stringify(STATE.localAuthority || {}),
       // AGP_KIT_COMMAND_AUTHORITY_V1: same text as WORK_ORDER_KIT_RULE (Python).
-      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority. Use only commands from the agentic-kit command digest attached to the mission start, prefer the most comprehensive orchestrator command, and never run git push, git fetch or git pull. Other allowed tools such as git may only be used in addition. Record every agentic-kit command's argv, returncode, stdout and stderr (tails) in the return bundle.",
+      "Every work order MUST execute at least one agentic-kit command during its real run; the Kit is the command authority. Use only commands from the agentic-kit command digest attached to the mission start, prefer the most comprehensive orchestrator command, and never run git push, git fetch or git pull. Other allowed tools such as git may only be used in addition. Record every agentic-kit command's argv, returncode, stdout and stderr (tails) in the return bundle. Work-order shape, checked locally before anything runs: a main() function and an if __name__ == '__main__': guard; a module constant STEP equal to the expected local step; a --self-test mode (sys.argv or argparse) that only checks the file itself, runs no command, writes no file and exits 0; the real run writes exactly one JSON return bundle named Download/<STEP>_<topic>_return_bundle.json.",
       "The proposed effect MUST be present in allowed_effects.",
       "argv[0] MUST name an executable present in allowed_tools.",
       "cwd MUST remain within the authorized repository_root.",
@@ -2208,7 +2234,7 @@
   }
 
   async function pollExplicitTaskStartRequest() {
-    if (STATE.running) return;
+    if (STATE.running || retireIfOrphaned()) return;
     try {
       const req = await api("/v1/task/start-request");
       checkBuildDrift(req.extension_expected_build_id);
@@ -2555,6 +2581,7 @@
   }
 
   async function tick() {
+    if (retireIfOrphaned()) return;
     // The catch block is a sibling lexical scope of try. Keep the generation
     // fence outside try so polling failures can never turn into a ReferenceError.
     const runGeneration = STATE.runGeneration;
@@ -3636,6 +3663,7 @@
   });
 
   function render() {
+    if (retireIfOrphaned()) return;
     ensureStyle();
     loadOverlayUiState().then(() => {
       const current = document.getElementById("agp-cockpit-bridge");
@@ -3858,7 +3886,7 @@
   render();
 
   sendHandshake();
-  setInterval(sendHandshake, 15000);
+  AGP_HANDSHAKE_TIMER = setInterval(sendHandshake, 15000);
 
   refreshStatus().catch(err => {
     STATE.note = String(err);

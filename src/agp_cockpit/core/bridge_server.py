@@ -24,7 +24,10 @@ from agp_cockpit.core.browser_refresh import (
     refresh_request_target,
     request_browser_refresh,
 )
-from agp_cockpit.core.command_file_contract import validate_command_content
+from agp_cockpit.core.command_file_contract import (
+    WORK_ORDER_KIT_RULE,
+    validate_command_content,
+)
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
 from agp_cockpit.core.download_ingress import read_downloaded_command
 from agp_cockpit.core.file_loop_orchestrator import (
@@ -136,7 +139,8 @@ def _policy_rejection_response(runtime_root: Path, repo_root: Path, engine, diag
         f"run (attempt {count} of {MAX_POLICY_REJECTIONS}):\n{reason}\n\n"
         "Return a corrected work order. Choose the agentic-kit commands from the attached "
         "command digest of the installed Kit; prefer the most comprehensive orchestrator. "
-        f"Use exactly {next_step}_...py as the attachment filename and {next_step} as STEP."
+        f"Use exactly {next_step}_...py as the attachment filename and {next_step} as STEP.\n"
+        + WORK_ORDER_KIT_RULE
     )
     return {"state": "CONTINUE", "terminal": False, "step": step, "next_step": next_step,
             "result_file": None, "prompt": prompt, "authority": "command-authority",

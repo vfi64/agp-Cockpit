@@ -1081,3 +1081,18 @@ repeat once.
 - Slice T2: AGP_EXTENSION_AUTO_REFRESH_V2, AGP_DOWNLOAD_HYGIENE_V1, AGP_MAINTENANCE_CLEANUP_V1, AGP_KIT_FINDINGS_VIEW_V1, AGP_DIGEST_ONCE_PER_CHAT_V1 (COMMUNICATION_PROTOCOL 25–29); Greenfield ledger KIT-GF-023…028; `Download/alt` removed, five cited files moved to `.local/agp-cockpit/archive/cited-evidence/`.
 - Tests: `tests/test_extension_auto_refresh.py`, `tests/test_kit_findings_and_maintenance.py`; stubs for the new content-script helpers in the three Node content-script tests. Playwright e2e: 65 passed; the 9 `test_203_phase5_conversation_contract` specs need network access to chatgpt.com and cannot run in the sandbox (unchanged code).
 
+## 2026-10-02 — Finish T2 (1561–1564); slice T3 (build findings-sync-20261002, extension 0.3.36)
+
+- Live run (build hygiene-20261002): preflight 1561, NEEDS_HUMAN 1562, approval, `pr-create-complete` 1563 merged PR #145 and refresh #146, DONE 1564 `ci-verified`, task `VERIFIED_COMPLETE`. `K07_BROWSER_DOWNLOAD_REMOVED` for 1561–1564 (AGP_DOWNLOAD_HYGIENE_V1 live); `KIT_COMMAND_DIGEST_REUSED` for the decision mission (AGP_DIGEST_ONCE_PER_CHAT_V1 live). CI #508–#511: 1:43–1:59.
+- Operator findings: window too small, parts of tabs cut off; „Empfohlen: Abschließen“ next to the disabled P6 button; the Kit repository already records which Greenfield findings are fixed; the owner's release policy (no publication, no Zenodo) is not expressible in the Kit (KIT-GF-029). Chrome shows a „Fehler“ entry for the extension (content not yet read).
+- Slice T3: AGP_KIT_FINDINGS_SYNC_V1, AGP_RELEASE_POLICY_V1, AGP_SCROLLABLE_TABS_V1, recommendation hint (COMMUNICATION_PROTOCOL 30–33); ledger snapshot of the Kit adjudication (Kit commit 26be95b) and KIT-GF-029.
+- Tests: `tests/test_t3_findings_sync_release_policy.py`.
+- Chrome error of the extension, read 2026-10-02: „Uncaught (in promise) Error: Extension context invalidated“, `content.js:3580` (the 0.3.34 script: line 3580 lies in `render()`, which reads `chrome.runtime.getManifest()`/storage). Cause: the automatic reload replaced the extension while the old content script of the open ChatGPT tab kept running its timers. Fix in T3: AGP_ORPHANED_CONTENT_SCRIPT_GUARD_V1 (COMMUNICATION_PROTOCOL 34), test `tests/orphan_guard_browser.cjs`.
+
+## 2026-10-02 — Fresh-chat stop at 1568 (build work-order-contract-20261002, extension 0.3.37)
+
+- Live run (build findings-sync-20261002): the T3 finish started in a new ChatGPT conversation. Work order `1568_agp_branch_closeout_probe.py` had no `--self-test` mode; `/v1/file-loop/download` raised „command file semantic contract rejected: missing --self-test contract“ → `K07_BRIDGE_REJECTED` → `AUTO_ERROR` → mission STOPPED, task left `WAITING_FOR_REMOTE`. Nothing ran locally.
+- Causes: (a) the structural work-order contract was enforced but stated to the remote side only in the chat-switch standard task; earlier chats had learned it from history; (b) download ingress ran the semantic checks, which bypassed the correctable path of `/command` (AGP_CORRECTABLE_REJECTION_V1).
+- Fix: AGP_WORK_ORDER_SHAPE_RULE_V1 and AGP_INGRESS_SAFETY_ONLY_V1 (COMMUNICATION_PROTOCOL 35); the correction prompt repeats the rule. System tab „Werkzeuge“: descriptions wrap instead of being cut off.
+- Tests: `tests/test_fresh_chat_work_order_contract.py` (the live 1568 file is fetched, its violation is correctable, the correction prompt and content.js carry the rule); `test_k07_command_file_ingress_989.py` now expects /download to fetch an incomplete file.
+

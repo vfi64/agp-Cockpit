@@ -16,7 +16,9 @@ def build_root(repository_root: Path | None = None, local_contract=None):
 
     root = tk.Tk()
     root.title(f'AGP Cockpit v{__version__}')
-    root.geometry('1020x600')
+    # AGP_SCROLLABLE_TABS_V1: start large enough for every tab; tabs scroll otherwise.
+    from agp_cockpit.ui.scrollable import initial_geometry
+    root.geometry(initial_geometry(root.winfo_screenwidth(), root.winfo_screenheight()))
     root.minsize(820, 520)
     MainWindow(root, repository_root=repository_root, local_contract=local_contract)
     return root

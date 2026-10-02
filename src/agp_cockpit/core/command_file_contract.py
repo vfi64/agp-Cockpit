@@ -34,6 +34,13 @@ WORK_ORDER_KIT_RULE = (
     "never run git push, git fetch or git pull. Other allowed tools such as git may only be "
     "used in addition. Record every agentic-kit command's argv, returncode, stdout and "
     "stderr (tails) in the return bundle."
+    # AGP_WORK_ORDER_SHAPE_RULE_V1 (live 2026-10-02, step 1568): a fresh chat
+    # knew nothing of the structural contract below and was stopped by it.
+    " Work-order shape, checked locally before anything runs: a main() function and an "
+    "if __name__ == '__main__': guard; a module constant STEP equal to the expected local step; "
+    "a --self-test mode (sys.argv or argparse) that only checks the file itself, runs no command, "
+    "writes no file and exits 0; the real run writes exactly one JSON return bundle named "
+    "Download/<STEP>_<topic>_return_bundle.json."
 )
 
 
@@ -156,6 +163,9 @@ def validate_command_content(
             source, catalog, allow_remote_effects=allow_remote_effects,
             require_orchestrator=require_orchestrator,
         )
+        if repository_root is not None and catalog_checks:
+            from agp_cockpit.core.release_policy import violations as release_violations
+            violations = violations + release_violations(source, repository_root, catalog)
     except SyntaxError as exc:
         raise ValueError(
             f"command file is not executable Python: {type(exc).__name__}: {exc}"

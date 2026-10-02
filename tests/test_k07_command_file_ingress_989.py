@@ -192,7 +192,9 @@ def test_download_ingress_materializes_only_allowed_download_file(tmp_path):
         runtime.stop()
 
 
-def test_download_ingress_rejects_truncated_python_before_fetch(tmp_path):
+def test_download_ingress_leaves_semantic_checks_to_command(tmp_path):
+    # AGP_INGRESS_SAFETY_ONLY_V1: a truncated or incomplete work order is
+    # fetched; /v1/file-loop/command rejects it correctably, not /download.
     download = tmp_path / "Download"
     download.mkdir()
     command = download / "1464_chat_switch_standard_task.py"
@@ -210,10 +212,10 @@ def test_download_ingress_rejects_truncated_python_before_fetch(tmp_path):
             data=json.dumps(payload).encode("utf-8"),
             headers={"X-AGP-Token": info.token, "Content-Type": "application/json"},
         )
-        with pytest.raises(HTTPError) as caught:
-            urlopen(req, timeout=10)
-        assert caught.value.code == 400
-        assert "not executable Python" in caught.value.read().decode("utf-8")
+        with urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        assert data["stage"] == "COMMAND_FILE_FETCHED"
+        assert data["content"] == "def main():\n    if True:\n"
     finally:
         runtime.stop()
 
