@@ -69,5 +69,13 @@ test("the native transport keeps the evidence of this send and clears only text"
 test("an empty composer is left alone; option buttons are not attachments", async ({page}) => {
   await page.setContent(page_());
   const result = await cleanup(page);
-  expect(result).toEqual({ok:true, stage:"COMPOSER_EMPTY", cleared_text:false, removed_files:[]});
+  expect(result).toEqual({ok:true, stage:"COMPOSER_EMPTY", cleared_text:false, removed_files:[], unrecognised:[]});
+});
+
+test("a Cockpit chip without a recognisable remove control is reported with its shape", async ({page}) => {
+  await page.setContent(page_({chips:[`<div class="chip"><span>agentic-kit-comma…</span><div role="button" aria-label="Optionen">⋯</div></div>`]}));
+  const result = await cleanup(page);
+  expect(result.ok).toBe(true);
+  expect(result.unrecognised[0].name).toBe("agentic-kit-comma…");
+  expect(result.unrecognised[0].buttons.some(b => b.aria_label === "Optionen")).toBe(true);
 });

@@ -529,6 +529,21 @@ This section is normative for the file loop after local execution.
    aria-label, test id, disabled state, stop button), clears only its own
    text (attachments of this send stay), waits 15 s and retries once
    (`SEND_RETRY_AFTER_NOT_READY`). A second failure stops as before.
+47. Chip diagnostics (`AGP_COMPOSER_CHIP_DIAGNOSTICS_V1`): a Cockpit-named
+   composer chip without a recognised remove control is reported with the
+   controls around it (`unrecognised` in COMPOSER_LEFTOVERS_REMOVED), so the
+   selector can follow ChatGPT's real markup.
+48. Version map (`AGP_VERSION_MAP_V1`, `docs/releases/versions.json`): app
+   version (pyproject = `agp_cockpit.version`), extension version, build id and
+   Kit version per private release; tests keep them consistent and require a
+   CHANGELOG section per release.
+49. Semantic send readiness (`AGP_SEND_CONTROL_SEMANTIC_V1`): an enabled
+   submit button labelled Send/Senden inside the composer form counts as ready
+   even without `data-testid` and without a matching hit test (the submit is a
+   trusted Enter in the composer). Live 2026-10-02 the diagnostics of
+   AGP_SEND_NOT_READY_RETRY_V1 showed exactly this ChatGPT variant: „Senden“,
+   enabled, testid empty, hit test on an svg outside the button — the cause of
+   all three SEND_BUTTON_NOT_READY stops.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

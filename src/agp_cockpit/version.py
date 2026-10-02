@@ -1,5 +1,5 @@
 """Version and identity constants for the desktop/bridge runtime."""
 
-APP_VERSION = "0.1.0.dev4"
+APP_VERSION = "0.1.0"
 BRIDGE_PROTOCOL_VERSION = 1
-BRIDGE_BUILD_ID = "send-retry-20261002"
+BRIDGE_BUILD_ID = "release-0.1.0-r2"

@@ -630,6 +630,11 @@
           "observed": "After refresh #140 the Kit rewrote .agentic/state/status.md ('refresh state after PR #139 ... dd4a15d4') on the leftover branch; the next finish run needed an extra step (1549) to remove it. .agentic/rule_ack/current.json is dirty after each lifecycle and the handoff package after Chat wechseln.",
           "impact": "Every finish needs cleanup or a DESTRUCTIVE settle step that asks the human.",
           "recovery": "transfer restore-known-volatile / post-merge-settle with approval."
+        },
+        {
+          "date": "2026-10-02",
+          "title": "work start leaves Kit-owned volatile files dirty",
+          "observed": "Step 1594 `agentic-kit work start --branch feat/p11-release-button` (rc 0) left Kit-owned transfer files modified; the remote side needed step 1596 (`work recover`, `transfer restore-known-volatile`) before the worktree was clean (local verifier passed afterwards)."
         }
       ],
       "kit_repo_status": {
@@ -1117,6 +1122,26 @@
         "Download/1578_agp_pr149_complete_return_bundle.json",
         "Download/1579_agp_pr149_complete_return_bundle.json",
         "Download/1580_agp_refresh_llm_context_carriers_return_bundle.json"
+      ]
+    },
+    {
+      "id": "KIT-GF-032",
+      "title": "Release preparation is self-hosting only: hard-coded Kit package path and Kit documentation set",
+      "first_observed": "2026-10-02",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "release ready / release prepare / release-prep work in an external workspace: the version source is the workspace's own (pyproject and the package the workspace declares), release notes work for a first release without a previous tag, the documentation checks use the workspace's registered documents, and a private release (see KIT-GF-029) can be prepared, tagged and the tag pushed through a Kit route.",
+      "observed": "Kit 1.0.13 in agp-Cockpit (clone of main 25afb5d, 2026-10-02): `release-prep --version 0.1.0 --summary-line … --dry-run` fails with error src/agentic_project_kit/__init__.py (the Kit's own package path); `release ready --version 0.1.0` is BLOCKED: release-status invalid_target_version and package_init_version_mismatch (version 0.1.0.dev0), release-from-tag 'no local v* git tag could be derived' (first release), release-notes-generate BLOCK missing_ref, audit-doc-currency checks src/agentic_project_kit/__init__.py, VERIFIED_RELEASES.md DOIs, CITATION.cff and CHANGELOG.md, docs-audit requires Kit documentation files (docs/TEST_GATES.md, handoff pointers), audit-planning-docs-consolidation flags 16 Cockpit planning documents; release ready also runs transfer sync-main (a pull). No Kit command pushes a tag without release-publish (GitHub Release).",
+      "impact": "A Kit-conform release of an external workspace is not possible with Kit 1.0.13; the Cockpit's planned Release button (P11) has no Kit route.",
+      "workaround": "None in the Kit; P11 is held until the owner decides between a Cockpit-local release procedure and waiting for a Kit fix.",
+      "repair": "Derive version sources from the workspace manifest; support a first release without a previous tag; scope documentation and currency audits to the workspace's registered documents; add a private-release route (prepare, annotated tag, tag push without GitHub Release) gated by the publication policy of KIT-GF-029.",
+      "regression": "In an external workspace with publication: none, release prepare --write, release ready and a tag push of v0.1.0 pass without Kit-internal paths, DOIs or a GitHub Release.",
+      "evidence": [
+        "agentic-kit release-prep --version 0.1.0 --summary-line … --dry-run --json → error src/agentic_project_kit/__init__.py",
+        "agentic-kit release ready --version 0.1.0 --json → BLOCKED (sync-main, standard-error-scan: post-merge-check, command-composition-check, command-reference-check, release-from-tag, release-notes-generate, release-prep-dry-run, docs-audit, audit-doc-currency, audit-planning-docs-consolidation)"
       ]
     }
   ],

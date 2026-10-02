@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "marker": "AGP_VERSION_MAP_V1",
+  "note": "One row per private release: the app version (pyproject, agp_cockpit.version), the Chrome extension version (manifest), the bridge build id and the Kit version it was validated with. Private release policy: docs/planning/RELEASE_POLICY.md.",
+  "releases": [
+    {
+      "app": "0.1.0",
+      "extension": "0.4.1",
+      "build_id": "release-0.1.0-r2",
+      "kit": "1.0.13",
+      "date": "2026-10-02",
+      "tag": "v0.1.0",
+      "published": false,
+      "how": "manual (owner's decision 2026-10-02): Kit 1.0.13 has no private release route (KIT-GF-029, KIT-GF-032); version files and changelog in this branch, annotated tag set by the owner on main after the merge."
+    }
+  ]
+}
