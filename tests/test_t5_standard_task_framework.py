@@ -375,3 +375,17 @@ def test_digest_is_remembered_only_after_the_send():
     send = block.index("await sendPrompt(bootstrapText);")
     assert block.index("await rememberDigest(manifestSha, digestAttached)") > send
     assert block.count("rememberDigest(") == 1
+
+
+def test_composer_is_cleaned_before_every_cockpit_send():
+    background = (ROOT / "chrome_extension/background.js").read_text(encoding="utf-8")
+    content = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+    assert "AGP_COMPOSER_CLEAN_START_V1" in background and "AGP_K07_CLEAN_COMPOSER" in background
+    native = background[background.index("async function agpNativeTransportV1("):]
+    assert native.index("agpComposerCleanup(") < native.index('"Input.insertText"')
+    assert "{files:false}" in native[:native.index('"Input.insertText"')]
+    continuation = background[background.index("async function agpSubmitFileLoopContinuation("):]
+    assert continuation.index("agpCleanComposer(tabId)") < continuation.index("attachResultFiles(chrome")
+    start = content[content.index("const digestPath = String(status.kit_command_digest_path"):]
+    assert start.index('type:"AGP_K07_CLEAN_COMPOSER"') < start.index("AGP_K07_ATTACH_FILES")
+    assert (ROOT / "tests/e2e/test_composer_clean.spec.js").is_file()

@@ -103,6 +103,7 @@ async function bootstrapAttachesKitDigest(attachOk) {
     captureAssistantBaseline:() => {}, expectedStepFileVisible:() => false, sleep:async () => {},
     missionBootstrapPrompt:() => "BOOT", scheduleTick:() => {},
     chrome:{runtime:{sendMessage:async (message) => {
+      if (message.type === "AGP_K07_CLEAN_COMPOSER") { calls.push("CLEAN"); return {ok:true, stage:"COMPOSER_EMPTY"}; }
       calls.push("ATTACH " + message.type + " " + message.files.join(","));
       return attachOk ? {ok:true, evidence:"composer"} : {ok:false, error:"not shown"};
     }}},
@@ -116,6 +117,7 @@ async function bootstrapAttachesKitDigest(attachOk) {
     await context.startAuto();
     const attach = calls.findIndex(call => call.startsWith("ATTACH AGP_K07_ATTACH_FILES /r/.local/agp-cockpit/kit/agentic-kit-command-digest.json"));
     assert.ok(attach >= 0 && attach < calls.indexOf("SEND"));
+    assert.ok(calls.indexOf("CLEAN") >= 0 && calls.indexOf("CLEAN") < attach);   // AGP_COMPOSER_CLEAN_START_V1
     assert.ok(calls.includes("event:KIT_COMMAND_DIGEST_ATTACHED"));
   } else {
     await assert.rejects(context.startAuto(), /Kit command digest could not be attached: not shown/);

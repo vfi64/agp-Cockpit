@@ -3487,6 +3487,15 @@
       // counts as "in this chat" only after the message carrying it was
       // sent; a failed send must not turn the next start into a reuse.
       let digestAttached = null;
+      // AGP_COMPOSER_CLEAN_START_V1: start from an empty composer.
+      const cleaned = await chrome.runtime.sendMessage({type:"AGP_K07_CLEAN_COMPOSER"});
+      if (!cleaned || cleaned.ok !== true) {
+        throw new Error(String(cleaned && cleaned.reason || "ChatGPT-Eingabefeld nicht leer"));
+      }
+      if (cleaned.stage === "COMPOSER_CLEANED") {
+        await clientEvent("COMPOSER_LEFTOVERS_REMOVED", {
+          cleared_text:Boolean(cleaned.cleared_text), removed_files:cleaned.removed_files || []});
+      }
       if (digestPath && await digestAlreadyInChat(manifestSha)) {
         // AGP_DIGEST_ONCE_PER_CHAT_V1: same manifest, same chat, recent enough.
         bootstrapText = bootstrap + "\n\nThe agentic-kit command digest for manifest " + manifestSha +
