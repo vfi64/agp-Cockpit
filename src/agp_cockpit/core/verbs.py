@@ -52,7 +52,7 @@ VERBS: tuple[Verb, ...] = (
          "pusht und mergt nach main (der Start ist die Freigabe; nie von main, kein Force-Push).",
          "auf einem Arbeitsbranch mit eigenen Commits (Zustand IN_ARBEIT).", task_key="finish"),
     Verb(rs.CHAT_WECHSELN, "Chat wechseln", "weg", 4, LOKAL,
-         "Erzeugt und prüft das Übergabepaket für einen neuen Chat.",
+         "Erzeugt und prüft das Übergabepaket für einen neuen Chat; öffnet selbst keinen neuen Chat.",
          "schreibt nur die Übergabedateien im Repo.",
          "in jedem ruhenden Zustand außer UNKLAR und KEIN_KIT.", task_key="chat-switch"),
     Verb(rs.WIEDERHERSTELLEN, "Wiederherstellen", "probleme", None, FRAGT,

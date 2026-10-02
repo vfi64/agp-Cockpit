@@ -1142,3 +1142,9 @@ repeat once.
 - „④ Chat wechseln“ (step 1602) completed and was acknowledged, but `transfer chat-switch-complete` rewrote the five successor-handoff files on main for HEAD 278fa926; the Lagebericht counted them as unexpected changes → STÖRUNG with Wiederherstellen recommended. The Kit itself lists them as known volatile. Fix AGP_KIT_VOLATILE_PATHS_V1 (COMMUNICATION_PROTOCOL 51). The regenerated files were restored to the committed version.
 - Open design question: „Chat wechseln“ prepares the package but does not open a new chat or hand it over, and it is recommended after every Abschließen.
 
+## 2026-10-02 — Kit volatile fix live (#162/#163); branch cleanup; no Chat-wechseln recommendation
+
+- „③ Abschließen“ of AGP_KIT_VOLATILE_PATHS_V1: PR #162 and refresh #163 in one remote turn, `ci-verified`, Lage BEREIT on main 7955d0f.
+- The three remaining unmerged branches (`backup/k07-1467-…`, `checkpoint/k07-json-protocol-…`, `work/phase1-cockpit-core-integration`) were checked line by line against main: 96 %, 81 % and 98 % of their added lines are in main; the rest is superseded (old command-file contract with `--self-test`, the allowed_effects/allowed_tools envelope of the JSON protocol, the mission transition table without BLOCKED). Recommended for deletion. GitHub's „Automatically delete head branches“ was already on; the earlier „remote ref does not exist“ errors came from stale local tracking refs.
+- Owner's decision: „Chat wechseln“ is no longer recommended after Abschließen (AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1, COMMUNICATION_PROTOCOL 52).
+

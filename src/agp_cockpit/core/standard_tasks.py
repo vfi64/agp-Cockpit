@@ -324,7 +324,9 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
                  "Force-Push, Merge nur bei grüner CI). Jede andere Wirkung fragt weiterhin.\n\n"
                  "Jetzt abschließen?"),
         offers_recover_on_interrupt=True,
-        follow_up="Chat wechseln",
+        # AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1 (owner 2026-10-02): no follow-up; „Chat
+        # wechseln“ only writes the handoff package and opens no new chat, so after
+        # Abschließen the recommendation follows the repository state.
     ),
     StandardTask(
         key="work-start",
