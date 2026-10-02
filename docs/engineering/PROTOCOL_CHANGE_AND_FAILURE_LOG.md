@@ -1148,3 +1148,9 @@ repeat once.
 - The three remaining unmerged branches (`backup/k07-1467-…`, `checkpoint/k07-json-protocol-…`, `work/phase1-cockpit-core-integration`) were checked line by line against main: 96 %, 81 % and 98 % of their added lines are in main; the rest is superseded (old command-file contract with `--self-test`, the allowed_effects/allowed_tools envelope of the JSON protocol, the mission transition table without BLOCKED). Recommended for deletion. GitHub's „Automatically delete head branches“ was already on; the earlier „remote ref does not exist“ errors came from stale local tracking refs.
 - Owner's decision: „Chat wechseln“ is no longer recommended after Abschließen (AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1, COMMUNICATION_PROTOCOL 52).
 
+## 2026-10-02 — No-chat-switch live (#164/#165); window size; private Release entry
+
+- „③ Abschließen“ of AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1: PR #164 and refresh #165 in one remote turn, `ci-verified`; the star moved to „① Arbeit beginnen“ as intended.
+- AGP_INITIAL_WINDOW_SIZE_V2: the Cockpit opens at the size the owner chose by hand (986×754 pt outer on macOS → geometry 986x726), clamped to smaller screens.
+- Owner's decision: a GitHub Release entry in the private repository may be created by the owner by hand (`owner_github_release` in `release_policy.json`); Cockpit work orders stay barred from `gh release …`.
+
