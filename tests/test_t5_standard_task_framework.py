@@ -327,7 +327,8 @@ def test_done_finish_recommends_chat_switch(panel, monkeypatch):
                         lambda **_kw: StandardTaskProgress("Fertig ✓", True, "DONE"))
     monkeypatch.setattr(widget.api, "status", dict)
     widget.refresh_progress()
-    assert "Als Nächstes empfohlen: „Chat wechseln“" in widget.status_var.get()
+    assert "Als Nächstes empfohlen" not in widget.status_var.get()
+    assert widget.follow_up_key is None
     assert not widget.recover_offered
 
 
@@ -340,9 +341,12 @@ def test_release_policy_allows_the_private_tag_push():
 
 def test_follow_up_is_the_only_recommendation_after_a_finished_task(panel, monkeypatch):
     _root, widget, _created, _answers, _repo, _runtime = panel
+    import dataclasses
+
     from agp_cockpit.core.standard_task_progress import StandardTaskProgress
     from agp_cockpit.ui import standard_tasks_panel as m
-    widget._tracked_task = BY_KEY["finish"]
+    # The mechanism stays generic; no shipped task uses it (AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1).
+    widget._tracked_task = dataclasses.replace(BY_KEY["finish"], follow_up="Chat wechseln")
     widget._tracked_task_id = "t"
     widget._tracked_mission_id = "m"
     monkeypatch.setattr(m, "describe_standard_task_progress",
@@ -395,3 +399,10 @@ def test_composer_is_cleaned_before_every_cockpit_send():
     start = content[content.index("const digestPath = String(status.kit_command_digest_path"):]
     assert start.index('type:"AGP_K07_CLEAN_COMPOSER"') < start.index("AGP_K07_ATTACH_FILES")
     assert (ROOT / "tests/e2e/test_composer_clean.spec.js").is_file()
+
+
+def test_no_shipped_task_recommends_chat_switch():
+    """AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1 (owner 2026-10-02): after Abschließen the
+    star follows the repository state (BEREIT → Arbeit beginnen)."""
+    assert [t.key for t in BY_KEY.values() if t.follow_up] == []
+

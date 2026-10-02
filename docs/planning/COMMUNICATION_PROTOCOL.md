@@ -496,7 +496,8 @@ This section is normative for the file loop after local execution.
    NEEDS_HUMAN. Abschließen arms the CI gate with merge expected at start.
 42. Abschließen (P6): never from main, only with own changes, explicit dialog,
    no force option on publishing Kit commands (`AGP_NO_FORCE_V1`); DONE only
-   ci-verified; afterwards „Chat wechseln“ is recommended; an interrupted run
+   ci-verified; afterwards the recommendation follows the repository state
+   (rule 52; until 2026-10-02 „Chat wechseln“ was recommended); an interrupted run
    unlocks and recommends „Wiederherstellen“ (R6). Arbeit beginnen (P7): kind
    and name dialog, branch must not exist, clean worktree; scope limited to the
    Kit's sync and work-start routes. Wiederherstellen: diagnosis first,
@@ -560,6 +561,11 @@ This section is normative for the file loop after local execution.
    successful „Chat wechseln“ (step 1602) put a clean main into STÖRUNG.
    A test keeps the set a superset of the installed Kit's
    `KNOWN_VOLATILE_TRANSFER_PATHS`.
+52. No chat-switch recommendation (`AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1`, owner's
+   decision 2026-10-02): „Chat wechseln“ writes and validates the handoff
+   package but opens no new chat and hands nothing over, so no task recommends
+   it afterwards; after Abschließen the star follows the repository state
+   (BEREIT → Arbeit beginnen). The button stays available.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

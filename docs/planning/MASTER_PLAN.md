@@ -309,8 +309,8 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 5. P5 Standard-task framework: declarative definition (goal text without
    command names, effect class, input fields, verifier), single-task lock,
    abort → Wiederherstellen (R6); migrate Chat wechseln.
-6. P6 Abschließen: auto approval with code limits (R4), offer Chat wechseln
-   afterwards. Acceptance criteria (not optional): a visible protocol of every
+6. P6 Abschließen: auto approval with code limits (R4); no Chat-wechseln
+   recommendation afterwards (owner 2026-10-02, COMMUNICATION_PROTOCOL 52). Acceptance criteria (not optional): a visible protocol of every
    auto-approved effect (commands, changed refs, PR, CI runs) and, after an
    interruption, Wiederherstellen offered automatically (R6).
 7. P7 Arbeit beginnen (inputs: branch name, kind).
