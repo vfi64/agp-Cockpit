@@ -552,6 +552,14 @@ This section is normative for the file loop after local execution.
    exactly). `tests/send_probe_template.cjs` rejects single-backslash escapes in
    every evaluated template of `background.js` and runs the cooked readiness
    probe against the live DOM of step 1598.
+51. Kit-internal paths (`AGP_KIT_VOLATILE_PATHS_V1`): the Lagebericht treats the
+   Kit's own known volatile transfer files as Kit-internal, including the
+   successor handoff projection (`.agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md`,
+   `.agentic/state/handoff/packages/latest/*`) that `transfer
+   chat-switch-complete` regenerates for the current HEAD. Live 2026-10-02 a
+   successful „Chat wechseln“ (step 1602) put a clean main into STÖRUNG.
+   A test keeps the set a superset of the installed Kit's
+   `KNOWN_VOLATILE_TRANSFER_PATHS`.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

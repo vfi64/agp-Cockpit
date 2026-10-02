@@ -56,6 +56,31 @@ KIT_VOLATILE_PREFIXES = (
     ".agentic/state/handoff/transfer_handoff_reports/", ".agentic/state/handoff/transfer_runs/",
     "Download/", ".local/",
 )
+# AGP_KIT_VOLATILE_PATHS_V1 (live 2026-10-02, after „Chat wechseln“ step 1602):
+# the Kit's own known volatile transfer files (agentic_project_kit.volatile_paths,
+# KNOWN_VOLATILE_TRANSFER_PATHS, Kit 1.0.13) include the successor handoff
+# projection that `transfer chat-switch-complete` regenerates for the current
+# HEAD. Counting them as changes put a clean main into STÖRUNG. Exact paths, not
+# prefixes, so a human edit elsewhere under docs/ still counts.
+_HANDOFF_PACKAGE_FILES = ("execution_contract.json", "source_manifest.json", "successor_context.yaml",
+                          "successor_prompt.md", "validation_report.json")
+_HANDOFF_PROMPT_FILES = ("NEXT_CHAT_BOOTSTRAP.md", "START_NEW_CHAT_PROMPT.md",
+                         "CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md")
+KIT_VOLATILE_PATHS = frozenset((
+    *(f".agentic/state/handoff/packages/latest/{name}" for name in _HANDOFF_PACKAGE_FILES),
+    *(f"docs/reports/handoff-packages/latest/{name}" for name in _HANDOFF_PACKAGE_FILES),
+    *(f".agentic/state/handoff/{name}" for name in _HANDOFF_PROMPT_FILES),
+    *(f"docs/handoff/{name}" for name in _HANDOFF_PROMPT_FILES),
+    "docs/reports/terminal/transfer_handoff_reports/latest-transfer-handoff-report.json",
+    "docs/reports/terminal/transfer_handoff_reports/latest-transfer-handoff-report.log",
+    "tmp/local-gc-last.json", "tmp/local-gc-last-run-id.txt", "tmp/local-command-stack-state.json",
+))
+
+
+def is_kit_volatile(path: str) -> bool:
+    return path.startswith(KIT_VOLATILE_PREFIXES) or path in KIT_VOLATILE_PATHS
+
+
 WORKSPACE_MARKERS = (".agentic/config.yaml", ".agentic/project.yaml")
 
 
@@ -135,7 +160,7 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
         if len(line) < 4:
             continue
         path = line[3:].split(" -> ")[-1].strip().strip('"')
-        (volatile if path.startswith(KIT_VOLATILE_PREFIXES) else changes).append(path)
+        (volatile if is_kit_volatile(path) else changes).append(path)
     origin_main = None
     if network:
         remote = _git(root, runner, "ls-remote", "origin", "refs/heads/main")
