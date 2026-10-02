@@ -41,6 +41,12 @@ WORK_ORDER_KIT_RULE = (
     "a --self-test mode (sys.argv or argparse) that only checks the file itself, runs no command, "
     "writes no file and exits 0; the real run writes exactly one JSON return bundle named "
     "Download/<STEP>_<topic>_return_bundle.json."
+    # AGP_KIT_VERDICT_RULE_V1 (live 2026-10-02, step 1573): the bundle kept only
+    # the stdout tail; the Kit's verdict stands at the start of its JSON.
+    " Parse the JSON output of every agentic-kit --json command and record its top-level "
+    "result_status, final_signal, failed_step and next_action separately in the return bundle; "
+    "a stdout tail alone loses the verdict. Never re-run a command with remote effects to check "
+    "a result: each continuation carries Cockpit-verified repository facts."
 )
 
 
@@ -164,8 +170,12 @@ def validate_command_content(
             require_orchestrator=require_orchestrator,
         )
         if repository_root is not None and catalog_checks:
+            from agp_cockpit.core.merged_branch_guard import (
+                violations as merged_violations,
+            )
             from agp_cockpit.core.release_policy import violations as release_violations
             violations = violations + release_violations(source, repository_root, catalog)
+            violations = violations + merged_violations(source, repository_root)
     except SyntaxError as exc:
         raise ValueError(
             f"command file is not executable Python: {type(exc).__name__}: {exc}"

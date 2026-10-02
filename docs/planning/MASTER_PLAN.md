@@ -379,6 +379,19 @@ commit 26be95b); KIT-GF-029 (release lifecycle assumes public publication);
 release policy enforced on work orders; larger window with scrolling tabs;
 recommendation hint for verbs of later slices.
 
+## 2026-10-02 — Slice T4: no second pull request for a merged branch
+
+Evidence: finish run 1568–1582 (T3, PR #147/#148 and the empty PR #149).
+Implemented (COMMUNICATION_PROTOCOL 35–38): work-order contract stated to fresh
+chats, download ingress limited to safety checks, merged-branch guard,
+Cockpit-verified repository facts in every continuation, Kit verdict rule;
+Greenfield ledger KIT-GF-030, KIT-GF-031 and an extension of KIT-GF-027.
+
+Order after T4 (2026-10-02): P5 standard-task framework → P6 Abschließen →
+P11 Release (button; release 0.1.0 is then made with it) → P4, P7–P10. P6 turns
+the finish into a fixed sequence instead of a remote improvisation (run
+1568–1582 needed 14 steps and two pull requests).
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

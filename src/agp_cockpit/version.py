@@ -2,4 +2,4 @@
 
 APP_VERSION = "0.1.0.dev4"
 BRIDGE_PROTOCOL_VERSION = 1
-BRIDGE_BUILD_ID = "work-order-contract-20261002"
+BRIDGE_BUILD_ID = "merged-guard-20261002"
