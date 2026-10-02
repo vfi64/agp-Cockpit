@@ -19,3 +19,9 @@ agp-Cockpit is the owner's private tool. It is not published anywhere.
   (correctable rejection, the remote side gets the reason).
 - The Kit's release lifecycle currently assumes public publication (GitHub
   Release, Zenodo DOI, PyPI); recorded as Greenfield finding KIT-GF-029.
+
+Release 0.1.0 (2026-10-02) was prepared manually because Kit 1.0.13 cannot
+prepare a release of an external, private workspace (KIT-GF-032): version files
+and `CHANGELOG.md` in the branch, row in `docs/releases/versions.json`, the
+annotated tag `v0.1.0` set by the owner on main after the merge.
+

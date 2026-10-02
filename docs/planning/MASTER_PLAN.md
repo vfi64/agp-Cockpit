@@ -403,6 +403,15 @@ destructive steps ask; the full P8 stays open). Release policy: the private tag
 push is allowed after approval (owner's decision 2026-10-02). Live checks
 pending: Abschließen of this branch with its own button, then Arbeit beginnen.
 
+## 2026-10-02 — Release 0.1.0 (manual) and P11 on hold
+
+Live: P7 Arbeit beginnen confirmed (1594–1597, local verifier passed, one
+correctable rejection); P5/P6 confirmed five times with one remote turn each.
+Kit 1.0.13 has no release route for an external, private workspace
+(KIT-GF-029, KIT-GF-032). Owner's decision 2026-10-02: release 0.1.0 manually
+(version map, changelog, annotated tag by the owner); the Release button (P11)
+follows a Kit fix. Next slices: P8 Wiederherstellen (full), P4 Repo wechseln.
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

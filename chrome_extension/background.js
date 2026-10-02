@@ -287,6 +287,7 @@ function agpComposerInspect(resolveComposer, removeCockpitFiles) {
     ? String("value" in composer ? (composer.value || "") : (composer.innerText || composer.textContent || ""))
     : "";
   const files = [];
+  const unrecognised = [];
   const removeLabel = /remove|entfernen|löschen|delete|close|schließen/i;
   const fileLike = /^[A-Za-z0-9][\w.-]*(\.(json|txt|md|py|csv|pdf|png|jpe?g|zip|yaml|yml)|…|\.\.\.)$/;
   if (form && composer) {
@@ -306,7 +307,20 @@ function agpComposerInspect(resolveComposer, removeCockpitFiles) {
             removeLabel.test((candidate.getAttribute("aria-label") || "") + " " + (candidate.getAttribute("title") || "")));
           if (button) break;
         }
-        if (!button) continue;          // not an attachment chip
+        if (!button) {
+          // AGP_COMPOSER_CHIP_DIAGNOSTICS_V1 (live 2026-10-02: the digest chip
+          // was not recognised): record the shape so the selector can follow
+          // ChatGPT's real markup.
+          if (unrecognised.length < 5 && /^(agentic-kit-comm|\d+_)/i.test(name)) {
+            let host = el;
+            for (let depth = 0; depth < 4 && host.parentElement && host.parentElement !== form; depth += 1) host = host.parentElement;
+            unrecognised.push({name, buttons:Array.from(host.querySelectorAll("button, [role=button]")).slice(0, 4).map(b => ({
+              tag:b.tagName, aria_label:String(b.getAttribute("aria-label") || "").slice(0, 40),
+              title:String(b.getAttribute("title") || "").slice(0, 40),
+              testid:String(b.getAttribute("data-testid") || "")}))});
+          }
+          continue;                     // not an attachment chip
+        }
         seen.add(name);
         const prefix = name.replace(/(…|\.\.\.)$/, "").trim();
         const cockpit = /^agentic-kit-comm/i.test(prefix) || /^\d+_/.test(prefix);
@@ -315,7 +329,7 @@ function agpComposerInspect(resolveComposer, removeCockpitFiles) {
       }
     }
   }
-  return {composer:Boolean(composer), text, files};
+  return {composer:Boolean(composer), text, files, unrecognised};
 }
 
 async function agpComposerCleanup(evaluate, sendCommand, normalize, {files = true} = {}) {
@@ -368,7 +382,7 @@ async function agpComposerCleanup(evaluate, sendCommand, normalize, {files = tru
       reason:"Alte Cockpit-Anhänge im ChatGPT-Eingabefeld ließen sich nicht entfernen: " + remaining.join(", ")};
   }
   return {ok:true, stage:text || removed.length ? "COMPOSER_CLEANED" : "COMPOSER_EMPTY",
-    cleared_text:Boolean(text), removed_files:removed};
+    cleared_text:Boolean(text), removed_files:removed, unrecognised:(final && final.unrecognised) || []};
 }
 
 async function agpCleanComposer(tabId, options = {}) {

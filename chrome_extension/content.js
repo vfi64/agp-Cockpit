@@ -3526,9 +3526,10 @@
       if (!cleaned || cleaned.ok !== true) {
         throw new Error(String(cleaned && cleaned.reason || "ChatGPT-Eingabefeld nicht leer"));
       }
-      if (cleaned.stage === "COMPOSER_CLEANED") {
+      if (cleaned.stage === "COMPOSER_CLEANED" || (cleaned.unrecognised || []).length) {
         await clientEvent("COMPOSER_LEFTOVERS_REMOVED", {
-          cleared_text:Boolean(cleaned.cleared_text), removed_files:cleaned.removed_files || []});
+          cleared_text:Boolean(cleaned.cleared_text), removed_files:cleaned.removed_files || [],
+          unrecognised:cleaned.unrecognised || []});
       }
       if (digestPath && await digestAlreadyInChat(manifestSha)) {
         // AGP_DIGEST_ONCE_PER_CHAT_V1: same manifest, same chat, recent enough.

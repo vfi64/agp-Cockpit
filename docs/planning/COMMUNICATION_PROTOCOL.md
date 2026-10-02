@@ -529,6 +529,14 @@ This section is normative for the file loop after local execution.
    aria-label, test id, disabled state, stop button), clears only its own
    text (attachments of this send stay), waits 15 s and retries once
    (`SEND_RETRY_AFTER_NOT_READY`). A second failure stops as before.
+47. Chip diagnostics (`AGP_COMPOSER_CHIP_DIAGNOSTICS_V1`): a Cockpit-named
+   composer chip without a recognised remove control is reported with the
+   controls around it (`unrecognised` in COMPOSER_LEFTOVERS_REMOVED), so the
+   selector can follow ChatGPT's real markup.
+48. Version map (`AGP_VERSION_MAP_V1`, `docs/releases/versions.json`): app
+   version (pyproject = `agp_cockpit.version`), extension version, build id and
+   Kit version per private release; tests keep them consistent and require a
+   CHANGELOG section per release.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
