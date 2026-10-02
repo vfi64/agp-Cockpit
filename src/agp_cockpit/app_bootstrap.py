@@ -513,25 +513,32 @@ def run(
 
         refresh_request = None
         if not extension_matches_staged_build(first, extension_path):
+            try:
+                target_build = _manifest_build_id(extension_path)
+            except Exception:  # noqa: BLE001 - the bridge falls back to its own build id
+                target_build = ""
             refresh_request = request_browser_refresh(
                 root,
                 reason="staged-extension-version-mismatch",
+                target_build_id=target_build,
             )
             wake_ok, wake_note = reload_active_chatgpt_tab()
             if not wake_ok:
-                failed = StartupStatus(
+                # AGP_EXTENSION_AUTO_REFRESH_V2: the AppleScript wake only speeds
+                # things up; the extension picks the request up at its next
+                # contact (live 2026-10-02: ACTIVE_TAB_NOT_CHATGPT aborted here
+                # although the refresh then succeeded). Keep waiting.
+                write_startup_status(root, StartupStatus(
                     chrome_installed=True,
                     chrome_started_or_reused=True,
                     chatgpt_requested=chatgpt_requested,
                     bridge_ready=bridge_ready,
                     extension_ready=False,
                     message=(
-                        "Die installierte Browser-Erweiterung ist veraltet; "
-                        f"der automatische Tab-Refresh wurde nicht bestätigt: {wake_note}"
+                        "Browser-Erweiterung veraltet; sie lädt sich beim nächsten Kontakt "
+                        f"selbst neu (Tab-Reload nicht möglich: {wake_note})."
                     ),
-                )
-                write_startup_status(root, failed)
-                return
+                ))
 
             refresh_confirmed = wait_for_refresh_handled(
                 root,

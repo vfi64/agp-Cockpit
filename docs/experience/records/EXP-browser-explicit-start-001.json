@@ -24,22 +24,22 @@
   "evidence": [
     {
       "kind": "historical_work_order",
-      "ref": "Download/098_create_fresh_live_late_acceptance_validation_v1.py",
+      "ref": ".local/agp-cockpit/archive/cited-evidence/098_create_fresh_live_late_acceptance_validation_v1.py",
       "claim": "Historical flow separated fresh READY mission creation from explicit browser Start Auto."
     },
     {
       "kind": "historical_fix",
-      "ref": "Download/077_start_auto_click_path_instrumentation_repair_v1.py",
+      "ref": ".local/agp-cockpit/archive/cited-evidence/077_start_auto_click_path_instrumentation_repair_v1.py",
       "claim": "Historical startAuto was a distinct browser start path."
     },
     {
       "kind": "current_forensics",
-      "ref": "Download/773_k07_explicit_start_signal_forensics_20260913-112302_return_bundle.json",
+      "ref": ".local/agp-cockpit/archive/cited-evidence/773_k07_explicit_start_signal_forensics_20260913-112302_return_bundle.json",
       "claim": "Desktop Task starten left the browser mission READY at zero turns/steps."
     },
     {
       "kind": "current_acceptance",
-      "ref": "Download/771_k07_cold_start_acceptance_and_stale_draft_cleanup_20260912-221010_return_bundle.json",
+      "ref": ".local/agp-cockpit/archive/cited-evidence/771_k07_cold_start_acceptance_and_stale_draft_cleanup_20260912-221010_return_bundle.json",
       "claim": "Passive cold reconnect was accepted as non-starting behavior."
     }
   ],

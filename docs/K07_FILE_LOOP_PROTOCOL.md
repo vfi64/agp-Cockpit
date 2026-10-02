@@ -7,7 +7,9 @@ The remote model does not emit executable work orders in prose. Each non-termina
 `run_next.py` remains the execution authority for compile, self-test, and the real run. Exactly one newly created `<step>_*_return_bundle.json` is required. Zero or multiple bundles fail loudly. The result bundle and the run log `Download/__run_next_output.txt` are attached to the same ChatGPT conversation as file evidence; the log is the fallback diagnostic when the command does not produce a usable result bundle. Result JSON and log text are never copied into the composer.
 
 The canonical `Download/run_next.py` is versioned at the authorized root path;
-`Download/alt/` is historical material and is never an execution source. Runner
+`Download/alt/` (historical material, never an execution source) was removed on
+2026-10-02; the five files cited as evidence moved to
+`.local/agp-cockpit/archive/cited-evidence/`. Runner
 stdout/stderr and the combined runner log are bounded to 256 KiB. A newly
 created return bundle is bounded to 2,000,000 bytes, matching the transport
 frame limit. An oversized bundle is retained locally for diagnosis but is

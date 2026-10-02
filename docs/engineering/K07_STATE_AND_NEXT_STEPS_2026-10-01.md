@@ -42,6 +42,11 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
 | `AGP_TASK_CLOSE_ON_DONE_V1` | `core/task_store.py`, `bridge_server.py` | angenommenes DONE schließt den lokalen Task (`VERIFIED_COMPLETE` bzw. `REMOTE_DONE`) |
 | `AGP_GH_BINARY_V1` | `core/ci_gate.py`, `tests/conftest.py` | kein Test hängt am `gh` des Rechners |
 | `AGP_CI_GATE_V2` | `.agentic/ci/agentic-gate.yaml` | Push-Läufe nur auf main, Kit festgelegt, parallele Jobs, Pflicht-Check `agentic-gate` |
+| `AGP_EXTENSION_AUTO_REFRESH_V2` | `bridge_server.py`, `content.js`, `background.js`, `app_bootstrap.py` | Handshake erzwingt einen Neustart je Ziel-Build; Extension merkt neue App binnen Sekunden |
+| `AGP_DOWNLOAD_HYGIENE_V1` | `content.js`, `background.js`, `file_loop_runner.py` | Browser-Kopie nach angenommener Übernahme gelöscht; TMPDIR im Repo |
+| `AGP_MAINTENANCE_CLEANUP_V1` | `core/maintenance.py`, Tab System | Aufräumen mit Vorschau und OK, inkl. Kit-`artifact-gc --tmp-logs` |
+| `AGP_KIT_FINDINGS_VIEW_V1` | `core/kit_findings.py`, `ui/kit_findings_window.py` | Fenster „Kit-Befunde“ über das Greenfield-Register |
+| `AGP_DIGEST_ONCE_PER_CHAT_V1` | `content.js` | Befehlsverzeichnis einmal je Chat und Manifest |
 | `AGP_STALE_APP_GUARD_V1` | `core/build_freshness.py`, UI, `scripts/build_macos_app.py --restart` | veraltete laufende App startet keine Tasks |
 
 ## 3. Offene Befunde im Kit (nicht im Cockpit lösbar)
@@ -85,6 +90,10 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
    nächster Aktion und nur den fehlgeschlagenen Schritten im Detail. Rückgabe-Code
    ≠ 0 bei rotem CI (Schritt 1551) macht aus einem fachlichen Befund einen
    Ausführungsfehler und kostete einen zusätzlichen Erholungsschritt.
+
+Alle Befunde stehen auch im Greenfield-Register
+(`docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json`, KIT-GF-023…028, plus
+Nachträge zu 010/011/017) und im Fenster „Kit-Befunde“ (Tab System).
 
 ## 4. Nächste Schritte
 

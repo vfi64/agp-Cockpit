@@ -1,0 +1,150 @@
+"""Cleanup of Cockpit working files with a preview (AGP_MAINTENANCE_CLEANUP_V1).
+
+Live 2026-10-02: ``Download/alt`` held 973 MB (old Chrome test profiles,
+87 MB bundles); browser copies piled up in ~/Downloads and Kit logs in /tmp.
+One rule set, always previewed first, executed only on the operator's OK:
+
+* ``Download/<step>_*``: kept for the newest ``keep_steps`` steps and for
+  anything younger than ``max_age_days``; ``run_next.py`` is never touched;
+* ``.local/agp-cockpit/delivery`` (result projections): older than
+  ``max_age_days``;
+* ``.local/agp-cockpit/tmp`` (TMPDIR of work orders): older than one day;
+* ``.local/agp-cockpit/ci`` (CI evidence): older than ``max_age_days`` beyond
+  the newest 20;
+* the Kit's own temporary logs through ``agentic-kit artifact-gc --tmp-logs``
+  (dry run in the preview, ``--execute`` on OK).
+
+``~/Downloads`` is not scanned: the extension removes its own copies after the
+bridge persisted them (AGP_DOWNLOAD_HYGIENE_V1). Execution deletes only files
+that a fresh plan still lists.
+"""
+
+from __future__ import annotations
+
+import re
+import shutil
+import subprocess
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+KEEP_STEPS = 50
+MAX_AGE_DAYS = 30
+TMP_AGE_SECONDS = 24 * 3600
+KEEP_CI_EVIDENCE = 20
+STEP_FILE = re.compile(r"^(\d+)_")
+
+
+@dataclass(frozen=True)
+class Candidate:
+    path: Path
+    bytes: int
+    area: str
+
+
+@dataclass(frozen=True)
+class Plan:
+    candidates: tuple[Candidate, ...]
+    kit_argv: tuple[str, ...] | None
+    kit_preview: str
+
+    @property
+    def total_bytes(self) -> int:
+        return sum(c.bytes for c in self.candidates)
+
+
+def _size(path: Path) -> int:
+    if path.is_dir():
+        return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
+    return path.stat().st_size
+
+
+def _download_candidates(root: Path, now: float, keep_steps: int, max_age: float) -> list[Candidate]:
+    download = root / "Download"
+    if not download.is_dir():
+        return []
+    files = [(int(m.group(1)), p) for p in download.iterdir()
+             if p.is_file() and p.name != "run_next.py" and (m := STEP_FILE.match(p.name))]
+    steps = sorted({step for step, _ in files}, reverse=True)
+    protected = set(steps[:keep_steps])
+    return [Candidate(p, p.stat().st_size, "Download")
+            for step, p in sorted(files)
+            if step not in protected and now - p.stat().st_mtime > max_age]
+
+
+def _aged(directory: Path, area: str, now: float, max_age: float, keep_newest: int = 0) -> list[Candidate]:
+    if not directory.is_dir():
+        return []
+    entries = sorted(directory.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    return [Candidate(p, _size(p), area) for p in entries[keep_newest:] if now - p.stat().st_mtime > max_age]
+
+
+def plan(root: Path, *, now: float | None = None, keep_steps: int = KEEP_STEPS,
+         max_age_days: int = MAX_AGE_DAYS, kit_binary: Path | None = None,
+         runner=subprocess.run) -> Plan:
+    root = Path(root).resolve()
+    now = time.time() if now is None else now
+    max_age = max_age_days * 86400
+    local = root / ".local" / "agp-cockpit"
+    candidates = (
+        _download_candidates(root, now, keep_steps, max_age)
+        + _aged(local / "delivery", "Zustellungen", now, max_age)
+        + _aged(local / "tmp", "Temporär", now, TMP_AGE_SECONDS)
+        + _aged(local / "ci", "CI-Nachweise", now, max_age, keep_newest=KEEP_CI_EVIDENCE)
+    )
+    kit_argv, preview = None, "Kit nicht gefunden — Kit-Logs werden nicht aufgeräumt."
+    if kit_binary is not None:
+        kit_argv = (str(kit_binary), "artifact-gc", "--tmp-logs")
+        preview = _run_kit(root, list(kit_argv), runner)
+    return Plan(tuple(candidates), kit_argv, preview)
+
+
+def _run_kit(root: Path, argv: list[str], runner) -> str:
+    from agp_cockpit.core.ci_gate import tool_env
+    try:
+        completed = runner(argv, cwd=str(root), env=tool_env(root), text=True,
+                           capture_output=True, timeout=120, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"{type(exc).__name__}: {exc}"
+    text = (completed.stdout or "") + (completed.stderr or "")
+    return f"$ {' '.join(argv[1:])} → rc {completed.returncode}\n" + text.strip()[-2000:]
+
+
+def describe(result: Plan) -> str:
+    if not result.candidates:
+        lines = ["Keine Cockpit-Dateien zum Löschen."]
+    else:
+        areas: dict[str, list[Candidate]] = {}
+        for candidate in result.candidates:
+            areas.setdefault(candidate.area, []).append(candidate)
+        lines = [f"{len(result.candidates)} Einträge, {result.total_bytes / 1e6:.1f} MB:"]
+        lines += [f"  · {area}: {len(items)} ({sum(c.bytes for c in items) / 1e6:.1f} MB)"
+                  for area, items in areas.items()]
+    lines += ["", "Kit (Vorschau):", result.kit_preview]
+    return "\n".join(lines)
+
+
+def execute(root: Path, approved: Plan, *, kit_binary: Path | None = None,
+            runner=subprocess.run, now: float | None = None) -> dict:
+    """Delete what the approved plan lists and a fresh plan still lists."""
+    root = Path(root).resolve()
+    fresh = {c.path for c in plan(root, now=now).candidates}
+    allowed = (root / "Download", root / ".local" / "agp-cockpit")
+    deleted, freed, skipped = 0, 0, []
+    for candidate in approved.candidates:
+        path = candidate.path
+        inside = any(path.resolve().is_relative_to(base.resolve()) for base in allowed)
+        if path not in fresh or not inside or not path.exists():
+            skipped.append(str(path))
+            continue
+        size = _size(path)
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+        deleted += 1
+        freed += size
+    kit_output = ""
+    if approved.kit_argv is not None:
+        kit_output = _run_kit(root, [*approved.kit_argv, "--execute"], runner)
+    return {"deleted": deleted, "bytes": freed, "skipped": skipped, "kit_output": kit_output}

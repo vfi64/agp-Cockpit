@@ -342,12 +342,28 @@ Implemented (COMMUNICATION_PROTOCOL 21–24, `AGP_CI_GATE_V2`):
    pinned to 1.0.13, Python and browser jobs in parallel with a browser cache,
    required check `agentic-gate` as the aggregate.
 
-Next (T2, small): attach the digest once per chat while the manifest SHA is
-unchanged; a local pre-push gate that runs the CI test commands before any
-publishing work order; measure CI wall time after `AGP_CI_GATE_V2`; Bridge
-panel counts turns differently from the Cockpit and repeats the mission line
-(cosmetic). Then continue with P4 (or P6 first, see the review of run 1556:
-the finish path is proven and costs 3 approvals that P6 automates).
+Live 2026-10-02 (run 1557–1560, PR #143/#144): one remote turn; projection of
+step 1559 81 KB → 15 KB; CI 1:46–2:06 per run, one PR run plus one main run per
+PR; local task closed as `VERIFIED_COMPLETE`.
+
+## 2026-10-02 — Slice T2: extension refresh, file hygiene, Kit findings view
+
+Implemented (COMMUNICATION_PROTOCOL 25–29): handshake-driven extension refresh
+with per-build loop guard; browser copies removed after accepted ingest; TMPDIR
+for work orders; previewed cleanup incl. Kit `/tmp` logs; Kit findings window;
+digest once per chat; Bridge panel turn count. Greenfield ledger extended
+(KIT-GF-023…028, extensions of 010/011/017, status vocabulary, Cockpit
+mitigations); `Download/alt` (973 MB) removed, cited evidence archived.
+
+Deferred (T3): local pre-push gate (needs a defined CI-equivalent command
+authority, e.g. `agentic-kit work check` plus pytest, enforced before
+publishing commands).
+
+Release plan: first release 0.1.0 after T2 is live-proven (extension refresh,
+cleanup). Prerequisites: one version mapping (app / extension / build id), a
+specified release verifier (P11), and clarifying the Kit release commands for a
+private repository (Zenodo). Later releases per completed block (0.2.0 after
+P4–P6).
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
