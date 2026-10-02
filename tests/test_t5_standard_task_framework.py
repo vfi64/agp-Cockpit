@@ -434,3 +434,25 @@ def test_cockpit_runs_no_repository_changing_git():
                  for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
                  if mutating.search(line)]
     assert offenders == []
+
+
+# --- AGP_CONVERSATION_BINDING_V1 (P4) ---------------------------------------------------------
+
+def test_chat_bound_to_another_repository_blocks_before_anything_is_recorded(panel):
+    _root, widget, created, _answers, _repo, runtime = panel
+    from agp_cockpit.core.conversation_binding import ConversationBindingStore
+    ConversationBindingStore(runtime).bind("https://chatgpt.com/c/x", Path("/elsewhere/repo"))
+    widget.apply_state(rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
+                                    offered=(rs.ARBEIT_BEGINNEN,)))
+    widget.run_verb(VERBS[rs.ARBEIT_BEGINNEN])
+    assert created == [] and "neuen Chat" in widget.status_var.get()
+    assert not (runtime / "human-decision.json").exists()
+
+
+def test_first_start_binds_the_chat_to_the_repository(panel):
+    _root, widget, created, _answers, repo, runtime = panel
+    from agp_cockpit.core.conversation_binding import ConversationBindingStore
+    widget.apply_state(rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
+                                    offered=(rs.ARBEIT_BEGINNEN,)))
+    widget.run_verb(VERBS[rs.ARBEIT_BEGINNEN])
+    assert created and ConversationBindingStore(runtime).owner("https://chatgpt.com/c/x") == str(repo.resolve())

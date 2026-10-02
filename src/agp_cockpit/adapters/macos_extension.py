@@ -61,6 +61,9 @@ def packaged_extension_source(repository_root: Path) -> Path:
     # development. A rebuilt app may lag behind source; it must not overwrite a
     # freshly staged extension with stale bundled resources on restart.
     candidates.append(repository_root.expanduser().resolve() / "chrome_extension")
+    # AGP_REPOSITORY_SWITCH_V1: steering another repository from a source run
+    # uses the Cockpit's own checkout.
+    candidates.append(Path(__file__).resolve().parents[3] / "chrome_extension")
     meipass = getattr(sys, "_MEIPASS", None)
     if meipass:
         candidates.append(Path(meipass) / "chrome_extension")
@@ -93,6 +96,16 @@ def stage_extension(repository_root: Path) -> Path:
             and current.get("sha256") == digest
             and (target / "manifest.json").is_file()
         ):
+            # AGP_REPOSITORY_SWITCH_V1: same extension, other repository — only
+            # the identity marker changes (no restage, no browser refresh).
+            resolved = repository_root.expanduser().resolve()
+            if current.get("repository_root") != str(resolved):
+                current.update({
+                    "repository_root": str(resolved),
+                    "download_directory": str(resolved / "Download"),
+                    "run_next": str(resolved / "Download" / "run_next.py"),
+                })
+                marker.write_text(json.dumps(current, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             return target
 
     parent = target.parent

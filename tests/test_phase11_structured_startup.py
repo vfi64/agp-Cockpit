@@ -35,6 +35,7 @@ def test_desktop_start_loads_settings_and_emits_structured_event(tmp_path, monke
 
     (tmp_path / "chrome_extension").mkdir()
     (tmp_path / ".agentic").mkdir()
+    (tmp_path / ".git").mkdir()
     rc = app.main(["--repository-root", str(tmp_path)])
 
     assert rc == 0
