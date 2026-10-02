@@ -35,7 +35,8 @@ def test_availability_follows_state_and_implementation():
     assert availability(BY_KEY[rs.CHAT_WECHSELN], ready) == (True, "")
     enabled, reason = availability(BY_KEY[rs.ARBEITEN], ready)
     assert not enabled and "Zustand IN_ARBEIT" in reason and "Aktuell: BEREIT" in reason
-    assert availability(BY_KEY[rs.ABSCHLIESSEN], ready)[1] == "In Vorbereitung (Plan P6)."
+    assert availability(BY_KEY[rs.RELEASE], ready)[1] == "In Vorbereitung (Plan P11)."
+    assert availability(BY_KEY[rs.ARBEIT_BEGINNEN], ready) == (True, "")   # T5: plan P7
     assert availability(BY_KEY[rs.CHAT_WECHSELN], None) == (False, "Lagebericht läuft noch.")
     running = state(task_running=True)
     assert not any(availability(v, running)[0] for v in VERBS)
@@ -76,11 +77,11 @@ def test_panel_enables_only_valid_verbs_and_marks_the_recommendation(panel):
     assert widget.detail_var.get().startswith("Empfohlen: Arbeiten")
     assert str(buttons[rs.CHAT_WECHSELN].cget("state")) == "normal"
     assert str(buttons[rs.ARBEIT_BEGINNEN].cget("state")) == "disabled"
-    assert "In Vorbereitung (Plan P7)" in widget._tooltip(BY_KEY[rs.ARBEIT_BEGINNEN])
+    assert "Jetzt nicht verfügbar" in widget._tooltip(BY_KEY[rs.ARBEIT_BEGINNEN])
     widget.run_verb(BY_KEY[rs.ARBEITEN])
     assert opened == [1]
     widget.run_verb(BY_KEY[rs.ARBEIT_BEGINNEN])
-    assert widget.status_var.get() == "In Vorbereitung (Plan P7)."
+    assert widget.status_var.get().startswith("Jetzt nicht verfügbar")
 
 
 def test_more_section_is_collapsed_until_opened(panel):

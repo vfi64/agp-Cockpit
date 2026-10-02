@@ -3,8 +3,32 @@
   "marker": "AGP_RELEASE_POLICY_V1",
   "publication": "none",
   "statement": "agp-Cockpit is the owner's private tool and is not published. A release is private: version bump, changelog entry, annotated git tag and a local app build. No GitHub Release, no PyPI package, no Zenodo record. No Zenodo record exists for this repository; none may be created, updated or queried.",
-  "allowed": ["version bump", "changelog entry", "annotated git tag (pushing it is a remote effect and needs the owner's approval)", "local app build"],
-  "forbidden_kit_commands": ["agentic-kit release-publish", "agentic-kit post-release-doi-closeout"],
-  "forbidden_gh": ["release create", "release upload", "release edit", "release delete"],
-  "forbidden_hosts": ["zenodo.org", "sandbox.zenodo.org", "upload.pypi.org", "test.pypi.org"]
+  "allowed": [
+    "version bump",
+    "changelog entry",
+    "annotated git tag (pushing it is a remote effect and needs the owner's approval)",
+    "local app build"
+  ],
+  "forbidden_kit_commands": [
+    "agentic-kit release-publish",
+    "agentic-kit post-release-doi-closeout"
+  ],
+  "forbidden_gh": [
+    "release create",
+    "release upload",
+    "release edit",
+    "release delete"
+  ],
+  "forbidden_hosts": [
+    "zenodo.org",
+    "sandbox.zenodo.org",
+    "upload.pypi.org",
+    "test.pypi.org"
+  ],
+  "tag_push": {
+    "decided": "2026-10-02",
+    "allowed": true,
+    "target": "origin (private repository vfi64/agp-Cockpit)",
+    "condition": "after the owner's approval of the release run; never a GitHub Release"
+  }
 }

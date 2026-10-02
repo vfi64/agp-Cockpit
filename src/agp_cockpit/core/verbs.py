@@ -40,8 +40,8 @@ class Verb:
 VERBS: tuple[Verb, ...] = (
     Verb(rs.ARBEIT_BEGINNEN, "Arbeit beginnen", "weg", 1, LOKAL,
          "Synchronisiert main, bestätigt die Kit-Regeln und legt einen neuen Arbeitsbranch an.",
-         "liest origin, ändert nur lokal (neuer Branch).",
-         "wenn main synchron und sauber ist (Zustand BEREIT).", slice="P7"),
+         "liest origin; der Start gibt genau die Synchronisierung und das Anlegen des Branches über das Kit frei.",
+         "wenn main synchron und sauber ist (Zustand BEREIT).", task_key="work-start"),
     Verb(rs.ARBEITEN, "Arbeiten", "weg", 2, JE_NACH,
          "Öffnet den Tab „Arbeiten“ für einen frei formulierten Auftrag an die Remote-LLM.",
          "hängt vom Auftrag ab; Wirkung nach außen nur mit Freigabe.",
@@ -50,7 +50,7 @@ VERBS: tuple[Verb, ...] = (
          "Veröffentlicht die Arbeit: Commit, Push, Pull Request, grüne CI, Merge und Post-Merge-Abschluss "
          "des Kits. Fertig erst, wenn das Cockpit GitHub selbst grün geprüft hat.",
          "pusht und mergt nach main (der Start ist die Freigabe; nie von main, kein Force-Push).",
-         "auf einem Arbeitsbranch mit eigenen Commits (Zustand IN_ARBEIT).", slice="P6"),
+         "auf einem Arbeitsbranch mit eigenen Commits (Zustand IN_ARBEIT).", task_key="finish"),
     Verb(rs.CHAT_WECHSELN, "Chat wechseln", "weg", 4, LOKAL,
          "Erzeugt und prüft das Übergabepaket für einen neuen Chat.",
          "schreibt nur die Übergabedateien im Repo.",
@@ -58,7 +58,8 @@ VERBS: tuple[Verb, ...] = (
     Verb(rs.WIEDERHERSTELLEN, "Wiederherstellen", "probleme", None, FRAGT,
          "Diagnostiziert Drift oder einen abgebrochenen Ablauf und stellt einen sauberen Zustand her.",
          "erst nur lesend; zerstörerische Schritte nur nach deiner Freigabe.",
-         "bei einer Störung (Zustand STÖRUNG).", slice="P8"),
+         "bei einer Störung (Zustand STÖRUNG) oder nach einem abgebrochenen Abschließen.",
+         task_key="recover"),
     Verb(rs.REPO_UEBERNEHMEN, "Repo übernehmen", "weitere", None, LOKAL,
          "Analysiert ein fremdes Repo und legt die Kit-Steuerschicht an.",
          "ändert lokal; ein neues GitHub-Repo nur nach Freigabe.",
@@ -76,12 +77,16 @@ VERBS: tuple[Verb, ...] = (
 BY_KEY = {verb.key: verb for verb in VERBS}
 
 
-def availability(verb: Verb, state: rs.RepoState | None) -> tuple[bool, str]:
-    """(enabled, reason shown when disabled)."""
+def availability(verb: Verb, state: rs.RepoState | None, *,
+                 recover_offered: bool = False) -> tuple[bool, str]:
+    """(enabled, reason shown when disabled). ``recover_offered``: an
+    interrupted Abschließen unlocks Wiederherstellen (R6) unless a task runs."""
     if verb.slice is not None:
         return False, f"In Vorbereitung (Plan {verb.slice})."
     if state is None:
         return False, "Lagebericht läuft noch."
+    if recover_offered and verb.key == rs.WIEDERHERSTELLEN and state.state != rs.LAEUFT:
+        return True, ""
     if verb.key not in state.offered:
         return False, f"Jetzt nicht verfügbar — {verb.when} Aktuell: {state.state}, {state.summary}"
     return True, ""

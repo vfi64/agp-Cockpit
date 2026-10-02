@@ -10,7 +10,7 @@ from tkinter import ttk
 from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.mission_http_client import create_live_full_auto
 from agp_cockpit.core.mission_http_client import status as bridge_status
-from agp_cockpit.core.repo_state import ARBEITEN, LAEUFT
+from agp_cockpit.core.repo_state import ARBEITEN, LAEUFT, WIEDERHERSTELLEN
 from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
 from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
@@ -26,9 +26,16 @@ class StandardTasksPanel(ttk.Frame):
     """Button surface for deterministic, reusable Cockpit task templates."""
 
     def __init__(self, master: tk.Misc, *, repository_root: Path, local_contract=None,
-                 on_open_work=None) -> None:
+                 on_open_work=None, ask_inputs=None, confirm=None, runtime_root: Path | None = None) -> None:
         super().__init__(master, padding=16)
         self.on_open_work = on_open_work
+        # AGP_STANDARD_TASK_FRAMEWORK_V1: dialogs are injectable for tests.
+        self.ask_inputs = ask_inputs or self._ask_inputs
+        self.confirm = confirm or self._confirm
+        self._runtime_root = runtime_root
+        self._tracked_task: StandardTask | None = None
+        self._tracked_task_id = ""
+        self.recover_offered = False
         self.repository_root = repository_root.expanduser().resolve()
         self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
         self.tasks = standard_tasks()
@@ -112,15 +119,37 @@ class StandardTasksPanel(ttk.Frame):
             row=5, column=0, sticky="ew"
         )
 
-    def start_standard_task(self, task: StandardTask) -> None:
-        contract = task.contract(self.repository_root)
+    def runtime_root(self) -> Path:
+        if self._runtime_root is None:
+            from agp_cockpit.adapters.macos_settings import bridge_runtime_root
+            self._runtime_root = bridge_runtime_root()
+        return self._runtime_root
+
+    def _ask_inputs(self, task: StandardTask) -> dict | None:
+        from agp_cockpit.ui.work_start_dialog import ask_work_inputs
+        return ask_work_inputs(self, check=lambda values: task.check(self.repository_root, values))
+
+    def _confirm(self, task: StandardTask) -> bool:
+        from tkinter import messagebox
+        return bool(messagebox.askokcancel(task.label, task.confirm, parent=self))
+
+    def start_standard_task(self, task: StandardTask, inputs: dict | None = None) -> bool:
+        """Start ``task``; True when the mission was created."""
         self.detail_var.set(task.description)
         # AGP_STALE_APP_GUARD_V1: never start a task on an outdated app.
         from agp_cockpit.core.build_freshness import start_block_reason
         blocked = start_block_reason(self.repository_root)
         if blocked:
             self.status_var.set(blocked)
-            return
+            return False
+        # R5: one task at a time per repository.
+        if self._task_running():
+            self.status_var.set("BLOCKED — es läuft bereits ein Task; neue Aufträge erst nach seinem Ende (R5).")
+            return False
+        reason = task.check(self.repository_root, inputs)
+        if reason:
+            self.status_var.set(f"BLOCKED — {task.label}: {reason}")
+            return False
         required_tools = {"git", "agentic-kit"}
         missing_tools = sorted(required_tools - set(self.api.local_contract.allowed_tools))
         if missing_tools:
@@ -129,30 +158,61 @@ class StandardTasksPanel(ttk.Frame):
                 + ", ".join(missing_tools)
                 + ". Für diesen Standard Task müssen die Tools ausdrücklich freigegeben sein."
             )
-            return
+            return False
+        contract = task.contract(self.repository_root, inputs)
         try:
             prepared = self.api.prepare_task_contract(contract)
             status = self.api.start_task_from_contract(prepared)
+            task_id = str(prepared["task_id"])
+            # AGP_START_CLICK_APPROVAL_V1 (R4): the start click approves exactly
+            # the declared effects; AGP_CI_GREEN_COMPLETION_V1 from the start.
+            if task.approved_scope:
+                from agp_cockpit.core.human_decision import HumanDecisionStore
+                HumanDecisionStore(self.runtime_root()).pre_approve(
+                    task_id=task_id, label=task.label, scope=task.approved_scope)
+            if task.ci_gate_merge:
+                from agp_cockpit.core.ci_gate import CiGateStore
+                CiGateStore(self.runtime_root()).activate(
+                    task_id, reason=f"standard task {task.key}", merge=True)
             conversation_url = require_allowed_active_chat().url
             mission = create_live_full_auto(
                 title=f"Standard · {task.label}",
-                mission_text=task.prompt(self.repository_root),
+                mission_text=task.prompt(self.repository_root, inputs),
                 conversation_url=conversation_url,
             )["mission"]
             request_task_start(
                 str(mission["mission_id"]),
-                task_id=str(prepared["task_id"]),
+                task_id=task_id,
             )
         except Exception as exc:  # noqa: BLE001 - UI boundary must surface all launch failures
             self.status_var.set(f"BLOCKED — Standard Task konnte nicht gestartet werden: {exc}")
-            return
+            return False
 
+        self.recover_offered = False
+        self._tracked_task = task
+        self._tracked_task_id = task_id
         self.status_var.set(
             "Gestartet — das Cockpit wartet auf die erste Remote-Antwort. "
             f"Lokaler Zustand: {json.dumps(status.get('state', ''), ensure_ascii=False)}"
         )
         self._track(str(mission["mission_id"]))
         self.refresh_lage()   # the started task makes the state LÄUFT
+        return True
+
+    def effects_text(self) -> str:
+        """P6 acceptance: every auto-approved effect, visible in the UI."""
+        task = self._tracked_task
+        if task is None or not task.approved_scope or not self._tracked_task_id:
+            return ""
+        from agp_cockpit.core.human_decision import HumanDecisionStore
+        log = HumanDecisionStore(self.runtime_root()).effects_log(self._tracked_task_id)
+        if not log:
+            return "Freigegebene Wirkungen (Start-Klick): noch keine ausgeführt."
+        items = "; ".join(
+            f"Schritt {entry.get('step') or '?'}: "
+            + ", ".join(c.replace("agentic-kit ", "") for c in entry.get("commands") or ())
+            for entry in log)
+        return f"Freigegebene Wirkungen (Start-Klick): {items}."
 
     def _verb_button(self, parent: ttk.Frame, verb: Verb, column: int) -> None:
         cell = ttk.Frame(parent)
@@ -187,9 +247,11 @@ class StandardTasksPanel(ttk.Frame):
         """Enable exactly the verbs valid in ``state``; mark the recommended one."""
         self.repo_state = state
         recommended = getattr(state, "recommended", None)
+        if self.recover_offered and getattr(state, "state", None) != LAEUFT:
+            recommended = WIEDERHERSTELLEN   # R6: interrupted Abschließen
         for key, button in self.verb_buttons.items():
             verb = VERB_BY_KEY[key]
-            enabled, reason = availability(verb, state)
+            enabled, reason = availability(verb, state, recover_offered=self.recover_offered)
             self.verb_reasons[key] = reason
             is_recommended = enabled and key == recommended
             button.configure(state="normal" if enabled else "disabled",
@@ -221,7 +283,7 @@ class StandardTasksPanel(ttk.Frame):
         return "Gerade ist kein Auftrag empfohlen — siehe Lage."
 
     def run_verb(self, verb: Verb) -> None:
-        enabled, reason = availability(verb, self.repo_state)
+        enabled, reason = availability(verb, self.repo_state, recover_offered=self.recover_offered)
         if not enabled:
             self.status_var.set(reason)
             return
@@ -230,8 +292,18 @@ class StandardTasksPanel(ttk.Frame):
                 self.on_open_work()
             return
         task = self.tasks_by_key.get(verb.task_key or "")
-        if task is not None:
-            self.start_standard_task(task)
+        if task is None:
+            return
+        inputs = None
+        if task.inputs:
+            inputs = self.ask_inputs(task)
+            if inputs is None:
+                self.status_var.set(f"{task.label} abgebrochen.")
+                return
+        if task.confirm and not self.confirm(task):
+            self.status_var.set(f"{task.label} nicht gestartet.")
+            return
+        self.start_standard_task(task, inputs)
 
     def _task_running(self) -> bool:
         try:
@@ -300,7 +372,19 @@ class StandardTasksPanel(ttk.Frame):
             self.status_var.set(f"Status momentan nicht verfügbar ({exc}) — neuer Versuch läuft.")
             self._poll_job = self.after(3000, self.refresh_progress)
             return
-        self.status_var.set(progress.text)
+        text = progress.text
+        effects = self.effects_text()
+        if effects:
+            text += "\n" + effects
+        task = self._tracked_task
+        if progress.terminal and task is not None:
+            if progress.outcome == "DONE" and task.follow_up:
+                text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."
+            elif progress.outcome != "DONE" and task.offers_recover_on_interrupt:
+                # R6: an interrupted Abschließen offers Wiederherstellen.
+                self.recover_offered = True
+                text += f"\n{task.label} wurde unterbrochen — „Wiederherstellen“ ist freigeschaltet und empfohlen."
+        self.status_var.set(text)
         if not progress.terminal:
             self._poll_job = self.after(2000, self.refresh_progress)
         else:

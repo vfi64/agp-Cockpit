@@ -115,6 +115,24 @@ def adds_nothing(root: Path, branch: str, base: str = "origin/main", *,
     return None if found is None else found in (NO_COMMITS, MERGED)
 
 
+FORCE_SCOPES = ("transfer", "work", "pr")
+
+
+def force_violations(source: str) -> list[str]:
+    """AGP_NO_FORCE_V1 (R4): no force option on publishing Kit commands."""
+    from agp_cockpit.core.kit_command_catalog import _invocations, _program
+
+    found = []
+    for argv in _invocations(ast.parse(source)):
+        if not argv or _program(argv[0]) != "agentic-kit":
+            continue
+        words = [w for w in argv[1:] if not w.startswith("-")]
+        if words and words[0] in FORCE_SCOPES and any(w.startswith("--force") for w in argv[1:]):
+            found.append(f"force option on agentic-kit {' '.join(words[:2])} is never allowed "
+                         "(AGP_NO_FORCE_V1)")
+    return sorted(set(found))
+
+
 def _worktree_clean(root: Path, runner) -> bool:
     status = _git(root, runner, "status", "--porcelain")
     return status is not None and status.returncode == 0 and not status.stdout.strip()

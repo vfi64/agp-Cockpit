@@ -392,6 +392,17 @@ P11 Release (button; release 0.1.0 is then made with it) → P4, P7–P10. P6 tu
 the finish into a fixed sequence instead of a remote improvisation (run
 1568–1582 needed 14 steps and two pull requests).
 
+## 2026-10-02 — Slice T5: standard-task framework, Abschließen, Arbeit beginnen
+
+Live T4 (run 1583–1587, PR #150/#151): one remote turn after one correctable
+rejection; the Cockpit-verified facts were quoted by the remote side.
+Implemented (COMMUNICATION_PROTOCOL 39–43): P5 framework with start-click
+approval and local verifiers, P6 Abschließen, P7 Arbeit beginnen and, because
+P6's acceptance requires it (R6), a basic Wiederherstellen (diagnosis first,
+destructive steps ask; the full P8 stays open). Release policy: the private tag
+push is allowed after approval (owner's decision 2026-10-02). Live checks
+pending: Abschließen of this branch with its own button, then Arbeit beginnen.
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

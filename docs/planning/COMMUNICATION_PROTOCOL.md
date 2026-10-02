@@ -476,6 +476,34 @@ This section is normative for the file loop after local execution.
    work orders record `result_status`, `final_signal`, `failed_step` and
    `next_action` of every `--json` Kit command and never re-run a remote-effect
    command to check a result.
+39. Standard-task framework (`AGP_STANDARD_TASK_FRAMEWORK_V1`, plan P5,
+   `core/standard_tasks.py`): each task declares goal text without Kit command
+   names, inputs, a local precheck, the remote-effect scope its start click
+   approves, whether DONE needs the merged CI lifecycle, a confirmation text,
+   R6 behaviour and a follow-up verb. One task at a time (R5): a start is
+   refused while a mission runs.
+40. Start-click approval (`AGP_START_CLICK_APPROVAL_V1`, R4): before the first
+   mission the Cockpit records a pre-approval limited to the task's scope; it is
+   claimed by that mission, restricts every work order (first and repair) to
+   the scope, keeps the repair budget and logs every consumption with step and
+   commands; the Standard Tasks tab shows these effects. Other remote effects
+   still ask.
+41. Local verifiers (`AGP_STANDARD_VERIFIER_V1`): a remote DONE of a task with
+   `completion_contract.kind = agp-standard-verifier-v1` is accepted only when
+   the named verifier passes (`work-started`: requested branch checked out,
+   contains origin/main, clean; `recovered`: Lagebericht BEREIT or IN_ARBEIT);
+   otherwise the task continues with the finding, after three failures
+   NEEDS_HUMAN. Abschließen arms the CI gate with merge expected at start.
+42. Abschließen (P6): never from main, only with own changes, explicit dialog,
+   no force option on publishing Kit commands (`AGP_NO_FORCE_V1`); DONE only
+   ci-verified; afterwards „Chat wechseln“ is recommended; an interrupted run
+   unlocks and recommends „Wiederherstellen“ (R6). Arbeit beginnen (P7): kind
+   and name dialog, branch must not exist, clean worktree; scope limited to the
+   Kit's sync and work-start routes. Wiederherstellen: diagnosis first,
+   destructive steps only after NEEDS_HUMAN, no pre-approval.
+43. Tool lists are not invocations (`AGP_TOOL_LIST_NOT_INVOCATION_V1`): a list
+   made only of program names (e.g. `"allowed_tools": ["agentic-kit", "git"]`)
+   no longer reads as the command `agentic-kit git` (live 1569/1570/1583).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
