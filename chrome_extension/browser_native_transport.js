@@ -71,11 +71,13 @@
         if (response.ok !== true &&
             response.stage !== "USER_TURN_INDETERMINATE" &&
             response.stage !== "COMPOSER_MODEL_NOT_VERIFIED") {
-          reject(new Error(
+          const rejected = new Error(
             response.error
               ? String(response.error)
               : `native transport rejected: ${JSON.stringify(response)}`
-          ));
+          );
+          rejected.response = response;   // AGP_SEND_NOT_READY_RETRY_V1: structured stage/diagnostics
+          reject(rejected);
           return;
         }
         resolve(response);

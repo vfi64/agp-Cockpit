@@ -371,7 +371,7 @@ async function agpComposerCleanup(evaluate, sendCommand, normalize, {files = tru
     cleared_text:Boolean(text), removed_files:removed};
 }
 
-async function agpCleanComposer(tabId) {
+async function agpCleanComposer(tabId, options = {}) {
   const target = {tabId};
   let attached = false;
   const sendCommand = (method, params) => chrome.debugger.sendCommand(target, method, params || {});
@@ -385,7 +385,7 @@ async function agpCleanComposer(tabId) {
   try {
     await chrome.debugger.attach(target, "1.3");
     attached = true;
-    return await agpComposerCleanup(evaluate, sendCommand, normalize);
+    return await agpComposerCleanup(evaluate, sendCommand, normalize, {files:options.files !== false});
   } finally {
     if (attached) { try { await chrome.debugger.detach(target); } catch (_) {} }
   }
@@ -395,7 +395,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.type !== "AGP_K07_CLEAN_COMPOSER") return false;
   const tabId = sender && sender.tab ? sender.tab.id : null;
   if (!Number.isInteger(tabId)) { sendResponse({ok:false, reason:"no tab"}); return false; }
-  agpCleanComposer(tabId).then(sendResponse)
+  agpCleanComposer(tabId, {files:message.files !== false}).then(sendResponse)
     .catch(error => sendResponse({ok:false, stage:"COMPOSER_CLEAN_FAILED",
       reason:String(error && error.message ? error.message : error)}));
   return true;
@@ -791,11 +791,31 @@ async function agpNativeTransportV1(message, sender) {
     }
 
     if (!sendTarget) {
+      // AGP_SEND_NOT_READY_RETRY_V1: what the composer area offered instead
+      // (live 2026-10-02: "Arbeit beginnen" twice NOT_READY for 30 s with the
+      // text verified in the composer and no upload pending).
+      let formButtons = [];
+      try {
+        formButtons = await evaluate(`(() => {
+          const composer = (${agpResolveComposer.toString()})();
+          const form = composer && composer.closest ? composer.closest("form") : null;
+          const scope = form || document;
+          return Array.from(scope.querySelectorAll("button")).slice(0, 25).map(b => ({
+            aria_label:String(b.getAttribute("aria-label") || "").slice(0, 60),
+            testid:String(b.getAttribute("data-testid") || ""),
+            disabled:Boolean(b.disabled),
+            aria_disabled:String(b.getAttribute("aria-disabled") || ""),
+            text:String(b.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40)
+          })).concat([{stop_button:Boolean(document.querySelector('[data-testid="stop-button"]')),
+            in_form:Boolean(form)}]);
+        })()`) || [];
+      } catch (_) {}
       return {
         ok:false,
         request_id:requestId,
         tab_id:tabId,
         stage:"SEND_BUTTON_NOT_READY",
+        form_buttons:formButtons,
         before,
         inserted,
         model:modelVerification,

@@ -1707,9 +1707,43 @@
   }
 
   async function sendPrompt(prompt) {
+    let failure = null;
     try {
       return await sendPromptNative(prompt);
     } catch (error) {
+      failure = error;
+    }
+    // AGP_SEND_NOT_READY_RETRY_V1 (live 2026-10-02, twice at "Arbeit
+    // beginnen"): nothing was sent; log what the composer offered, clear our
+    // own text (attachments of this send stay) and try once more after 15 s.
+    const rejected = failure && failure.response;
+    if (rejected && rejected.stage === "SEND_BUTTON_NOT_READY") {
+      await clientEvent("SEND_BUTTON_NOT_READY_DIAGNOSED", {
+        form_buttons:Array.isArray(rejected.form_buttons) ? rejected.form_buttons : [],
+        send_diagnostics:Array.isArray(rejected.send_diagnostics) ? rejected.send_diagnostics.slice(0, 8) : [],
+        readiness_wait_ms:Number(rejected.readiness_wait_ms || 0)
+      });
+      let cleaned = null;
+      try {
+        cleaned = await chrome.runtime.sendMessage({type:"AGP_K07_CLEAN_COMPOSER", files:false});
+      } catch (_) {
+        cleaned = null;
+      }
+      if (cleaned && cleaned.ok === true) {
+        await sleep(15000);
+        await clientEvent("SEND_RETRY_AFTER_NOT_READY", {clean_stage:String(cleaned.stage || "")});
+        try {
+          return await sendPromptNative(prompt);
+        } catch (error) {
+          failure = error;
+        }
+      }
+    }
+    return await sendPromptFailed(failure, prompt);
+  }
+
+  async function sendPromptFailed(error, prompt) {
+    {
       if (error && error.code === "COMPOSER_MODEL_NOT_VERIFIED") {
         STATE.lastTransportFailureClass = "COMPOSER_MODEL_NOT_VERIFIED";
         await clientEvent("COMPOSER_MODEL_RECOVERY_EXHAUSTED", {

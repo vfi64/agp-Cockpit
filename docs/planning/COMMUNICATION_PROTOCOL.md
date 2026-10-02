@@ -523,6 +523,12 @@ This section is normative for the file loop after local execution.
    transport clears leftover Cockpit text before every insert and keeps the
    evidence attached for that send. Text is cleared with trusted key events
    (select all, delete), with an execCommand fallback, and verified.
+46. Send not ready (`AGP_SEND_NOT_READY_RETRY_V1`): when the send control
+   stays unusable for 30 s nothing was sent; the extension logs what the
+   composer area offered (`SEND_BUTTON_NOT_READY_DIAGNOSED`: buttons with
+   aria-label, test id, disabled state, stop button), clears only its own
+   text (attachments of this send stay), waits 15 s and retries once
+   (`SEND_RETRY_AFTER_NOT_READY`). A second failure stops as before.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
