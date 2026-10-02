@@ -1081,3 +1081,10 @@ repeat once.
 - Slice T2: AGP_EXTENSION_AUTO_REFRESH_V2, AGP_DOWNLOAD_HYGIENE_V1, AGP_MAINTENANCE_CLEANUP_V1, AGP_KIT_FINDINGS_VIEW_V1, AGP_DIGEST_ONCE_PER_CHAT_V1 (COMMUNICATION_PROTOCOL 25–29); Greenfield ledger KIT-GF-023…028; `Download/alt` removed, five cited files moved to `.local/agp-cockpit/archive/cited-evidence/`.
 - Tests: `tests/test_extension_auto_refresh.py`, `tests/test_kit_findings_and_maintenance.py`; stubs for the new content-script helpers in the three Node content-script tests. Playwright e2e: 65 passed; the 9 `test_203_phase5_conversation_contract` specs need network access to chatgpt.com and cannot run in the sandbox (unchanged code).
 
+## 2026-10-02 — Finish T2 (1561–1564); slice T3 (build findings-sync-20261002, extension 0.3.36)
+
+- Live run (build hygiene-20261002): preflight 1561, NEEDS_HUMAN 1562, approval, `pr-create-complete` 1563 merged PR #145 and refresh #146, DONE 1564 `ci-verified`, task `VERIFIED_COMPLETE`. `K07_BROWSER_DOWNLOAD_REMOVED` for 1561–1564 (AGP_DOWNLOAD_HYGIENE_V1 live); `KIT_COMMAND_DIGEST_REUSED` for the decision mission (AGP_DIGEST_ONCE_PER_CHAT_V1 live). CI #508–#511: 1:43–1:59.
+- Operator findings: window too small, parts of tabs cut off; „Empfohlen: Abschließen“ next to the disabled P6 button; the Kit repository already records which Greenfield findings are fixed; the owner's release policy (no publication, no Zenodo) is not expressible in the Kit (KIT-GF-029). Chrome shows a „Fehler“ entry for the extension (content not yet read).
+- Slice T3: AGP_KIT_FINDINGS_SYNC_V1, AGP_RELEASE_POLICY_V1, AGP_SCROLLABLE_TABS_V1, recommendation hint (COMMUNICATION_PROTOCOL 30–33); ledger snapshot of the Kit adjudication (Kit commit 26be95b) and KIT-GF-029.
+- Tests: `tests/test_t3_findings_sync_release_policy.py`.
+

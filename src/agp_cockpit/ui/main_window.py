@@ -15,6 +15,7 @@ from agp_cockpit.core.startup import StartupAction, decide_startup
 from agp_cockpit.core.startup_probe import observe_live_read_only
 from agp_cockpit.ui.bridge_identity_status import format_bridge_identity_status
 from agp_cockpit.ui.hermes_status import format_hermes_status
+from agp_cockpit.ui.scrollable import ScrollableTab
 from agp_cockpit.ui.simple_task_panel import SimpleTaskPanel
 from agp_cockpit.ui.standard_tasks_panel import StandardTasksPanel
 from agp_cockpit.version import BRIDGE_BUILD_ID, BRIDGE_PROTOCOL_VERSION
@@ -104,14 +105,11 @@ class MainWindow(ttk.Frame):
 
         # Plan P3: Standard Tasks first (the guided path), then the free
         # "Arbeiten" tab, which is verb ② of that path.
-        work_tab = ttk.Frame(self.tabs)
-        work_tab.columnconfigure(0, weight=1)
-        work_tab.rowconfigure(0, weight=1)
-        standard_tab = ttk.Frame(self.tabs)
-        standard_tab.columnconfigure(0, weight=1)
-        standard_tab.rowconfigure(0, weight=1)
+        # AGP_SCROLLABLE_TABS_V1: every tab scrolls when the window is too small.
+        work_tab = ScrollableTab(self.tabs)
+        standard_tab = ScrollableTab(self.tabs)
         self.standard_tasks_panel = StandardTasksPanel(
-            standard_tab,
+            standard_tab.inner,
             repository_root=self.repository_root,
             local_contract=self.local_contract,
             on_open_work=lambda: self.tabs.select(work_tab),
@@ -120,17 +118,17 @@ class MainWindow(ttk.Frame):
         self.tabs.add(standard_tab, text="Standard Tasks")
 
         self.simple_task_panel = SimpleTaskPanel(
-            work_tab,
+            work_tab.inner,
             repository_root=self.repository_root,
             local_contract=self.local_contract,
         )
         self.simple_task_panel.grid(row=0, column=0, sticky="nsew")
         self.tabs.add(work_tab, text="Arbeiten")
 
-        system_tab = ttk.Frame(self.tabs)
-        system_tab.columnconfigure(0, weight=1)
-        system_tab.rowconfigure(4, weight=1)
-        self._build_system_tab(system_tab)
+        system_tab = ScrollableTab(self.tabs)
+        system_tab.inner.rowconfigure(0, weight=0)
+        system_tab.inner.rowconfigure(4, weight=1)
+        self._build_system_tab(system_tab.inner)
         self.tabs.add(system_tab, text="System")
         self.after(80, self.refresh_runtime_status)
         self.after(120, self.refresh_bridge_identity)

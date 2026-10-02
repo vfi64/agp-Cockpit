@@ -317,7 +317,8 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 8. P8 Wiederherstellen (diagnosis first, destructive steps ask).
 9. P9 Repo übernehmen, proven on a separate test repository.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
-11. P11 Release (always asks; verifier to be specified first).
+11. P11 Release (always asks; verifier to be specified first; private only per
+   `docs/planning/RELEASE_POLICY.md`).
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read
@@ -360,10 +361,23 @@ authority, e.g. `agentic-kit work check` plus pytest, enforced before
 publishing commands).
 
 Release plan: first release 0.1.0 after T2 is live-proven (extension refresh,
-cleanup). Prerequisites: one version mapping (app / extension / build id), a
-specified release verifier (P11), and clarifying the Kit release commands for a
-private repository (Zenodo). Later releases per completed block (0.2.0 after
-P4–P6).
+cleanup). Prerequisites: one version mapping (app / extension / build id) and a
+specified release verifier (P11). Release policy decided 2026-10-02
+(`docs/planning/RELEASE_POLICY.md`): private releases only — version bump,
+changelog, annotated tag, local build; no GitHub Release, PyPI or Zenodo.
+Later releases per completed block (0.2.0 after P4–P6).
+
+Live 2026-10-02 (run 1561–1564, PR #145/#146): one remote turn; four browser
+downloads removed after ingest; digest reused once in the same chat; local task
+`VERIFIED_COMPLETE`.
+
+## 2026-10-02 — Slice T3: Kit findings sync, release policy, window
+
+Implemented (COMMUNICATION_PROTOCOL 30–33): Kit findings synced from the Kit
+repository's own reports (13 CLOSED, 3 PARTIAL, 2 OPEN of KIT-GF-001…018 at Kit
+commit 26be95b); KIT-GF-029 (release lifecycle assumes public publication);
+release policy enforced on work orders; larger window with scrolling tabs;
+recommendation hint for verbs of later slices.
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority

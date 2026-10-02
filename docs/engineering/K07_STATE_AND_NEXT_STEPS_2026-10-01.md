@@ -47,6 +47,9 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
 | `AGP_MAINTENANCE_CLEANUP_V1` | `core/maintenance.py`, Tab System | Aufräumen mit Vorschau und OK, inkl. Kit-`artifact-gc --tmp-logs` |
 | `AGP_KIT_FINDINGS_VIEW_V1` | `core/kit_findings.py`, `ui/kit_findings_window.py` | Fenster „Kit-Befunde“ über das Greenfield-Register |
 | `AGP_DIGEST_ONCE_PER_CHAT_V1` | `content.js` | Befehlsverzeichnis einmal je Chat und Manifest |
+| `AGP_KIT_FINDINGS_SYNC_V1` | `core/kit_findings_sync.py`, Kit-Befunde-Fenster | Status der Befunde laut Kit-Repo (`docs/reports`) |
+| `AGP_RELEASE_POLICY_V1` | `core/release_policy.py`, `docs/planning/release_policy.json` | keine Veröffentlichung: Publikationsschritte in Arbeitspaketen abgelehnt |
+| `AGP_SCROLLABLE_TABS_V1` | `ui/scrollable.py`, `app.py` | größeres Startfenster, Tabs mit Scrollleisten |
 | `AGP_STALE_APP_GUARD_V1` | `core/build_freshness.py`, UI, `scripts/build_macos_app.py --restart` | veraltete laufende App startet keine Tasks |
 
 ## 3. Offene Befunde im Kit (nicht im Cockpit lösbar)
@@ -90,6 +93,9 @@ zusammen; es ersetzt `K07_PROTOCOL_STATE_AND_NEXT_STEPS_2026-09-30.md`.
    nächster Aktion und nur den fehlgeschlagenen Schritten im Detail. Rückgabe-Code
    ≠ 0 bei rotem CI (Schritt 1551) macht aus einem fachlichen Befund einen
    Ausführungsfehler und kostete einen zusätzlichen Erholungsschritt.
+
+10. Release-Lebenszyklus setzt öffentliche Veröffentlichung voraus (GitHub
+   Release, PyPI, Zenodo); keine Einstellung für private Repos (KIT-GF-029).
 
 Alle Befunde stehen auch im Greenfield-Register
 (`docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json`, KIT-GF-023…028, plus

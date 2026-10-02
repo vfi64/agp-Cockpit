@@ -426,6 +426,24 @@ This section is normative for the file loop after local execution.
    otherwise the mission start names the earlier attachment. Local work-order
    validation is unaffected. The Bridge panel shows the mission's remote turns
    (same count as the Cockpit) and no duplicate mission line.
+30. Kit findings sync (`AGP_KIT_FINDINGS_SYNC_V1`): „Mit Kit-Repo abgleichen“ in
+   the Kit findings window clones the public Kit repository read-only into
+   `.local/agp-cockpit/kit/kit-repo`, reads its `docs/reports/*.json` and writes
+   `.local/agp-cockpit/kit/kit-findings-status.json` (Kit commit, latest Kit
+   statement per KIT-GF id, CLOSED/PARTIAL/OPEN, `fixed_in` from CHANGELOG dates).
+   The tracked ledger carries a dated snapshot (`kit_repo_status`); neither
+   changes the ledger `status` — VERIFIED_FIXED needs evidence from this
+   workspace.
+31. Release policy (`AGP_RELEASE_POLICY_V1`, `docs/planning/release_policy.json`,
+   `docs/planning/RELEASE_POLICY.md`): agp-Cockpit is never published. Work
+   orders running `agentic-kit release-publish`, `agentic-kit
+   post-release-doi-closeout`, `gh release create|upload|edit|delete` or
+   contacting Zenodo/PyPI upload hosts are rejected as correctable violations.
+32. Window (`AGP_SCROLLABLE_TABS_V1`): the window opens at 90 % of the screen
+   (1020×600 … 1500×1100); every tab scrolls when its content does not fit.
+33. A recommended verb whose button belongs to a later plan slice is named as
+   the next step with a pointer to the „Arbeiten“ tab instead of „Empfohlen“
+   next to a disabled button.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

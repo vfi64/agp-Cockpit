@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "hygiene-20261002";
+globalThis.AGP_EXTENSION_BUILD_ID = "findings-sync-20261002";

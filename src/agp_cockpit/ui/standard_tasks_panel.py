@@ -211,7 +211,13 @@ class StandardTasksPanel(ttk.Frame):
             return ("Ein Task läuft — neue Aufträge erst nach seinem Ende. "
                     "Den Fortschritt zeigt der Tab „Arbeiten“.")
         if state.recommended:
-            return f"Empfohlen: {VERB_BY_KEY[state.recommended].label}. Details im Tooltip der Schaltfläche."
+            verb = VERB_BY_KEY[state.recommended]
+            enabled, _reason = availability(verb, state)
+            if not enabled and verb.slice:
+                # Live 2026-10-02: "Empfohlen: Abschließen" next to a disabled button.
+                return (f"Nächster Schritt wäre „{verb.label}“ — die Schaltfläche folgt mit Plan "
+                        f"{verb.slice}; bis dahin als Auftrag im Tab „Arbeiten“.")
+            return f"Empfohlen: {verb.label}. Details im Tooltip der Schaltfläche."
         return "Gerade ist kein Auftrag empfohlen — siehe Lage."
 
     def run_verb(self, verb: Verb) -> None:

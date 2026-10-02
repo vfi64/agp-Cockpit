@@ -156,6 +156,9 @@ def validate_command_content(
             source, catalog, allow_remote_effects=allow_remote_effects,
             require_orchestrator=require_orchestrator,
         )
+        if repository_root is not None and catalog_checks:
+            from agp_cockpit.core.release_policy import violations as release_violations
+            violations = violations + release_violations(source, repository_root, catalog)
     except SyntaxError as exc:
         raise ValueError(
             f"command file is not executable Python: {type(exc).__name__}: {exc}"
