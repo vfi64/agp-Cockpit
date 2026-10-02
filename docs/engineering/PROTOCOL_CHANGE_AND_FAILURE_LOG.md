@@ -1103,3 +1103,10 @@ repeat once.
 - Slice T4: AGP_MERGED_BRANCH_GUARD_V1, AGP_REPOSITORY_FACTS_V1, AGP_KIT_VERDICT_RULE_V1 (COMMUNICATION_PROTOCOL 36–38); KIT-GF-030 (second PR for a merged branch), KIT-GF-031 (pr-complete option asymmetry and mid-lifecycle context blocker), KIT-GF-027 extension (verdict only at the start of the JSON).
 - Tests: `tests/test_t4_merged_branch_guard.py` (temporary git repository with squash merge and refresh; deleted local branch; dirty tree and branches without commits not blocked; correctable rejection; facts in the continuation; gh pull-request listing; the real refs of 1574 classified MERGED against `5c1544c` and CHANGES against `effbc85`).
 
+## 2026-10-02 — Finish T4 (1583–1587); slice T5 (build finish-button-20261002, extension 0.3.39)
+
+- Live run (build merged-guard-20261002): 1583 rejected for correction („unknown agentic-kit command 'agentic-kit git'“), 1584 PASS, 1585 NEEDS_HUMAN quoting the Cockpit-verified facts, approval, 1586 `pr-create-complete` PASS (PR #150, refresh #151), 1587 DONE `ci-verified`, task `VERIFIED_COMPLETE`; one remote turn, no second pull request. The 1586 bundle still kept no separate Kit verdict fields (rule 38 not followed).
+- Cause of the recurring „agentic-kit git“ rejections (1569, 1570, 1583): a Cockpit false positive — the work orders' `"allowed_tools": ["agentic-kit", "git"]` was parsed as an invocation. Fixed: AGP_TOOL_LIST_NOT_INVOCATION_V1.
+- Slice T5: AGP_STANDARD_TASK_FRAMEWORK_V1, AGP_START_CLICK_APPROVAL_V1, AGP_STANDARD_VERIFIER_V1, AGP_NO_FORCE_V1, Abschließen, Arbeit beginnen, basic Wiederherstellen (COMMUNICATION_PROTOCOL 39–43); release policy `tag_push` allowed after approval.
+- Tests: `tests/test_t5_standard_task_framework.py` (definitions and scopes, goal texts without command names, prechecks in temporary git repositories, scoped pre-approval with effect log, verifiers, bridge hook order, tool-list and force rules, panel: dialog/confirmation, pre-approval and CI gate, R5 lock, R6 offer, follow-up); adjusted verb and T3 hint tests.
+

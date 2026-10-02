@@ -171,5 +171,11 @@ def test_a_recommended_verb_without_button_points_to_arbeiten():
                          tracking_main="a" * 40, own_commits=1, kit_version="1.0.13", workspace=True, gh_ok=True)
     state = rs.classify(facts)
     assert state.recommended == rs.ABSCHLIESSEN
-    hint = StandardTasksPanel._state_hint(state)
-    assert hint.startswith("Nächster Schritt wäre „Abschließen“") and "Plan P6" in hint and "Arbeiten" in hint
+    # T5: Abschließen has its button now (plan P6).
+    assert StandardTasksPanel._state_hint(state).startswith("Empfohlen: Abschließen")
+    no_kit = rs.classify(rs.RepoFacts(root="/r", is_git=True, branch="main", head="a" * 40,
+                                      origin_main="a" * 40, tracking_main="a" * 40, own_commits=0,
+                                      kit_version="1.0.13", workspace=False, gh_ok=True))
+    assert no_kit.recommended == rs.REPO_UEBERNEHMEN
+    hint = StandardTasksPanel._state_hint(no_kit)
+    assert hint.startswith("Nächster Schritt wäre „Repo übernehmen“") and "Plan P9" in hint and "Arbeiten" in hint

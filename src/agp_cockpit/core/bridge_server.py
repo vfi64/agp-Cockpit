@@ -436,7 +436,12 @@ class CockpitBridgeServer:
                                         {}
                                         if approval_grant is None
                                         else {"human_approval": {
-                                            "scope": "exactly one work order with a remote-effect Kit command",
+                                            "scope": (
+                                                "the remote-effect Kit commands of this standard task: "
+                                                + ", ".join(approval_grant["scope"])
+                                                if approval_grant.get("scope")
+                                                else "exactly one work order with a remote-effect Kit command"
+                                            ),
                                             "approved_question": approval_grant["question"],
                                         }}
                                     ),
@@ -726,6 +731,7 @@ class CockpitBridgeServer:
                                     current_task_id,
                                     _k07_cycle_hash.sha256(content.encode("utf-8")).hexdigest(),
                                     used,
+                                    step=outcome.run.step,
                                 )
                                 # AGP_CI_GREEN_COMPLETION_V1: a task that published
                                 # work is complete only when GitHub is verified green
@@ -1020,6 +1026,55 @@ class CockpitBridgeServer:
                                         "replayed": replayed,
                                     })
                                     return
+                        # AGP_STANDARD_VERIFIER_V1 (plan P5): a standard task with a
+                        # local verifier is DONE only when the verifier passes.
+                        if state == "DONE" and task_id and authority != "ci-verified":
+                            from agp_cockpit.core import standard_verifier as _sv
+                            durable = DurableTaskController(task_id, task_db_path)
+                            try:
+                                verifier_contract = _sv.contract_of(durable.store, task_id)
+                            finally:
+                                durable.close()
+                            if verifier_contract is not None:
+                                verified, finding = _sv.verify(repo_root, verifier_contract)
+                                diag.event(
+                                    "STANDARD_VERIFIER_CHECKED",
+                                    component="task",
+                                    details={"task_id": task_id,
+                                             "verifier": verifier_contract.get("verifier"),
+                                             "passed": verified, "finding": finding[:300]},
+                                )
+                                if verified:
+                                    authority = "verifier-checked"
+                                    human_reason = f"Lokal geprüft ({finding}) · {reply.reason}"
+                                else:
+                                    checks = _sv.VerifierChecks(runtime_root).bump(task_id)
+                                    if checks > _sv.MAX_CHECKS:
+                                        state = "NEEDS_HUMAN"
+                                        authority = "standard-verifier-exhausted"
+                                        human_reason = (f"Remote meldet DONE, die lokale Prüfung schlägt "
+                                                        f"fehl ({checks}×): {finding}")
+                                    else:
+                                        next_local = next_step_number(download_dir)
+                                        self._json(200, {
+                                            "state": "CONTINUE",
+                                            "remote_state": reply.state,
+                                            "terminal": False,
+                                            "step": reply.step,
+                                            "next_step": next_local,
+                                            "prompt": (
+                                                "AGP COCKPIT — DONE NOT ACCEPTED\n\n"
+                                                "The local verifier of this standard task rejected DONE "
+                                                f"(attempt {checks} of {_sv.MAX_CHECKS}): {finding}.\n"
+                                                "Continue the task with a new work order (expected local "
+                                                f"step {next_local}), or NEEDS_HUMAN if a human decision "
+                                                "is required.\n" + WORK_ORDER_KIT_RULE
+                                            ),
+                                            "human_reason": "Abschluss abgelehnt — " + finding,
+                                            "authority": "standard-verifier",
+                                            "replayed": replayed,
+                                        })
+                                        return
                         if mission is not None and mission.state not in {
                             "DONE", "NEEDS_HUMAN", "BLOCKED", "FAILED", "STOPPED"
                         }:
@@ -1030,7 +1085,7 @@ class CockpitBridgeServer:
                             durable = DurableTaskController(task_id, task_db_path)
                             try:
                                 task_state_after = durable.store.close_after_done(
-                                    task_id, verified=authority == "ci-verified"
+                                    task_id, verified=authority in {"ci-verified", "verifier-checked"}
                                 )
                             finally:
                                 durable.close()

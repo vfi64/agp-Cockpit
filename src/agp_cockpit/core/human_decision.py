@@ -25,6 +25,13 @@ approved merging orchestrator, the publishing and closeout commands of that
 lifecycle, without asking again. Every other remote effect still needs a new
 decision. The approval text never prescribes a Kit command: the remote side
 chooses from the digest, orchestrators first (live 1501-1519).
+
+AGP_START_CLICK_APPROVAL_V1 (plan P5/P6, R4): a standard task whose start
+click is the approval records a pre-approval before its first mission. It is
+claimed by that mission and limited to the task's declared ``scope`` of
+remote-effect commands for every work order (first and repair); any other
+remote effect still asks. Every consumption is logged with its step and
+commands so the UI can show the auto-approved effects.
 """
 
 from __future__ import annotations
@@ -54,7 +61,7 @@ class HumanDecisionStore:
         temporary.replace(self.path)
 
     def record(self, *, mission_id: str, task_id: str, decision: str, question: str,
-               note: str = "", now: float | None = None) -> dict:
+               note: str = "", now: float | None = None, scope=None) -> dict:
         decision = str(decision or "").upper()
         if decision not in DECISIONS:
             raise ValueError("decision must be APPROVE or REJECT")
@@ -73,8 +80,24 @@ class HumanDecisionStore:
             from agp_cockpit.core.ci_gate import REPAIR_BUDGET
             record["grant"] = {"effect": "remote", "remaining": 1,
                                "repair_pushes": REPAIR_BUDGET, "consumed_by": None}
+            if scope is not None:
+                record["grant"]["scope"] = sorted(scope)
         self._save(record)
         return record
+
+    def pre_approve(self, *, task_id: str, label: str, scope, now: float | None = None) -> dict:
+        """AGP_START_CLICK_APPROVAL_V1: the start click approves ``scope``."""
+        if not scope:
+            raise ValueError("a start-click approval needs a declared scope")
+        return self.record(mission_id=f"pre-approval:{task_id}", task_id=task_id,
+                           decision="APPROVE", now=now, scope=scope,
+                           question=f"Start von „{label}“ — Freigabe durch den Start-Klick")
+
+    def effects_log(self, task_id: str) -> list[dict]:
+        record = self.current()
+        if record.get("task_id") != task_id:
+            return []
+        return list((record.get("grant") or {}).get("log") or [])
 
     def remote_effects_allowed(self, task_id: str, now: float | None = None) -> bool:
         """True while any part of the task's approval is open."""
@@ -105,6 +128,8 @@ class HumanDecisionStore:
         if not self.remote_effects_allowed(task_id, now=now):
             return False
         grant = self.current().get("grant") or {}
+        if grant.get("scope") is not None:
+            return bool(wanted) and set(wanted) <= set(grant["scope"])
         if grant.get("remaining", 0) > 0:
             return True
         approved = set(grant.get("approved_commands") or ())
@@ -154,9 +179,11 @@ class HumanDecisionStore:
             self._save(record)
         return {"effect": "remote", "remaining": grant.get("remaining", 0),
                 "repair_pushes": grant.get("repair_pushes", 0),
-                "question": record.get("question", ""), "note": record.get("note", "")}
+                "question": record.get("question", ""), "note": record.get("note", ""),
+                "scope": list(grant.get("scope") or ())}
 
-    def consume(self, task_id: str, command_sha256: str, used=()) -> dict:
+    def consume(self, task_id: str, command_sha256: str, used=(), step: int | None = None,
+                now: float | None = None) -> dict:
         record = self.current()
         grant = record.get("grant") or {}
         if record.get("task_id") != task_id or (
@@ -170,6 +197,9 @@ class HumanDecisionStore:
             grant["repair_pushes"] = int(grant.get("repair_pushes", 0)) - 1
         grant["consumed_by"] = command_sha256
         grant["consumed"] = [*grant.get("consumed", []), command_sha256]
+        grant["log"] = [*grant.get("log", []), {
+            "at": time.time() if now is None else now, "step": step,
+            "commands": sorted(set(used)), "command_sha256": command_sha256}]
         record["grant"] = grant
         self._save(record)
         return record

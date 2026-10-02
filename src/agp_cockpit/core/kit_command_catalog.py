@@ -196,12 +196,25 @@ class KitCommandCatalog:
         return target
 
 
+# AGP_TOOL_LIST_NOT_INVOCATION_V1 (live 1569/1570/1583): a return bundle's
+# ``"allowed_tools": ["agentic-kit", "git"]`` was read as the command
+# ``agentic-kit git`` and rejected the work order. A list made only of program
+# names is a tool list, not an invocation.
+TOOL_NAMES = frozenset({"agentic-kit", "git", "gh", "python", "python3", "pytest", "ruff", "node", "npm"})
+
+
+def _is_tool_list(values: list[str]) -> bool:
+    return len(values) >= 2 and all(Path(v).name in TOOL_NAMES for v in values)
+
+
 def _invocations(tree: ast.AST) -> list[list[str]]:
     """argv-like invocations written as string lists/tuples or command strings."""
     found: list[list[str]] = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.List, ast.Tuple)) and node.elts:
             values = [e.value for e in node.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+            if values and len(values) == len(node.elts) and _is_tool_list(values):
+                continue
             if values and len(values) == len(node.elts):
                 found.append(values)
             elif node.elts and isinstance(node.elts[0], ast.Constant) and isinstance(node.elts[0].value, str):

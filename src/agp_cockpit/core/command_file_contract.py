@@ -171,11 +171,15 @@ def validate_command_content(
         )
         if repository_root is not None and catalog_checks:
             from agp_cockpit.core.merged_branch_guard import (
+                force_violations,
+            )
+            from agp_cockpit.core.merged_branch_guard import (
                 violations as merged_violations,
             )
             from agp_cockpit.core.release_policy import violations as release_violations
             violations = violations + release_violations(source, repository_root, catalog)
             violations = violations + merged_violations(source, repository_root)
+            violations = violations + force_violations(source)
     except SyntaxError as exc:
         raise ValueError(
             f"command file is not executable Python: {type(exc).__name__}: {exc}"
