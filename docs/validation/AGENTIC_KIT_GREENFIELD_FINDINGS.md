@@ -1205,3 +1205,15 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 
 - Step 1594 `work start` (rc 0) left Kit-owned transfer files modified; step 1596 needed `work recover` and `transfer restore-known-volatile`.
 
+## KIT-GF-033 — No recovery route for main with local changes or local commits
+
+- Status: OPEN · Severity: high · First observed: 2026-10-02
+- Observed (Kit 1.0.13, sandbox clone of agp-Cockpit main ad2a38d): `transfer branch-create … --start-point HEAD` refuses a dirty main ("Clean or preserve local changes before creating a branch."); `work discard-changes` is blocked on main (`main-branch`); `transfer sync-main` fails when main is ahead of origin/main (`normalize-session_failed`); `work recover` never resets, cleans or checks out product files. Covered by the Kit: main behind origin/main (`transfer sync-main`), detached HEAD (`transfer branch-switch main`), discarding changes on a work branch (`work discard-changes` with dry-run signature). The Kit's work-order validator forbids `git reset --hard`, so a remote work order cannot fill the gap.
+- Impact: the full Wiederherstellen button (P8) has no Kit route for the two most common disturbances; any workaround would put raw git outside the Kit.
+- Owner's decision 2026-10-02: the full P8 waits for this fix (like P11 for KIT-GF-029/032); the basic Wiederherstellen stays (remote diagnosis, Kit routes only, NEEDS_HUMAN where the Kit has no route).
+- Repair: a non-lossy rescue route (e.g. `work rescue --json`): rescue branch for changes or commits, main realigned with origin/main after a containment check, dry-run signature, no remote effect.
+
+## KIT-GF-032 — update 2026-10-02: owner's decision
+
+- Release 0.1.0 was made by hand. The Release button (P11) waits for a Kit route that respects `publication: none` (KIT-GF-029) and external workspaces (KIT-GF-032); no Cockpit-local release procedure.
+

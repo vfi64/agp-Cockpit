@@ -314,11 +314,13 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    auto-approved effect (commands, changed refs, PR, CI runs) and, after an
    interruption, Wiederherstellen offered automatically (R6).
 7. P7 Arbeit beginnen (inputs: branch name, kind).
-8. P8 Wiederherstellen (diagnosis first, destructive steps ask).
+8. P8 Wiederherstellen (diagnosis first, destructive steps ask). Full version
+   waits for the Kit fix KIT-GF-033 (owner 2026-10-02); the basic version stays.
 9. P9 Repo übernehmen, proven on a separate test repository.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
 11. P11 Release (always asks; verifier to be specified first; private only per
-   `docs/planning/RELEASE_POLICY.md`).
+   `docs/planning/RELEASE_POLICY.md`). Waits for the Kit fixes KIT-GF-029 and
+   KIT-GF-032 (owner 2026-10-02).
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read
@@ -411,6 +413,26 @@ Kit 1.0.13 has no release route for an external, private workspace
 (KIT-GF-029, KIT-GF-032). Owner's decision 2026-10-02: release 0.1.0 manually
 (version map, changelog, annotated tag by the owner); the Release button (P11)
 follows a Kit fix. Next slices: P8 Wiederherstellen (full), P4 Repo wechseln.
+
+## 2026-10-02 — Architecture principle: the Kit controls; Kit-gated buttons
+
+Owner's decision: **the Cockpit steers, the remote LLM decides, the Kit controls.**
+The Cockpit orchestrates the loop, observes and verifies (Lagebericht, guards, CI
+gate, verifiers) and never changes the repository itself; every repository change
+runs inside a work order through a Kit route. A button whose Kit route is missing
+is not built with a Cockpit-local or raw-git workaround; it waits for the Kit fix:
+
+| Button | Waits for | Kit gap |
+|---|---|---|
+| P8 Wiederherstellen (full) | KIT-GF-033 | no non-lossy recovery of main with uncommitted changes or local commits |
+| P11 Release | KIT-GF-029, KIT-GF-032 | release route assumes public publication (GitHub Release, Zenodo, PyPI) and the Kit's own package |
+
+The basic Wiederherstellen stays: remote diagnosis, repair through Kit routes only,
+NEEDS_HUMAN where the Kit has no route. Enforced in code: Kit-gated verbs are
+disabled with the finding ids (AGP_KIT_GATED_VERBS_V1), and a test forbids
+repository-changing git calls in the Cockpit's sources (the Kit findings cache
+clone is the only exception). P-steps are done one at a time (owner 2026-10-02);
+next: P10 Pflege, then P4 Repo wechseln, then P9 Repo übernehmen.
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority

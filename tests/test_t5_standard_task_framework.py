@@ -406,3 +406,31 @@ def test_no_shipped_task_recommends_chat_switch():
     star follows the repository state (BEREIT → Arbeit beginnen)."""
     assert [t.key for t in BY_KEY.values() if t.follow_up] == []
 
+
+
+# --- AGP_KIT_GATED_VERBS_V1 (owner 2026-10-02) ------------------------------------------------
+
+def test_release_waits_for_the_kit_and_says_so():
+    from agp_cockpit.core.verbs import availability
+    enabled, reason = availability(VERBS[rs.RELEASE], None)
+    assert not enabled and "KIT-GF-029" in reason and "KIT-GF-032" in reason
+
+
+def test_basic_recover_uses_kit_routes_only():
+    prompt = BY_KEY["recover"].prompt(Path("/r"))
+    assert "KIT-GF-033" in prompt and "Never run raw git" in prompt
+    assert "dry run with signature" in prompt and "only behind origin/main" in prompt
+    assert "KIT-GF-033" in VERBS[rs.WIEDERHERSTELLEN].tooltip()
+
+
+def test_cockpit_runs_no_repository_changing_git():
+    """The Cockpit steers; repository changes run only inside work orders through
+    the Kit. Allowed exception: the Kit findings cache clone (not the repository)."""
+    import re
+    mutating = re.compile(r'"(reset|checkout|switch|clean|commit|push|merge|rebase|restore|stash|pull|'
+                          r'cherry-pick|tag)"')
+    allowed = {"kit_findings_sync.py", "kit_command_catalog.py"}
+    offenders = [f"{path.name}:{n}" for path in (ROOT / "src").rglob("*.py") if path.name not in allowed
+                 for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+                 if mutating.search(line)]
+    assert offenders == []
