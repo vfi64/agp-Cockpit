@@ -504,6 +504,15 @@ This section is normative for the file loop after local execution.
 43. Tool lists are not invocations (`AGP_TOOL_LIST_NOT_INVOCATION_V1`): a list
    made only of program names (e.g. `"allowed_tools": ["agentic-kit", "git"]`)
    no longer reads as the command `agentic-kit git` (live 1569/1570/1583).
+44. Send readiness after an upload (`AGP_SEND_READY_AFTER_UPLOAD_V1`): the
+   native transport waits up to 30 s (was 3 s) for an actionable send control;
+   a re-attached command digest that is still uploading keeps it disabled
+   (live 2026-10-02: „Arbeit beginnen“ stopped with SEND_BUTTON_NOT_READY
+   right after KIT_COMMAND_DIGEST_ATTACHED). After a finished task its
+   follow-up verb is the only recommendation (star, hint, Lage); a verified
+   DONE shows the Cockpit's verdict (CI gate or local verifier).
+   The command digest counts as present in the chat only after the message
+   carrying it was sent (`AGP_DIGEST_REMEMBERED_AFTER_SEND_V1`).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

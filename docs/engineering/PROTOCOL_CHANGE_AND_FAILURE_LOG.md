@@ -1110,3 +1110,9 @@ repeat once.
 - Slice T5: AGP_STANDARD_TASK_FRAMEWORK_V1, AGP_START_CLICK_APPROVAL_V1, AGP_STANDARD_VERIFIER_V1, AGP_NO_FORCE_V1, Abschließen, Arbeit beginnen, basic Wiederherstellen (COMMUNICATION_PROTOCOL 39–43); release policy `tag_push` allowed after approval.
 - Tests: `tests/test_t5_standard_task_framework.py` (definitions and scopes, goal texts without command names, prechecks in temporary git repositories, scoped pre-approval with effect log, verifiers, bridge hook order, tool-list and force rules, panel: dialog/confirmation, pre-approval and CI gate, R5 lock, R6 offer, follow-up); adjusted verb and T3 hint tests.
 
+## 2026-10-02 — Abschließen live (1588–1589); Arbeit beginnen stopped; fix T5b (build send-ready-20261002, extension 0.3.40)
+
+- „③ Abschließen“ of T5 (build finish-button-20261002): one remote turn, 1588 `pr-create-complete` under the start-click approval (one consumption shown in the tab), PR #152 and refresh #153 merged, 1589 DONE `ci-verified`, task `VERIFIED_COMPLETE`, no NEEDS_HUMAN. P5/P6 live-confirmed. Cosmetic: the tab showed a generic „Ergebnis lokal verifiziert“ and two recommendations (status line „Chat wechseln“, star on „Arbeit beginnen“).
+- „① Arbeit beginnen“ (feat/p11-release-button): the digest was re-attached (fifth mission in the chat), the bootstrap send failed after 3 s with `SEND_BUTTON_NOT_READY` (send control disabled during the upload) → MISSION_BOOTSTRAP_SEND_FAILED → STOPPED; nothing ran locally, no branch created.
+- Fix T5b: AGP_SEND_READY_AFTER_UPLOAD_V1, single recommendation after a finished task, verdict in the DONE text (COMMUNICATION_PROTOCOL 44). Tests in `tests/test_t5_standard_task_framework.py`, `tests/test_k07_send_control_readiness_wait.py`.
+

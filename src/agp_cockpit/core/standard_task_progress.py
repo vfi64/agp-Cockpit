@@ -79,6 +79,13 @@ def describe_standard_task_progress(
             True, "DONE")
     if mstate == "DONE":
         if task_state == "VERIFIED_COMPLETE":
+            # Live 2026-10-02 (Abschließen): show the Cockpit's own verdict
+            # (CI gate or local verifier) instead of a generic sentence.
+            summary = " ".join(str(mission.get("last_summary") or "").split())[:240]
+            for prefix in ("Fertig (Remote): ", "Fertig: "):
+                summary = summary.removeprefix(prefix)
+            if summary.startswith(("CI grün geprüft", "Lokal geprüft")):
+                return StandardTaskProgress(f"Fertig ✓ — {summary} ({counters}). {local}", True, "DONE")
             return StandardTaskProgress(
                 f"Fertig ✓ — Ergebnis lokal verifiziert und übergeben ({counters}). "
                 f"Mission: DONE · {local}",

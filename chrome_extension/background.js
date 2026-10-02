@@ -581,9 +581,12 @@ async function agpNativeTransportV1(message, sender) {
     // 825 proved insertion succeeds while the prior submit path did not commit.
     // React may publish/enable the send control shortly after Input.insertText.
     // Wait boundedly for a truly actionable target instead of sampling once.
+    // AGP_SEND_READY_AFTER_UPLOAD_V1 (live 2026-10-02, Arbeit beginnen): an
+    // attachment that is still uploading (the re-attached command digest)
+    // keeps the send control disabled longer than 3 s; wait up to 30 s.
     let sendTarget = null;
     let sendDiagnostics = null;
-    for (let attempt = 0; attempt < 60; attempt += 1) {
+    for (let attempt = 0; attempt < 600; attempt += 1) {
       const probe = await evaluate(`(() => {
         const selectors = [
           'button[data-testid="send-button"]',
@@ -658,7 +661,7 @@ async function agpNativeTransportV1(message, sender) {
         model:modelVerification,
         send_target:null,
         send_diagnostics:sendDiagnostics,
-        readiness_wait_ms:3000
+        readiness_wait_ms:30000
       };
     }
 
