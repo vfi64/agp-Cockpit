@@ -26,6 +26,7 @@ def request_browser_refresh(
     repository_root: Path,
     *,
     reason: str = "operator",
+    target_build_id: str = "",
 ) -> BrowserRefreshRequest:
     root = repository_root.expanduser().resolve()
     path = refresh_request_path(root)
@@ -41,6 +42,9 @@ def request_browser_refresh(
         "generation": request.generation,
         "reason": request.reason,
         "requested_at_unix": request.requested_at_unix,
+        # AGP_EXTENSION_AUTO_REFRESH_V2: the build this refresh should load;
+        # the bridge asks at most once per target build (no reload loop).
+        "target_build_id": str(target_build_id)[:120],
     }
 
     tmp = path.with_suffix(".tmp")
@@ -87,3 +91,12 @@ def wait_for_refresh_handled(
         time.sleep(poll_seconds)
 
     return False
+
+
+def refresh_request_target(repository_root: Path) -> str:
+    """Target build of the current refresh request ("" if none or unreadable)."""
+    try:
+        data = json.loads(refresh_request_path(repository_root.expanduser().resolve()).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    return str(data.get("target_build_id") or "") if isinstance(data, dict) else ""

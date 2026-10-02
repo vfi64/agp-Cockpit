@@ -618,8 +618,29 @@
       content:fetched.content,
       content_type:String(fetched.content_type || "text/x-python"),
       chars:fetched.content.length,
-      download_sha256:String(fetched.sha256 || "")
+      download_sha256:String(fetched.sha256 || ""),
+      download_id:Number.isInteger(downloaded.download_id) ? downloaded.download_id : null
     };
+  }
+
+  // AGP_DOWNLOAD_HYGIENE_V1: after the bridge has persisted an accepted file in
+  // the repository, the browser copy in ~/Downloads is removed. Rejected work
+  // orders keep their browser copy (the bridge records only the reason).
+  async function forgetBrowserDownload(fetched) {
+    if (!fetched || !Number.isInteger(fetched.download_id)) return;
+    try {
+      const removed = await chrome.runtime.sendMessage({
+        type:"AGP_K07_FORGET_DOWNLOAD",
+        download_id:fetched.download_id,
+        filename:fetched.filename
+      });
+      await clientEvent("K07_BROWSER_DOWNLOAD_REMOVED", {
+        filename:fetched.filename,
+        download_id:fetched.download_id,
+        stage:String(removed && removed.stage || ""),
+        ok:Boolean(removed && removed.ok)
+      });
+    } catch (_) {}
   }
 
   async function readAssistantButtonAttachment(attachment) {
@@ -821,6 +842,7 @@
       authority:String(result.authority || ""),
       replayed:Boolean(result.replayed)
     });
+    void forgetBrowserDownload(fetched);
     return result;
   }
 
@@ -877,6 +899,7 @@
       terminal,
       replayed:Boolean(result.replayed)
     });
+    void forgetBrowserDownload(fetched);
     // AGP_K07_ADVANCE_STEP_AFTER_DELIVERY_V1: the expected step is the
     // identity of the awaited remote response. It advances only when the
     // result reached the remote side (or delivery is not required). Advancing
@@ -2131,10 +2154,64 @@
     } catch (_err) {}
   }
 
+  // AGP_DIGEST_ONCE_PER_CHAT_V1: the 33 KB command digest is attached once per
+  // conversation and manifest; it is attached again after a manifest change or
+  // after DIGEST_REATTACH_AFTER missions (long chats may drop old attachments).
+  // The Cockpit validates every work order locally, so a forgotten command
+  // costs a correction, never an unchecked execution.
+  const DIGEST_MEMORY_KEY = "agpDigestByConversation";
+  const DIGEST_REATTACH_AFTER = 5;
+  function conversationKey() {
+    const match = String(location.pathname || "").match(/\/c\/([^/?#]+)/);
+    return match ? match[1] : "";
+  }
+  async function digestMemory() {
+    try {
+      const data = await chrome.storage.local.get([DIGEST_MEMORY_KEY]);
+      const memory = data && data[DIGEST_MEMORY_KEY];
+      return memory && typeof memory === "object" ? memory : {};
+    } catch (_) {
+      return null;
+    }
+  }
+  async function digestAlreadyInChat(sha) {
+    const key = conversationKey();
+    if (!key || !sha) return false;
+    const memory = await digestMemory();
+    const entry = memory && memory[key];
+    return Boolean(entry && entry.sha === sha && Number(entry.missions || 0) < DIGEST_REATTACH_AFTER);
+  }
+  async function rememberDigest(sha, attached) {
+    const key = conversationKey();
+    if (!key || !sha) return;
+    const memory = await digestMemory();
+    if (memory === null) return;
+    const entry = memory[key] || {};
+    memory[key] = attached ? {sha, missions:1} : {sha, missions:Number(entry.missions || 0) + 1};
+    const keys = Object.keys(memory);
+    if (keys.length > 50) delete memory[keys[0]];
+    try { await chrome.storage.local.set({[DIGEST_MEMORY_KEY]:memory}); } catch (_) {}
+  }
+
+  // AGP_EXTENSION_AUTO_REFRESH_V2: the idle start-request poll (every second)
+  // names the staged extension build. An outdated extension asks for its
+  // refresh at once instead of waiting for the next throttled handshake.
+  function checkBuildDrift(expectedBuild) {
+    const expected = String(expectedBuild || "");
+    const own = String(globalThis.AGP_EXTENSION_BUILD_ID || "");
+    if (!expected || !own || expected === own) return false;
+    const now = Date.now();
+    if (now - Number(STATE.lastDriftHandshakeAt || 0) < 10000) return false;
+    STATE.lastDriftHandshakeAt = now;
+    void sendHandshake(true);
+    return true;
+  }
+
   async function pollExplicitTaskStartRequest() {
     if (STATE.running) return;
     try {
       const req = await api("/v1/task/start-request");
+      checkBuildDrift(req.extension_expected_build_id);
       const generation = Number(req.generation || 0);
       const missionId = String(req.mission_id || "");
       // An invalidated request keeps its counter internally, but is not an
@@ -2209,9 +2286,9 @@
     // K07: status refresh is observational only. A persisted READY/FULL_AUTO task
     // must not execute merely because the desktop app/bridge reconnects.
     STATE.lastRefresh = new Date();
-    STATE.note = STATE.mission
-      ? `${STATE.mission.state} · ${STATE.mission.title || "Mission"}`
-      : "Keine aktive Mission";
+    // The mission line already shows state and title; a second line with the
+    // same text only repeated it (live 2026-10-01/02).
+    STATE.note = "";
     STATE.lastEvent = "STATUS_OK";
     render();
     return result;
@@ -3377,17 +3454,26 @@
       // AGP_KIT_COMMAND_CATALOG_V1: the remote side cannot read the local
       // command manifest; its digest travels with the mission start.
       const digestPath = String(status.kit_command_digest_path || "");
-      if (digestPath) {
+      const manifestSha = String(status.kit_manifest_sha || "");
+      let bootstrapText = bootstrap;
+      if (digestPath && await digestAlreadyInChat(manifestSha)) {
+        // AGP_DIGEST_ONCE_PER_CHAT_V1: same manifest, same chat, recent enough.
+        bootstrapText = bootstrap + "\n\nThe agentic-kit command digest for manifest " + manifestSha +
+          " was attached earlier in this conversation and is unchanged; it remains the command authority for this mission.";
+        await rememberDigest(manifestSha, false);
+        await clientEvent("KIT_COMMAND_DIGEST_REUSED", {manifest_sha:manifestSha});
+      } else if (digestPath) {
         const attached = await chrome.runtime.sendMessage({type:"AGP_K07_ATTACH_FILES", files:[digestPath]});
         if (!attached || attached.ok !== true) {
           throw new Error("Kit command digest could not be attached: " + String(attached && attached.error || "unknown"));
         }
+        await rememberDigest(manifestSha, true);
         await clientEvent("KIT_COMMAND_DIGEST_ATTACHED", {
-          manifest_sha:String(status.kit_manifest_sha || ""),
+          manifest_sha:manifestSha,
           evidence:String(attached.evidence || "")
         });
       }
-      await sendPrompt(bootstrap);
+      await sendPrompt(bootstrapText);
     } catch (err) {
       if (STATE.runGeneration === runGeneration) {
         await stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");
@@ -3671,14 +3757,17 @@
 
     const tBig = document.createElement("div");
     tBig.className = "agp-big";
-    tBig.textContent = `${STATE.turns} / ${LIMITS.maxTurns}`;
+    // Same count as the Cockpit: the mission's remote turns (not the
+    // browser-local send counter, which also counts bootstrap messages).
+    const shownTurns = STATE.mission ? Number(STATE.mission.turn_count || 0) : Number(STATE.turns || 0);
+    tBig.textContent = `${shownTurns} / ${LIMITS.maxTurns}`;
     turns.appendChild(tBig);
 
     const progress = document.createElement("div");
     progress.className = "agp-progress";
     const fill = document.createElement("div");
     fill.style.width =
-      `${Math.min(100, STATE.turns / LIMITS.maxTurns * 100)}%`;
+      `${Math.min(100, shownTurns / LIMITS.maxTurns * 100)}%`;
     progress.appendChild(fill);
     turns.appendChild(progress);
     body.appendChild(turns);

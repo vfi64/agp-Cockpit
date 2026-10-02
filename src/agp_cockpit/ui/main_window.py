@@ -305,7 +305,16 @@ class MainWindow(ttk.Frame):
             column=0,
             sticky="w",
         )
-        ttk.Label(parent,textvariable=self.system_focus_var).grid(row=3,column=0,columnspan=2,sticky="w",pady=(8,0))
+        # AGP_KIT_FINDINGS_VIEW_V1 / AGP_MAINTENANCE_CLEANUP_V1
+        tools = ttk.LabelFrame(parent, text="Werkzeuge", padding=8)
+        tools.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        ttk.Button(tools, text="Kit-Befunde …", command=self.open_kit_findings).grid(row=0, column=0, sticky="w")
+        ttk.Label(tools, text="Fehler des Kits aus der Arbeit an diesem Projekt, mit Status",
+                  foreground="#888888").grid(row=0, column=1, sticky="w", padx=(8, 24))
+        ttk.Button(tools, text="Aufräumen …", command=self.open_cleanup).grid(row=0, column=2, sticky="w")
+        ttk.Label(tools, text="alte Arbeitsdateien und Kit-Logs, mit Vorschau",
+                  foreground="#888888").grid(row=0, column=3, sticky="w", padx=(8, 0))
+        ttk.Label(parent,textvariable=self.system_focus_var).grid(row=4,column=0,columnspan=2,sticky="w",pady=(8,0))
         system_focus_names={
             self.model_box:"Modell",
             self.runtime_refresh_button:"Aktualisieren",
@@ -314,6 +323,54 @@ class MainWindow(ttk.Frame):
         }
         for widget,name in system_focus_names.items():
             widget.bind("<FocusIn>",lambda _e,n=name:self.system_focus_var.set(f"Tastaturfokus: {n}"),add="+")
+
+    def _installed_kit(self):
+        from agp_cockpit.core.kit_installation import discover
+        try:
+            return discover(self.repository_root)
+        except Exception:  # noqa: BLE001 - shown as "not found"
+            return None
+
+    def open_kit_findings(self) -> None:
+        from agp_cockpit.ui.kit_findings_window import KitFindingsWindow
+        kit = self._installed_kit()
+        KitFindingsWindow(self, repository_root=self.repository_root,
+                          installed_version=getattr(kit, "version", None))
+
+    def open_cleanup(self) -> None:
+        """AGP_MAINTENANCE_CLEANUP_V1: preview first, delete only after OK, never while a task runs."""
+        from agp_cockpit.core import maintenance
+        from agp_cockpit.core.mission_http_client import status as bridge_status
+        try:
+            mission = (bridge_status() or {}).get("mission") or {}
+        except Exception:  # noqa: BLE001 - an unreachable bridge runs no task
+            mission = {}
+        if mission and str(mission.get("state") or "") not in {
+                "", "IDLE", "DONE", "COMPLETED", "NEEDS_HUMAN", "BLOCKED", "FAILED", "ERROR", "STOPPED", "CANCELLED"}:
+            messagebox.showinfo("Aufräumen", "Ein Task läuft — Aufräumen erst nach seinem Ende.", parent=self)
+            return
+        kit = self._installed_kit()
+        binary = getattr(kit, "binary", None)
+        self.configure(cursor="watch")
+        self.update_idletasks()
+        try:
+            plan = maintenance.plan(self.repository_root, kit_binary=binary)
+        finally:
+            self.configure(cursor="")
+        if not plan.candidates and plan.kit_argv is None:
+            messagebox.showinfo("Aufräumen", maintenance.describe(plan), parent=self)
+            return
+        if not messagebox.askyesno(
+                "Aufräumen — Vorschau",
+                maintenance.describe(plan) + "\n\nJetzt endgültig löschen?", parent=self):
+            return
+        outcome = maintenance.execute(self.repository_root, plan, kit_binary=binary)
+        messagebox.showinfo(
+            "Aufräumen",
+            f"Gelöscht: {outcome['deleted']} Einträge, {outcome['bytes'] / 1e6:.1f} MB"
+            + (f"; übersprungen: {len(outcome['skipped'])}" if outcome["skipped"] else "")
+            + (f"\n\n{outcome['kit_output']}" if outcome["kit_output"] else ""),
+            parent=self)
 
     def refresh_build_freshness(self) -> None:
         """AGP_STALE_APP_GUARD_V1: warn while a newer build or source is on disk."""

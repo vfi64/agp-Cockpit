@@ -1048,3 +1048,88 @@ a parallel mechanism.
 **Required Kit repair:** Make refresh package-backed and workspace-aware. It must regenerate/synchronize from packaged command-manifest authority or provide one exact supported executable remediation. It must not depend on Kit source-checkout layout.
 
 **Regression:** Released wheel + fresh external workspace + stale command reference -> check detects drift -> refresh succeeds without source checkout -> subsequent check/audit PASS.
+
+<!-- AGP_FINDINGS_2026_10_01 -->
+## Findings 2026-10-01/02 (K07 lifecycle runs 1520-1560)
+
+Status vocabulary (JSON `status_vocabulary`): OPEN, CONFIRMED, FIXED (`fixed_in`), VERIFIED_FIXED
+(`verified_by`). A Cockpit mitigation (`cockpit_mitigation`) never changes the status.
+
+| Date | Event | Evidence | Canonical family | Observation |
+|---|---|---|---|---|
+| 2026-10-01 | `GF-E027` | Steps 1534-1545 | `KIT-GF-011` | post-merge refresh rewrote status.md after #140 |
+| 2026-10-01 | `GF-E028` | GitHub Actions #490/#491/#501-#503 | `KIT-GF-026` | unpinned Kit, duplicate runs and 3-8 min CI in the managed template |
+| 2026-10-01 | `GF-E029` | Step 1551 | `KIT-GF-027` | pr-create-complete rc 2 for a red PR CI; 37 KB output |
+| 2026-10-01 | `GF-E030` | K07 handoff 2026-10-01 §3.1-3.3 | `KIT-GF-023` | --json output with trailing FINAL_SIGNAL lines |
+| 2026-10-01 | `GF-E031` | ci_gate.main_ci | `KIT-GF-024` | no Kit read command for main CI after a merge |
+| 2026-10-01 | `GF-E032` | kit_command_catalog | `KIT-GF-025` | manifest without remote-effect classification |
+| 2026-10-02 | `GF-E033` | Kit 1.0.13 sources | `KIT-GF-028` | hard-coded /tmp logs and diffs |
+
+Extensions of existing families:
+
+- `KIT-GF-010` (2026-10-01): Rule acknowledgement after a rule-source change on main (#134) — After a rule source changed on main, push stayed blocked until `rules acknowledge` ran. Invalidation itself is intended (regression clause); the orchestrators neither re-acknowledge nor name it as the next action.
+- `KIT-GF-011` (2026-10-01): Post-merge refresh re-marks itself as open; Kit-owned files dirty after lifecycle — After refresh #140 the Kit rewrote .agentic/state/status.md ('refresh state after PR #139 ... dd4a15d4') on the leftover branch; the next finish run needed an extra step (1549) to remove it. .agentic/rule_ack/current.json is dirty after each lifecycle and the handoff package after Chat wechseln.
+- `KIT-GF-017` (2026-10-01): transfer pr-create blocked by the fresh-LLM-context gate — transfer pr-create stopped at the gate for fresh LLM context carriers; the orchestrators do not refresh the carriers themselves.
+
+## KIT-GF-023 — --json output is not pure JSON
+
+- Status: OPEN · Severity: medium · First observed: 2026-10-01
+- Expected: Commands invoked with --json print exactly one JSON document on stdout.
+- Observed: Lifecycle commands append FINAL_SIGNAL=... and similar lines after the JSON document; consumers must cut the JSON out heuristically.
+- Impact: Every consumer (Cockpit CI gate, remote work orders) needs tolerant parsing; a format change silently breaks evidence extraction.
+- Workaround: Cockpit extracts the outermost JSON object/array (ci_gate._json_from).
+- Repair: Emit signals on stderr or inside the JSON document when --json is set.
+- Regression: Every --json command parses with json.loads(stdout) unchanged.
+
+## KIT-GF-024 — No read command for the CI of a commit or branch without a pull request
+
+- Status: OPEN · Severity: medium · First observed: 2026-10-01
+- Expected: A read-only Kit command reports the CI verdict of a commit (e.g. main after a merge).
+- Observed: pr status and pr wait-ci require a PR number; main CI after a merge can only be read with raw gh run list.
+- Impact: The Cockpit's lifecycle verification has to call gh directly, outside the Kit command authority.
+- Workaround: ci_gate.main_ci() uses gh run list / gh run view --log-failed.
+- Repair: Add e.g. `agentic-kit ci status --commit <sha> --json`.
+- Regression: Post-merge verification works with Kit commands only.
+
+## KIT-GF-025 — Command manifest does not classify remote effects
+
+- Status: OPEN · Severity: high · First observed: 2026-10-01
+- Expected: Each manifest command declares whether it pushes, fetches, opens/merges PRs or publishes.
+- Observed: Surface and safety are present, remote effect is not; the Cockpit keeps its own lists (REMOTE_EFFECT_COMMANDS, PUBLISHING_COMMANDS, MERGE_COMMANDS).
+- Impact: Approval gating depends on a second, hand-maintained classification that can drift from the Kit.
+- Workaround: Cockpit lists; unknown effects are treated as remote and ask the human (AGP_REMOTE_EFFECT_ASKS_HUMAN_V1).
+- Repair: Add an effect classification (none/local/remote/destructive) to the manifest.
+- Regression: Cockpit approval gating derives entirely from the manifest.
+
+## KIT-GF-026 — Managed CI template: unpinned Kit, duplicate runs, no browser cache, no update path
+
+- Status: OPEN · Severity: high · First observed: 2026-10-01
+- Expected: The managed template pins the Kit version, runs once per commit, caches browsers, and can be updated by a Kit command.
+- Observed: `pip install agentic-project-kit` without version; push and pull_request on all branches (two runs per PR commit, e.g. #501/#502); Playwright browsers and apt deps on every run (3-8 min, #490 vs #491, #503 6:23); runs over 300 s exceed the orchestrators' default --timeout-seconds 300. Only `workspace init` writes the template; no command transfers a changed template to .github/workflows/, and `workspace remove` describes itself as removing only unchanged Kit files.
+- Impact: CI may check with a different Kit than the developer (determinism leak); doubled CI cost and wait time inside every lifecycle turn.
+- Workaround: Cockpit-side template change AGP_CI_GATE_V2 (PR #143).
+- Repair: Ship the template with a pinned Kit version, push only on the default branch, PR concurrency, browser cache, and provide a template update command.
+- Regression: One run per PR commit plus one per main commit; CI Kit version equals the workspace Kit version.
+- Cockpit mitigation (2026-10-01, `AGP_CI_GATE_V2`): Template changed in .agentic/ci and mirrored: push only on main, PR concurrency, Kit pinned to 1.0.13, parallel python/browser jobs, browser cache, aggregate check agentic-gate. Live: runs #504-#507, 1:46-2:06 instead of 2:50-6:23.
+
+## KIT-GF-027 — Orchestrator output size and non-zero return code for a red CI finding
+
+- Status: OPEN · Severity: medium · First observed: 2026-10-01
+- Expected: Orchestrators summarize (result, next action, failed steps in detail) and report a red CI as a structured finding.
+- Observed: pr-closeout-complete printed 28 KB, pr-create-complete 37 KB of step output; pr-create-complete returned rc 2 for a red PR CI (step 1551), which the runner treats as an execution failure.
+- Impact: Large remote-context cost per turn; an extra recovery turn for a domain finding.
+- Workaround: Cockpit result projection (AGP_RESULT_PROJECTION_V1) shortens success output; the recovery prompt carries the candidate bundle projection.
+- Repair: Compact summary by default or --summary; distinguish 'ran, finding red' (rc 0, decision red) from 'could not run'.
+- Regression: Finish run with one red CI repair needs no recovery-only turn; orchestrator stdout under ~4 KB on success.
+- Cockpit mitigation (2026-10-01, `AGP_RESULT_PROJECTION_V1`): Deterministic projection of result files for the remote side; finish run 1547-1555: 399 KB -> 117 KB.
+
+## KIT-GF-028 — Kit writes to fixed /tmp paths
+
+- Status: OPEN · Severity: low · First observed: 2026-10-01
+- Expected: Temporary files go to tempfile.gettempdir() (honouring TMPDIR) or a repository-local tmp directory.
+- Observed: Logs /tmp/agentic-project-kit-*.log and protected-change diffs /tmp/<label>.diff (transfer repo-pre-pr) use a hard-coded /tmp; artifact-gc --tmp-logs collects only the logs.
+- Impact: Files outside the repository accumulate; the Cockpit cannot redirect them with TMPDIR.
+- Workaround: Cockpit maintenance runs `agentic-kit artifact-gc --tmp-logs --execute`.
+- Repair: Use tempfile.gettempdir() / repository tmp; include the diffs in artifact-gc.
+- Regression: With TMPDIR set, no Kit file appears under /tmp.
+

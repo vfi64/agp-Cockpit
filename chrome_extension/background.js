@@ -133,6 +133,29 @@ async function agpWaitForCommandFileDownload(message, sender) {
   }
 }
 
+// AGP_DOWNLOAD_HYGIENE_V1: Chrome saves every remote file in ~/Downloads; the
+// bridge persists accepted work orders and terminal replies in the repository's
+// Download/. After that the browser copy is removed: only the exact download
+// item this extension armed and waited for, matched by id and file name.
+async function agpForgetCommandFileDownload(message) {
+  const id = Number(message && message.download_id);
+  const filename = String(message && message.filename || "").trim();
+  if (!Number.isInteger(id) || id < 0 || !k07SafeRemoteFileName(filename)) {
+    throw new Error("download id and one safe remote filename required");
+  }
+  const items = await chrome.downloads.search({id});
+  const item = items && items[0];
+  if (!item) return {ok:true, stage:"DOWNLOAD_ALREADY_GONE", download_id:id};
+  if (!k07DownloadNameMatches(item.filename, filename)) {
+    throw new Error("download item does not match the accepted file");
+  }
+  if (item.state === "complete" && item.exists !== false) {
+    try { await chrome.downloads.removeFile(id); } catch (_) {}
+  }
+  await chrome.downloads.erase({id});
+  return {ok:true, stage:"DOWNLOAD_REMOVED", download_id:id};
+}
+
 async function performRefresh(generation) {
   const state = await chrome.storage.local.get([LAST_HANDLED]);
   const handled = Number(state[LAST_HANDLED] || 0);
@@ -183,6 +206,12 @@ chrome.runtime.onMessage.addListener(
         .catch(error => sendResponse({ok:false, stage:"COMMAND_FILE_DOWNLOAD_ARM_FAILED", error:String(error && error.message ? error.message : error)}));
       return true;
     }
+    if (message && message.type === "AGP_K07_FORGET_DOWNLOAD") {
+      agpForgetCommandFileDownload(message)
+        .then(sendResponse)
+        .catch(error => sendResponse({ok:false, stage:"DOWNLOAD_REMOVE_FAILED", error:String(error && error.message ? error.message : error)}));
+      return true;
+    }
     if (message && message.type === "AGP_K07_WAIT_COMMAND_FILE_DOWNLOAD") {
       agpWaitForCommandFileDownload(message, sender)
         .then(sendResponse)
@@ -206,25 +235,30 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+// AGP_EXTENSION_AUTO_REFRESH_V2: after runtime.reload() the alarm may not
+// survive; the reloaded worker reloads the recorded ChatGPT tabs itself so
+// their content scripts belong to the new build.
+async function agpReloadPendingTabs() {
+  const state = await chrome.storage.local.get([PENDING]);
+  const pending = state[PENDING];
+  if (!pending || !Array.isArray(pending.tabIds)) return 0;
+  await chrome.storage.local.remove(PENDING);
+  for (const tabId of pending.tabIds) {
+    try { await chrome.tabs.reload(tabId); } catch (_) {}
+  }
+  return pending.tabIds.length;
+}
+
+if (chrome.runtime.onInstalled && typeof chrome.runtime.onInstalled.addListener === "function") {
+  chrome.runtime.onInstalled.addListener(() => { void agpReloadPendingTabs(); });
+}
+
 chrome.alarms.onAlarm.addListener(async alarm => {
   if (alarm.name !== ALARM_NAME) {
     return;
   }
 
-  const state = await chrome.storage.local.get([PENDING]);
-  const pending = state[PENDING];
-
-  if (!pending || !Array.isArray(pending.tabIds)) {
-    return;
-  }
-
-  for (const tabId of pending.tabIds) {
-    try {
-      await chrome.tabs.reload(tabId);
-    } catch (_) {}
-  }
-
-  await chrome.storage.local.remove(PENDING);
+  await agpReloadPendingTabs();
 });
 
 

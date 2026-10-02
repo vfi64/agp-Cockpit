@@ -20,6 +20,10 @@ from agp_cockpit.core.bridge_protocol import (
     encode_turn_response,
     parse_turn_request,
 )
+from agp_cockpit.core.browser_refresh import (
+    refresh_request_target,
+    request_browser_refresh,
+)
 from agp_cockpit.core.command_file_contract import validate_command_content
 from agp_cockpit.core.diagnostic_log import DiagnosticLogger
 from agp_cockpit.core.download_ingress import read_downloaded_command
@@ -367,6 +371,10 @@ class CockpitBridgeServer:
                 if path == "/v1/task/start-request":
                     from agp_cockpit.core.start_request import StartRequestStore
                     request = StartRequestStore(runtime_root).pending()
+                    # AGP_EXTENSION_AUTO_REFRESH_V2: polled every second while idle,
+                    # so an outdated extension notices the new app within seconds.
+                    request = {**request, "extension_expected_build_id": str(
+                        _runtime_identity_payload().get("extension_expected_build_id") or BRIDGE_BUILD_ID)}
                     state = engine.runtime.state
                     diag.event("TASK_START_REQUEST_POLLED", mission_id=(None if state is None else state.mission_id), state_after=("IDLE" if state is None else state.state), component="http", details={"generation": request.get("generation"), "request_mission_id": request.get("mission_id"), "request_task_id": request.get("task_id")})
                     self._json(200, request)
@@ -1583,9 +1591,32 @@ class CockpitBridgeServer:
                             except Exception:  # noqa: BLE001 - malformed refresh metadata defaults safely.
                                 refresh_generation = 0
 
+                            # AGP_EXTENSION_AUTO_REFRESH_V2 (live 2026-10-01/02: the
+                            # old extension ran four hours beside a new app because
+                            # the startup worker wrote no request without an early
+                            # handshake). The handshake itself decides: a different
+                            # build than the staged one gets one refresh per target.
+                            expected_build = str(
+                                _runtime_identity_payload().get("extension_expected_build_id")
+                                or BRIDGE_BUILD_ID
+                            )
+                            reported_build = str(details.get("build_id", "") or "")
+                            if (
+                                reported_build
+                                and expected_build
+                                and reported_build != expected_build
+                                and refresh_generation <= handled_generation
+                                and refresh_request_target(repo_root) != expected_build
+                            ):
+                                refresh_generation = request_browser_refresh(
+                                    repo_root,
+                                    reason="handshake-build-mismatch",
+                                    target_build_id=expected_build,
+                                ).generation
                             client_response[
                                 "refresh_generation"
                             ] = refresh_generation
+                            client_response["extension_expected_build_id"] = expected_build
 
                         diag.event(
                             event_name,

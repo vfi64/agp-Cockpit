@@ -397,6 +397,35 @@ This section is normative for the file loop after local execution.
 24. Host independence of tests (`AGP_GH_BINARY_V1`): the Cockpit calls `gh`
    through `ci_gate.gh_binary()`, overridable with `AGP_COCKPIT_GH_BINARY`; the
    test suite sets `none`, tests with a fake gh name it explicitly.
+25. Extension refresh (`AGP_EXTENSION_AUTO_REFRESH_V2`). The handshake decides:
+   an extension reporting a build other than the staged one gets one refresh
+   request per target build (`target_build_id` in `refresh_request.json`; no
+   reload loop if the browser keeps the old build). The idle start-request poll
+   (every second) names the staged build, so an outdated extension asks at once
+   instead of after the throttled handshake; the reloaded service worker reloads
+   the recorded ChatGPT tabs (`onInstalled`). Startup no longer aborts when the
+   active tab is not ChatGPT.
+26. Download hygiene (`AGP_DOWNLOAD_HYGIENE_V1`). After the bridge accepted and
+   persisted a work order or terminal reply in `Download/`, the extension removes
+   exactly that browser download item (id and name checked) from `~/Downloads`.
+   Rejected work orders keep their browser copy. Work orders run with
+   `TMPDIR`/`TEMP`/`TMP` = `.local/agp-cockpit/tmp/<step>`.
+27. Maintenance (`AGP_MAINTENANCE_CLEANUP_V1`, System tab „Aufräumen …“):
+   preview first, deletion only after OK and never while a task runs. Rules:
+   `Download/<step>_*` outside the newest 50 steps and older than 30 days
+   (`run_next.py` never), projections older than 30 days, work-order tmp older
+   than one day, CI evidence older than 30 days beyond the newest 20, and the
+   Kit's `/tmp` logs via `agentic-kit artifact-gc --tmp-logs` (dry run in the
+   preview, `--execute` on OK). Only files a fresh plan still lists are deleted.
+28. Kit findings view (`AGP_KIT_FINDINGS_VIEW_V1`, System tab „Kit-Befunde …“):
+   read-only window over `docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json`
+   with filter, details, Cockpit mitigations and the installed Kit version; the
+   effective status compares `fixed_in` with the installed Kit.
+29. Command digest once per chat (`AGP_DIGEST_ONCE_PER_CHAT_V1`): attached again
+   only for a new conversation, a changed manifest SHA or after five missions;
+   otherwise the mission start names the earlier attachment. Local work-order
+   validation is unaffected. The Bridge panel shows the mission's remote turns
+   (same count as the Cockpit) and no duplicate mission line.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

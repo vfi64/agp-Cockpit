@@ -190,7 +190,7 @@
       "repository_head": "625721a64cefbf1115eab4d763c0d55e192e0ff9",
       "summary": "Post-upgrade external-workspace evidence: Kit 1.0.10 recognizes agp-Cockpit as external_manifest_workspace; doctor PASS; transfer state WAIT/NO_COMMAND with clean synchronized main; canonical work/transfer/handoff/PR-closeout orchestrators are discoverable. This strengthens external lifecycle evidence but does not by itself close first-cycle or released-package end-to-end acceptance criteria.",
       "evidence": [
-        "Download/1099_kit1010_post_upgrade_greenfield_acceptance_preflight_20260915-132359-840774_return_bundle.json",
+        ".local/agp-cockpit/archive/cited-evidence/1099_kit1010_post_upgrade_greenfield_acceptance_preflight_20260915-132359-840774_return_bundle.json",
         "PR #115 substantive Cockpit closeout",
         "PR #116 successor-package refresh"
       ],
@@ -216,6 +216,55 @@
       "historical_id": "Steps 1277-1281",
       "canonical_family": "KIT-GF-022",
       "summary": "packaged 1.0.13 command-reference refresh failed on development-checkout-only generator path"
+    },
+    {
+      "date": "2026-10-01",
+      "event_id": "GF-E027",
+      "historical_id": "Steps 1534-1545",
+      "canonical_family": "KIT-GF-011",
+      "summary": "post-merge refresh rewrote status.md after #140"
+    },
+    {
+      "date": "2026-10-01",
+      "event_id": "GF-E028",
+      "historical_id": "GitHub Actions #490/#491/#501-#503",
+      "canonical_family": "KIT-GF-026",
+      "summary": "unpinned Kit, duplicate runs and 3-8 min CI in the managed template"
+    },
+    {
+      "date": "2026-10-01",
+      "event_id": "GF-E029",
+      "historical_id": "Step 1551",
+      "canonical_family": "KIT-GF-027",
+      "summary": "pr-create-complete rc 2 for a red PR CI; 37 KB output"
+    },
+    {
+      "date": "2026-10-01",
+      "event_id": "GF-E030",
+      "historical_id": "K07 handoff 2026-10-01 §3.1-3.3",
+      "canonical_family": "KIT-GF-023",
+      "summary": "--json output with trailing FINAL_SIGNAL lines"
+    },
+    {
+      "date": "2026-10-01",
+      "event_id": "GF-E031",
+      "historical_id": "ci_gate.main_ci",
+      "canonical_family": "KIT-GF-024",
+      "summary": "no Kit read command for main CI after a merge"
+    },
+    {
+      "date": "2026-10-01",
+      "event_id": "GF-E032",
+      "historical_id": "kit_command_catalog",
+      "canonical_family": "KIT-GF-025",
+      "summary": "manifest without remote-effect classification"
+    },
+    {
+      "date": "2026-10-02",
+      "event_id": "GF-E033",
+      "historical_id": "Kit 1.0.13 sources",
+      "canonical_family": "KIT-GF-028",
+      "summary": "hard-coded /tmp logs and diffs"
     }
   ],
   "families": [
@@ -454,6 +503,14 @@
             "PR #2",
             "PR #3"
           ]
+        },
+        {
+          "date": "2026-10-01",
+          "title": "Rule acknowledgement after a rule-source change on main (#134)",
+          "status": "CONFIRMED",
+          "observed": "After a rule source changed on main, push stayed blocked until `rules acknowledge` ran. Invalidation itself is intended (regression clause); the orchestrators neither re-acknowledge nor name it as the next action.",
+          "impact": "Lifecycle runs stop with a generic block instead of a deterministic next step.",
+          "recovery": "rules acknowledge, commit, retry."
         }
       ]
     },
@@ -480,6 +537,16 @@
         "062-D2",
         "Steps 215-218",
         "217_SYSTEMIC_FAILURE_REVIEW.json"
+      ],
+      "extensions": [
+        {
+          "date": "2026-10-01",
+          "title": "Post-merge refresh re-marks itself as open; Kit-owned files dirty after lifecycle",
+          "status": "CONFIRMED",
+          "observed": "After refresh #140 the Kit rewrote .agentic/state/status.md ('refresh state after PR #139 ... dd4a15d4') on the leftover branch; the next finish run needed an extra step (1549) to remove it. .agentic/rule_ack/current.json is dirty after each lifecycle and the handoff package after Chat wechseln.",
+          "impact": "Every finish needs cleanup or a DESTRUCTIVE settle step that asks the human.",
+          "recovery": "transfer restore-known-volatile / post-merge-settle with approval."
+        }
       ]
     },
     {
@@ -602,6 +669,16 @@
         "latest_handoff_report_missing",
         ".agentic/transfer/outbox/last_result.txt",
         ".agentic/state/handoff/transfer_handoff_reports/latest-transfer-handoff-report.json"
+      ],
+      "extensions": [
+        {
+          "date": "2026-10-01",
+          "title": "transfer pr-create blocked by the fresh-LLM-context gate",
+          "status": "CONFIRMED",
+          "observed": "transfer pr-create stopped at the gate for fresh LLM context carriers; the orchestrators do not refresh the carriers themselves.",
+          "impact": "PR creation needs a manual refresh step.",
+          "recovery": "Use pr-create-complete, which ran through in runs 1551 and 1559."
+        }
       ]
     },
     {
@@ -674,6 +751,141 @@
         "Step 1280 refresh FAIL on missing generator",
         "Step 1281 installed 1.0.13 source hard-codes checkout-local generator path"
       ]
+    },
+    {
+      "id": "KIT-GF-023",
+      "title": "--json output is not pure JSON",
+      "severity": "medium",
+      "expected": "Commands invoked with --json print exactly one JSON document on stdout.",
+      "observed": "Lifecycle commands append FINAL_SIGNAL=... and similar lines after the JSON document; consumers must cut the JSON out heuristically.",
+      "impact": "Every consumer (Cockpit CI gate, remote work orders) needs tolerant parsing; a format change silently breaks evidence extraction.",
+      "workaround": "Cockpit extracts the outermost JSON object/array (ci_gate._json_from).",
+      "repair": "Emit signals on stderr or inside the JSON document when --json is set.",
+      "regression": "Every --json command parses with json.loads(stdout) unchanged.",
+      "evidence": [
+        "K07_STATE_AND_NEXT_STEPS_2026-10-01.md §3.1",
+        "tests/test_ci_gate.py::test_run_pr_status_calls_the_kit_and_tolerates_trailing_lines"
+      ],
+      "first_observed": "2026-10-01",
+      "status": "OPEN",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null
+    },
+    {
+      "id": "KIT-GF-024",
+      "title": "No read command for the CI of a commit or branch without a pull request",
+      "severity": "medium",
+      "expected": "A read-only Kit command reports the CI verdict of a commit (e.g. main after a merge).",
+      "observed": "pr status and pr wait-ci require a PR number; main CI after a merge can only be read with raw gh run list.",
+      "impact": "The Cockpit's lifecycle verification has to call gh directly, outside the Kit command authority.",
+      "workaround": "ci_gate.main_ci() uses gh run list / gh run view --log-failed.",
+      "repair": "Add e.g. `agentic-kit ci status --commit <sha> --json`.",
+      "regression": "Post-merge verification works with Kit commands only.",
+      "evidence": [
+        "K07_STATE_AND_NEXT_STEPS_2026-10-01.md §3.2",
+        "src/agp_cockpit/core/ci_gate.py::main_ci"
+      ],
+      "first_observed": "2026-10-01",
+      "status": "OPEN",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null
+    },
+    {
+      "id": "KIT-GF-025",
+      "title": "Command manifest does not classify remote effects",
+      "severity": "high",
+      "expected": "Each manifest command declares whether it pushes, fetches, opens/merges PRs or publishes.",
+      "observed": "Surface and safety are present, remote effect is not; the Cockpit keeps its own lists (REMOTE_EFFECT_COMMANDS, PUBLISHING_COMMANDS, MERGE_COMMANDS).",
+      "impact": "Approval gating depends on a second, hand-maintained classification that can drift from the Kit.",
+      "workaround": "Cockpit lists; unknown effects are treated as remote and ask the human (AGP_REMOTE_EFFECT_ASKS_HUMAN_V1).",
+      "repair": "Add an effect classification (none/local/remote/destructive) to the manifest.",
+      "regression": "Cockpit approval gating derives entirely from the manifest.",
+      "evidence": [
+        "K07_STATE_AND_NEXT_STEPS_2026-10-01.md §3.3",
+        "src/agp_cockpit/core/kit_command_catalog.py"
+      ],
+      "first_observed": "2026-10-01",
+      "status": "OPEN",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null
+    },
+    {
+      "id": "KIT-GF-026",
+      "title": "Managed CI template: unpinned Kit, duplicate runs, no browser cache, no update path",
+      "severity": "high",
+      "expected": "The managed template pins the Kit version, runs once per commit, caches browsers, and can be updated by a Kit command.",
+      "observed": "`pip install agentic-project-kit` without version; push and pull_request on all branches (two runs per PR commit, e.g. #501/#502); Playwright browsers and apt deps on every run (3-8 min, #490 vs #491, #503 6:23); runs over 300 s exceed the orchestrators' default --timeout-seconds 300. Only `workspace init` writes the template; no command transfers a changed template to .github/workflows/, and `workspace remove` describes itself as removing only unchanged Kit files.",
+      "impact": "CI may check with a different Kit than the developer (determinism leak); doubled CI cost and wait time inside every lifecycle turn.",
+      "workaround": "Cockpit-side template change AGP_CI_GATE_V2 (PR #143).",
+      "repair": "Ship the template with a pinned Kit version, push only on the default branch, PR concurrency, browser cache, and provide a template update command.",
+      "regression": "One run per PR commit plus one per main commit; CI Kit version equals the workspace Kit version.",
+      "evidence": [
+        "K07_STATE_AND_NEXT_STEPS_2026-10-01.md §3.7",
+        "GitHub Actions #490/#491/#501/#502/#503",
+        "PR #143, runs #504-#507"
+      ],
+      "cockpit_mitigation": [
+        {
+          "date": "2026-10-01",
+          "marker": "AGP_CI_GATE_V2",
+          "description": "Template changed in .agentic/ci and mirrored: push only on main, PR concurrency, Kit pinned to 1.0.13, parallel python/browser jobs, browser cache, aggregate check agentic-gate. Live: runs #504-#507, 1:46-2:06 instead of 2:50-6:23."
+        }
+      ],
+      "first_observed": "2026-10-01",
+      "status": "OPEN",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null
+    },
+    {
+      "id": "KIT-GF-027",
+      "title": "Orchestrator output size and non-zero return code for a red CI finding",
+      "severity": "medium",
+      "expected": "Orchestrators summarize (result, next action, failed steps in detail) and report a red CI as a structured finding.",
+      "observed": "pr-closeout-complete printed 28 KB, pr-create-complete 37 KB of step output; pr-create-complete returned rc 2 for a red PR CI (step 1551), which the runner treats as an execution failure.",
+      "impact": "Large remote-context cost per turn; an extra recovery turn for a domain finding.",
+      "workaround": "Cockpit result projection (AGP_RESULT_PROJECTION_V1) shortens success output; the recovery prompt carries the candidate bundle projection.",
+      "repair": "Compact summary by default or --summary; distinguish 'ran, finding red' (rc 0, decision red) from 'could not run'.",
+      "regression": "Finish run with one red CI repair needs no recovery-only turn; orchestrator stdout under ~4 KB on success.",
+      "evidence": [
+        "K07_STATE_AND_NEXT_STEPS_2026-10-01.md §3.9",
+        "Download/1551..1555 return bundles"
+      ],
+      "cockpit_mitigation": [
+        {
+          "date": "2026-10-01",
+          "marker": "AGP_RESULT_PROJECTION_V1",
+          "description": "Deterministic projection of result files for the remote side; finish run 1547-1555: 399 KB -> 117 KB."
+        }
+      ],
+      "first_observed": "2026-10-01",
+      "status": "OPEN",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null
+    },
+    {
+      "id": "KIT-GF-028",
+      "title": "Kit writes to fixed /tmp paths",
+      "severity": "low",
+      "expected": "Temporary files go to tempfile.gettempdir() (honouring TMPDIR) or a repository-local tmp directory.",
+      "observed": "Logs /tmp/agentic-project-kit-*.log and protected-change diffs /tmp/<label>.diff (transfer repo-pre-pr) use a hard-coded /tmp; artifact-gc --tmp-logs collects only the logs.",
+      "impact": "Files outside the repository accumulate; the Cockpit cannot redirect them with TMPDIR.",
+      "workaround": "Cockpit maintenance runs `agentic-kit artifact-gc --tmp-logs --execute`.",
+      "repair": "Use tempfile.gettempdir() / repository tmp; include the diffs in artifact-gc.",
+      "regression": "With TMPDIR set, no Kit file appears under /tmp.",
+      "evidence": [
+        "agentic_project_kit/communication_artifact_gc.py",
+        "agentic_project_kit/cli_commands/transfer_repo_pre_pr.py"
+      ],
+      "first_observed": "2026-10-01",
+      "status": "OPEN",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null
     }
   ],
   "explicit_exclusions": [
@@ -814,10 +1026,17 @@
       "evidence": [
         "Step 774",
         "Step 775",
-        "Download/098_create_fresh_live_late_acceptance_validation_v1.py",
-        "Download/077_start_auto_click_path_instrumentation_repair_v1.py",
-        "Download/773_k07_explicit_start_signal_forensics_20260913-112302_return_bundle.json"
+        ".local/agp-cockpit/archive/cited-evidence/098_create_fresh_live_late_acceptance_validation_v1.py",
+        ".local/agp-cockpit/archive/cited-evidence/077_start_auto_click_path_instrumentation_repair_v1.py",
+        ".local/agp-cockpit/archive/cited-evidence/773_k07_explicit_start_signal_forensics_20260913-112302_return_bundle.json"
       ]
     }
-  ]
+  ],
+  "status_vocabulary": {
+    "OPEN": "defect observed, not fixed in a released Kit",
+    "CONFIRMED": "defect confirmed by reproduction, not fixed",
+    "FIXED": "fixed in the Kit release named in fixed_in; not yet re-verified in this workspace",
+    "VERIFIED_FIXED": "fixed_in release installed here and a later run no longer shows the defect (evidence in verified_by)"
+  },
+  "schema_notes": "Optional family fields since 2026-10-02: fixed_in (Kit version), verified_by (evidence), cockpit_mitigation (list of {date, marker, description}: what the Cockpit does meanwhile; a mitigation never changes the status)."
 }

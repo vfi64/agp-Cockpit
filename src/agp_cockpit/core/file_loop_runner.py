@@ -512,6 +512,12 @@ def execute_with_run_next(
         from agp_cockpit.core.ci_gate import tool_env
         runner_env = tool_env(root)
         runner_env["AGP_COCKPIT_REPOSITORY_ROOT"] = str(root.resolve())
+        # AGP_MAINTENANCE_CLEANUP_V1: temporary files of a work order stay in
+        # the repository (cleaned by maintenance), not scattered over /tmp.
+        work_tmp = root.resolve() / ".local" / "agp-cockpit" / "tmp" / str(step)
+        work_tmp.mkdir(parents=True, exist_ok=True)
+        for name in ("TMPDIR", "TEMP", "TMP"):
+            runner_env[name] = str(work_tmp)
         execution = controller.run(
             runner_argv,
             cwd=root,
