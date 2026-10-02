@@ -1,10 +1,19 @@
 name: Agentic Gate
 "on":
   pull_request:
+  # AGP_CI_GATE_V2: push runs only on main; a PR commit used to run twice
+  # (push + pull_request, e.g. #501/#502).
   push:
+    branches: [main]
+
+# A newer commit on the same PR cancels the older PR run; main runs are never
+# cancelled (one group per commit), the Cockpit verifies main CI after merges.
+concurrency:
+  group: agentic-gate-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  agentic-gate:
+  python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,16 +22,43 @@ jobs:
           python-version: "3.12"
           cache: "pip"
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install agentic-project-kit
+      # Pinned: CI checks with the same Kit version as the developer machine.
+      - run: python -m pip install "agentic-project-kit==1.0.13"
       - run: |
           python -m pip install -e . pytest
           python -m pytest -q
           agentic-kit check --root .
           agentic-kit doctor --root .
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - run: npx playwright test
+
+  # Stable required check: the name stays "agentic-gate" and is green only if
+  # both parallel jobs are green.
+  agentic-gate:
+    needs: [python, browser]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          test "${{ needs.python.result }}" = "success"
+          test "${{ needs.browser.result }}" = "success"

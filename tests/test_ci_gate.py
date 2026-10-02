@@ -141,6 +141,7 @@ def bridge(tmp_path, monkeypatch):
     gh = tmp_path / ".venv" / "bin" / "gh"
     gh.write_text(FAKE_GH)
     gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("AGP_COCKPIT_GH_BINARY", str(gh))
     runs_file = tmp_path / "runs.json"
     monkeypatch.setenv("AGP_TEST_RUNS", str(runs_file))
     origin = tmp_path.parent / (tmp_path.name + "-origin.git")
@@ -179,6 +180,15 @@ def start(b):
                                       "run_mode": "FULL_AUTO"})["mission"]
     StartRequestStore(b.runtime).request(created["mission_id"], task_id="T")
     return created["mission_id"]
+
+
+def task_state(b, task_id="T"):
+    from agp_cockpit.core.task_store import TaskStore
+    store = TaskStore(b.runtime / "tasks.sqlite3")
+    try:
+        return store.task_row(task_id)["state"]
+    finally:
+        store.close()
 
 
 def step(b):
@@ -240,13 +250,17 @@ def test_http_green_ci_completes_and_pending_waits(bridge):
     finished = done(b)          # the PR number is remembered
     assert finished["state"] == "DONE" and finished["authority"] == "ci-verified"
     assert b.call("/v1/status")["mission"]["state"] == "DONE"
+    # AGP_TASK_CLOSE_ON_DONE_V1: the durable task closes with the mission (live 1556)
+    assert task_state(b) == "VERIFIED_COMPLETE"
 
 
 def test_http_without_a_push_done_is_not_gated(bridge):
     b = bridge
     start(b)
     command(b, "status", ["transfer", "divergence-status"])
+    assert task_state(b) not in {"REMOTE_DONE", "VERIFIED_COMPLETE"}
     assert done(b)["state"] == "DONE"
+    assert task_state(b) == "REMOTE_DONE"          # accepted, but not verified by the Cockpit
 
 
 def test_http_exhausted_repairs_end_with_needs_human(bridge):

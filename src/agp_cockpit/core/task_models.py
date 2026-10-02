@@ -18,6 +18,9 @@ class TaskState(str, Enum):
     SUSPENDED = "SUSPENDED"
     COMPLETE_PROPOSED = "COMPLETE_PROPOSED"
     VERIFIED_COMPLETE = "VERIFIED_COMPLETE"
+    # AGP_TASK_CLOSE_ON_DONE_V1: a generic task ended by an accepted remote DONE
+    # that the Cockpit could not verify itself (no completion contract, no CI gate).
+    REMOTE_DONE = "REMOTE_DONE"
     CANCELLED = "CANCELLED"
 
 

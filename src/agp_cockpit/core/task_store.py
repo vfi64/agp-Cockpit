@@ -22,6 +22,9 @@ SUSPENSION_REASONS = {
 }
 
 
+TERMINAL_TASK_STATES = frozenset({"CANCELLED", "VERIFIED_COMPLETE", "REMOTE_DONE"})
+
+
 def _serialized(method):
     def locked(self, *args, **kwargs):
         with self._lock:
@@ -257,6 +260,18 @@ CREATE TABLE IF NOT EXISTS task_control(
             )
 
     @_serialized
+    def close_after_done(self, task_id: str, *, verified: bool) -> str:
+        """AGP_TASK_CLOSE_ON_DONE_V1: close the durable task once the bridge has
+        accepted DONE (live 1556: the mission was DONE and CI-verified, the task
+        stayed WAITING_FOR_REMOTE). Terminal states are kept."""
+        current = self.task_row(task_id)["state"]
+        if current in TERMINAL_TASK_STATES:
+            return current
+        target = "VERIFIED_COMPLETE" if verified else "REMOTE_DONE"
+        self.set_states(task_id, state=target)
+        return target
+
+    @_serialized
     def bump(self, task_id: str, field: str, n: int = 1):
         if field not in {"remote_rounds_used", "local_actions_used", "retries_used", "no_progress_rounds"}:
             raise ValueError("unsupported budget field")
@@ -381,7 +396,7 @@ CREATE TABLE IF NOT EXISTS task_control(
     def require_dispatch_allowed(self, task_id: str, *, check_remote_budget: bool = True):
         task = self.task_row(task_id)
         reason = self.suspension_reason(task_id)
-        if task["state"] in {"CANCELLED", "VERIFIED_COMPLETE"}:
+        if task["state"] in TERMINAL_TASK_STATES:
             raise RuntimeError(f"task is terminal: {task['state']}")
         if reason is not None:
             raise RuntimeError(f"task suspended: {reason}")
@@ -635,7 +650,7 @@ CREATE TABLE IF NOT EXISTS task_control(
             current = self.task_row(task_id)["state"]
             self.set_states(
                 task_id,
-                state=current if current in {"CANCELLED", "VERIFIED_COMPLETE"} else "WAITING_FOR_REMOTE",
+                state=current if current in TERMINAL_TASK_STATES else "WAITING_FOR_REMOTE",
                 execution_state=execution_state,
                 governance_state="BLOCKED" if governance_blocked or normalized == "BLOCKED" else "CLEAR",
             )

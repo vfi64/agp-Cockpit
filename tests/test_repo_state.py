@@ -56,7 +56,7 @@ def test_volatile_kit_files_do_not_count_as_changes_but_are_reported():
 
 
 @pytest.fixture
-def repo(tmp_path):
+def repo(tmp_path, monkeypatch):
     git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
     root = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
@@ -78,6 +78,7 @@ def repo(tmp_path):
     gh = root / ".venv/bin/gh"
     gh.write_text("#!/bin/sh\nexit 0\n")
     gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("AGP_COCKPIT_GH_BINARY", str(gh))
     return root, SimpleNamespace(binary=kit, version="9.9.9")
 
 
@@ -134,3 +135,26 @@ def test_standard_tasks_tab_shows_the_lagebericht(monkeypatch, tmp_path):
         assert panel.lage_var.get().startswith("Zustand: BEREIT")
     finally:
         root.destroy()
+
+
+def test_first_porcelain_line_keeps_its_path():
+    """A leading space in the status column must not shift the first path."""
+    out = " M .agentic/state/status.md\n M Download/1_x.py\n?? src/new.py\n"
+
+    def runner(argv, **_):
+        if "--is-inside-work-tree" in argv:
+            text = "true"
+        else:
+            text = {"status": out, "rev-parse": "a" * 40, "rev-list": "0"}.get(argv[1], "")
+        return SimpleNamespace(returncode=0, stdout=text, stderr="")
+
+    facts = rs.observe(Path("/r"), runner=runner, kit=SimpleNamespace(binary=Path("/k"), version="1"),
+                       network=False)
+    assert facts.changes == (".agentic/state/status.md", "src/new.py")
+    assert facts.volatile_changes == ("Download/1_x.py",)
+
+
+def test_without_gh_the_login_is_unknown_not_failed(repo, monkeypatch):
+    root, kit = repo
+    monkeypatch.setenv("AGP_COCKPIT_GH_BINARY", "none")
+    assert rs.observe(root, kit=kit, network=False).gh_ok is None

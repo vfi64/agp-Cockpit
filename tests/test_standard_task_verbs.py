@@ -69,8 +69,11 @@ def test_panel_enables_only_valid_verbs_and_marks_the_recommendation(panel):
     widget.apply_state(state(branch="feat/x", own_commits=1, changes=("a.py",)))   # IN_ARBEIT -> Arbeiten
     buttons = widget.verb_buttons
     assert str(buttons[rs.ARBEITEN].cget("state")) == "normal"
-    assert buttons[rs.ARBEITEN].cget("text") == "★ ② Arbeiten"
+    assert buttons[rs.ARBEITEN].cget("text") == "② Arbeiten"      # no star glyph in the button
     assert str(buttons[rs.ARBEITEN].cget("style")) == "Recommended.TButton"
+    assert widget.verb_badges[rs.ARBEITEN].cget("text") == "★ empfohlen · je nach Auftrag"
+    assert widget.verb_badges[rs.CHAT_WECHSELN].cget("text") == BY_KEY[rs.CHAT_WECHSELN].badge
+    assert widget.detail_var.get().startswith("Empfohlen: Arbeiten")
     assert str(buttons[rs.CHAT_WECHSELN].cget("state")) == "normal"
     assert str(buttons[rs.ARBEIT_BEGINNEN].cget("state")) == "disabled"
     assert "In Vorbereitung (Plan P7)" in widget._tooltip(BY_KEY[rs.ARBEIT_BEGINNEN])
@@ -97,3 +100,12 @@ def test_tooltip_shows_and_hides(panel):
     assert tip._window is not None
     tip.hide()
     assert tip._window is None
+
+
+def test_hint_and_status_follow_a_task_started_elsewhere(panel):
+    _root, widget, _ = panel
+    widget.status_var.set("Fertig ✓ — alter Lauf")
+    widget.apply_state(state(task_running=True))
+    assert widget.detail_var.get().startswith("Ein Task läuft")
+    assert widget.status_var.get() == ""
+    assert all(str(b.cget("state")) == "disabled" for b in widget.verb_buttons.values())

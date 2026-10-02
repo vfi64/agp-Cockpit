@@ -14,6 +14,7 @@ from agp_cockpit.adapters.macos_extension import (
     _manifest_version,
     local_extension_root,
 )
+from agp_cockpit.core import result_projection
 from agp_cockpit.core.bridge_engine import BridgeEngine
 from agp_cockpit.core.bridge_protocol import (
     encode_turn_response,
@@ -819,6 +820,22 @@ class CockpitBridgeServer:
                                 "result_validation": result_validation,
                             },
                         )
+                        # AGP_RESULT_PROJECTION_V1: attach deterministic projections;
+                        # the full files stay local and keep identifying the result.
+                        try:
+                            delivery = result_projection.delivery_files(repo_root, result_path, output_path)
+                        except (OSError, ValueError) as exc:
+                            delivery = {"result_file": str(result_path), "output_file": str(output_path),
+                                        "error": f"{type(exc).__name__}: {exc}"}
+                        diag.event(
+                            "K07_RESULT_PROJECTED",
+                            component="file-loop",
+                            details={"cycle_id": cycle_id, "step": outcome.run.step,
+                                     "bytes_before": delivery.get("bytes_before"),
+                                     "bytes_after": delivery.get("bytes_after"),
+                                     "projected": delivery.get("projected"),
+                                     "error": delivery.get("error")},
+                        )
                         self._json(
                             200,
                             {
@@ -828,14 +845,14 @@ class CockpitBridgeServer:
                                     repo_root / "Download",
                                     minimum_step=outcome.run.step,
                                 ),
-                                "result_file": str(outcome.run.return_bundle),
+                                "result_file": delivery["result_file"],
                                 "prompt": FINAL_RECEIPT_PROMPT if completion_pending else outcome.continuation_text,
                                 "completion_pending": completion_pending,
                                 "terminal": terminal_loop,
                                 "human_reason": outcome.human_reason,
                                 "cycle_id": cycle_id,
                                 "result_sha256": result_sha256,
-                                "output_file": str(output_path),
+                                "output_file": delivery["output_file"],
                                 "output_sha256": output_sha256,
                                 "artifact_kind": outcome.run.artifact_kind,
                                 "result_validation": result_validation,
@@ -996,6 +1013,15 @@ class CockpitBridgeServer:
                         }:
                             engine.runtime.final(state, human_reason)
                         _approval_grant(runtime_root, engine)  # expires an unused approval
+                        task_state_after = None
+                        if state == "DONE" and task_id:
+                            durable = DurableTaskController(task_id, task_db_path)
+                            try:
+                                task_state_after = durable.store.close_after_done(
+                                    task_id, verified=authority == "ci-verified"
+                                )
+                            finally:
+                                durable.close()
                         diag.event(
                             "K07_TERMINAL_REPLY_ACCEPTED",
                             component="file-loop",
@@ -1005,6 +1031,7 @@ class CockpitBridgeServer:
                                 "remote_state": reply.state,
                                 "state": state,
                                 "authority": authority,
+                                "task_state": task_state_after,
                                 "sha256": reply.sha256,
                                 "replayed": replayed,
                                 "cycle_id": str(data.get("cycle_id") or "")[:40],

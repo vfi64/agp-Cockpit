@@ -375,6 +375,28 @@ This section is normative for the file loop after local execution.
    Arbeiten switches to the Arbeiten tab; Chat wechseln starts the existing
    chat-switch standard task. Labels, badges and tooltip texts live only in
    `core/verbs.py`.
+21. Result projection (`AGP_RESULT_PROJECTION_V1`, `core/result_projection.py`).
+   The return bundle and the run_next log stay unchanged in `Download/` and keep
+   identifying the result (`result_sha256`). The remote side receives, under the
+   same file names from `.local/agp-cockpit/delivery/`, a projection that is a
+   pure function of the file bytes: copies of earlier results (`previous_*`) and
+   raw output next to parsed `json` become markers; an execution diagnostic drops
+   the text already in the attached log and carries the projections of its
+   candidate return bundles; long strings keep head and tail, with much more
+   room in failure context than in success context; every cut names size and
+   SHA-256. A projection is delivered only if it is smaller. Finish run
+   1547–1555: 399 KB → 117 KB.
+22. Command digest (`AGP_DIGEST_COMPACT_V1`): orchestrators complete; diagnostic
+   and primitive commands as a compact table (command, surface, remote_effect,
+   use) without options, which the remote side reads with `--help` in a work
+   order; written without indentation (81 KB → 33 KB per mission start).
+23. Task closure (`AGP_TASK_CLOSE_ON_DONE_V1`). An accepted DONE closes the
+   durable task: `VERIFIED_COMPLETE` when the Cockpit verified it (CI gate),
+   `REMOTE_DONE` when only the remote side declared it. NEEDS_HUMAN keeps the
+   task open for the decision. Terminal tasks accept no further dispatch.
+24. Host independence of tests (`AGP_GH_BINARY_V1`): the Cockpit calls `gh`
+   through `ci_gate.gh_binary()`, overridable with `AGP_COCKPIT_GH_BINARY`; the
+   test suite sets `none`, tests with a fake gh name it explicitly.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

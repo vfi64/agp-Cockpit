@@ -67,7 +67,10 @@ COMMAND_RULES = (
     "Raw git/gh commands that have a Kit wrapper (\"replaces_raw\") are rejected; use the wrapper. "
     "Commands marked \"remote_effect\" (push, pull/fetch, PR, merge, publish) or \"effect\": \"unknown\" "
     "run only with an open human approval; without one the Cockpit does not execute the work order and "
-    "asks the human itself. Do not work around this."
+    "asks the human itself. Do not work around this. "
+    "\"commands\" lists the orchestrators completely; diagnostic and primitive commands are rows of "
+    "\"compact\" (columns in \"compact_columns\", no options): read their options with "
+    "`agentic-kit <command> --help` inside a work order."
 )
 
 
@@ -148,30 +151,44 @@ class KitCommandCatalog:
         return pairs
 
     def digest(self) -> dict:
+        """AGP_DIGEST_COMPACT_V1: orchestrators complete, the rest as a compact table."""
         ordered = sorted(self.commands, key=lambda c: (SURFACE_ORDER.get(c.get("surface"), 3), c["qualified_name"]))
-        return {
-            "kind": "agentic_kit_command_digest",
-            "source": self.source,
-            "manifest_sha": self.manifest_sha,
-            "rules": COMMAND_RULES,
-            "commands": [
-                {
+        full, compact, replaces = [], [], {}
+        for c in ordered:
+            use = " ".join(str(c.get("when_to_use") or c.get("help") or "").split())
+            effect = self.has_remote_effect(c) if self.effect_known(c) else "unknown"
+            if c.get("surface") == "orchestrator":
+                full.append({
                     "command": c["qualified_name"],
                     "surface": c.get("surface"),
                     "safety": c.get("safety"),
-                    "use": " ".join(str(c.get("when_to_use") or c.get("help") or "").split())[:200],
+                    "use": use[:200],
                     "options": [o for p in c.get("params", []) for o in (p.get("opts") or [])][:12],
                     "replaces_raw": list(c.get("replaces_raw") or []),
                     "remote_effect": self.has_remote_effect(c),
                     **({} if self.effect_known(c) else {"effect": "unknown"}),
-                }
-                for c in ordered
-            ],
+                })
+                continue
+            if use.startswith(f"Run {c['qualified_name']}"):
+                use = ""          # the Kit's boilerplate help says nothing beyond the name
+            compact.append([c["qualified_name"], c.get("surface"), effect, use[:80]])
+            if c.get("replaces_raw"):
+                replaces[c["qualified_name"]] = list(c["replaces_raw"])
+        return {
+            "kind": "agentic_kit_command_digest",
+            "format": "compact-v1",
+            "source": self.source,
+            "manifest_sha": self.manifest_sha,
+            "rules": COMMAND_RULES,
+            "commands": full,
+            "compact_columns": ["command", "surface", "remote_effect", "use"],
+            "compact": compact,
+            "compact_replaces_raw": replaces,
         }
 
     def write_digest(self, target: Path) -> Path:
         target.parent.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(self.digest(), ensure_ascii=False, indent=1) + "\n"
+        payload = json.dumps(self.digest(), ensure_ascii=False, separators=(",", ":")) + "\n"
         if not target.is_file() or target.read_text(encoding="utf-8") != payload:
             temporary = target.with_suffix(".tmp")
             temporary.write_text(payload, encoding="utf-8")

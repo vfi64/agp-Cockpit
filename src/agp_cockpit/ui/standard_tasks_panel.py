@@ -4,12 +4,13 @@ import json
 import threading
 import tkinter as tk
 from pathlib import Path
+from tkinter import font as tkfont
 from tkinter import ttk
 
 from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.mission_http_client import create_live_full_auto
 from agp_cockpit.core.mission_http_client import status as bridge_status
-from agp_cockpit.core.repo_state import ARBEITEN
+from agp_cockpit.core.repo_state import ARBEITEN, LAEUFT
 from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
 from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
@@ -31,8 +32,10 @@ class StandardTasksPanel(ttk.Frame):
         self.repository_root = repository_root.expanduser().resolve()
         self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
         self.tasks = standard_tasks()
-        self.status_var = tk.StringVar(value="Standard Tasks bereit.")
-        self.detail_var = tk.StringVar(value="Wähle einen standardisierten Auftrag.")
+        # The hint line follows the repository state; the status line belongs to
+        # the task this panel started (live 2026-10-01: "bereit" while a task ran).
+        self.status_var = tk.StringVar(value="")
+        self.detail_var = tk.StringVar(value="Lagebericht wird erstellt …")
         # AGP_STANDARD_TASK_PROGRESS_V1: status line follows the started
         # mission and durable task instead of the one-shot start message.
         self._tracked_mission_id = ""
@@ -68,9 +71,15 @@ class StandardTasksPanel(ttk.Frame):
         # in the current repository state are enabled, one is recommended.
         self.tasks_by_key = {task.key: task for task in self.tasks}
         self.verb_buttons: dict[str, ttk.Button] = {}
+        self.verb_badges: dict[str, ttk.Label] = {}
         self.verb_reasons: dict[str, str] = {}
         style = ttk.Style(self)
-        style.configure("Recommended.TButton", font=("TkDefaultFont", 13, "bold"))
+        # Same size as every other button; the star sits in the badge line below,
+        # a star glyph inside the button made it taller on macOS (live 2026-10-01).
+        bold = tkfont.nametofont("TkDefaultFont").copy()
+        bold.configure(weight="bold")
+        self._recommended_font = bold
+        style.configure("Recommended.TButton", font=bold)
         sections = ttk.Frame(self)
         sections.grid(row=3, column=0, sticky="ew")
         heading = ("TkDefaultFont", 12, "bold")
@@ -151,15 +160,15 @@ class StandardTasksPanel(ttk.Frame):
         button = ttk.Button(cell, text=self._verb_text(verb, False),
                             command=lambda selected=verb: self.run_verb(selected))
         button.grid(row=0, column=0, sticky="ew")
-        ttk.Label(cell, text=verb.badge, foreground="#888888", font=("TkDefaultFont", 10)).grid(
-            row=1, column=0
-        )
+        badge = ttk.Label(cell, text=verb.badge, foreground="#888888", font=("TkDefaultFont", 10))
+        badge.grid(row=1, column=0)
+        self.verb_badges[verb.key] = badge
         self.verb_buttons[verb.key] = button
         Tooltip(button, lambda selected=verb: self._tooltip(selected))
 
-    def _verb_text(self, verb: Verb, recommended: bool) -> str:
+    def _verb_text(self, verb: Verb, recommended: bool = False) -> str:
         mark = STEP_MARK.get(verb.step or 0, "")
-        return ("★ " if recommended else "") + (f"{mark} " if mark else "") + verb.label
+        return (f"{mark} " if mark else "") + verb.label
 
     def _tooltip(self, verb: Verb) -> str:
         reason = self.verb_reasons.get(verb.key, "")
@@ -184,8 +193,26 @@ class StandardTasksPanel(ttk.Frame):
             self.verb_reasons[key] = reason
             is_recommended = enabled and key == recommended
             button.configure(state="normal" if enabled else "disabled",
-                             text=self._verb_text(verb, is_recommended),
+                             text=self._verb_text(verb),
                              style="Recommended.TButton" if is_recommended else "TButton")
+            self.verb_badges[key].configure(
+                text=("★ empfohlen · " if is_recommended else "") + verb.badge,
+                foreground="#d0a000" if is_recommended else "#888888",
+            )
+        self.detail_var.set(self._state_hint(state))
+        if self._poll_job is None and getattr(state, "state", None) == LAEUFT:
+            self.status_var.set("")   # a task started elsewhere; its progress is in "Arbeiten"
+
+    @staticmethod
+    def _state_hint(state) -> str:
+        if state is None:
+            return "Lagebericht wird erstellt …"
+        if state.state == LAEUFT:
+            return ("Ein Task läuft — neue Aufträge erst nach seinem Ende. "
+                    "Den Fortschritt zeigt der Tab „Arbeiten“.")
+        if state.recommended:
+            return f"Empfohlen: {VERB_BY_KEY[state.recommended].label}. Details im Tooltip der Schaltfläche."
+        return "Gerade ist kein Auftrag empfohlen — siehe Lage."
 
     def run_verb(self, verb: Verb) -> None:
         enabled, reason = availability(verb, self.repo_state)

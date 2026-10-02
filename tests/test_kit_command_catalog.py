@@ -65,9 +65,26 @@ def test_validate_command_content_enforces_the_catalog_for_the_repository():
 
 def test_digest_lists_orchestrators_first_with_rules(tmp_path):
     digest = CATALOG.digest()
-    surfaces = [c["surface"] for c in digest["commands"]]
-    assert surfaces[0] == "orchestrator" and surfaces == sorted(surfaces, key={"orchestrator": 0, "diagnostic": 1, "primitive": 2}.get)
+    assert {c["surface"] for c in digest["commands"]} == {"orchestrator"}
+    surfaces = [row[1] for row in digest["compact"]]
+    assert surfaces == sorted(surfaces, key={"diagnostic": 1, "primitive": 2}.get)
+    assert digest["compact_columns"] == ["command", "surface", "remote_effect", "use"]
+    assert len(digest["commands"]) + len(digest["compact"]) == len(CATALOG.commands)
     assert digest["rules"] == COMMAND_RULES and "Never run git push, git fetch or git pull" in COMMAND_RULES
     target = CATALOG.write_digest(tmp_path / "d.json")
     assert json.loads(target.read_text())["manifest_sha"] == CATALOG.manifest_sha
-    assert target.stat().st_size < 120_000
+    # AGP_DIGEST_COMPACT_V1: was 81 KB (indented, options for every command).
+    assert target.stat().st_size < 40_000
+
+
+def test_compact_digest_keeps_effects_and_wrappers():
+    digest = CATALOG.digest()
+    rows = {row[0]: row for row in digest["compact"]}
+    for command in CATALOG.commands:
+        name = command["qualified_name"]
+        if command.get("surface") == "orchestrator":
+            continue
+        expected = CATALOG.has_remote_effect(command) if CATALOG.effect_known(command) else "unknown"
+        assert rows[name][2] == expected
+        if command.get("replaces_raw"):
+            assert digest["compact_replaces_raw"][name] == list(command["replaces_raw"])

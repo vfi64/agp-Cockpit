@@ -182,4 +182,4 @@ def test_status_offers_the_kit_command_digest(bridge):
     status = post.get("/v1/status")
     assert status["kit_manifest_sha"] == "abc123"
     digest = json.loads(Path(status["kit_command_digest_path"]).read_text())
-    assert digest["commands"][0]["command"] == "agentic-kit doctor"
+    assert digest["compact"][0][:3] == ["agentic-kit doctor", "diagnostic", False]
