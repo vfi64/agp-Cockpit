@@ -1194,3 +1194,14 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 
 - Step 1573: the verdict of `pr-create-complete --json` (PR number, merge, result_status) stands at the start of ~20 KB of JSON whose end is a restore sub-step; a work order keeping the stdout tail lost it, and the remote side re-ran the orchestrator (KIT-GF-030).
 
+## KIT-GF-032 — Release preparation is self-hosting only
+
+- Status: OPEN · Severity: high · First observed: 2026-10-02
+- Observed (Kit 1.0.13, clone of agp-Cockpit main 25afb5d): `release-prep --dry-run` fails on the hard-coded path `src/agentic_project_kit/__init__.py`; `release ready --version 0.1.0` is BLOCKED (version 0.1.0.dev0 rejected, package version mismatch, no previous tag for a first release, release notes missing_ref, currency audit checks the Kit's own package, DOIs, CITATION.cff and CHANGELOG.md, docs audit requires Kit documentation files, 16 Cockpit planning documents flagged); `release ready` also runs `transfer sync-main`. No Kit route pushes a tag without `release-publish`.
+- Impact: no Kit-conform release of an external workspace; P11 has no Kit route.
+- Repair: workspace-derived version sources, first release without previous tag, audits scoped to registered documents, private-release route (prepare, annotated tag, tag push) under the publication policy of KIT-GF-029.
+
+## KIT-GF-011 — extension 2026-10-02: work start leaves Kit-owned files dirty
+
+- Step 1594 `work start` (rc 0) left Kit-owned transfer files modified; step 1596 needed `work recover` and `transfer restore-known-volatile`.
+
