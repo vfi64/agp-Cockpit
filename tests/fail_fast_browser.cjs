@@ -15,7 +15,7 @@ function baseContext(calls) {
     PENDING_SEND_TRANSPORT:null, AGP_FORMAT_REPAIR_ATTEMPTS:0,
     LIMITS:{minAssistantChars:1, stablePollsRequired:2, maxErrors:3},
     clientEvent:async (name) => { calls.push("event:" + name); },
-    resetCandidate:() => {}, render:() => {}, clearInterval:() => {}, forgetBrowserDownload:async () => {}, digestAlreadyInChat:async () => false, rememberDigest:async () => {},
+    resetCandidate:() => {}, render:() => {}, clearInterval:() => {}, retireIfOrphaned:() => false, forgetBrowserDownload:async () => {}, digestAlreadyInChat:async () => false, rememberDigest:async () => {},
     api:async (path, options) => {
       calls.push(path + (options && options.body ? " " + options.body : ""));
       return {};

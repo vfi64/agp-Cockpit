@@ -444,6 +444,13 @@ This section is normative for the file loop after local execution.
 33. A recommended verb whose button belongs to a later plan slice is named as
    the next step with a pointer to the „Arbeiten“ tab instead of „Empfohlen“
    next to a disabled button.
+34. Orphaned content script (`AGP_ORPHANED_CONTENT_SCRIPT_GUARD_V1`): after an
+   extension reload the old content script of an open tab detects the lost
+   extension context (`chrome.runtime.id`), stops its timers, removes its
+   overlay and never calls the bridge again (live 2026-10-02: „Uncaught (in
+   promise) Error: Extension context invalidated“ at the old `content.js`). The
+   first reload after installing this build still comes from an older script
+   without the guard.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

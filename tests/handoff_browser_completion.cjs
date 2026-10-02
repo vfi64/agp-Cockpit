@@ -18,7 +18,7 @@ async function scenario({pending=true, delivered=true}={}) {
     fetchSingleAssistantPythonAttachment:async () => ({filename:"1467_test.py", content:"pass"}),
     assistantPythonAttachmentCandidates:() => [{}],
     resetCandidate:() => {}, render:() => {}, refreshStatus:async () => {},
-    captureAssistantBaseline:() => {}, clearInterval:() => {}, forgetBrowserDownload:async () => {}, digestAlreadyInChat:async () => false, rememberDigest:async () => {},
+    captureAssistantBaseline:() => {}, clearInterval:() => {}, retireIfOrphaned:() => false, forgetBrowserDownload:async () => {}, digestAlreadyInChat:async () => false, rememberDigest:async () => {},
     snapshotAssistantBaseline:() => ({}), applyAssistantBaseline:() => {},
     api:async (path) => {
       calls.push(path);

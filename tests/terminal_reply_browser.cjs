@@ -34,7 +34,7 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
     resetCandidate:() => {}, render:() => {}, refreshStatus:async () => { calls.push("refresh"); },
     captureAssistantBaseline:() => { calls.push("baseline"); },
     sendPrompt:async prompt => { sent.push(prompt); },
-    clearInterval:() => {}, forgetBrowserDownload:async () => {}, digestAlreadyInChat:async () => false, rememberDigest:async () => {},
+    clearInterval:() => {}, retireIfOrphaned:() => false, forgetBrowserDownload:async () => {}, digestAlreadyInChat:async () => false, rememberDigest:async () => {},
     api:async (path, options) => {
       calls.push(path);
       if (path === "/v1/file-loop/terminal") {

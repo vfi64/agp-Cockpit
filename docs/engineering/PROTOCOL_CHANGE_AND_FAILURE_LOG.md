@@ -1087,4 +1087,5 @@ repeat once.
 - Operator findings: window too small, parts of tabs cut off; „Empfohlen: Abschließen“ next to the disabled P6 button; the Kit repository already records which Greenfield findings are fixed; the owner's release policy (no publication, no Zenodo) is not expressible in the Kit (KIT-GF-029). Chrome shows a „Fehler“ entry for the extension (content not yet read).
 - Slice T3: AGP_KIT_FINDINGS_SYNC_V1, AGP_RELEASE_POLICY_V1, AGP_SCROLLABLE_TABS_V1, recommendation hint (COMMUNICATION_PROTOCOL 30–33); ledger snapshot of the Kit adjudication (Kit commit 26be95b) and KIT-GF-029.
 - Tests: `tests/test_t3_findings_sync_release_policy.py`.
+- Chrome error of the extension, read 2026-10-02: „Uncaught (in promise) Error: Extension context invalidated“, `content.js:3580` (the 0.3.34 script: line 3580 lies in `render()`, which reads `chrome.runtime.getManifest()`/storage). Cause: the automatic reload replaced the extension while the old content script of the open ChatGPT tab kept running its timers. Fix in T3: AGP_ORPHANED_CONTENT_SCRIPT_GUARD_V1 (COMMUNICATION_PROTOCOL 34), test `tests/orphan_guard_browser.cjs`.
 
