@@ -10,7 +10,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize("suite", ["orphan_guard_browser.cjs", "send_not_ready_retry.cjs"])
+@pytest.mark.parametrize("suite", ["orphan_guard_browser.cjs", "send_not_ready_retry.cjs",
+                                   "send_probe_template.cjs"])
 def test_content_script_suite(suite):
     node = shutil.which("node")
     if node is None:

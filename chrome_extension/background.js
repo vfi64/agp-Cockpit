@@ -794,7 +794,10 @@ async function agpNativeTransportV1(message, sender) {
                // the control is enabled. Submission is a trusted Enter in the
                // composer, not a click; an enabled submit button labelled
                // Send/Senden inside the composer form is the readiness signal.
-               (record.in_form && record.type === "submit" && /^(send|senden)\b/i.test(record.aria_label)))
+               // AGP_PROBE_TEMPLATE_ESCAPES_V1: this code is a template literal,
+               // so regex escapes need a double backslash (a single one before
+               // b cooks to a backspace that never matched — live stop 2026-10-02, step 1598).
+               (record.in_form && record.type === "submit" && /^(send|senden)\\b/i.test(record.aria_label)))
             ) {
               return {found:true,target:record,diagnostics};
             }
@@ -827,7 +830,7 @@ async function agpNativeTransportV1(message, sender) {
             testid:String(b.getAttribute("data-testid") || ""),
             disabled:Boolean(b.disabled),
             aria_disabled:String(b.getAttribute("aria-disabled") || ""),
-            text:String(b.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40)
+            text:String(b.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 40)
           })).concat([{stop_button:Boolean(document.querySelector('[data-testid="stop-button"]')),
             in_form:Boolean(form)}]);
         })()`) || [];

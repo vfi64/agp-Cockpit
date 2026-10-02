@@ -2,4 +2,4 @@
 
 APP_VERSION = "0.1.0"
 BRIDGE_PROTOCOL_VERSION = 1
-BRIDGE_BUILD_ID = "release-0.1.0-r2"
+BRIDGE_BUILD_ID = "release-0.1.0-r3"

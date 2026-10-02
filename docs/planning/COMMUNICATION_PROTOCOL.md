@@ -544,6 +544,14 @@ This section is normative for the file loop after local execution.
    AGP_SEND_NOT_READY_RETRY_V1 showed exactly this ChatGPT variant: „Senden“,
    enabled, testid empty, hit test on an svg outside the button — the cause of
    all three SEND_BUTTON_NOT_READY stops.
+50. Probe code escapes (`AGP_PROBE_TEMPLATE_ESCAPES_V1`): code handed to
+   `Runtime.evaluate` as a template literal is cooked before Chrome sees it, so
+   every regex escape in it needs a double backslash. Rule 49 first shipped
+   with a single one; the cooked regex carried a backspace and never matched
+   (live stop 2026-10-02, step 1598, with diagnostics that fit rule 49
+   exactly). `tests/send_probe_template.cjs` rejects single-backslash escapes in
+   every evaluated template of `background.js` and runs the cooked readiness
+   probe against the live DOM of step 1598.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
