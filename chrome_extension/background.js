@@ -778,7 +778,8 @@ async function agpNativeTransportV1(message, sender) {
               aria_label:String(button.getAttribute("aria-label") || ""),
               testid:String(button.getAttribute("data-testid") || ""),
               hit_tag:String(hit ? hit.tagName : ""),
-              hit_testid:String(hit ? (hit.getAttribute("data-testid") || "") : "")
+              hit_testid:String(hit ? (hit.getAttribute("data-testid") || "") : ""),
+              in_form:Boolean(button.closest && button.closest("form"))
             };
             diagnostics.push(record);
             if (
@@ -786,7 +787,14 @@ async function agpNativeTransportV1(message, sender) {
               record.aria_disabled !== "true" &&
               record.visible &&
               record.pointer_events !== "none" &&
-              (record.hit_matches || record.testid === "send-button")
+              (record.hit_matches || record.testid === "send-button" ||
+               // AGP_SEND_CONTROL_SEMANTIC_V1 (live 2026-10-02): a ChatGPT
+               // variant renders the send button without data-testid and its
+               // icon svg outside the button, so the hit test fails although
+               // the control is enabled. Submission is a trusted Enter in the
+               // composer, not a click; an enabled submit button labelled
+               // Send/Senden inside the composer form is the readiness signal.
+               (record.in_form && record.type === "submit" && /^(send|senden)\b/i.test(record.aria_label)))
             ) {
               return {found:true,target:record,diagnostics};
             }

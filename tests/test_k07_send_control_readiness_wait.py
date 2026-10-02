@@ -36,3 +36,12 @@ def test_commit_contract_is_preserved():
 
 def test_no_mouse_submit_regression():
     assert '"Input.dispatchMouseEvent"' not in native()
+
+
+def test_semantic_send_control_is_ready_without_test_id_or_hit():
+    """AGP_SEND_CONTROL_SEMANTIC_V1 (live 2026-10-02): enabled "Senden" submit
+    button in the composer form, testid "", hit test on a foreign svg."""
+    n = native()
+    assert "AGP_SEND_CONTROL_SEMANTIC_V1" in n
+    assert 'record.in_form && record.type === "submit" && /^(send|senden)\\b/i.test(record.aria_label)' in n
+    assert 'in_form:Boolean(button.closest && button.closest("form"))' in n

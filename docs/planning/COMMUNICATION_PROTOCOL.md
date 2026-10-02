@@ -537,6 +537,13 @@ This section is normative for the file loop after local execution.
    version (pyproject = `agp_cockpit.version`), extension version, build id and
    Kit version per private release; tests keep them consistent and require a
    CHANGELOG section per release.
+49. Semantic send readiness (`AGP_SEND_CONTROL_SEMANTIC_V1`): an enabled
+   submit button labelled Send/Senden inside the composer form counts as ready
+   even without `data-testid` and without a matching hit test (the submit is a
+   trusted Enter in the composer). Live 2026-10-02 the diagnostics of
+   AGP_SEND_NOT_READY_RETRY_V1 showed exactly this ChatGPT variant: „Senden“,
+   enabled, testid empty, hit test on an svg outside the button — the cause of
+   all three SEND_BUTTON_NOT_READY stops.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

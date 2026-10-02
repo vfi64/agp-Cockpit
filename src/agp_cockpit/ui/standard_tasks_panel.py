@@ -206,6 +206,12 @@ class StandardTasksPanel(ttk.Frame):
         self.refresh_lage()   # the started task makes the state LÄUFT
         return True
 
+    def _effects_executed(self) -> bool:
+        if not self._tracked_task_id:
+            return False
+        from agp_cockpit.core.human_decision import HumanDecisionStore
+        return bool(HumanDecisionStore(self.runtime_root()).effects_log(self._tracked_task_id))
+
     def effects_text(self) -> str:
         """P6 acceptance: every auto-approved effect, visible in the UI."""
         task = self._tracked_task
@@ -402,9 +408,16 @@ class StandardTasksPanel(ttk.Frame):
                 text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."
                 self.follow_up_key = next((v.key for v in VERBS if v.label == task.follow_up), None)
             elif progress.outcome != "DONE" and task.offers_recover_on_interrupt:
-                # R6: an interrupted Abschließen offers Wiederherstellen.
-                self.recover_offered = True
-                text += f"\n{task.label} wurde unterbrochen — „Wiederherstellen“ ist freigeschaltet und empfohlen."
+                if self._effects_executed():
+                    # R6: an interrupted Abschließen with executed effects
+                    # offers Wiederherstellen.
+                    self.recover_offered = True
+                    text += (f"\n{task.label} wurde unterbrochen — „Wiederherstellen“ ist freigeschaltet "
+                             "und empfohlen.")
+                else:
+                    # Live 2026-10-02: a send failure before any effect left
+                    # nothing to recover; the task can simply be started again.
+                    text += f"\n{task.label} wurde vor jeder Wirkung unterbrochen — einfach erneut starten."
         self.status_var.set(text)
         if not progress.terminal:
             self._poll_job = self.after(2000, self.refresh_progress)

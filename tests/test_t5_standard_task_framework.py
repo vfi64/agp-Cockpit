@@ -303,6 +303,12 @@ def test_interrupted_finish_offers_recover(panel, monkeypatch):
     state = rs.RepoState(state=rs.IN_ARBEIT, summary="s", recommended=rs.ABSCHLIESSEN,
                          offered=(rs.ABSCHLIESSEN, rs.CHAT_WECHSELN))
     assert not availability(VERBS[rs.WIEDERHERSTELLEN], state)[0]
+    widget.refresh_progress()            # no effect executed yet: nothing to recover
+    assert not widget.recover_offered and "erneut starten" in widget.status_var.get()
+    store = HumanDecisionStore(widget.runtime_root())
+    store.pre_approve(task_id="t", label="Abschließen", scope=BY_KEY["finish"].approved_scope)
+    store.grant_for_mission("t", "m", mission_ended=False)
+    store.consume("t", "sha", ["agentic-kit transfer pr-create-complete"], step=1)
     widget.refresh_progress()
     assert widget.recover_offered and "Wiederherstellen" in widget.status_var.get()
     widget.apply_state(state)
