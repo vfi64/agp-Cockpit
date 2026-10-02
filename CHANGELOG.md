@@ -5,7 +5,7 @@ Private tool; releases are not published (no GitHub Release, PyPI or Zenodo —
 
 ## v0.1.0 - 2026-10-02
 
-First private release. App 0.1.0 · extension 0.4.1 · build `release-0.1.0-r2` ·
+First private release. App 0.1.0 · extension 0.4.2 · build `release-0.1.0-r3` ·
 validated with agentic-project-kit 1.0.13.
 
 - File loop with ChatGPT: numbered Python work orders, `run_next.py`, return
