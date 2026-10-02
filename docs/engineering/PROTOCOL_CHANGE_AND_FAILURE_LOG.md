@@ -1154,3 +1154,8 @@ repeat once.
 - AGP_INITIAL_WINDOW_SIZE_V2: the Cockpit opens at the size the owner chose by hand (986×754 pt outer on macOS → geometry 986x726), clamped to smaller screens.
 - Owner's decision: a GitHub Release entry in the private repository may be created by the owner by hand (`owner_github_release` in `release_policy.json`); Cockpit work orders stay barred from `gh release …`.
 
+## 2026-10-02 — Window and release entry live (#166/#167); Kit-gated buttons (P8 full, P11)
+
+- „③ Abschließen“ of AGP_INITIAL_WINDOW_SIZE_V2 and the private-release policy: PR #166 and refresh #167 in one remote turn, `ci-verified`. The owner created the GitHub Release entry „AGP Cockpit 0.1.0 (privat)“ on tag v0.1.0 (278fa92) by hand; no Zenodo record exists.
+- P8 design check with Kit 1.0.13 in a sandbox clone: Kit routes exist for main behind origin/main, detached HEAD and discarding changes on a work branch, but not for a dirty main or local commits on main (KIT-GF-033). Owner's decision: no Cockpit-local or raw-git workaround — the full Wiederherstellen waits for the Kit fix, like the Release button for KIT-GF-029/032 (AGP_KIT_GATED_VERBS_V1, COMMUNICATION_PROTOCOL 53). The basic Wiederherstellen now names the Kit routes as goals and stops with NEEDS_HUMAN where the Kit has none.
+

@@ -272,6 +272,13 @@
       "historical_id": "Kit 1.0.13 sources / owner decision",
       "canonical_family": "KIT-GF-029",
       "summary": "release lifecycle requires public publication; no private-release policy"
+    },
+    {
+      "date": "2026-10-02",
+      "event_id": "GF-E035",
+      "historical_id": "Kit 1.0.13 sandbox clone (P8 design)",
+      "canonical_family": "KIT-GF-033",
+      "summary": "no recovery route for main with local changes or local commits"
     }
   ],
   "families": [
@@ -1136,12 +1143,35 @@
       "expected": "release ready / release prepare / release-prep work in an external workspace: the version source is the workspace's own (pyproject and the package the workspace declares), release notes work for a first release without a previous tag, the documentation checks use the workspace's registered documents, and a private release (see KIT-GF-029) can be prepared, tagged and the tag pushed through a Kit route.",
       "observed": "Kit 1.0.13 in agp-Cockpit (clone of main 25afb5d, 2026-10-02): `release-prep --version 0.1.0 --summary-line … --dry-run` fails with error src/agentic_project_kit/__init__.py (the Kit's own package path); `release ready --version 0.1.0` is BLOCKED: release-status invalid_target_version and package_init_version_mismatch (version 0.1.0.dev0), release-from-tag 'no local v* git tag could be derived' (first release), release-notes-generate BLOCK missing_ref, audit-doc-currency checks src/agentic_project_kit/__init__.py, VERIFIED_RELEASES.md DOIs, CITATION.cff and CHANGELOG.md, docs-audit requires Kit documentation files (docs/TEST_GATES.md, handoff pointers), audit-planning-docs-consolidation flags 16 Cockpit planning documents; release ready also runs transfer sync-main (a pull). No Kit command pushes a tag without release-publish (GitHub Release).",
       "impact": "A Kit-conform release of an external workspace is not possible with Kit 1.0.13; the Cockpit's planned Release button (P11) has no Kit route.",
-      "workaround": "None in the Kit; P11 is held until the owner decides between a Cockpit-local release procedure and waiting for a Kit fix.",
+      "workaround": "Release 0.1.0 was made by hand (version map, changelog, annotated tag, owner-made GitHub Release entry). Owner's decision 2026-10-02: the Cockpit's Release button (P11) waits for a Kit route that respects publication: none (KIT-GF-029) and external workspaces (this finding); no Cockpit-local release procedure.",
       "repair": "Derive version sources from the workspace manifest; support a first release without a previous tag; scope documentation and currency audits to the workspace's registered documents; add a private-release route (prepare, annotated tag, tag push without GitHub Release) gated by the publication policy of KIT-GF-029.",
       "regression": "In an external workspace with publication: none, release prepare --write, release ready and a tag push of v0.1.0 pass without Kit-internal paths, DOIs or a GitHub Release.",
       "evidence": [
         "agentic-kit release-prep --version 0.1.0 --summary-line … --dry-run --json → error src/agentic_project_kit/__init__.py",
         "agentic-kit release ready --version 0.1.0 --json → BLOCKED (sync-main, standard-error-scan: post-merge-check, command-composition-check, command-reference-check, release-from-tag, release-notes-generate, release-prep-dry-run, docs-audit, audit-doc-currency, audit-planning-docs-consolidation)"
+      ]
+    },
+    {
+      "id": "KIT-GF-033",
+      "title": "No recovery route for main with local changes or local commits",
+      "first_observed": "2026-10-02",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "A Kit route recovers main without losing work when it carries uncommitted changes or commits that are not on origin/main: it saves them on a new rescue branch, realigns main with origin/main only after verifying that the rescue branch contains everything, and reports the result as JSON; destructive variants keep the dry-run signature pattern of work discard-changes.",
+      "observed": "Kit 1.0.13 in a sandbox clone of agp-Cockpit main ad2a38d (2026-10-02): `transfer branch-create rescue/t1 --start-point HEAD` with a dirty main fails ('Clean or preserve local changes before creating a branch.'); `work discard-changes` is BLOCKED on main (blocker main-branch, by design); `transfer sync-main` with main one commit ahead of origin/main fails (blockers: normalize-session_failed); `work recover` restores only known volatile files and states it 'never runs reset, clean, checkout, or broad restore over product files'. Covered: main behind origin/main (`transfer sync-main` PASS), detached HEAD (`transfer branch-switch main` PASS), discarding changes on a work branch (`work discard-changes`, dry-run signature, then --execute). The Kit's own work-order validator forbids `git reset --hard` in work orders, so a remote work order cannot fill the gap either.",
+      "impact": "The Cockpit's full Wiederherstellen (P8) has no Kit route for two of the most common disturbances; filling the gap would need raw git outside the Kit (Cockpit-local or in a work order), which breaks the architecture principle that the Kit controls every repository change.",
+      "workaround": "Owner's decision 2026-10-02: the full Wiederherstellen button waits for this fix; the basic Wiederherstellen (diagnosis through the remote LLM, Kit routes only) stays, and a disturbance without a Kit route ends in NEEDS_HUMAN for the owner to resolve by hand.",
+      "repair": "Add a non-lossy rescue route (for example `work rescue --json`): dirty main → new rescue branch carrying the changes; main ahead/diverged → rescue branch at HEAD, then main reset to origin/main after a containment check; detached HEAD with unique commits → rescue branch first. Dry-run by default with a signature, --execute with --expected-signature, never a remote effect.",
+      "regression": "In a clone: dirty main and main one commit ahead each end with main == origin/main, a clean worktree and a rescue branch that contains every change or commit; repeated runs are idempotent.",
+      "evidence": [
+        "agentic-kit transfer branch-create rescue/t1 --start-point HEAD --json (dirty main) → FAIL 'Clean or preserve local changes before creating a branch.'",
+        "agentic-kit work discard-changes --json on main → BLOCKED ['main-branch']",
+        "agentic-kit transfer sync-main --json (main ahead 1) → FAIL blockers ['normalize-session_failed']",
+        "agentic-kit work recover --json → discard_all_next_action 'Use a separate explicitly destructive workflow; work recover never runs reset, clean, checkout, or broad restore over product files.'",
+        "agentic_project_kit/work_order_validator.py FORBIDDEN_TEXT_PATTERNS contains 'git reset --hard'"
       ]
     }
   ],

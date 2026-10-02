@@ -566,6 +566,13 @@ This section is normative for the file loop after local execution.
    package but opens no new chat and hands nothing over, so no task recommends
    it afterwards; after Abschließen the star follows the repository state
    (BEREIT → Arbeit beginnen). The button stays available.
+53. Kit controls (`AGP_KIT_GATED_VERBS_V1`, owner's decision 2026-10-02): the
+   Cockpit steers and verifies, the remote LLM decides, the Kit controls every
+   repository change. The Cockpit runs no repository-changing git itself (test
+   `test_cockpit_runs_no_repository_changing_git`); a verb without a Kit route
+   is disabled with the open finding ids — Release (KIT-GF-029, KIT-GF-032) —
+   and the full Wiederherstellen waits for KIT-GF-033. The basic Wiederherstellen
+   repairs only through Kit routes and ends in NEEDS_HUMAN where the Kit has none.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

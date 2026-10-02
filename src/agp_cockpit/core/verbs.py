@@ -4,7 +4,10 @@ AGP_STANDARD_TASK_VERBS_V1: label, place in the UI, effect badge and the three
 tooltip lines (what happens · effect · when available) live here only; the UI
 and the documentation read them from this table so they cannot drift apart.
 ``slice`` names the plan slice that still has to implement a verb; such a
-verb is shown but disabled ("in Vorbereitung").
+verb is shown but disabled ("in Vorbereitung"). ``kit_gate`` names the open
+Kit findings a verb waits for (AGP_KIT_GATED_VERBS_V1, owner 2026-10-02: the
+Cockpit steers, the remote LLM decides, the Kit controls — a verb without a
+Kit route waits for the Kit instead of a Cockpit-local workaround).
 """
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ class Verb:
     when: str
     task_key: str | None = None   # StandardTask key when implemented as a task
     slice: str | None = None      # plan slice when not yet implemented
+    kit_gate: str | None = None   # open Kit findings the verb waits for
 
     def tooltip(self) -> str:
         return f"{self.what}\nWirkung: {self.effect}\nVerfügbar: {self.when}"
@@ -56,7 +60,9 @@ VERBS: tuple[Verb, ...] = (
          "schreibt nur die Übergabedateien im Repo.",
          "in jedem ruhenden Zustand außer UNKLAR und KEIN_KIT.", task_key="chat-switch"),
     Verb(rs.WIEDERHERSTELLEN, "Wiederherstellen", "probleme", None, FRAGT,
-         "Diagnostiziert Drift oder einen abgebrochenen Ablauf und stellt einen sauberen Zustand her.",
+         "Grundversion: Diagnose über die Remote-LLM und Reparatur nur über Kit-Befehle; wo das Kit "
+         "keinen Weg hat (Änderungen oder Commits auf main, KIT-GF-033), fragt es dich. Die vollständige "
+         "Version folgt nach dem Kit-Fix.",
          "erst nur lesend; zerstörerische Schritte nur nach deiner Freigabe.",
          "bei einer Störung (Zustand STÖRUNG) oder nach einem abgebrochenen Abschließen.",
          task_key="recover"),
@@ -67,7 +73,8 @@ VERBS: tuple[Verb, ...] = (
     Verb(rs.RELEASE, "Release", "weitere", None, FRAGT,
          "Prüft und veröffentlicht eine Version über das Kit.",
          "wirkt auf GitHub; fragt immer.",
-         "auf sauberem, synchronem main (Zustand BEREIT).", slice="P11"),
+         "auf sauberem, synchronem main (Zustand BEREIT).", slice="P11",
+         kit_gate="KIT-GF-029, KIT-GF-032"),
     Verb(rs.PFLEGE, "Pflege", "weitere", None, LOKAL,
          "Räumt Kit-Übertragungsreste auf, prüft Dokumente auf Aktualität, hebt die Kit-Steuerschicht "
          "und das Kit selbst auf den neuesten Stand.",
@@ -81,6 +88,8 @@ def availability(verb: Verb, state: rs.RepoState | None, *,
                  recover_offered: bool = False) -> tuple[bool, str]:
     """(enabled, reason shown when disabled). ``recover_offered``: an
     interrupted Abschließen unlocks Wiederherstellen (R6) unless a task runs."""
+    if verb.kit_gate is not None:
+        return False, f"Wartet auf einen Kit-Fix ({verb.kit_gate}); bis dahin von Hand."
     if verb.slice is not None:
         return False, f"In Vorbereitung (Plan {verb.slice})."
     if state is None:

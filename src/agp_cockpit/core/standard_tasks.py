@@ -290,10 +290,15 @@ changes, an interrupted publish/merge/post-merge lifecycle, a failing post-merge
 restore a clean, synchronized state: either a clean work branch that can be finished, or main
 equal to origin/main with a passing post-merge check.
 
-Start with the Kit's read-only recovery diagnosis. Destructive steps — discarding changes,
-resetting branches, deleting branches or files — require NEEDS_HUMAN with a precise question
-first. Remote effects ask as usual. If an interrupted lifecycle only needs to be completed
-(for example an open, green pull request), say so in NEEDS_HUMAN instead of starting it.
+Start with the Kit's read-only recovery and divergence diagnosis. Repair only through Kit
+routes from the command digest, which cover: main only behind origin/main, a detached HEAD
+without own commits, and discarding changes on a work branch (dry run with signature first, the
+destructive run only after NEEDS_HUMAN and approval). Never run raw git that changes the
+repository (reset, checkout, switch, clean, restore, branch -f/-D, stash). Where the Kit has no route — uncommitted changes on main, commits
+on main that are not on origin/main (KIT-GF-033) — stop with NEEDS_HUMAN, state the diagnosis
+and leave the repair to the human. Remote effects ask as usual. If an interrupted lifecycle only
+needs to be completed (for example an open, green pull request), say so in NEEDS_HUMAN instead
+of starting it.
 {_COMMON}
 Completion is verified locally: DONE is accepted only when the Cockpit's own Lagebericht reports
 BEREIT or IN_ARBEIT.
