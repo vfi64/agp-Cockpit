@@ -1011,7 +1011,14 @@
       "status": "OPEN",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null
+      "fixed_in": null,
+      "extensions": [
+        {
+          "date": "2026-10-02",
+          "title": "Verdict only at the start of the JSON; a stdout tail loses it",
+          "observed": "Step 1573: pr-create-complete --post-merge-complete --json returned 0 after merging PR #147 and refresh #148, but its top-level verdict (PR number, merge, result_status) stands at the start of a ~20 KB JSON whose end is the restore-known-volatile sub-step. The remote work order kept only the stdout tail; the 24 KB return bundle contained no PR number, the remote side could not see the merge and re-ran the orchestrator (KIT-GF-030)."
+        }
+      ]
     },
     {
       "id": "KIT-GF-028",
@@ -1060,6 +1067,56 @@
           "marker": "AGP_RELEASE_POLICY_V1",
           "description": "Release policy file plus rejection of publication steps in work orders; RELEASE_POLICY.md states the private-release rule."
         }
+      ]
+    },
+    {
+      "id": "KIT-GF-030",
+      "title": "pr-create-complete opens a second pull request for an already squash-merged branch",
+      "first_observed": "2026-10-02",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "transfer pr-create(-complete) refuses (or reports DONE) when the head branch adds nothing to the base, in particular after its previous pull request was squash-merged; the post-merge lifecycle removes or marks the merged remote head branch.",
+      "observed": "Kit 1.0.13, steps 1573/1574: PR #147 (squash) and refresh #148 were merged and post-merge passed; the remote head branch feat/t3-findings-sync-release-policy stayed on origin. Re-running pr-create-complete for the same head recreated the local branch from origin, opened PR #149 without content difference, ran CI (#516/#517) and, after pr-complete 149, merged an empty commit 44e0c69 into main (git diff 5c1544c 44e0c69 empty).",
+      "impact": "A repeated or misread lifecycle run produces an empty pull request, an extra CI round, an empty merge commit on main and consumes a human approval.",
+      "workaround": "Cockpit merged-branch guard (AGP_MERGED_BRANCH_GUARD_V1): a pr-create work order whose head branch has every change already in origin/<base> is rejected as a correctable violation; continuations carry Cockpit-verified repository facts (AGP_REPOSITORY_FACTS_V1).",
+      "repair": "Before creating a pull request compare the head's changes with the base (squash-aware: paths changed since the merge base identical in the base) and return DONE/BLOCKED with the earlier merged PR; delete or mark the merged remote head branch in post-merge-complete.",
+      "regression": "After a squash-merged pr-create-complete, a second identical call opens no pull request and runs no CI; it reports the merged PR.",
+      "evidence": [
+        "Download/1573_agp_pr_create_complete_return_bundle.json",
+        "Download/1574_agp_pr_create_complete_recheck_return_bundle.json",
+        "Download/1577_agp_existing_pr_probe_return_bundle.json (PR #149 OPEN, #147 MERGED, same head)",
+        "GitHub Actions #516/#517; main 44e0c69 (empty squash of #149)"
+      ],
+      "cockpit_mitigation": [
+        {
+          "date": "2026-10-02",
+          "marker": "AGP_MERGED_BRANCH_GUARD_V1",
+          "description": "Correctable rejection of pr-create work orders for a merged head branch; locally verified repository facts in every continuation; work-order rule to record the Kit verdict fields."
+        }
+      ]
+    },
+    {
+      "id": "KIT-GF-031",
+      "title": "pr-complete: no --post-merge-complete and a fresh-context blocker in the middle of the lifecycle",
+      "first_observed": "2026-10-02",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The existing-PR orchestrator accepts the same lifecycle options as pr-create-complete (including --post-merge-complete) and refreshes the LLM context carriers it requires itself.",
+      "observed": "Kit 1.0.13: step 1578 `transfer pr-complete 149 ... --post-merge-complete` was BLOCKED (invalid_argument_post_merge_complete: run pr-complete, then post-merge-complete --after-pr); step 1579 without it was BLOCKED by transfer require-fresh-llm-context (outbox_missing, latest_handoff_report_missing) right after the Kit's own post-merge run; step 1580 `transfer refresh-llm-context-carriers` was needed before 1581 passed.",
+      "impact": "Two extra remote turns and work orders for an existing pull request; the asymmetry invites invalid calls.",
+      "workaround": "None in the Cockpit; the remote side repairs within the approved repair budget.",
+      "repair": "Accept --post-merge-complete in pr-complete (or run it by default); let the orchestrator refresh the context carriers it requires instead of blocking.",
+      "regression": "pr-complete <n> --post-merge-complete on a green PR merges and completes post-merge in one call.",
+      "evidence": [
+        "Download/1578_agp_pr149_complete_return_bundle.json",
+        "Download/1579_agp_pr149_complete_return_bundle.json",
+        "Download/1580_agp_refresh_llm_context_carriers_return_bundle.json"
       ]
     }
   ],

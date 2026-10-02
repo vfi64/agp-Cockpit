@@ -460,6 +460,22 @@ This section is normative for the file loop after local execution.
    syntax included, happens at `/v1/file-loop/command` and is answered with a
    bounded correction (live 2026-10-02, step 1568: a fresh chat omitted
    `--self-test`, ingress rejected it fail-fast and the mission stopped).
+36. Merged-branch guard (`AGP_MERGED_BRANCH_GUARD_V1`): a work order with
+   `agentic-kit transfer pr-create*` whose head branch (local, else
+   `origin/<branch>`) has every path it changed since the merge base identical
+   in `origin/<base>` is rejected as a correctable violation. Not blocked: a
+   branch without own commits, the current branch with uncommitted changes,
+   unknown refs (live 2026-10-02: step 1574 re-ran `pr-create-complete` after
+   1573 had merged PR #147; the Kit opened the empty PR #149).
+37. Repository facts (`AGP_REPOSITORY_FACTS_V1`): every continuation after a
+   local step carries one line the Cockpit read itself — current branch and
+   HEAD, `origin/main`, main = origin/main, clean worktree, and for each pr-create
+   head of the completed work order (and a non-main current branch) whether it
+   adds nothing to `origin/main`; with `gh` available also its pull requests.
+38. Kit verdict rule (`AGP_KIT_VERDICT_RULE_V1`, part of `WORK_ORDER_KIT_RULE`):
+   work orders record `result_status`, `final_signal`, `failed_step` and
+   `next_action` of every `--json` Kit command and never re-run a remote-effect
+   command to check a result.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

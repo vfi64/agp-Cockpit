@@ -1176,3 +1176,21 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 - Workaround / Cockpit mitigation (`AGP_RELEASE_POLICY_V1`): `docs/planning/release_policy.json` and `docs/planning/RELEASE_POLICY.md`; work orders with publication steps are rejected.
 - Repair: publication policy in the workspace manifest (none | github | github+pypi | github+pypi+zenodo) gating publish, DOI closeout, post-release checks and CHANGELOG markers; rendered into the managed repository's docs.
 
+## KIT-GF-030 — pr-create-complete opens a second pull request for an already squash-merged branch
+
+- Status: OPEN · Severity: high · First observed: 2026-10-02
+- Expected: `transfer pr-create(-complete)` refuses or reports DONE when the head branch adds nothing to the base (squash-aware); post-merge removes or marks the merged remote head branch.
+- Observed (Kit 1.0.13, steps 1573/1574): after PR #147 (squash), refresh #148 and a passing post-merge, the remote head branch stayed on origin; re-running `pr-create-complete` for it opened PR #149 without content difference, ran CI #516/#517 and finally merged the empty commit `44e0c69` (`git diff 5c1544c 44e0c69` is empty).
+- Workaround / Cockpit mitigation (`AGP_MERGED_BRANCH_GUARD_V1`, `AGP_REPOSITORY_FACTS_V1`): pr-create work orders for a merged head branch are rejected as correctable violations; every continuation carries locally verified repository facts.
+- Repair: squash-aware comparison before creating a pull request, report the merged PR; clean up the merged remote head branch.
+
+## KIT-GF-031 — pr-complete: no --post-merge-complete and a fresh-context blocker mid-lifecycle
+
+- Status: OPEN · Severity: medium · First observed: 2026-10-02
+- Observed (Kit 1.0.13, steps 1578–1581): `pr-complete 149 --post-merge-complete` BLOCKED (invalid argument); without it BLOCKED by `require-fresh-llm-context` right after the Kit's own post-merge run; `refresh-llm-context-carriers` needed first.
+- Repair: same lifecycle options as `pr-create-complete`; the orchestrator refreshes the carriers it requires.
+
+## KIT-GF-027 — extension 2026-10-02: verdict only at the start of the JSON
+
+- Step 1573: the verdict of `pr-create-complete --json` (PR number, merge, result_status) stands at the start of ~20 KB of JSON whose end is a restore sub-step; a work order keeping the stdout tail lost it, and the remote side re-ran the orchestrator (KIT-GF-030).
+

@@ -88,11 +88,27 @@ def _continuation_for_run(run:FileLoopRun)->str:
         + f"Command file: {run.command_file}\n")
 
 
+def _repository_facts(root: Path, command_file: Path | None) -> str:
+    """AGP_REPOSITORY_FACTS_V1: locally verified facts for the continuation."""
+    try:
+        from agp_cockpit.core.ci_gate import gh_binary
+        from agp_cockpit.core.merged_branch_guard import repository_facts
+        source = None
+        if command_file is not None and Path(command_file).is_file():
+            source = Path(command_file).read_text(encoding="utf-8")
+        line = repository_facts(root, source, gh=gh_binary(root))
+    except Exception:  # noqa: BLE001 - facts are an aid, never a loop failure
+        return ""
+    return (line + "\n") if line else ""
+
+
 def _with_next_local_step(text: str, root: Path, completed_step: int,
-                          reply_policy: ReplyPolicy = GENERIC) -> str:
+                          reply_policy: ReplyPolicy = GENERIC,
+                          command_file: Path | None = None) -> str:
     next_step = next_step_number(root / "Download", minimum_step=completed_step)
     return (
         text
+        + _repository_facts(root, command_file)
         + f"\nThe local bridge assigned step {completed_step}. "
         + f"The next remote command file must be new; expected local step: {next_step}. "
         + f"Set its internal STEP constant and all step-scoped output names to {next_step}. "
@@ -257,7 +273,7 @@ def consume_command_file(
         delivery_pending = (not blocked) and previous.get("delivery") == DELIVERY_PENDING
         if delivery_pending:
             continuation = REDELIVERY_NOTICE + _with_next_local_step(
-                _continuation_for_run(run), root, run.step, reply_policy
+                _continuation_for_run(run), root, run.step, reply_policy, run.command_file
             )
             if guard is not None:
                 try:
@@ -373,7 +389,8 @@ def consume_command_file(
             human_reason=human_reason,
             continuation_text=None,
         )
-    continuation = None if terminal_blocked else _with_next_local_step(_continuation_for_run(run), root, run.step, reply_policy)
+    continuation = None if terminal_blocked else _with_next_local_step(
+        _continuation_for_run(run), root, run.step, reply_policy, run.command_file)
     if guard is not None and continuation is not None:
         try:
             guard.record_prompt(continuation)
