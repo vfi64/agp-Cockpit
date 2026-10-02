@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from agp_cockpit.core.command_file_contract import validate_command_content
 from agp_cockpit.core.terminal_reply import is_terminal_filename, parse_terminal_reply
 
 MAX_DOWNLOAD_BYTES = 2_000_000
@@ -32,6 +31,7 @@ def read_downloaded_command(
     allow_remote_effects: bool = False,
 ) -> tuple[str, str, str]:
     """Read one browser download without granting arbitrary file access."""
+    del allow_remote_effects  # decided by /v1/file-loop/command
     expected = str(expected_filename).strip()
     terminal = is_terminal_filename(expected)
     if (
@@ -54,9 +54,10 @@ def read_downloaded_command(
     if terminal:
         parse_terminal_reply(expected, content)
         return expected, content, "application/json"
-    # The command authority checks (manifest, orchestrator, remote effects)
-    # belong to /v1/file-loop/command, which can answer a violation with a
-    # correction instead of a hard stop (AGP_CORRECTABLE_REJECTION_V1).
-    validate_command_content(content, filename=expected, repository_root=repository_root,
-                             allow_remote_effects=allow_remote_effects, catalog_checks=False)
+    # AGP_INGRESS_SAFETY_ONLY_V1 (live 2026-10-02, step 1568): fetching checks
+    # only name, location, size and UTF-8. Every semantic check, syntax
+    # included, belongs to /v1/file-loop/command, which answers a violation
+    # with a bounded correction instead of a hard stop
+    # (AGP_CORRECTABLE_REJECTION_V1); here a "missing --self-test" stopped the
+    # mission of a fresh chat.
     return expected, content, "text/x-python"

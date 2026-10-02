@@ -451,6 +451,15 @@ This section is normative for the file loop after local execution.
    promise) Error: Extension context invalidated“ at the old `content.js`). The
    first reload after installing this build still comes from an older script
    without the guard.
+35. Work-order contract for a fresh chat (`AGP_WORK_ORDER_SHAPE_RULE_V1`,
+   `AGP_INGRESS_SAFETY_ONLY_V1`): `WORK_ORDER_KIT_RULE` states the structural
+   contract (main(), `__main__` guard, STEP, `--self-test` without side
+   effects, one `Download/<STEP>_<topic>_return_bundle.json`) verbatim in the
+   mission start, every continuation and every correction prompt. Download
+   ingress checks only name, location, size and UTF-8; every semantic check,
+   syntax included, happens at `/v1/file-loop/command` and is answered with a
+   bounded correction (live 2026-10-02, step 1568: a fresh chat omitted
+   `--self-test`, ingress rejected it fail-fast and the mission stopped).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

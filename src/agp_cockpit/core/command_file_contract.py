@@ -34,6 +34,13 @@ WORK_ORDER_KIT_RULE = (
     "never run git push, git fetch or git pull. Other allowed tools such as git may only be "
     "used in addition. Record every agentic-kit command's argv, returncode, stdout and "
     "stderr (tails) in the return bundle."
+    # AGP_WORK_ORDER_SHAPE_RULE_V1 (live 2026-10-02, step 1568): a fresh chat
+    # knew nothing of the structural contract below and was stopped by it.
+    " Work-order shape, checked locally before anything runs: a main() function and an "
+    "if __name__ == '__main__': guard; a module constant STEP equal to the expected local step; "
+    "a --self-test mode (sys.argv or argparse) that only checks the file itself, runs no command, "
+    "writes no file and exits 0; the real run writes exactly one JSON return bundle named "
+    "Download/<STEP>_<topic>_return_bundle.json."
 )
 
 

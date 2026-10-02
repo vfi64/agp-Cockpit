@@ -306,12 +306,15 @@ class MainWindow(ttk.Frame):
         # AGP_KIT_FINDINGS_VIEW_V1 / AGP_MAINTENANCE_CLEANUP_V1
         tools = ttk.LabelFrame(parent, text="Werkzeuge", padding=8)
         tools.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(8, 0))
-        ttk.Button(tools, text="Kit-Befunde …", command=self.open_kit_findings).grid(row=0, column=0, sticky="w")
+        # One tool per row; the description wraps instead of being cut off.
+        tools.columnconfigure(1, weight=1)
+        ttk.Button(tools, text="Kit-Befunde …", command=self.open_kit_findings).grid(row=0, column=0, sticky="ew")
         ttk.Label(tools, text="Fehler des Kits aus der Arbeit an diesem Projekt, mit Status",
-                  foreground="#888888").grid(row=0, column=1, sticky="w", padx=(8, 24))
-        ttk.Button(tools, text="Aufräumen …", command=self.open_cleanup).grid(row=0, column=2, sticky="w")
+                  foreground="#888888", wraplength=520, justify="left").grid(row=0, column=1, sticky="w", padx=(8, 0))
+        ttk.Button(tools, text="Aufräumen …", command=self.open_cleanup).grid(row=1, column=0, sticky="ew", pady=(4, 0))
         ttk.Label(tools, text="alte Arbeitsdateien und Kit-Logs, mit Vorschau",
-                  foreground="#888888").grid(row=0, column=3, sticky="w", padx=(8, 0))
+                  foreground="#888888", wraplength=520, justify="left").grid(row=1, column=1, sticky="w",
+                                                                              padx=(8, 0), pady=(4, 0))
         ttk.Label(parent,textvariable=self.system_focus_var).grid(row=4,column=0,columnspan=2,sticky="w",pady=(8,0))
         system_focus_names={
             self.model_box:"Modell",

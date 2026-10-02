@@ -1089,3 +1089,10 @@ repeat once.
 - Tests: `tests/test_t3_findings_sync_release_policy.py`.
 - Chrome error of the extension, read 2026-10-02: „Uncaught (in promise) Error: Extension context invalidated“, `content.js:3580` (the 0.3.34 script: line 3580 lies in `render()`, which reads `chrome.runtime.getManifest()`/storage). Cause: the automatic reload replaced the extension while the old content script of the open ChatGPT tab kept running its timers. Fix in T3: AGP_ORPHANED_CONTENT_SCRIPT_GUARD_V1 (COMMUNICATION_PROTOCOL 34), test `tests/orphan_guard_browser.cjs`.
 
+## 2026-10-02 — Fresh-chat stop at 1568 (build work-order-contract-20261002, extension 0.3.37)
+
+- Live run (build findings-sync-20261002): the T3 finish started in a new ChatGPT conversation. Work order `1568_agp_branch_closeout_probe.py` had no `--self-test` mode; `/v1/file-loop/download` raised „command file semantic contract rejected: missing --self-test contract“ → `K07_BRIDGE_REJECTED` → `AUTO_ERROR` → mission STOPPED, task left `WAITING_FOR_REMOTE`. Nothing ran locally.
+- Causes: (a) the structural work-order contract was enforced but stated to the remote side only in the chat-switch standard task; earlier chats had learned it from history; (b) download ingress ran the semantic checks, which bypassed the correctable path of `/command` (AGP_CORRECTABLE_REJECTION_V1).
+- Fix: AGP_WORK_ORDER_SHAPE_RULE_V1 and AGP_INGRESS_SAFETY_ONLY_V1 (COMMUNICATION_PROTOCOL 35); the correction prompt repeats the rule. System tab „Werkzeuge“: descriptions wrap instead of being cut off.
+- Tests: `tests/test_fresh_chat_work_order_contract.py` (the live 1568 file is fetched, its violation is correctable, the correction prompt and content.js carry the rule); `test_k07_command_file_ingress_989.py` now expects /download to fetch an incomplete file.
+
