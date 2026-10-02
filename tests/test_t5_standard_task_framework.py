@@ -232,6 +232,12 @@ def panel(monkeypatch, tmp_path, repo):
     monkeypatch.setattr(widget, "_track", lambda _mission: None)
     yield root, widget, created, answers, repo, tmp_path / "rt"
     root.destroy()
+    # Collect the panel's reference cycles here, in the main thread: a later
+    # collection in a server thread of another test aborts Tcl
+    # ("Tcl_AsyncDelete: async handler deleted by the wrong thread").
+    del widget, root
+    import gc
+    gc.collect()
 
 
 def _offered(*keys):
@@ -322,3 +328,64 @@ def test_done_finish_recommends_chat_switch(panel, monkeypatch):
 def test_release_policy_allows_the_private_tag_push():
     policy = json.loads((ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"))
     assert policy["publication"] == "none" and policy["tag_push"]["allowed"] is True
+
+
+# --- T5b (live 2026-10-02) ----------------------------------------------------------------------
+
+def test_follow_up_is_the_only_recommendation_after_a_finished_task(panel, monkeypatch):
+    _root, widget, _created, _answers, _repo, _runtime = panel
+    from agp_cockpit.core.standard_task_progress import StandardTaskProgress
+    from agp_cockpit.ui import standard_tasks_panel as m
+    widget._tracked_task = BY_KEY["finish"]
+    widget._tracked_task_id = "t"
+    widget._tracked_mission_id = "m"
+    monkeypatch.setattr(m, "describe_standard_task_progress",
+                        lambda **_kw: StandardTaskProgress("Fertig ✓", True, "DONE"))
+    monkeypatch.setattr(widget.api, "status", dict)
+    widget.refresh_progress()
+    ready = rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
+                         offered=(rs.ARBEIT_BEGINNEN, rs.CHAT_WECHSELN))
+    widget.apply_state(ready)
+    assert widget.verb_badges[rs.CHAT_WECHSELN].cget("text").startswith("★ empfohlen")
+    assert not widget.verb_badges[rs.ARBEIT_BEGINNEN].cget("text").startswith("★")
+    assert widget.detail_var.get().startswith("Empfohlen: Chat wechseln")
+    widget.follow_up_key = None
+    widget.apply_state(ready)
+    assert widget.verb_badges[rs.ARBEIT_BEGINNEN].cget("text").startswith("★ empfohlen")
+
+
+def test_verified_done_shows_the_cockpit_verdict():
+    from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
+    mission = {"mission_id": "m", "state": "DONE", "turn_count": 1, "step_count": 1,
+               "last_summary": "Fertig (Remote): CI grün geprüft (PR #152 gemergt, main 0b07a8baeba0) · Step 1588"}
+    progress = describe_standard_task_progress(mission_id="m", task_status={"state": "VERIFIED_COMPLETE"},
+                                               bridge_status={"mission": mission})
+    assert progress.text.startswith("Fertig ✓ — CI grün geprüft (PR #152") and progress.outcome == "DONE"
+
+
+def test_send_control_waits_for_an_uploading_attachment():
+    background = (ROOT / "chrome_extension/background.js").read_text(encoding="utf-8")
+    assert "AGP_SEND_READY_AFTER_UPLOAD_V1" in background and "readiness_wait_ms:30000" in background
+
+
+def test_digest_is_remembered_only_after_the_send():
+    content = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+    block = content[content.index("const digestPath = String(status.kit_command_digest_path"):]
+    block = block[:block.index("} catch (err) {")]
+    send = block.index("await sendPrompt(bootstrapText);")
+    assert block.index("await rememberDigest(manifestSha, digestAttached)") > send
+    assert block.count("rememberDigest(") == 1
+
+
+def test_composer_is_cleaned_before_every_cockpit_send():
+    background = (ROOT / "chrome_extension/background.js").read_text(encoding="utf-8")
+    content = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+    assert "AGP_COMPOSER_CLEAN_START_V1" in background and "AGP_K07_CLEAN_COMPOSER" in background
+    native = background[background.index("async function agpNativeTransportV1("):]
+    assert native.index("agpComposerCleanup(") < native.index('"Input.insertText"')
+    assert "{files:false}" in native[:native.index('"Input.insertText"')]
+    continuation = background[background.index("async function agpSubmitFileLoopContinuation("):]
+    assert continuation.index("agpCleanComposer(tabId)") < continuation.index("attachResultFiles(chrome")
+    start = content[content.index("const digestPath = String(status.kit_command_digest_path"):]
+    assert start.index('type:"AGP_K07_CLEAN_COMPOSER"') < start.index("AGP_K07_ATTACH_FILES")
+    assert (ROOT / "tests/e2e/test_composer_clean.spec.js").is_file()

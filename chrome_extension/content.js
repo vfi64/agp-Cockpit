@@ -3483,24 +3483,38 @@
       const digestPath = String(status.kit_command_digest_path || "");
       const manifestSha = String(status.kit_manifest_sha || "");
       let bootstrapText = bootstrap;
+      // AGP_DIGEST_REMEMBERED_AFTER_SEND_V1 (live 2026-10-02): the digest
+      // counts as "in this chat" only after the message carrying it was
+      // sent; a failed send must not turn the next start into a reuse.
+      let digestAttached = null;
+      // AGP_COMPOSER_CLEAN_START_V1: start from an empty composer.
+      const cleaned = await chrome.runtime.sendMessage({type:"AGP_K07_CLEAN_COMPOSER"});
+      if (!cleaned || cleaned.ok !== true) {
+        throw new Error(String(cleaned && cleaned.reason || "ChatGPT-Eingabefeld nicht leer"));
+      }
+      if (cleaned.stage === "COMPOSER_CLEANED") {
+        await clientEvent("COMPOSER_LEFTOVERS_REMOVED", {
+          cleared_text:Boolean(cleaned.cleared_text), removed_files:cleaned.removed_files || []});
+      }
       if (digestPath && await digestAlreadyInChat(manifestSha)) {
         // AGP_DIGEST_ONCE_PER_CHAT_V1: same manifest, same chat, recent enough.
         bootstrapText = bootstrap + "\n\nThe agentic-kit command digest for manifest " + manifestSha +
           " was attached earlier in this conversation and is unchanged; it remains the command authority for this mission.";
-        await rememberDigest(manifestSha, false);
+        digestAttached = false;
         await clientEvent("KIT_COMMAND_DIGEST_REUSED", {manifest_sha:manifestSha});
       } else if (digestPath) {
         const attached = await chrome.runtime.sendMessage({type:"AGP_K07_ATTACH_FILES", files:[digestPath]});
         if (!attached || attached.ok !== true) {
           throw new Error("Kit command digest could not be attached: " + String(attached && attached.error || "unknown"));
         }
-        await rememberDigest(manifestSha, true);
+        digestAttached = true;
         await clientEvent("KIT_COMMAND_DIGEST_ATTACHED", {
           manifest_sha:manifestSha,
           evidence:String(attached.evidence || "")
         });
       }
       await sendPrompt(bootstrapText);
+      if (digestAttached !== null) await rememberDigest(manifestSha, digestAttached);
     } catch (err) {
       if (STATE.runGeneration === runGeneration) {
         await stop(String(err), "MISSION_BOOTSTRAP_SEND_FAILED");

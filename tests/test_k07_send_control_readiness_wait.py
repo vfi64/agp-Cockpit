@@ -8,9 +8,11 @@ def native():
 
 def test_send_control_wait_is_bounded():
     n=native()
-    assert "for (let attempt = 0; attempt < 60; attempt += 1)" in n
+    # AGP_SEND_READY_AFTER_UPLOAD_V1: 600 x 50 ms = 30 s (an uploading
+    # attachment keeps the send control disabled).
+    assert "for (let attempt = 0; attempt < 600; attempt += 1)" in n
     assert "setTimeout(resolve, 50)" in n
-    assert "readiness_wait_ms:3000" in n
+    assert "readiness_wait_ms:30000" in n
 
 def test_readiness_requires_actionable_hit_tested_target():
     n=native()

@@ -107,6 +107,9 @@ async function installBridgeMocks(page) {
       runtime: {
         id: "phase066-test-extension",
         getManifest: () => ({version: "0.3.13"}),
+        // AGP_COMPOSER_CLEAN_START_V1: the background answers the clean step.
+        sendMessage: async (message) => (message && message.type === "AGP_K07_CLEAN_COMPOSER")
+          ? {ok:true, stage:"COMPOSER_EMPTY"} : {ok:false, error:"not stubbed"},
         onMessage: {addListener: () => {}}
       }
     };

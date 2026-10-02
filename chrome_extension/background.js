@@ -271,6 +271,136 @@ async function agpK07NativeTrace1165(tabId, payload) {
   try { await chrome.tabs.sendMessage(tabId, {type:"AGP_K07_NATIVE_TRACE_1165", payload}); } catch (_) {}
 }
 
+// AGP_COMPOSER_CLEAN_START_V1 (live 2026-10-02): a failed send left the
+// Cockpit's bootstrap text and the command digest in the ChatGPT composer; the
+// next start appended to it. Before every Cockpit send the composer must be
+// empty or hold only Cockpit leftovers, which are removed: text that starts
+// with the AGP-SEND nonce line, attachment chips named like Cockpit files
+// (agentic-kit-command-digest*, <step>_*). Anything else (the human's own
+// text or files) is never deleted; the send stops with a clear reason.
+const AGP_COCKPIT_TEXT = /^AGP-SEND-[0-9a-f]{6,}/;
+
+function agpComposerInspect(resolveComposer, removeCockpitFiles) {
+  const composer = resolveComposer();
+  const form = composer && typeof composer.closest === "function" ? composer.closest("form") : null;
+  const text = composer
+    ? String("value" in composer ? (composer.value || "") : (composer.innerText || composer.textContent || ""))
+    : "";
+  const files = [];
+  const removeLabel = /remove|entfernen|löschen|delete|close|schließen/i;
+  const fileLike = /^[A-Za-z0-9][\w.-]*(\.(json|txt|md|py|csv|pdf|png|jpe?g|zip|yaml|yml)|…|\.\.\.)$/;
+  if (form && composer) {
+    const seen = new Set();
+    for (const el of Array.from(form.querySelectorAll("*"))) {
+      if (composer.contains(el)) continue;
+      const labels = [el.getAttribute("aria-label") || "", el.getAttribute("title") || "",
+        el.children.length ? "" : (el.textContent || "")]
+        .map(value => value.replace(/\s+/g, " ").trim()).filter(value => fileLike.test(value));
+      for (const name of labels) {
+        if (seen.has(name)) continue;
+        let chip = el;
+        let button = null;
+        for (let depth = 0; depth < 6 && chip && chip !== form; depth += 1, chip = chip.parentElement) {
+          button = Array.from(chip.querySelectorAll("button")).find(candidate =>
+            !composer.contains(candidate) &&
+            removeLabel.test((candidate.getAttribute("aria-label") || "") + " " + (candidate.getAttribute("title") || "")));
+          if (button) break;
+        }
+        if (!button) continue;          // not an attachment chip
+        seen.add(name);
+        const prefix = name.replace(/(…|\.\.\.)$/, "").trim();
+        const cockpit = /^agentic-kit-comm/i.test(prefix) || /^\d+_/.test(prefix);
+        files.push({name, cockpit});
+        if (removeCockpitFiles && cockpit) button.click();
+      }
+    }
+  }
+  return {composer:Boolean(composer), text, files};
+}
+
+async function agpComposerCleanup(evaluate, sendCommand, normalize, {files = true} = {}) {
+  const inspect = remove => evaluate(`(${agpComposerInspect.toString()})(${agpResolveComposer.toString()}, ${remove ? "true" : "false"})`);
+  const before = await inspect(false);
+  if (!before || !before.composer) return {ok:true, stage:"COMPOSER_NOT_FOUND_SKIPPED", before};
+  const text = normalize(before.text);
+  if (text && !AGP_COCKPIT_TEXT.test(text)) {
+    return {ok:false, stage:"COMPOSER_HAS_FOREIGN_TEXT", before,
+      reason:"Das ChatGPT-Eingabefeld enthält Text, der nicht vom Cockpit stammt; bitte leeren und erneut starten."};
+  }
+  // files=false: the native transport keeps the evidence just attached for
+  // this very send and only clears leftover text.
+  const chips = files ? (before.files || []) : [];
+  const foreign = chips.filter(file => !file.cockpit);
+  if (foreign.length) {
+    return {ok:false, stage:"COMPOSER_HAS_FOREIGN_FILES", before,
+      reason:"Im ChatGPT-Eingabefeld hängen Dateien, die nicht vom Cockpit stammen: " +
+        foreign.map(file => file.name).join(", ") + "; bitte entfernen und erneut starten."};
+  }
+  let removed = [];
+  if (chips.length) {
+    await inspect(true);
+    removed = chips.map(file => file.name);
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  if (text) {
+    await evaluate(`(() => { const c = (${agpResolveComposer.toString()})(); if (c && c.focus) c.focus(); return true; })()`);
+    await sendCommand("Input.dispatchKeyEvent", {type:"keyDown", key:"a", code:"KeyA",
+      windowsVirtualKeyCode:65, nativeVirtualKeyCode:65, commands:["selectAll"]});
+    await sendCommand("Input.dispatchKeyEvent", {type:"keyUp", key:"a", code:"KeyA", windowsVirtualKeyCode:65});
+    await sendCommand("Input.dispatchKeyEvent", {type:"keyDown", key:"Backspace", code:"Backspace",
+      windowsVirtualKeyCode:8, nativeVirtualKeyCode:8, commands:["deleteBackward"]});
+    await sendCommand("Input.dispatchKeyEvent", {type:"keyUp", key:"Backspace", code:"Backspace", windowsVirtualKeyCode:8});
+    let after = await inspect(false);
+    if (after && normalize(after.text)) {
+      await evaluate(`(() => { const c = (${agpResolveComposer.toString()})(); if (!c) return false;
+        c.focus(); document.execCommand("selectAll", false); document.execCommand("delete", false); return true; })()`);
+      after = await inspect(false);
+    }
+    if (after && normalize(after.text)) {
+      return {ok:false, stage:"COMPOSER_NOT_CLEARED", before, after,
+        reason:"Das ChatGPT-Eingabefeld konnte nicht geleert werden; bitte von Hand leeren."};
+    }
+  }
+  const final = await inspect(false);
+  const remaining = files ? ((final && final.files) || []).filter(file => file.cockpit).map(file => file.name) : [];
+  if (remaining.length) {
+    return {ok:false, stage:"COMPOSER_FILES_NOT_REMOVED", before, final,
+      reason:"Alte Cockpit-Anhänge im ChatGPT-Eingabefeld ließen sich nicht entfernen: " + remaining.join(", ")};
+  }
+  return {ok:true, stage:text || removed.length ? "COMPOSER_CLEANED" : "COMPOSER_EMPTY",
+    cleared_text:Boolean(text), removed_files:removed};
+}
+
+async function agpCleanComposer(tabId) {
+  const target = {tabId};
+  let attached = false;
+  const sendCommand = (method, params) => chrome.debugger.sendCommand(target, method, params || {});
+  const evaluate = async expression => {
+    const result = await sendCommand("Runtime.evaluate", {expression, returnByValue:true, awaitPromise:true});
+    if (result && result.exceptionDetails) throw new Error("CDP Runtime.evaluate failed");
+    return result && result.result ? result.result.value : null;
+  };
+  const normalize = value => String(value || "").normalize("NFKC")
+    .replace(/[​‌‍﻿]/g, "").replace(/ /g, " ").replace(/\s+/g, " ").trim();
+  try {
+    await chrome.debugger.attach(target, "1.3");
+    attached = true;
+    return await agpComposerCleanup(evaluate, sendCommand, normalize);
+  } finally {
+    if (attached) { try { await chrome.debugger.detach(target); } catch (_) {} }
+  }
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.type !== "AGP_K07_CLEAN_COMPOSER") return false;
+  const tabId = sender && sender.tab ? sender.tab.id : null;
+  if (!Number.isInteger(tabId)) { sendResponse({ok:false, reason:"no tab"}); return false; }
+  agpCleanComposer(tabId).then(sendResponse)
+    .catch(error => sendResponse({ok:false, stage:"COMPOSER_CLEAN_FAILED",
+      reason:String(error && error.message ? error.message : error)}));
+  return true;
+});
+
 // AGP_BROWSER_NATIVE_TRANSPORT_V1
 async function agpNativeTransportV1(message, sender) {
   const requestId = String(message.request_id || "");
@@ -481,6 +611,16 @@ async function agpNativeTransportV1(message, sender) {
       };
     }
 
+    // AGP_COMPOSER_CLEAN_START_V1: leftover Cockpit text of a failed send
+    // would be prefixed to this message; the human's own text is kept.
+    const composerClean = await agpComposerCleanup(
+      evaluate, (method, params) => chrome.debugger.sendCommand(target, method, params || {}),
+      normalize, {files:false});
+    if (!composerClean || composerClean.ok !== true) {
+      return {ok:false, request_id:requestId, tab_id:tabId, stage:composerClean ? composerClean.stage : "COMPOSER_NOT_CLEAN",
+        reason:composerClean ? composerClean.reason : "", before};
+    }
+
     await chrome.debugger.sendCommand(
       target,
       "Input.insertText",
@@ -581,9 +721,12 @@ async function agpNativeTransportV1(message, sender) {
     // 825 proved insertion succeeds while the prior submit path did not commit.
     // React may publish/enable the send control shortly after Input.insertText.
     // Wait boundedly for a truly actionable target instead of sampling once.
+    // AGP_SEND_READY_AFTER_UPLOAD_V1 (live 2026-10-02, Arbeit beginnen): an
+    // attachment that is still uploading (the re-attached command digest)
+    // keeps the send control disabled longer than 3 s; wait up to 30 s.
     let sendTarget = null;
     let sendDiagnostics = null;
-    for (let attempt = 0; attempt < 60; attempt += 1) {
+    for (let attempt = 0; attempt < 600; attempt += 1) {
       const probe = await evaluate(`(() => {
         const selectors = [
           'button[data-testid="send-button"]',
@@ -658,7 +801,7 @@ async function agpNativeTransportV1(message, sender) {
         model:modelVerification,
         send_target:null,
         send_diagnostics:sendDiagnostics,
-        readiness_wait_ms:3000
+        readiness_wait_ms:30000
       };
     }
 
@@ -962,6 +1105,9 @@ async function agpAttachFileLoopResultBundle(tabId, absolutePath) {
 }
 async function agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, continuationPrompt, cycleId, resultSha256) {
   if (!globalThis.AGPResultFileAttachment || typeof globalThis.AGPResultFileAttachment.attachResultFiles !== "function") throw new Error("K07 result-file attachment seam unavailable");
+  // AGP_COMPOSER_CLEAN_START_V1: leftovers of a failed send never travel along.
+  const cleaned = await agpCleanComposer(tabId);
+  if (!cleaned || cleaned.ok !== true) throw new Error(String(cleaned && cleaned.reason || "ChatGPT composer not clean"));
   const evidence = [absolutePath];
   if (outputPath) evidence.push(outputPath);
   const attached = await globalThis.AGPResultFileAttachment.attachResultFiles(chrome, {tabId}, evidence);

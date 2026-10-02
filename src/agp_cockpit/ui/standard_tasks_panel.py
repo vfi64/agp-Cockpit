@@ -22,6 +22,11 @@ from agp_cockpit.ui.tooltip import Tooltip
 STEP_MARK = {1: "①", 2: "②", 3: "③", 4: "④"}
 
 
+def rs_labels() -> dict:
+    from agp_cockpit.core.repo_state import LABELS
+    return LABELS
+
+
 class StandardTasksPanel(ttk.Frame):
     """Button surface for deterministic, reusable Cockpit task templates."""
 
@@ -36,6 +41,7 @@ class StandardTasksPanel(ttk.Frame):
         self._tracked_task: StandardTask | None = None
         self._tracked_task_id = ""
         self.recover_offered = False
+        self.follow_up_key: str | None = None   # verb recommended after a finished task
         self.repository_root = repository_root.expanduser().resolve()
         self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
         self.tasks = standard_tasks()
@@ -189,6 +195,7 @@ class StandardTasksPanel(ttk.Frame):
             return False
 
         self.recover_offered = False
+        self.follow_up_key = None
         self._tracked_task = task
         self._tracked_task_id = task_id
         self.status_var.set(
@@ -249,6 +256,11 @@ class StandardTasksPanel(ttk.Frame):
         recommended = getattr(state, "recommended", None)
         if self.recover_offered and getattr(state, "state", None) != LAEUFT:
             recommended = WIEDERHERSTELLEN   # R6: interrupted Abschließen
+        elif self.follow_up_key and getattr(state, "state", None) != LAEUFT \
+                and self.follow_up_key in getattr(state, "offered", ()):
+            # One recommendation only (live 2026-10-02: the status line said
+            # „Chat wechseln“, the star sat on „Arbeit beginnen“).
+            recommended = self.follow_up_key
         for key, button in self.verb_buttons.items():
             verb = VERB_BY_KEY[key]
             enabled, reason = availability(verb, state, recover_offered=self.recover_offered)
@@ -261,19 +273,21 @@ class StandardTasksPanel(ttk.Frame):
                 text=("★ empfohlen · " if is_recommended else "") + verb.badge,
                 foreground="#d0a000" if is_recommended else "#888888",
             )
-        self.detail_var.set(self._state_hint(state))
+        self.detail_var.set(self._state_hint(state, recommended))
+        self._effective_recommended = recommended
         if self._poll_job is None and getattr(state, "state", None) == LAEUFT:
             self.status_var.set("")   # a task started elsewhere; its progress is in "Arbeiten"
 
     @staticmethod
-    def _state_hint(state) -> str:
+    def _state_hint(state, recommended: str | None = None) -> str:
         if state is None:
             return "Lagebericht wird erstellt …"
         if state.state == LAEUFT:
             return ("Ein Task läuft — neue Aufträge erst nach seinem Ende. "
                     "Den Fortschritt zeigt der Tab „Arbeiten“.")
-        if state.recommended:
-            verb = VERB_BY_KEY[state.recommended]
+        recommended = recommended or state.recommended
+        if recommended:
+            verb = VERB_BY_KEY[recommended]
             enabled, _reason = availability(verb, state)
             if not enabled and verb.slice:
                 # Live 2026-10-02: "Empfohlen: Abschließen" next to a disabled button.
@@ -347,8 +361,14 @@ class StandardTasksPanel(ttk.Frame):
             self.lage_var.set(f"Lagebericht fehlgeschlagen: {result}")
             return
         self.repo_state = result
-        self.lage_var.set(describe(result))
         self.apply_state(result)
+        text = describe(result)
+        effective = getattr(self, "_effective_recommended", None)
+        if effective and effective != result.recommended and result.recommended:
+            # One recommendation in the whole tab (follow-up or R6 override).
+            text = text.replace(f"Empfohlen: {rs_labels()[result.recommended]}",
+                                f"Empfohlen: {rs_labels()[effective]} (nach dem letzten Task)")
+        self.lage_var.set(text)
 
     def _track(self, mission_id: str) -> None:
         if self._poll_job is not None:
@@ -380,6 +400,7 @@ class StandardTasksPanel(ttk.Frame):
         if progress.terminal and task is not None:
             if progress.outcome == "DONE" and task.follow_up:
                 text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."
+                self.follow_up_key = next((v.key for v in VERBS if v.label == task.follow_up), None)
             elif progress.outcome != "DONE" and task.offers_recover_on_interrupt:
                 # R6: an interrupted Abschließen offers Wiederherstellen.
                 self.recover_offered = True
