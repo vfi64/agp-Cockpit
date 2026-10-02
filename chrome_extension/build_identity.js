@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "composer-clean-20261002";
+globalThis.AGP_EXTENSION_BUILD_ID = "send-retry-20261002";
