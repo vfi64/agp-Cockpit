@@ -158,3 +158,38 @@ def test_without_gh_the_login_is_unknown_not_failed(repo, monkeypatch):
     root, kit = repo
     monkeypatch.setenv("AGP_COCKPIT_GH_BINARY", "none")
     assert rs.observe(root, kit=kit, network=False).gh_ok is None
+
+
+def test_handoff_projection_after_chat_switch_is_kit_internal():
+    """AGP_KIT_VOLATILE_PATHS_V1 (live 2026-10-02, step 1602): the files that
+    `transfer chat-switch-complete` regenerates on main are Kit-internal."""
+    out = "".join(f" M {p}\n" for p in (
+        ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+        ".agentic/state/handoff/packages/latest/execution_contract.json",
+        ".agentic/state/handoff/packages/latest/successor_context.yaml",
+        ".agentic/state/handoff/packages/latest/successor_prompt.md",
+        ".agentic/state/handoff/packages/latest/validation_report.json",
+        "docs/handoff/notes.md"))
+
+    def runner(argv, **_):
+        if "--is-inside-work-tree" in argv:
+            text = "true"
+        else:
+            text = {"status": out, "rev-parse": MAIN, "rev-list": "0", "branch": "main"}.get(argv[1], "")
+        return SimpleNamespace(returncode=0, stdout=text, stderr="")
+
+    observed = rs.observe(Path("/r"), runner=runner, kit=None, network=False)
+    assert observed.changes == ("docs/handoff/notes.md",)
+    assert len(observed.volatile_changes) == 5
+    clean = rs.classify(facts(volatile_changes=observed.volatile_changes))
+    assert clean.state == rs.BEREIT, rs.describe(clean)
+
+
+def test_kit_volatile_paths_cover_the_installed_kit():
+    """Every known volatile transfer path of the installed Kit is Kit-internal
+    for the Cockpit (skipped where the Kit is not importable)."""
+    volatile_paths = pytest.importorskip("agentic_project_kit.volatile_paths")
+    missing = [p for p in volatile_paths.KNOWN_VOLATILE_TRANSFER_PATHS + volatile_paths.KNOWN_RUNTIME_STATUS_PATHS
+               if not rs.is_kit_volatile(p)]
+    assert missing == []
+

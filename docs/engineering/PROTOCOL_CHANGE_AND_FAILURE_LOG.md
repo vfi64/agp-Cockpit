@@ -1136,3 +1136,9 @@ repeat once.
 - Cause: the diagnostics matched rule 49 exactly („Senden“, submit, in form, enabled), yet the probe did not accept it. The probe is a template literal; `/^(send|senden)\b/i` written with one backslash cooked to a backspace, so the regex never matched. The tests only compared source text. A second instance (`/\s+/g` in the form-button diagnostics) cooked to `/s+/g`.
 - Fix AGP_PROBE_TEMPLATE_ESCAPES_V1 (COMMUNICATION_PROTOCOL 50): double backslashes; `tests/send_probe_template.cjs` checks every evaluated template for single-backslash escapes and runs the cooked probe against the 1598 DOM (fails on r2, passes on r3).
 
+## 2026-10-02 — Send fix live (#160/#161), tag v0.1.0; Chat wechseln left a false STÖRUNG
+
+- „③ Abschließen“ under build release-0.1.0-r3: PR #160 and refresh #161 in one remote turn, `ci-verified`, no SEND_BUTTON_NOT_READY — AGP_PROBE_TEMPLATE_ESCAPES_V1 live-confirmed. The owner set and pushed the annotated tag `v0.1.0` on `278fa92`. The 56 merged remote branches were already gone on GitHub; `git fetch --prune` removed the stale tracking refs.
+- „④ Chat wechseln“ (step 1602) completed and was acknowledged, but `transfer chat-switch-complete` rewrote the five successor-handoff files on main for HEAD 278fa926; the Lagebericht counted them as unexpected changes → STÖRUNG with Wiederherstellen recommended. The Kit itself lists them as known volatile. Fix AGP_KIT_VOLATILE_PATHS_V1 (COMMUNICATION_PROTOCOL 51). The regenerated files were restored to the committed version.
+- Open design question: „Chat wechseln“ prepares the package but does not open a new chat or hand it over, and it is recommended after every Abschließen.
+
