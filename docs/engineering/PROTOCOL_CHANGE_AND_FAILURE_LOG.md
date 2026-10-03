@@ -1184,3 +1184,9 @@ repeat once.
 
 - „③ Abschließen“ of KIT-GF-035 and the KIT-GF-032 retest: PR #184 merged (main b744f1d). The successor refresh #185 changes only five handoff files, but its browser job was red (run #588) while the identical code was green on main (run #587): five `test_203_phase5_conversation_contract` specs failed with „Execution context was destroyed, most likely because of a navigation“.
 - Cause: `test_203` opened the live `https://chatgpt.com/c/phase5-target` before replacing the content; the live page navigated on its own and destroyed the test context. Without network to chatgpt.com all nine specs fail (reproduced). Fix AGP_E2E_NO_LIVE_NETWORK_V1: the URL is served by a `page.route` stub (as `test_k07_send_commit_nonce` already does); `tests/test_e2e_no_live_network.py` fails every spec that navigates without serving its own page. #185 itself went green when the owner re-ran the failed job (run #588, attempt 2) and was merged (e384203).
+
+## 2026-10-03 — Kit 1.0.15: KIT-GF-032 verified fixed; P11 no longer Kit-gated
+
+- Kit 1.0.15 released (PRs #2360–#2365; Zenodo 10.5281/zenodo.23126837). The tag push built the release but skipped `publish-pypi` (repository variable `PYPI_TRUSTED_PUBLISHING_ENABLED` not set); the owner published to PyPI through the Release workflow from tag v1.0.15 (`publish_target: pypi`). The release PR needed a rewrite of its CHANGELOG summary (KIT-GF-036).
+- Retest with Kit 1.0.15 from PyPI (GF-E042): `release ready` and `release prepare --write` PASS in a sandbox clone with `publication: none`; KIT-GF-032 → VERIFIED_FIXED. The managed CI template pins 1.0.15, `.agentic/config.yaml` declares `publication: none`, and the Release verb is no longer Kit-gated (still plan P11).
+- Found for P11: `release prepare --write` bumps `pyproject.toml` only; the Cockpit's version map (`APP_VERSION`, `docs/releases/versions.json`) is no Kit anchor, so `tests/test_release_versions.py` fails on the release branch.

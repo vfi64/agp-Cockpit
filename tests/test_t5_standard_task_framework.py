@@ -410,10 +410,13 @@ def test_no_shipped_task_recommends_chat_switch():
 
 # --- AGP_KIT_GATED_VERBS_V1 (owner 2026-10-02) ------------------------------------------------
 
-def test_release_waits_for_the_kit_and_says_so():
+def test_release_is_no_longer_kit_gated_but_still_in_preparation():
+    """KIT-GF-032 verified fixed with Kit 1.0.15 (2026-10-03): the Kit gate is lifted;
+    the button itself is plan P11."""
     from agp_cockpit.core.verbs import availability
+    assert VERBS[rs.RELEASE].kit_gate is None
     enabled, reason = availability(VERBS[rs.RELEASE], None)
-    assert not enabled and "KIT-GF-032" in reason and "KIT-GF-029" not in reason
+    assert not enabled and reason == "In Vorbereitung (Plan P11)."
 
 
 def test_recover_uses_kit_routes_only():

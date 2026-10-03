@@ -321,6 +321,20 @@
       "historical_id": "Kit main c912afe0 sandbox (after KIT-GF-032 slices A-D, PRs #2350/#2352/#2354/#2356)",
       "canonical_family": "KIT-GF-032",
       "summary": "release ready in an external workspace still BLOCKED: fresh-context carriers removed by its own sync-main, unclassified release-note items, release-notes summary files written to the workspace tmp/"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E042",
+      "historical_id": "Kit 1.0.15 (PyPI) sandbox of agp-Cockpit main 5e9c26c",
+      "canonical_family": "KIT-GF-032",
+      "summary": "release ready PASS, release prepare --write PASS, private tag route verified; KIT-GF-032 verified fixed"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E043",
+      "historical_id": "Kit release 1.0.15 PR #2360",
+      "canonical_family": "KIT-GF-036",
+      "summary": "release prepare wrote PR titles as summary lines that fail the Kit's own CHANGELOG quality gate; found only by PR CI"
     }
   ],
   "families": [
@@ -1178,11 +1192,11 @@
       "id": "KIT-GF-032",
       "title": "Release preparation is self-hosting only: hard-coded Kit package path and Kit documentation set",
       "first_observed": "2026-10-02",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.15",
       "expected": "release ready / release prepare / release-prep work in an external workspace: the version source is the workspace's own (pyproject and the package the workspace declares), release notes work for a first release without a previous tag, the documentation checks use the workspace's registered documents, and a private release (see KIT-GF-029) can be prepared, tagged and the tag pushed through a Kit route.",
       "observed": "Kit 1.0.13 in agp-Cockpit (clone of main 25afb5d, 2026-10-02): `release-prep --version 0.1.0 --summary-line … --dry-run` fails with error src/agentic_project_kit/__init__.py (the Kit's own package path); `release ready --version 0.1.0` is BLOCKED: release-status invalid_target_version and package_init_version_mismatch (version 0.1.0.dev0), release-from-tag 'no local v* git tag could be derived' (first release), release-notes-generate BLOCK missing_ref, audit-doc-currency checks src/agentic_project_kit/__init__.py, VERIFIED_RELEASES.md DOIs, CITATION.cff and CHANGELOG.md, docs-audit requires Kit documentation files (docs/TEST_GATES.md, handoff pointers), audit-planning-docs-consolidation flags 16 Cockpit planning documents; release ready also runs transfer sync-main (a pull). No Kit command pushes a tag without release-publish (GitHub Release).",
       "impact": "A Kit-conform release of an external workspace is not possible with Kit 1.0.13; the Cockpit's planned Release button (P11) has no Kit route.",
@@ -1194,7 +1208,8 @@
         "agentic-kit release ready --version 0.1.0 --json → BLOCKED (sync-main, standard-error-scan: post-merge-check, command-composition-check, command-reference-check, release-from-tag, release-notes-generate, release-prep-dry-run, docs-audit, audit-doc-currency, audit-planning-docs-consolidation)",
         "2026-10-03 GF-E038, Kit 1.0.14 sandbox clone with publication: none: release-check --version 0.1.1 still FAILs on src/agentic_project_kit/__init__.py, CITATION.cff, docs/STATUS.md and docs/handoff/CURRENT_HANDOFF.md (hard-coded in release.build_release_state_report); README needs the Kit's 'Version `x`' marker.",
         "2026-10-03 GF-E041, Kit main c912afe0 (slices A-D merged: #2350, #2352, #2354, #2356) editable in a clone of agp-Cockpit main 3762b8a with publication: none: release ready --version 0.1.0 --json → BLOCKED only by standard-error-scan: (1) fresh-context-clean-post-merge-allowance blocks outbox_missing and latest_handoff_report_missing — the carriers live in excluded runtime paths (.agentic/transfer/outbox, .agentic/state/handoff/transfer_handoff_reports) and release ready's own sync-main (normalize-session) removes them; after transfer refresh-llm-context-carriers the standalone standard-error-scan passes this step; (2) release-notes-generate BLOCK: six PR items unclassified (#164, #172, #174, #176, #178, #180), PR bodies carry no release-note-category line; (3) release-notes-generate writes tmp/release-<n>-summary-lines.json into the workspace root, which is not ignored in agp-Cockpit, so the next sync-main stops on external_dirty_worktree. post-merge-check NEEDS_SUCCESSOR_PACKAGE_REFRESH came from the sandbox's local commit without PR. sync-main, doc-lifecycle-release-review and release-status pass; docs-audit, command-reference-check, audit-doc-currency and audit-planning-docs-consolidation are recorded as skipped."
-      ]
+      ],
+      "verified_by": "2026-10-03 GF-E042, Kit 1.0.15 (PyPI) in a sandbox clone of agp-Cockpit main 5e9c26c with `publication: none` added through a simulated PR and successor refresh: `release ready --version 0.1.1 --json` PASS (sync-main, refresh-llm-context-carriers, standard-error-scan, doc-lifecycle-release-review, release-status); `release prepare --version 0.1.1 --write --json` PASS (pyproject.toml 0.1.1, CHANGELOG section v0.1.1, docs-pages fallback skipped); `agentic-kit check` and `doctor` PASS. The private tag route (`release-publish --execute --allow-execute` creating and pushing only the annotated tag, idempotent rerun) was verified on the same Kit code (main fa293dd) in the GF-E041 sandbox. Kit fixes: #2350 (slice A), #2352 (B), #2354 (C), #2356 (D), #2358 (E). Remaining Cockpit-side prerequisite for P11, not a Kit defect: the Cockpit's own version map (AGP_VERSION_MAP_V1: src/agp_cockpit/version.py APP_VERSION, docs/releases/versions.json) is not a Kit version anchor, so tests/test_release_versions.py fails after `release prepare --write` (pyproject 0.1.1, APP_VERSION 0.1.0)."
     },
     {
       "id": "KIT-GF-033",
@@ -1255,6 +1270,26 @@
       "evidence": [
         "Clone of agp-Cockpit main 3762b8a with publication: none; agentic-kit docs-audit (Kit main 3b6c5eb7 editable): [FAIL] Aktualität, Vollständigkeit, Korrektheit, Stringenz der Dokumentenordnung, Dokumentationsregistry, Konsistenz; [PASS] Redundanzfreiheit.",
         "agentic-kit doc-lifecycle-audit --json: rc 1, 21 findings (missing-review-policy, invalid-status, missing-decision-status, missing-status)."
+      ]
+    },
+    {
+      "id": "KIT-GF-036",
+      "title": "release prepare writes summary lines that fail the Kit's own CHANGELOG quality gate",
+      "first_observed": "2026-10-03",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "release prepare (and release ready) run the CHANGELOG quality check on the section they are about to write and stop before the release PR; the maintainer can supply or extend the summary lines through the release route.",
+      "observed": "Kit release 1.0.15: release prepare --write took the six PR titles as summary lines; they matched only two of the four CHANGELOG quality categories (implementation-or-doc-change, release-evidence). release ready and the release-prep dry run passed; PR #2360 CI failed in check-docs/docs-audit ('v1.0.15 lacks enough release-quality categories') and in tests/test_documentation_registry.py and tests/test_v040_gui_tkinter_shell.py. The same happened for 1.0.12.",
+      "impact": "Every release whose PR titles fall into few categories needs an extra manual round (rewrite through release-prep --summary-line, push to the open release PR); the defect surfaces only in remote CI.",
+      "workaround": "Rewrite the section through `release-prep --version X --date D --summary-line …` on the release branch and push with work finish (release 1.0.15, phase 'notes' of the maintainer's release script).",
+      "repair": "Check the planned CHANGELOG section with check_changelog_quality before writing; accept explicit --summary-line input in release prepare; optionally derive category words from the release-notes categories.",
+      "regression": "release prepare --write with summary lines from a single category stops with the quality finding before any write; with explicit lines it writes and check-docs passes.",
+      "evidence": [
+        "Kit PR #2360 CI (check-docs, docs-audit) 2026-10-03",
+        "agentic_project_kit/checks.py check_changelog_quality (three of four categories required)"
       ]
     }
   ],

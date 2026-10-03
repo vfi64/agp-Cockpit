@@ -1248,3 +1248,16 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
   2. `release-notes-generate`: six PR items unclassified (#164, #172, #174, #176, #178, #180); no PR body carries a `release-note-category:` line.
   3. `release-notes-generate` writes `tmp/release-<n>-summary-lines.json` into the workspace root; not ignored here, so the next sync-main stops on `external_dirty_worktree`.
 - `post-merge-check` NEEDS_SUCCESSOR_PACKAGE_REFRESH came from the sandbox's local commit without a PR.
+
+## 2026-10-03 — KIT-GF-032 verified fixed with Kit 1.0.15 (GF-E042)
+
+- KIT-GF-032 → VERIFIED_FIXED (fixed in 1.0.15; Kit #2350, #2352, #2354, #2356, #2358). Kit 1.0.15 from PyPI in a sandbox clone of main 5e9c26c with `publication: none`: `release ready --version 0.1.1` PASS; `release prepare --version 0.1.1 --write` PASS; `check` and `doctor` PASS. The private tag route was verified on the same Kit code in the GF-E041 sandbox.
+- Cockpit prerequisite for P11, not a Kit defect: the Cockpit's version map (AGP_VERSION_MAP_V1: `APP_VERSION`, `docs/releases/versions.json`) is no Kit version anchor, so `tests/test_release_versions.py` fails after `release prepare --write`.
+- The managed CI template pins Kit 1.0.15; `.agentic/config.yaml` declares `publication: none`; the Release verb is no longer Kit-gated (plan P11).
+
+## KIT-GF-036 — release prepare writes summary lines that fail the Kit's own CHANGELOG quality gate
+
+- Status: OPEN · Severity: medium · First observed: 2026-10-03 (GF-E043)
+- Observed (Kit release 1.0.15): `release prepare --write` used the PR titles as summary lines; they hit two of four CHANGELOG quality categories. `release ready` passed; PR #2360 CI failed in check-docs/docs-audit. Same for 1.0.12.
+- Workaround: rewrite the section through `release-prep --summary-line …` on the release branch and push with work finish.
+- Repair: check the planned section before writing; accept explicit summary lines in `release prepare`.

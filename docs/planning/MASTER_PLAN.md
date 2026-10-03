@@ -324,8 +324,10 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 9. P9 Repo übernehmen, proven on a separate test repository.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
 11. P11 Release (always asks; verifier to be specified first; private only per
-   `docs/planning/RELEASE_POLICY.md`). Waits for the Kit fix KIT-GF-032
-   (KIT-GF-029 verified fixed with Kit 1.0.14 on 2026-10-03).
+   `docs/planning/RELEASE_POLICY.md`). Kit gate lifted: KIT-GF-032 verified fixed
+   with Kit 1.0.15 (2026-10-03; KIT-GF-029 with 1.0.14). Before building, decide: the
+   Cockpit's version map as release anchor (AGP_VERSION_MAP_V1) and the live-publication
+   marker flow of `release-publish`.
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read
@@ -430,7 +432,7 @@ is not built with a Cockpit-local or raw-git workaround; it waits for the Kit fi
 | Button | Waits for | Kit gap |
 |---|---|---|
 | P8 Wiederherstellen (full) | — (KIT-GF-033 verified fixed in 1.0.14, 2026-10-03) | gate lifted: build on `work rescue` |
-| P11 Release | KIT-GF-032 (KIT-GF-029 verified fixed in 1.0.14) | release route assumes public publication (GitHub Release, Zenodo, PyPI) and the Kit's own package |
+| P11 Release | — (KIT-GF-032 verified fixed in 1.0.15, KIT-GF-029 in 1.0.14) | gate lifted: build on `release ready` / `release prepare` / private `release-publish` |
 
 The basic Wiederherstellen stays: remote diagnosis, repair through Kit routes only,
 NEEDS_HUMAN where the Kit has no route. Enforced in code: Kit-gated verbs are
