@@ -20,6 +20,8 @@ from agp_cockpit.core.verbs import BY_KEY as VERB_BY_KEY
 from agp_cockpit.core.verbs import VERBS, Verb, availability
 from agp_cockpit.ui.tooltip import Tooltip
 
+LAGE_POLL_MS = 4000  # AGP_LAGE_AUTO_REFRESH_V1
+
 STEP_MARK = {1: "①", 2: "②", 3: "③", 4: "④"}
 
 
@@ -79,6 +81,10 @@ class StandardTasksPanel(ttk.Frame):
         self.repo_state = None
         self._lage_result: list = []
         self.after(300, self.refresh_lage)
+        # AGP_LAGE_AUTO_REFRESH_V1: rebuild the Lage when HEAD, the index or the
+        # installed Kit change outside the Cockpit (cheap local poll, no network).
+        self._lage_fingerprint = None
+        self.after(LAGE_POLL_MS, self._watch_lage)
 
         # AGP_STANDARD_TASK_VERBS_V1 (plan P3): lifecycle verbs grouped as a
         # numbered main path, problems and rarely used tasks; only verbs valid
@@ -356,6 +362,21 @@ class StandardTasksPanel(ttk.Frame):
             "", "IDLE", "DONE", "COMPLETED", "NEEDS_HUMAN", "BLOCKED", "FAILED", "ERROR",
             "STOPPED", "CANCELLED",
         }
+
+    def _watch_lage(self) -> None:
+        from agp_cockpit.core.repo_state import local_fingerprint
+        try:
+            current = local_fingerprint(self.repository_root)
+        except Exception:  # noqa: BLE001 - the poll never breaks the panel
+            current = None
+        previous = self._lage_fingerprint
+        if current is not None and previous is not None and current != previous:
+            if self._lage_result is not None and not self._task_running():
+                self._lage_fingerprint = current
+                self.refresh_lage()
+        elif current is not None:
+            self._lage_fingerprint = current
+        self.after(LAGE_POLL_MS, self._watch_lage)
 
     def refresh_lage(self) -> None:
         """Observe in a worker thread (network reads); the UI polls the result."""

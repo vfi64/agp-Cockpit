@@ -570,9 +570,9 @@ This section is normative for the file loop after local execution.
    Cockpit steers and verifies, the remote LLM decides, the Kit controls every
    repository change. The Cockpit runs no repository-changing git itself (test
    `test_cockpit_runs_no_repository_changing_git`); a verb without a Kit route
-   is disabled with the open finding ids — Release (KIT-GF-029, KIT-GF-032) —
-   and the full Wiederherstellen waits for KIT-GF-033. The basic Wiederherstellen
-   repairs only through Kit routes and ends in NEEDS_HUMAN where the Kit has none.
+   is disabled with the open finding ids — Release (KIT-GF-032; KIT-GF-029
+   verified fixed in Kit 1.0.14). Wiederherstellen repairs only through Kit
+   routes and ends in NEEDS_HUMAN where the Kit has none (see rule 56).
 54. Repo wechseln (`AGP_REPOSITORY_SWITCH_V1`, `AGP_CONVERSATION_BINDING_V1`,
    P4): any git work tree can be steered; Kit workspace and Kit installation
    are reported by the Lagebericht (KEIN_KIT, UNKLAR), not start gates. The
@@ -588,6 +588,20 @@ This section is normative for the file loop after local execution.
    Chrome tab when it is ChatGPT; otherwise in the ChatGPT page of the fresh
    extension handshake (at most 3 minutes old), which is brought to the front.
    Only when neither exists is the start blocked, with that reason.
+56. Full Wiederherstellen (`AGP_DESTRUCTIVE_EXECUTE_GATE_V1`, P8, owner
+   2026-10-03): with Kit 1.0.14 the remote LLM may rescue main with uncommitted
+   changes or local commits through the Kit's non-lossy rescue route (rescue
+   branch first, then main realigned with origin/main; KIT-GF-033 verified
+   fixed). The dry run of `work rescue` and `work discard-changes` runs freely;
+   their signed `--execute` runs only with an open human approval, asked like a
+   remote effect, and that approval is always consumed (the refund rule for an
+   unchanged origin does not apply to a local rewrite).
+57. Lage auto-refresh (`AGP_LAGE_AUTO_REFRESH_V1`, live 2026-10-03): the
+   Standard Tasks panel polls a local fingerprint every 4 s (HEAD, its ref,
+   packed-refs and index mtimes, the installed Kit dist-info; no subprocess, no
+   network) and rebuilds the Lagebericht when it changes and no task runs, so a
+   branch checkout or Kit upgrade outside the Cockpit no longer leaves a stale
+   state (seen: BEREIT/Kit 1.0.13 with a work branch checked out and Kit 1.0.14).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

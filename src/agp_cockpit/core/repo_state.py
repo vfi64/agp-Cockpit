@@ -282,3 +282,27 @@ def lagebericht(root: Path, *, task_running: bool = False, runner=subprocess.run
     state = classify(observe(root, runner=runner, task_running=task_running))
     write_report(root, state)
     return state
+
+
+# AGP_LAGE_AUTO_REFRESH_V1 (live 2026-10-03): the Lage showed main and Kit 1.0.13
+# after a branch had been checked out and the Kit upgraded outside the Cockpit.
+# A cheap local fingerprint (no subprocess, no network) is polled; when it
+# changes, the panel rebuilds the Lagebericht.
+def local_fingerprint(root: Path) -> tuple | None:
+    """HEAD, the ref it points to, the index and the installed Kit dist-info."""
+    git_dir = Path(root) / ".git"
+    if not git_dir.is_dir():
+        return None
+    try:
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        ref_value = ""
+        if head.startswith("ref: "):
+            ref_file = git_dir / head[5:]
+            ref_value = ref_file.read_text(encoding="utf-8").strip() if ref_file.is_file() else ""
+        packed = git_dir / "packed-refs"
+        index = git_dir / "index"
+        stamps = tuple(f.stat().st_mtime_ns if f.is_file() else 0 for f in (packed, index))
+    except OSError:
+        return None
+    kit = tuple(sorted(p.name for p in Path(root).glob(".venv/lib/*/site-packages/agentic_project_kit-*.dist-info")))
+    return head, ref_value, stamps, kit

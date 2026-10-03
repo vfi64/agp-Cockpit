@@ -54,9 +54,16 @@ REMOTE_EFFECT_COMMANDS = frozenset({
 LOCAL_ORCHESTRATORS = frozenset({
     "artifact-gc", "chat session-start", "docs lifecycle sweep", "dpa final-closeout-check",
     "init", "post-release-doi-closeout", "release prepare", "release ready", "release-prep",
-    "transfer chat-switch-complete", "work recover", "workspace adopt", "workspace dpa-intake",
-    "workspace init", "workspace remove", "workspace upgrade",
+    "transfer chat-switch-complete", "work recover", "work rescue", "workspace adopt",
+    "workspace dpa-intake", "workspace init", "workspace remove", "workspace upgrade",
 })
+# AGP_DESTRUCTIVE_EXECUTE_GATE_V1 (plan P8, owner 2026-10-03): Kit routes whose
+# dry run is local and read-only but whose signed ``--execute`` rewrites local
+# history or discards files. The dry run runs freely; the execute needs an open
+# human approval exactly like a remote effect, and its consumption is never
+# refunded (nothing changes on origin, but the local repository does).
+DESTRUCTIVE_EXECUTE_COMMANDS = frozenset({"work rescue", "work discard-changes"})
+EXECUTE_FLAG = "--execute"
 COMMAND_RULES = (
     "Command authority (standing rules for every work order): "
     "use only agentic-kit commands listed in the attached agentic-kit-command-digest.json "
@@ -67,7 +74,8 @@ COMMAND_RULES = (
     "Raw git/gh commands that have a Kit wrapper (\"replaces_raw\") are rejected; use the wrapper. "
     "Commands marked \"remote_effect\" (push, pull/fetch, PR, merge, publish) or \"effect\": \"unknown\" "
     "run only with an open human approval; without one the Cockpit does not execute the work order and "
-    "asks the human itself. Do not work around this. "
+    "asks the human itself. The same holds for the signed --execute of work rescue and "
+    "work discard-changes (their dry run is free). Do not work around this. "
     "\"commands\" lists the orchestrators completely; diagnostic and primitive commands are rows of "
     "\"compact\" (columns in \"compact_columns\", no options): read their options with "
     "`agentic-kit <command> --help` inside a work order."
@@ -259,6 +267,31 @@ def remote_effect_commands(source: str, catalog: KitCommandCatalog | None) -> li
             if catalog is not None and catalog.has_remote_effect(c)]
 
 
+def destructive_execute_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    """``<qualified name> --execute`` for every destructive execute in a work order."""
+    if catalog is None:
+        return []
+    found: set[str] = set()
+    for argv in _invocations(ast.parse(source)):
+        if _program(argv[0]) != "agentic-kit" or EXECUTE_FLAG not in argv[1:]:
+            continue
+        subcommands = []
+        for token in argv[1:]:
+            if token.startswith("-") or token == "<expr>":
+                break
+            subcommands.append(token)
+        command = catalog.resolve(subcommands) if subcommands else None
+        if command is not None and " ".join(str(p) for p in command["path"]) in DESTRUCTIVE_EXECUTE_COMMANDS:
+            found.add(f"{command['qualified_name']} {EXECUTE_FLAG}")
+    return sorted(found)
+
+
+def approval_required_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    """Everything a work order may run only with an open human approval."""
+    return sorted(set(remote_effect_commands(source, catalog))
+                  | set(destructive_execute_commands(source, catalog)))
+
+
 def unknown_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
     return [c["qualified_name"] for c in kit_commands_used(source, catalog)
             if catalog is not None and not catalog.effect_known(c)]
@@ -295,6 +328,10 @@ def command_catalog_violations(source: str, catalog: KitCommandCatalog | None,
         violations.extend(
             f"{name} has a remote effect and requires an explicit human approval"
             for name in remote_effect_commands(source, catalog)
+        )
+        violations.extend(
+            f"{name} changes local history or files and requires an explicit human approval"
+            for name in destructive_execute_commands(source, catalog)
         )
     wrappers = catalog.wrappers() if catalog is not None else []
     for argv in _invocations(tree):
