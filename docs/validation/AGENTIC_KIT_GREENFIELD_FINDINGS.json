@@ -307,6 +307,20 @@
       "historical_id": "Kit release 1.0.14 closeout PR #2348",
       "canonical_family": "KIT-GF-034",
       "summary": "DOI closeout leaves docs/site fallback stale; closeout PR CI red"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E040",
+      "historical_id": "Kit main 3b6c5eb7 sandbox (KIT-GF-032 slice C)",
+      "canonical_family": "KIT-GF-035",
+      "summary": "docs-audit fails six of seven dimensions on the Kit's own document set in an external workspace"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E041",
+      "historical_id": "Kit main c912afe0 sandbox (after KIT-GF-032 slices A-D, PRs #2350/#2352/#2354/#2356)",
+      "canonical_family": "KIT-GF-032",
+      "summary": "release ready in an external workspace still BLOCKED: fresh-context carriers removed by its own sync-main, unclassified release-note items, release-notes summary files written to the workspace tmp/"
     }
   ],
   "families": [
@@ -1178,7 +1192,8 @@
       "evidence": [
         "agentic-kit release-prep --version 0.1.0 --summary-line … --dry-run --json → error src/agentic_project_kit/__init__.py",
         "agentic-kit release ready --version 0.1.0 --json → BLOCKED (sync-main, standard-error-scan: post-merge-check, command-composition-check, command-reference-check, release-from-tag, release-notes-generate, release-prep-dry-run, docs-audit, audit-doc-currency, audit-planning-docs-consolidation)",
-        "2026-10-03 GF-E038, Kit 1.0.14 sandbox clone with publication: none: release-check --version 0.1.1 still FAILs on src/agentic_project_kit/__init__.py, CITATION.cff, docs/STATUS.md and docs/handoff/CURRENT_HANDOFF.md (hard-coded in release.build_release_state_report); README needs the Kit's 'Version `x`' marker."
+        "2026-10-03 GF-E038, Kit 1.0.14 sandbox clone with publication: none: release-check --version 0.1.1 still FAILs on src/agentic_project_kit/__init__.py, CITATION.cff, docs/STATUS.md and docs/handoff/CURRENT_HANDOFF.md (hard-coded in release.build_release_state_report); README needs the Kit's 'Version `x`' marker.",
+        "2026-10-03 GF-E041, Kit main c912afe0 (slices A-D merged: #2350, #2352, #2354, #2356) editable in a clone of agp-Cockpit main 3762b8a with publication: none: release ready --version 0.1.0 --json → BLOCKED only by standard-error-scan: (1) fresh-context-clean-post-merge-allowance blocks outbox_missing and latest_handoff_report_missing — the carriers live in excluded runtime paths (.agentic/transfer/outbox, .agentic/state/handoff/transfer_handoff_reports) and release ready's own sync-main (normalize-session) removes them; after transfer refresh-llm-context-carriers the standalone standard-error-scan passes this step; (2) release-notes-generate BLOCK: six PR items unclassified (#164, #172, #174, #176, #178, #180), PR bodies carry no release-note-category line; (3) release-notes-generate writes tmp/release-<n>-summary-lines.json into the workspace root, which is not ignored in agp-Cockpit, so the next sync-main stops on external_dirty_worktree. post-merge-check NEEDS_SUCCESSOR_PACKAGE_REFRESH came from the sandbox's local commit without PR. sync-main, doc-lifecycle-release-review and release-status pass; docs-audit, command-reference-check, audit-doc-currency and audit-planning-docs-consolidation are recorded as skipped."
       ]
     },
     {
@@ -1221,6 +1236,25 @@
       "regression": "After `post-release-doi-closeout --write` for a new version, test_docs_pages_fallback_projection_is_fresh passes without a manual rebuild.",
       "evidence": [
         "vfi64/agentic-project-kit PR #2348 CI run 37122569105 (failed), resumed commit on release/closeout-v1.0.14, merged 43d30d23; docs/site/index.html diff at index 3669 ('9' vs '1')."
+      ]
+    },
+    {
+      "id": "KIT-GF-035",
+      "title": "docs-audit checks the Kit's own document set in an external workspace",
+      "first_observed": "2026-10-03",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "expected": "In an external workspace docs-audit checks the workspace's own documents: a workspace-declared required set, a doc mesh derived from its version anchors and registered documents, the handoff contracts only where the workspace uses them, and hygiene.doc_lifecycle: warn as non-blocking.",
+      "observed": "Kit main 3b6c5eb7 (after KIT-GF-032 slices A/B) in a clone of agp-Cockpit with publication: none: docs-audit fails six of seven dimensions on Kit files — 16 required Kit documents (docs/TEST_GATES.md, sentinel.yaml, docs/governance/FINAL_SUMMARY_CONTRACT.md, chat/bootstrap/registry and architecture contracts), the fixed doc mesh (README version marker, CITATION.cff, src/agentic_project_kit/__init__.py, docs/STATUS.md, docs/handoff/CURRENT_HANDOFF.md), the successor-chat sources of the compiled agent context, and registry classes; doc-lifecycle-audit exits 1 on header findings although the manifest sets doc_lifecycle: warn.",
+      "impact": "Without the skip, release ready (and every gate that runs docs-audit) cannot pass in an external workspace; the standalone docs-audit and doc-lifecycle-audit still fail on Kit files.",
+      "workaround": "Kit main 7b3cd57a (#2354, KIT-GF-032 slice C): the release-oriented standard-error scan records docs-audit as a skipped Kit self-hosting check in external workspaces, and release ready reports doc-lifecycle findings as warnings under doc_lifecycle: warn. The full redesign is separate design work (owner decision 2026-10-03).",
+      "repair": "Decide per rule group which applies to external workspaces: (1) required documents from manifest/registry, (2) doc mesh from the version anchors and registered documents, (3) successor-chat/handoff contracts only with the transfer module, (4) registry classes, (5) doc_lifecycle warn non-blocking in docs-audit and doc-lifecycle-audit as well.",
+      "regression": "In an external workspace with doc_lifecycle: warn, docs-audit and doc-lifecycle-audit pass without Kit files and report the workspace's own findings as warnings.",
+      "evidence": [
+        "Clone of agp-Cockpit main 3762b8a with publication: none; agentic-kit docs-audit (Kit main 3b6c5eb7 editable): [FAIL] Aktualität, Vollständigkeit, Korrektheit, Stringenz der Dokumentenordnung, Dokumentationsregistry, Konsistenz; [PASS] Redundanzfreiheit.",
+        "agentic-kit doc-lifecycle-audit --json: rc 1, 21 findings (missing-review-policy, invalid-status, missing-decision-status, missing-status)."
       ]
     }
   ],

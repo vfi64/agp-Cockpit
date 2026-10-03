@@ -1231,3 +1231,20 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 - Observed (Kit release 1.0.14, PR #2348, CI run 37122569105): `post-release-doi-closeout --version 1.0.14 --write` updated CHANGELOG, CITATION, README, STATUS, CURRENT_HANDOFF, VERIFIED_RELEASES and the closeout report, but not `docs/site`; `test_docs_pages_fallback_projection_is_fresh` failed (v1.0.9 / 10.5281/zenodo.22541661 instead of v1.0.14 / 10.5281/zenodo.23120536). `python site/scripts/build.py --docs-pages-fallback --json` plus `work finish` on the same branch (PR reused) made it green; merged as 43d30d23.
 - Workaround: regenerate the fallback site on the closeout branch before `work finish` (maintainer's local release script).
 - Repair: the closeout rebuilds the docs-pages fallback projection and includes `docs/site` in its changed paths, or names the step with a staleness preflight.
+
+## KIT-GF-035 — docs-audit checks the Kit's own document set in an external workspace
+
+- Status: OPEN · Severity: high · First observed: 2026-10-03 (GF-E040)
+- Observed (Kit main 3b6c5eb7, clone of agp-Cockpit with `publication: none`): `docs-audit` fails six of seven dimensions on Kit files — 16 required Kit documents, the fixed doc mesh (README marker, CITATION.cff, `src/agentic_project_kit/__init__.py`, STATUS, CURRENT_HANDOFF), the successor-chat sources of the compiled agent context, registry classes; `doc-lifecycle-audit` exits 1 although `doc_lifecycle: warn`.
+- Impact: without the skip, `release ready` cannot pass in an external workspace; the standalone `docs-audit` and `doc-lifecycle-audit` still fail on Kit files.
+- Workaround (Kit #2354, KIT-GF-032 slice C, main 7b3cd57a): the release scan records `docs-audit` as skipped in external workspaces; `release ready` reports doc-lifecycle findings as warnings under `doc_lifecycle: warn`.
+- Repair (design decision per rule group): required documents from manifest/registry; doc mesh from the version anchors and registered documents; handoff contracts only with the transfer module; registry classes; `doc_lifecycle: warn` non-blocking in `docs-audit` and `doc-lifecycle-audit` as well.
+
+## 2026-10-03 — Retest of KIT-GF-032 with Kit main c912afe0 (GF-E041)
+
+- Slices A–D are merged in the Kit (#2350, #2352, #2354, #2356). Sandbox clone of main 3762b8a with `publication: none`: `release ready --version 0.1.0` passes sync-main, doc-lifecycle-release-review and release-status; the Kit self-hosting checks are recorded as skipped.
+- Still BLOCKED by the standard-error scan, so KIT-GF-032 stays OPEN:
+  1. Fresh-context check: `outbox_missing`, `latest_handoff_report_missing`. The carriers live in excluded runtime paths, and `release ready`'s own sync-main removes them. After `transfer refresh-llm-context-carriers` the standalone scan passes this step.
+  2. `release-notes-generate`: six PR items unclassified (#164, #172, #174, #176, #178, #180); no PR body carries a `release-note-category:` line.
+  3. `release-notes-generate` writes `tmp/release-<n>-summary-lines.json` into the workspace root; not ignored here, so the next sync-main stops on `external_dirty_worktree`.
+- `post-merge-check` NEEDS_SUCCESSOR_PACKAGE_REFRESH came from the sandbox's local commit without a PR.
