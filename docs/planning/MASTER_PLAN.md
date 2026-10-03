@@ -460,6 +460,16 @@ finished reply, result file); (4) a touchpoint self-test at mission start;
 local LLM stays out of the send path; an official-API transport is a later
 owner decision. Then P10 and P9 as far as their Kit routes exist.
 
+## 2026-10-03 — Improvement proposals (owner: "merken")
+
+Assessment after P8 and the Kit 1.0.14 release; none is decided yet, each needs its own owner decision:
+
+1. **No second PR per change (Kit).** Every merged change triggers a „Refresh successor package“ PR (#174/#175 … #180/#181): twice the PRs and CI runs. The handoff refresh belongs in the same PR or is generated in CI instead of committed. Largest lever.
+2. **Do not commit generated projections (Kit).** `docs/site` and the handoff packages go stale and break the Kit's own CI (KIT-GF-034); generate them in CI/Pages instead.
+3. **Deterministic standard tasks without a ChatGPT round trip (Cockpit).** Abschließen runs exactly one Kit orchestrator; the Cockpit could start it directly with the same gates (approval scope, CI gate, local verifier). Conflicts with the wording „die Remote-LLM steuert“, not with „das Kit kontrolliert“ — owner decision required before any work. The remote LLM keeps diagnosis (Wiederherstellen) and content work (Arbeiten).
+4. **Lean Kit profile for external repositories (Kit).** Core routes (work start/finish, rescue, release with publication policy) without the Kit's self-administration.
+5. **Long term: an agent with direct tool access plus the Kit CLI** instead of the browser transport; the Cockpit stays justified where the ChatGPT web model is used deliberately without an API.
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.
