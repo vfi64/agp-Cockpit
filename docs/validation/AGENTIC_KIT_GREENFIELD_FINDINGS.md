@@ -1170,7 +1170,7 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 
 ## KIT-GF-029 — Release lifecycle assumes public publication; no private-release policy
 
-- Status: OPEN · Severity: high · First observed: 2026-10-02
+- Status: VERIFIED_FIXED (fixed in 1.0.14, retest 2026-10-03 GF-E036) · Severity: high · First observed: 2026-10-02
 - Expected: a managed repository can declare that it is never published; then no GitHub Release is required and no Zenodo/DOI record is created, updated or queried; the managed repository's documentation states the policy.
 - Observed (Kit 1.0.13 / main 26be95b): `post-release-check` FAILs without a GitHub Release; Zenodo is skipped only with a WARN when CITATION.cff has no DOI; the CHANGELOG quality check requires a Zenodo DOI or pending marker per release (Kit's own checks; external applicability not verified); closeout templates assume GitHub Release, PyPI and Zenodo; no publication policy switch exists.
 - Workaround / Cockpit mitigation (`AGP_RELEASE_POLICY_V1`): `docs/planning/release_policy.json` and `docs/planning/RELEASE_POLICY.md`; work orders with publication steps are rejected.
@@ -1207,7 +1207,7 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 
 ## KIT-GF-033 — No recovery route for main with local changes or local commits
 
-- Status: OPEN · Severity: high · First observed: 2026-10-02
+- Status: VERIFIED_FIXED (fixed in 1.0.14, retest 2026-10-03 GF-E037) · Severity: high · First observed: 2026-10-02
 - Observed (Kit 1.0.13, sandbox clone of agp-Cockpit main ad2a38d): `transfer branch-create … --start-point HEAD` refuses a dirty main ("Clean or preserve local changes before creating a branch."); `work discard-changes` is blocked on main (`main-branch`); `transfer sync-main` fails when main is ahead of origin/main (`normalize-session_failed`); `work recover` never resets, cleans or checks out product files. Covered by the Kit: main behind origin/main (`transfer sync-main`), detached HEAD (`transfer branch-switch main`), discarding changes on a work branch (`work discard-changes` with dry-run signature). The Kit's work-order validator forbids `git reset --hard`, so a remote work order cannot fill the gap.
 - Impact: the full Wiederherstellen button (P8) has no Kit route for the two most common disturbances; any workaround would put raw git outside the Kit.
 - Owner's decision 2026-10-02: the full P8 waits for this fix (like P11 for KIT-GF-029/032); the basic Wiederherstellen stays (remote diagnosis, Kit routes only, NEEDS_HUMAN where the Kit has no route).
@@ -1217,3 +1217,9 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 
 - Release 0.1.0 was made by hand. The Release button (P11) waits for a Kit route that respects `publication: none` (KIT-GF-029) and external workspaces (KIT-GF-032); no Cockpit-local release procedure.
 
+## 2026-10-03 — Retest with Kit 1.0.14 (sandbox clones of main 81b2dfb)
+
+- KIT-GF-029 → VERIFIED_FIXED (GF-E036): with `publication: none` in `.agentic/config.yaml`, gh/curl replaced by failing shims and no network, `release-plan` renders local tag steps only; `post-release-check` PASS by policy; `post-release-doi-closeout --json` is a PASS no-op without a Zenodo query; `release-publish` (dry-run and `--execute --allow-execute`) PASS with publishing disabled; no gh/curl call, no tag.
+- KIT-GF-033 → VERIFIED_FIXED (GF-E037): `work rescue` with dry-run signature recovers dirty main (changes committed on `rescue/main-…`) and main two commits ahead (rescue branch contains both commits); afterwards main == origin/main and the worktree is clean; a wrong signature is BLOCKED without change; repeated runs report `rescue_required: false`; no remote effect. The full P8 Wiederherstellen is no longer Kit-gated and follows as its own P step.
+- KIT-GF-032 stays OPEN (GF-E038): `release-check` still requires `src/agentic_project_kit/__init__.py`, CITATION.cff, docs/STATUS.md and docs/handoff/CURRENT_HANDOFF.md in an external workspace. P11 Release now waits only for KIT-GF-032.
+- The managed CI template pins Kit 1.0.14.

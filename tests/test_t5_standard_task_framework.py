@@ -413,7 +413,7 @@ def test_no_shipped_task_recommends_chat_switch():
 def test_release_waits_for_the_kit_and_says_so():
     from agp_cockpit.core.verbs import availability
     enabled, reason = availability(VERBS[rs.RELEASE], None)
-    assert not enabled and "KIT-GF-029" in reason and "KIT-GF-032" in reason
+    assert not enabled and "KIT-GF-032" in reason and "KIT-GF-029" not in reason
 
 
 def test_basic_recover_uses_kit_routes_only():

@@ -279,6 +279,27 @@
       "historical_id": "Kit 1.0.13 sandbox clone (P8 design)",
       "canonical_family": "KIT-GF-033",
       "summary": "no recovery route for main with local changes or local commits"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E036",
+      "historical_id": "Kit 1.0.14 sandbox retest",
+      "canonical_family": "KIT-GF-029",
+      "summary": "publication: none keeps post-release, DOI closeout and release-publish local; verified fixed"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E037",
+      "historical_id": "Kit 1.0.14 sandbox retest",
+      "canonical_family": "KIT-GF-033",
+      "summary": "work rescue recovers dirty main and main ahead without loss; verified fixed"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E038",
+      "historical_id": "Kit 1.0.14 sandbox retest",
+      "canonical_family": "KIT-GF-032",
+      "summary": "release-check still hard-codes Kit paths in an external workspace"
     }
   ],
   "families": [
@@ -1056,11 +1077,11 @@
       "id": "KIT-GF-029",
       "title": "Release lifecycle assumes public publication; no private-release policy",
       "first_observed": "2026-10-02",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.14",
       "expected": "A managed repository can declare that it is never published (no GitHub Release, no PyPI, no Zenodo). With that policy, or when no Zenodo record exists, release commands and checks neither create, update nor query a Zenodo/DOI record and do not require a GitHub Release; the managed repository's documentation states the policy.",
       "observed": "Kit 1.0.13 / main 26be95b: `post-release-check` reports FAIL when the GitHub Release is absent (post_release.py) and only WARNs and skips Zenodo when CITATION.cff has no DOI; the CHANGELOG quality check (checks.py) requires a Zenodo DOI or pending marker in every release section (verified for the Kit's own checks; whether it applies to external workspaces is not verified); post-release closeout templates (post_release_closeout.py) assume GitHub Release, tag publication, PyPI and Zenodo; `release-publish` and `post-release-doi-closeout` exist without a policy switch. No repository-level release/publication policy was found in the Kit sources.",
       "impact": "A private repository (owner's decision for agp-Cockpit, 2026-10-02) cannot complete the Kit release lifecycle green without publishing or without failing/warning checks; a Zenodo step may be attempted where no record exists.",
@@ -1079,7 +1100,8 @@
           "marker": "AGP_RELEASE_POLICY_V1",
           "description": "Release policy file plus rejection of publication steps in work orders; RELEASE_POLICY.md states the private-release rule."
         }
-      ]
+      ],
+      "verified_by": "2026-10-03 GF-E036, Kit 1.0.14 (PyPI) in a sandbox clone of agp-Cockpit main 81b2dfb with `publication: none` in .agentic/config.yaml, gh/curl replaced by failing shims and an unreachable proxy: release-plan renders only local tag steps; post-release-check PASS (publication policy, GitHub Release/PyPI/Zenodo skipped); post-release-doi-closeout --json PASS no-op without Zenodo query; release-publish dry-run and --execute --allow-execute PASS with 'publication policy none disables release publishing'; release-check reports the policy PASS for remote tag and GitHub Release; no gh/curl call, no tag created. The remaining release-check failures (Kit package path, CITATION.cff, docs/STATUS.md, CURRENT_HANDOFF) belong to KIT-GF-032."
     },
     {
       "id": "KIT-GF-030",
@@ -1148,18 +1170,19 @@
       "regression": "In an external workspace with publication: none, release prepare --write, release ready and a tag push of v0.1.0 pass without Kit-internal paths, DOIs or a GitHub Release.",
       "evidence": [
         "agentic-kit release-prep --version 0.1.0 --summary-line … --dry-run --json → error src/agentic_project_kit/__init__.py",
-        "agentic-kit release ready --version 0.1.0 --json → BLOCKED (sync-main, standard-error-scan: post-merge-check, command-composition-check, command-reference-check, release-from-tag, release-notes-generate, release-prep-dry-run, docs-audit, audit-doc-currency, audit-planning-docs-consolidation)"
+        "agentic-kit release ready --version 0.1.0 --json → BLOCKED (sync-main, standard-error-scan: post-merge-check, command-composition-check, command-reference-check, release-from-tag, release-notes-generate, release-prep-dry-run, docs-audit, audit-doc-currency, audit-planning-docs-consolidation)",
+        "2026-10-03 GF-E038, Kit 1.0.14 sandbox clone with publication: none: release-check --version 0.1.1 still FAILs on src/agentic_project_kit/__init__.py, CITATION.cff, docs/STATUS.md and docs/handoff/CURRENT_HANDOFF.md (hard-coded in release.build_release_state_report); README needs the Kit's 'Version `x`' marker."
       ]
     },
     {
       "id": "KIT-GF-033",
       "title": "No recovery route for main with local changes or local commits",
       "first_observed": "2026-10-02",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.14",
       "expected": "A Kit route recovers main without losing work when it carries uncommitted changes or commits that are not on origin/main: it saves them on a new rescue branch, realigns main with origin/main only after verifying that the rescue branch contains everything, and reports the result as JSON; destructive variants keep the dry-run signature pattern of work discard-changes.",
       "observed": "Kit 1.0.13 in a sandbox clone of agp-Cockpit main ad2a38d (2026-10-02): `transfer branch-create rescue/t1 --start-point HEAD` with a dirty main fails ('Clean or preserve local changes before creating a branch.'); `work discard-changes` is BLOCKED on main (blocker main-branch, by design); `transfer sync-main` with main one commit ahead of origin/main fails (blockers: normalize-session_failed); `work recover` restores only known volatile files and states it 'never runs reset, clean, checkout, or broad restore over product files'. Covered: main behind origin/main (`transfer sync-main` PASS), detached HEAD (`transfer branch-switch main` PASS), discarding changes on a work branch (`work discard-changes`, dry-run signature, then --execute). The Kit's own work-order validator forbids `git reset --hard` in work orders, so a remote work order cannot fill the gap either.",
       "impact": "The Cockpit's full Wiederherstellen (P8) has no Kit route for two of the most common disturbances; filling the gap would need raw git outside the Kit (Cockpit-local or in a work order), which breaks the architecture principle that the Kit controls every repository change.",
@@ -1172,7 +1195,8 @@
         "agentic-kit transfer sync-main --json (main ahead 1) → FAIL blockers ['normalize-session_failed']",
         "agentic-kit work recover --json → discard_all_next_action 'Use a separate explicitly destructive workflow; work recover never runs reset, clean, checkout, or broad restore over product files.'",
         "agentic_project_kit/work_order_validator.py FORBIDDEN_TEXT_PATTERNS contains 'git reset --hard'"
-      ]
+      ],
+      "verified_by": "2026-10-03 GF-E037, Kit 1.0.14 (PyPI) in a sandbox clone of agp-Cockpit main 81b2dfb with a local bare origin: `work rescue --json` on dirty main (modified + untracked file) plans create-rescue-branch, commit-local-changes-on-rescue-branch, realign-main-to-base with a signature; --execute with the signature ends with main == origin/main, a clean worktree and rescue/main-81b2dfb0-… carrying both files; main two commits ahead: wrong signature BLOCKED (signature-mismatch, HEAD unchanged), matching signature ends with main == origin/main and rescue/main-5ae8d0ca containing both commits; repeated runs PASS with rescue_required false; remote_effect none, no gh call, no branch on origin."
     }
   ],
   "explicit_exclusions": [
