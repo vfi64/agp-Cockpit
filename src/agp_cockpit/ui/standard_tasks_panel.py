@@ -9,7 +9,7 @@ from tkinter import ttk
 
 from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.conversation_binding import ConversationBindingStore
-from agp_cockpit.core.mission_http_client import create_live_full_auto
+from agp_cockpit.core.mission_http_client import create_live_full_auto, record_decision
 from agp_cockpit.core.mission_http_client import status as bridge_status
 from agp_cockpit.core.repo_state import ARBEITEN, LAEUFT, WIEDERHERSTELLEN
 from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
@@ -43,6 +43,7 @@ class StandardTasksPanel(ttk.Frame):
         self._runtime_root = runtime_root
         self._tracked_task: StandardTask | None = None
         self._tracked_task_id = ""
+        self._tracked_inputs: dict | None = None
         self.recover_offered = False
         self.follow_up_key: str | None = None   # verb recommended after a finished task
         self.repository_root = repository_root.expanduser().resolve()
@@ -132,6 +133,30 @@ class StandardTasksPanel(ttk.Frame):
             row=5, column=0, sticky="ew"
         )
 
+        # AGP_STANDARD_TASK_DECISION_V1 (P8 live test 2026-10-03): a standard
+        # task that stops with NEEDS_HUMAN (e.g. Wiederherstellen before the
+        # signed rescue) is answered here and continues in the same chat.
+        self._decision_mission_id = ""
+        self._decision_question = ""
+        self.decision_frame = ttk.LabelFrame(self, text="Deine Entscheidung ist gefragt", padding=8)
+        self.decision_frame.columnconfigure(0, weight=1)
+        self.decision_question_var = tk.StringVar(value="")
+        ttk.Label(self.decision_frame, textvariable=self.decision_question_var, wraplength=740,
+                  justify="left").grid(row=0, column=0, columnspan=3, sticky="ew")
+        ttk.Label(self.decision_frame, text="Antwort / Hinweis (optional):").grid(
+            row=1, column=0, columnspan=3, sticky="w", pady=(8, 2))
+        self.decision_note = tk.Text(self.decision_frame, height=2, wrap="word", undo=True)
+        self.decision_note.grid(row=2, column=0, columnspan=3, sticky="ew")
+        self.approve_decision_button = ttk.Button(
+            self.decision_frame, text="Freigeben", command=lambda: self.decide("APPROVE"))
+        self.approve_decision_button.grid(row=3, column=1, sticky="e", pady=(8, 0), padx=(0, 8))
+        self.reject_decision_button = ttk.Button(
+            self.decision_frame, text="Ablehnen", command=lambda: self.decide("REJECT"))
+        self.reject_decision_button.grid(row=3, column=2, sticky="e", pady=(8, 0))
+        self.decision_frame.grid(row=6, column=0, sticky="ew", pady=(10, 0))
+        self.decision_frame.grid_remove()
+        self.after(600, self.adopt_pending_decision)
+
     def runtime_root(self) -> Path:
         if self._runtime_root is None:
             from agp_cockpit.adapters.macos_settings import bridge_runtime_root
@@ -217,12 +242,85 @@ class StandardTasksPanel(ttk.Frame):
         self.follow_up_key = None
         self._tracked_task = task
         self._tracked_task_id = task_id
+        self._tracked_inputs = inputs
+        self._hide_decision()
         self.status_var.set(
             "Gestartet — das Cockpit wartet auf die erste Remote-Antwort. "
             f"Lokaler Zustand: {json.dumps(status.get('state', ''), ensure_ascii=False)}"
         )
         self._track(str(mission["mission_id"]))
         self.refresh_lage()   # the started task makes the state LÄUFT
+        return True
+
+    # --- AGP_STANDARD_TASK_DECISION_V1 ------------------------------------------------
+
+    def adopt_pending_decision(self) -> None:
+        """After a restart: re-attach a standard task that waits for a decision."""
+        if self._tracked_mission_id:
+            return
+        try:
+            mission = (bridge_status() or {}).get("mission") or {}
+        except Exception:  # noqa: BLE001 - no bridge, nothing to adopt
+            return
+        task, mission_id = pending_standard_decision(mission, self.tasks)
+        if task is None:
+            return
+        from agp_cockpit.core.start_request import resolve_task_binding
+        task_id = str(resolve_task_binding(self.runtime_root(), mission_id).get("task_id") or "")
+        if not task_id:
+            return
+        self._tracked_task, self._tracked_task_id, self._tracked_inputs = task, task_id, None
+        self._tracked_mission_id = mission_id
+        self._show_decision(mission_id, str(mission.get("last_summary") or ""))
+        self.status_var.set(f"{task.label} wartet auf deine Entscheidung (nach einem Neustart übernommen).")
+
+    def _show_decision(self, mission_id: str, question: str) -> None:
+        if self._decision_mission_id == mission_id:
+            return
+        self._decision_mission_id = mission_id
+        self._decision_question = question
+        self.decision_question_var.set(question or "Die Remote-Seite braucht eine Entscheidung.")
+        self.decision_note.delete("1.0", "end")
+        self.decision_frame.grid()
+
+    def _hide_decision(self) -> None:
+        self._decision_mission_id = ""
+        self._decision_question = ""
+        self.decision_frame.grid_remove()
+
+    def decide(self, decision: str) -> bool:
+        """Answer the NEEDS_HUMAN question; the task continues in the same chat."""
+        from agp_cockpit.core.build_freshness import start_block_reason
+        from agp_cockpit.core.human_decision import decision_mission_text
+        task, mission_id = self._tracked_task, self._decision_mission_id
+        if task is None or not mission_id or not self._tracked_task_id:
+            return False
+        blocked = start_block_reason(self.repository_root)
+        if blocked:   # AGP_STALE_APP_GUARD_V1
+            self.status_var.set(blocked)
+            return False
+        note = self.decision_note.get("1.0", "end-1c").strip()
+        goal = (task.prompt(self.repository_root, self._tracked_inputs)
+                if self._tracked_inputs is not None or not task.inputs else task.description)
+        try:
+            record_decision(mission_id=mission_id, decision=decision, note=note)
+            # The NEEDS_HUMAN stop left a durable STOP; the continuation starts clean.
+            self.api.operator_control.request("RESUME")
+            mission = create_live_full_auto(
+                title=f"Standard · {task.label} · Entscheidung",
+                mission_text=decision_mission_text(goal_text=goal, decision=decision,
+                                                   question=self._decision_question, note=note),
+                conversation_url=require_allowed_active_chat().url,
+            )["mission"]
+            request_task_start(str(mission["mission_id"]), task_id=self._tracked_task_id)
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces decision failures
+            self.status_var.set(f"Entscheidung nicht übermittelt — {exc}")
+            return False
+        self._hide_decision()
+        self.status_var.set(("Freigegeben" if decision == "APPROVE" else "Abgelehnt")
+                            + f" — {task.label} läuft im selben Chat weiter.")
+        self._track(str(mission["mission_id"]))
+        self.refresh_lage()
         return True
 
     def _bind_active_chat(self) -> None:
@@ -432,16 +530,21 @@ class StandardTasksPanel(ttk.Frame):
         if not mission_id:
             return
         try:
+            bridge = bridge_status()
             progress = describe_standard_task_progress(
                 mission_id=mission_id,
                 task_status=self.api.status(),
-                bridge_status=bridge_status(),
+                bridge_status=bridge,
             )
         except Exception as exc:  # noqa: BLE001 - polling survives transient bridge/DB errors.
             self.status_var.set(f"Status momentan nicht verfügbar ({exc}) — neuer Versuch läuft.")
             self._poll_job = self.after(3000, self.refresh_progress)
             return
         text = progress.text
+        current = (bridge or {}).get("mission") or {}
+        if (progress.outcome == "HUMAN_REQUIRED" and current.get("state") == "NEEDS_HUMAN"
+                and current.get("mission_id") == mission_id and self._tracked_task is not None):
+            self._show_decision(mission_id, str(current.get("last_summary") or ""))
         effects = self.effects_text()
         if effects:
             text += "\n" + effects
@@ -468,3 +571,13 @@ class StandardTasksPanel(ttk.Frame):
             self._poll_job = self.after(2000, self.refresh_progress)
         else:
             self.refresh_lage()   # the finished task changed the repository state
+
+
+def pending_standard_decision(mission: dict, tasks) -> tuple[StandardTask | None, str]:
+    """The standard task a NEEDS_HUMAN mission belongs to (title "Standard · <label>[ · …]")."""
+    title = str(mission.get("title") or "")
+    if mission.get("state") != "NEEDS_HUMAN" or not title.startswith("Standard · "):
+        return None, ""
+    label = title[len("Standard · "):].split(" · ")[0]
+    task = next((t for t in tasks if t.label == label), None)
+    return task, str(mission.get("mission_id") or "") if task is not None else ""

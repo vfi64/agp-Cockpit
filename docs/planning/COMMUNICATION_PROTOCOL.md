@@ -602,6 +602,13 @@ This section is normative for the file loop after local execution.
    network) and rebuilds the Lagebericht when it changes and no task runs, so a
    branch checkout or Kit upgrade outside the Cockpit no longer leaves a stale
    state (seen: BEREIT/Kit 1.0.13 with a work branch checked out and Kit 1.0.14).
+58. Decisions in the Standard Tasks tab (`AGP_STANDARD_TASK_DECISION_V1`, P8 live
+   test 2026-10-03): when a standard task stops with NEEDS_HUMAN, the tab shows
+   the question with „Freigeben“/„Ablehnen“ and an optional note; the answer is
+   recorded for that mission and the task continues in the same chat as
+   „Standard · <Task> · Entscheidung“ bound to the same task (verifier and
+   orchestrator rule unchanged). After a restart a waiting standard task is
+   re-attached from the bridge status.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

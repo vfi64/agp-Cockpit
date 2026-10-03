@@ -457,3 +457,66 @@ def test_first_start_binds_the_chat_to_the_repository(panel):
                                     offered=(rs.ARBEIT_BEGINNEN,)))
     widget.run_verb(VERBS[rs.ARBEIT_BEGINNEN])
     assert created and ConversationBindingStore(runtime).owner("https://chatgpt.com/c/x") == str(repo.resolve())
+
+
+# --- AGP_STANDARD_TASK_DECISION_V1 (P8 live test 2026-10-03) ---------------------------------------
+
+def _needs_human(monkeypatch, widget, summary="Rescue dry-run passed; approve the signed execute?"):
+    from agp_cockpit.core.standard_task_progress import StandardTaskProgress
+    from agp_cockpit.ui import standard_tasks_panel as m
+    widget._tracked_task = BY_KEY["recover"]
+    widget._tracked_task_id = "t"
+    widget._tracked_mission_id = "m"
+    monkeypatch.setattr(m, "describe_standard_task_progress",
+                        lambda **_kw: StandardTaskProgress("Mensch muss eingreifen", True, "HUMAN_REQUIRED"))
+    monkeypatch.setattr(m, "bridge_status", lambda: {"mission": {
+        "mission_id": "m", "state": "NEEDS_HUMAN", "title": "Standard · Wiederherstellen",
+        "last_summary": summary}})
+    monkeypatch.setattr(widget.api, "status", dict)
+    decisions = []
+    monkeypatch.setattr(m, "record_decision", lambda **kw: decisions.append(kw) or {})
+    return decisions
+
+
+def test_needs_human_of_a_standard_task_is_answered_in_the_panel(panel, monkeypatch):
+    _root, widget, created, _answers, _repo, _runtime = panel
+    decisions = _needs_human(monkeypatch, widget)
+    widget.refresh_progress()
+    assert widget.decision_frame.winfo_manager() == "grid"
+    assert "signed execute" in widget.decision_question_var.get()
+    widget.decision_note.insert("1.0", "ja, retten")
+    assert widget.decide("APPROVE")
+    assert decisions == [{"mission_id": "m", "decision": "APPROVE", "note": "ja, retten"}]
+    continuation = created[-1]
+    assert continuation["title"] == "Standard · Wiederherstellen · Entscheidung"
+    assert "APPROVED" in continuation["mission_text"] and "signed execute" in continuation["mission_text"]
+    assert widget.decision_frame.winfo_manager() == ""
+    assert "läuft im selben Chat weiter" in widget.status_var.get()
+
+
+def test_rejecting_continues_without_the_action(panel, monkeypatch):
+    _root, widget, created, _answers, _repo, _runtime = panel
+    decisions = _needs_human(monkeypatch, widget)
+    widget.refresh_progress()
+    assert widget.decide("REJECT")
+    assert decisions[0]["decision"] == "REJECT" and "REJECTED" in created[-1]["mission_text"]
+
+
+def test_pending_decision_is_adopted_after_a_restart(panel, monkeypatch):
+    _root, widget, _created, _answers, _repo, _runtime = panel
+    from agp_cockpit.core import start_request
+    from agp_cockpit.ui import standard_tasks_panel as m
+    assert m.pending_standard_decision({"state": "NEEDS_HUMAN", "title": "Task · x"}, widget.tasks)[0] is None
+    assert m.pending_standard_decision({"state": "DONE", "title": "Standard · Wiederherstellen"},
+                                       widget.tasks)[0] is None
+    task, mid = m.pending_standard_decision(
+        {"state": "NEEDS_HUMAN", "title": "Standard · Wiederherstellen · Entscheidung", "mission_id": "m2"},
+        widget.tasks)
+    assert task is BY_KEY["recover"] and mid == "m2"
+    monkeypatch.setattr(m, "bridge_status", lambda: {"mission": {
+        "mission_id": "m2", "state": "NEEDS_HUMAN", "title": "Standard · Wiederherstellen",
+        "last_summary": "approve?"}})
+    monkeypatch.setattr(start_request, "resolve_task_binding", lambda _root, _mid: {"task_id": "t2"})
+    widget.adopt_pending_decision()
+    assert widget._tracked_task_id == "t2" and widget._tracked_mission_id == "m2"
+    assert widget.decision_frame.winfo_manager() == "grid" and widget.decision_question_var.get() == "approve?"
