@@ -141,11 +141,11 @@ class StandardTasksPanel(ttk.Frame):
         self.decision_frame = ttk.LabelFrame(self, text="Deine Entscheidung ist gefragt", padding=8)
         self.decision_frame.columnconfigure(0, weight=1)
         self.decision_question_var = tk.StringVar(value="")
-        ttk.Label(self.decision_frame, textvariable=self.decision_question_var, wraplength=740,
+        ttk.Label(self.decision_frame, textvariable=self.decision_question_var, wraplength=720,
                   justify="left").grid(row=0, column=0, columnspan=3, sticky="ew")
         ttk.Label(self.decision_frame, text="Antwort / Hinweis (optional):").grid(
             row=1, column=0, columnspan=3, sticky="w", pady=(8, 2))
-        self.decision_note = tk.Text(self.decision_frame, height=2, wrap="word", undo=True)
+        self.decision_note = tk.Text(self.decision_frame, height=2, width=40, wrap="word", undo=True)
         self.decision_note.grid(row=2, column=0, columnspan=3, sticky="ew")
         self.approve_decision_button = ttk.Button(
             self.decision_frame, text="Freigeben", command=lambda: self.decide("APPROVE"))

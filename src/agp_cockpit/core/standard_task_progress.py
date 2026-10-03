@@ -23,11 +23,24 @@ class StandardTaskProgress:
     outcome: str  # RUNNING | DONE | HUMAN_REQUIRED | STOPPED | UNKNOWN
 
 
+SUMMARY_LIMIT = 240
+
+
+def clip(text: str, limit: int = SUMMARY_LIMIT) -> str:
+    """AGP_SUMMARY_CLIP_V1 (P8 live test 2): shorten at a word boundary and mark
+    the cut; a hard cut turned "failed_step null" into "… PASS with fail"."""
+    text = " ".join(str(text or "").split())
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0] if " " in text[:limit] else text[:limit]
+    return cut.rstrip(" ,;:") + " …"
+
+
 def _reason(mission: dict) -> str:
     for key in ("last_error", "browser_transport_block_reason", "last_summary", "last_result"):
-        value = " ".join(str(mission.get(key) or "").split())
+        value = clip(mission.get(key) or "")
         if value:
-            return value[:240]
+            return value
     return ""
 
 
@@ -69,7 +82,7 @@ def describe_standard_task_progress(
     if mstate == "DONE" and not locally_verified:
         # The summary of the final state, not a stale earlier error
         # (live 1519: "sleep is not defined" after a CI-verified DONE).
-        summary = " ".join(str(mission.get("last_summary") or "").split())[:240]
+        summary = clip(mission.get("last_summary") or "")
         if summary.startswith("CI grün geprüft"):
             # AGP_CI_GREEN_COMPLETION_V1: verified by the Cockpit itself.
             return StandardTaskProgress(f"Fertig ✓ — {summary} ({counters}). {local}", True, "DONE")
@@ -81,7 +94,7 @@ def describe_standard_task_progress(
         if task_state == "VERIFIED_COMPLETE":
             # Live 2026-10-02 (Abschließen): show the Cockpit's own verdict
             # (CI gate or local verifier) instead of a generic sentence.
-            summary = " ".join(str(mission.get("last_summary") or "").split())[:240]
+            summary = clip(mission.get("last_summary") or "")
             for prefix in ("Fertig (Remote): ", "Fertig: "):
                 summary = summary.removeprefix(prefix)
             if summary.startswith(("CI grün geprüft", "Lokal geprüft")):
