@@ -8,6 +8,10 @@ const CONTRACT = path.join(
 );
 
 async function install(page, {url="https://chatgpt.com/c/phase5-target"}={}) {
+  // AGP_E2E_NO_LIVE_NETWORK_V1: never load the live chatgpt.com in a test; the
+  // URL is served by a local stub so only the origin and path are real.
+  await page.route("https://chatgpt.com/**", route =>
+    route.fulfill({contentType: "text/html", body: "<!doctype html><html><body></body></html>"}));
   await page.goto(url);
 
   await page.setContent(`
