@@ -9,6 +9,7 @@ def _valid_repo(path: Path) -> Path:
     path.mkdir()
     (path / "chrome_extension").mkdir()
     (path / ".agentic").mkdir()
+    (path / ".git").mkdir()
     return path
 
 

@@ -8,6 +8,7 @@ from tkinter import font as tkfont
 from tkinter import ttk
 
 from agp_cockpit.core.chrome_automation import require_allowed_active_chat
+from agp_cockpit.core.conversation_binding import ConversationBindingStore
 from agp_cockpit.core.mission_http_client import create_live_full_auto
 from agp_cockpit.core.mission_http_client import status as bridge_status
 from agp_cockpit.core.repo_state import ARBEITEN, LAEUFT, WIEDERHERSTELLEN
@@ -165,6 +166,18 @@ class StandardTasksPanel(ttk.Frame):
                 + ". Für diesen Standard Task müssen die Tools ausdrücklich freigegeben sein."
             )
             return False
+        # AGP_CONVERSATION_BINDING_V1 (P4): one chat per repository, checked
+        # before anything is prepared or approved.
+        try:
+            conversation_url = require_allowed_active_chat().url
+        except Exception as exc:  # noqa: BLE001 - UI boundary must surface all launch failures
+            self.status_var.set(f"BLOCKED — Standard Task konnte nicht gestartet werden: {exc}")
+            return False
+        bindings = ConversationBindingStore(self.runtime_root())
+        bound_elsewhere = bindings.block_reason(conversation_url, self.repository_root)
+        if bound_elsewhere:
+            self.status_var.set(f"BLOCKED — {bound_elsewhere}")
+            return False
         contract = task.contract(self.repository_root, inputs)
         try:
             prepared = self.api.prepare_task_contract(contract)
@@ -180,7 +193,6 @@ class StandardTasksPanel(ttk.Frame):
                 from agp_cockpit.core.ci_gate import CiGateStore
                 CiGateStore(self.runtime_root()).activate(
                     task_id, reason=f"standard task {task.key}", merge=True)
-            conversation_url = require_allowed_active_chat().url
             mission = create_live_full_auto(
                 title=f"Standard · {task.label}",
                 mission_text=task.prompt(self.repository_root, inputs),
@@ -190,6 +202,7 @@ class StandardTasksPanel(ttk.Frame):
                 str(mission["mission_id"]),
                 task_id=task_id,
             )
+            bindings.bind(conversation_url, self.repository_root)
         except Exception as exc:  # noqa: BLE001 - UI boundary must surface all launch failures
             self.status_var.set(f"BLOCKED — Standard Task konnte nicht gestartet werden: {exc}")
             return False
@@ -205,6 +218,15 @@ class StandardTasksPanel(ttk.Frame):
         self._track(str(mission["mission_id"]))
         self.refresh_lage()   # the started task makes the state LÄUFT
         return True
+
+    def _bind_active_chat(self) -> None:
+        """A task started in a fresh chat gets its conversation id only after the
+        first send; bind it at the verified end (AGP_CONVERSATION_BINDING_V1)."""
+        try:
+            url = require_allowed_active_chat().url
+        except Exception:  # noqa: BLE001 - binding is best effort at this point
+            return
+        ConversationBindingStore(self.runtime_root()).bind(url, self.repository_root)
 
     def _effects_executed(self) -> bool:
         if not self._tracked_task_id:
@@ -403,6 +425,8 @@ class StandardTasksPanel(ttk.Frame):
         if effects:
             text += "\n" + effects
         task = self._tracked_task
+        if progress.terminal and task is not None and progress.outcome == "DONE":
+            self._bind_active_chat()
         if progress.terminal and task is not None:
             if progress.outcome == "DONE" and task.follow_up:
                 text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."

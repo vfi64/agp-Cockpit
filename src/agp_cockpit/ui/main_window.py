@@ -87,8 +87,11 @@ class MainWindow(ttk.Frame):
         self.build_var = tk.StringVar(
             value=f"Bridge protocol v{BRIDGE_PROTOCOL_VERSION} · build {BRIDGE_BUILD_ID}"
         )
+        # AGP_REPOSITORY_SWITCH_V1 (P4): switch only while idle (R5).
+        ttk.Button(context, text="Repo wechseln …", command=self.open_repo_switch).grid(
+            row=0, column=1, sticky="e", padx=8)
         self._build_label = ttk.Label(context, textvariable=self.build_var)
-        self._build_label.grid(row=0, column=1, sticky="e")
+        self._build_label.grid(row=0, column=2, sticky="e")
 
         ttk.Separator(
             self,
@@ -133,6 +136,34 @@ class MainWindow(ttk.Frame):
         self.after(80, self.refresh_runtime_status)
         self.after(120, self.refresh_bridge_identity)
         self.after(500, self.refresh_build_freshness)
+
+    def open_repo_switch(self) -> None:
+        """Repo wechseln (P4): idle only (R5); check, provision, persist, restart."""
+        if self.standard_tasks_panel._task_running():
+            self.status_var.set("Repo wechseln erst, wenn kein Task läuft (R5).")
+            return None
+        from agp_cockpit.adapters.macos_settings import application_support_root
+        from agp_cockpit.ui.repo_switch_dialog import RepoSwitchDialog, perform_switch
+        app_support = application_support_root()
+
+        def on_switch(root: Path) -> list[str]:
+            return perform_switch(root, current=self.repository_root, app_support=app_support,
+                                  persist=self._persist_repository, relaunch=self._relaunch)
+
+        return RepoSwitchDialog(self, current=self.repository_root, app_support=app_support,
+                                on_switch=on_switch)
+
+    def _persist_repository(self, root: Path) -> None:
+        from agp_cockpit.adapters.macos_context import persist_repository_root
+        from agp_cockpit.adapters.macos_settings import settings_path
+        from agp_cockpit.settings import load_and_migrate_settings
+        settings, _migrated = load_and_migrate_settings(settings_path())
+        persist_repository_root(settings, root)
+
+    def _relaunch(self) -> None:
+        from agp_cockpit.adapters.macos_relaunch import schedule_relaunch
+        schedule_relaunch()
+        self.after(800, self.winfo_toplevel().destroy)
 
     def _build_system_tab(self, parent: ttk.Frame) -> None:
         bridge = ttk.LabelFrame(
@@ -375,10 +406,10 @@ class MainWindow(ttk.Frame):
 
     def refresh_build_freshness(self) -> None:
         """AGP_STALE_APP_GUARD_V1: warn while a newer build or source is on disk."""
-        from agp_cockpit.core.build_freshness import check
+        from agp_cockpit.core.build_freshness import check, freshness_root
         base = f"Bridge protocol v{BRIDGE_PROTOCOL_VERSION} · build {BRIDGE_BUILD_ID}"
         try:
-            freshness = check(self.repository_root)
+            freshness = check(freshness_root(self.repository_root))
         except Exception:  # noqa: BLE001 - a status label must never break the UI
             freshness = None
         if freshness is not None and freshness.stale:

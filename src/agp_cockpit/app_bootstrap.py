@@ -267,9 +267,33 @@ def probe_existing_bridge(
             req,
             timeout=2,
         ) as response:
-            return response.status == 200
+            if response.status != 200:
+                return False
+            payload = json.loads(response.read().decode("utf-8") or "{}")
     except Exception:  # noqa: BLE001 - bridge probing is best-effort.
         return False
+    # AGP_REPOSITORY_SWITCH_V1: a bridge still bound to another repository
+    # (e.g. right after a switch) is not reused.
+    return bridge_serves_repository(payload, repository_root)
+
+
+def bridge_serves_repository(payload, repository_root: Path) -> bool:
+    expected = str(Path(repository_root).expanduser().resolve())
+    found = []
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "repository_root" and isinstance(value, str):
+                    found.append(value)
+                else:
+                    walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(payload)
+    return bool(found) and all(str(Path(v).expanduser().resolve()) == expected for v in found)
 
 
 def run_legacy_gui(repository_root: Path | None = None, local_contract=None) -> None:

@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def _repo(path: Path) -> Path:
     (path / "chrome_extension").mkdir(parents=True)
     (path / ".agentic").mkdir()
+    (path / ".git").mkdir()
     return path
 
 def test_default_bridge_is_simple_operator_surface_without_diagnostics_toggle():

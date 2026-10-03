@@ -573,6 +573,17 @@ This section is normative for the file loop after local execution.
    is disabled with the open finding ids — Release (KIT-GF-029, KIT-GF-032) —
    and the full Wiederherstellen waits for KIT-GF-033. The basic Wiederherstellen
    repairs only through Kit routes and ends in NEEDS_HUMAN where the Kit has none.
+54. Repo wechseln (`AGP_REPOSITORY_SWITCH_V1`, `AGP_CONVERSATION_BINDING_V1`,
+   P4): any git work tree can be steered; Kit workspace and Kit installation
+   are reported by the Lagebericht (KEIN_KIT, UNKLAR), not start gates. The
+   switch runs only while idle (R5), checks the candidate read-only (git,
+   origin, Kit, workspace, gh), provisions only the Cockpit's transport paths
+   (`Download/run_next.py` from the Cockpit's versioned runner, `/Download/` and
+   `/.local/agp-cockpit/` in the clone's `info/exclude`; never a tracked file),
+   persists the root and restarts the app. A running bridge bound to another
+   repository is not reused. A ChatGPT conversation is bound to the repository
+   of its first standard task; a start from a chat bound to another repository
+   is blocked before anything is prepared ("neuen Chat öffnen").
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

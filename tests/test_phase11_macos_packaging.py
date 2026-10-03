@@ -16,6 +16,7 @@ from scripts.build_macos_app import verify_bundle
 def make_repo(root: Path) -> Path:
     (root / "chrome_extension").mkdir(parents=True)
     (root / ".agentic").mkdir()
+    (root / ".git").mkdir()
     return root
 
 
@@ -54,11 +55,13 @@ def test_context_resolution_can_use_chooser(tmp_path):
     assert source == "chooser"
 
 
-def test_repository_context_requires_extension_and_agentic(tmp_path):
+def test_repository_context_is_a_git_work_tree(tmp_path):
+    # AGP_REPOSITORY_SWITCH_V1 (P4): extension and Kit workspace are no start gate.
     assert not looks_like_repository_context(tmp_path)
     (tmp_path / "chrome_extension").mkdir()
-    assert not looks_like_repository_context(tmp_path)
     (tmp_path / ".agentic").mkdir()
+    assert not looks_like_repository_context(tmp_path)
+    (tmp_path / ".git").mkdir()
     assert looks_like_repository_context(tmp_path)
 
 

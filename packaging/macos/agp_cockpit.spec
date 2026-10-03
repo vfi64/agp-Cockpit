@@ -23,7 +23,10 @@ a = Analysis(
     [str(ROOT / "packaging" / "macos" / "launcher.py")],
     pathex=[str(ROOT / "src")],
     binaries=[],
-    datas=[(str(ROOT / "chrome_extension"), "chrome_extension")],
+    # AGP_REPOSITORY_SWITCH_V1: the canonical run_next.py is provisioned into
+    # other repositories from the bundle.
+    datas=[(str(ROOT / "chrome_extension"), "chrome_extension"),
+           (str(ROOT / "Download" / "run_next.py"), "runner")],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

@@ -59,6 +59,25 @@ def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
     return BuildFreshness(running, bundle, source, False, "")
 
 
+def cockpit_home() -> Path | None:
+    """The Cockpit's own checkout: the app bundle lives in <home>/.local/…/dist,
+    a source run in <home>/src/agp_cockpit."""
+    if getattr(sys, "frozen", False):
+        exe = Path(sys.executable).resolve()
+        return next((p.parent for p in exe.parents if p.name == ".local"), None)
+    home = Path(__file__).resolve().parents[3]
+    return home if (home / SOURCE_ID_FILE).is_file() else None
+
+
+def freshness_root(repository_root: Path) -> Path:
+    """AGP_REPOSITORY_SWITCH_V1: in another repository the guard still compares
+    with the Cockpit's own checkout, not with the steered repository."""
+    root = Path(repository_root)
+    if (root / SOURCE_ID_FILE).is_file():
+        return root
+    return cockpit_home() or root
+
+
 def kit_block_reason(repository_root: Path) -> str:
     """AGP_REPO_STATE_V1 (P2): no installed Kit, no task (fail closed)."""
     from agp_cockpit.core.kit_installation import discover
@@ -70,7 +89,7 @@ def kit_block_reason(repository_root: Path) -> str:
 
 def start_block_reason(repository_root: Path) -> str:
     """Empty when tasks may start; otherwise the operator-facing reason."""
-    freshness = check(repository_root)
+    freshness = check(freshness_root(repository_root))
     if freshness.stale:
         return f"Blockiert — {freshness.message}"
     return kit_block_reason(repository_root)

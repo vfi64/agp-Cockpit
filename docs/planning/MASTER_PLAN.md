@@ -305,7 +305,9 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 4. P4 Repository switch: selection, checks (git, origin, Kit installed and
    version, `gh auth status`, workspace present → else offer Repo übernehmen),
    rebinding of bridge, Download/run_next and digest, recent list, new chat
-   required, only while idle (R5).
+   required, only while idle (R5). — Implemented 2026-10-02
+   (AGP_REPOSITORY_SWITCH_V1, AGP_CONVERSATION_BINDING_V1, COMMUNICATION_PROTOCOL
+   54); live check pending.
 5. P5 Standard-task framework: declarative definition (goal text without
    command names, effect class, input fields, verifier), single-task lock,
    abort → Wiederherstellen (R6); migrate Chat wechseln.
@@ -433,6 +435,27 @@ disabled with the finding ids (AGP_KIT_GATED_VERBS_V1), and a test forbids
 repository-changing git calls in the Cockpit's sources (the Kit findings cache
 clone is the only exception). P-steps are done one at a time (owner 2026-10-02);
 next: P10 Pflege, then P4 Repo wechseln, then P9 Repo übernehmen.
+
+## 2026-10-02 — P4 Repo wechseln; next: DOM hardening
+
+P4 implemented as a Cockpit-level event (no repository change, no Kit gap): a
+read-only check of the candidate, provisioning of the Cockpit's own transport
+paths (Download/run_next.py, local `info/exclude`), persisting the root and a
+restart of the app, so every binding goes through the normal start path. One
+ChatGPT conversation per repository is enforced at task start. The packaged app
+carries the canonical runner; the stale-app guard keeps comparing with the
+Cockpit's own checkout.
+
+Next slice (owner 2026-10-02): **DOM hardening of the browser transport**, in
+this order — (1) outcome-first send: the send-control probe becomes advisory,
+the committed user turn is the hard check, one diagnosed retry; (2) sanitized
+DOM structure snapshots of every failure (tags, roles, ARIA labels, test ids,
+no chat content) replayed against the real probe code; (3) one DOM adapter with
+a contract per touchpoint (composer, attachments, submit, committed turn,
+finished reply, result file); (4) a touchpoint self-test at mission start;
+(5) a fingerprint of the composer UI to log a new ChatGPT variant early. A
+local LLM stays out of the send path; an official-API transport is a later
+owner decision. Then P10 and P9 as far as their Kit routes exist.
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority

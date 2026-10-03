@@ -8,8 +8,12 @@ from agp_cockpit.settings import AppSettings, save_settings
 
 
 def looks_like_repository_context(path: Path) -> bool:
+    """Any git work tree can be steered (P4, AGP_REPOSITORY_SWITCH_V1); whether
+    it is a Kit workspace is the Lagebericht's job (KEIN_KIT), not a start gate.
+    The Cockpit's extension comes from the app bundle when the repository is
+    not the Cockpit's own checkout."""
     root = path.expanduser().resolve()
-    return root.is_dir() and (root / "chrome_extension").is_dir() and (root / ".agentic").is_dir()
+    return root.is_dir() and (root / ".git").exists()
 
 
 
