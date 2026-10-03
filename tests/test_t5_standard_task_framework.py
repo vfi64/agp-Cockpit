@@ -416,10 +416,11 @@ def test_release_waits_for_the_kit_and_says_so():
     assert not enabled and "KIT-GF-032" in reason and "KIT-GF-029" not in reason
 
 
-def test_basic_recover_uses_kit_routes_only():
+def test_recover_uses_kit_routes_only():
+    """P8 full (owner 2026-10-03): Kit routes only, including the rescue of main."""
     prompt = BY_KEY["recover"].prompt(Path("/r"))
     assert "KIT-GF-033" in prompt and "Never run raw git" in prompt
-    assert "dry run with signature" in prompt and "only behind origin/main" in prompt
+    assert "dry run first" in prompt and "only behind origin/main" in prompt
     assert "KIT-GF-033" in VERBS[rs.WIEDERHERSTELLEN].tooltip()
 
 

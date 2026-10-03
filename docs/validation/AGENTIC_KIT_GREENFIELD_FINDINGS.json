@@ -300,6 +300,13 @@
       "historical_id": "Kit 1.0.14 sandbox retest",
       "canonical_family": "KIT-GF-032",
       "summary": "release-check still hard-codes Kit paths in an external workspace"
+    },
+    {
+      "date": "2026-10-03",
+      "event_id": "GF-E039",
+      "historical_id": "Kit release 1.0.14 closeout PR #2348",
+      "canonical_family": "KIT-GF-034",
+      "summary": "DOI closeout leaves docs/site fallback stale; closeout PR CI red"
     }
   ],
   "families": [
@@ -1197,6 +1204,24 @@
         "agentic_project_kit/work_order_validator.py FORBIDDEN_TEXT_PATTERNS contains 'git reset --hard'"
       ],
       "verified_by": "2026-10-03 GF-E037, Kit 1.0.14 (PyPI) in a sandbox clone of agp-Cockpit main 81b2dfb with a local bare origin: `work rescue --json` on dirty main (modified + untracked file) plans create-rescue-branch, commit-local-changes-on-rescue-branch, realign-main-to-base with a signature; --execute with the signature ends with main == origin/main, a clean worktree and rescue/main-81b2dfb0-… carrying both files; main two commits ahead: wrong signature BLOCKED (signature-mismatch, HEAD unchanged), matching signature ends with main == origin/main and rescue/main-5ae8d0ca containing both commits; repeated runs PASS with rescue_required false; remote_effect none, no gh call, no branch on origin."
+    },
+    {
+      "id": "KIT-GF-034",
+      "title": "post-release-doi-closeout --write leaves the committed docs-pages fallback site stale",
+      "first_observed": "2026-10-03",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "expected": "The DOI closeout route writes every generated projection that depends on the release records it changes, including the committed docs-pages fallback site (docs/site), or its plan names the regeneration step, so the closeout pull request passes the Kit's own CI.",
+      "observed": "Kit release 1.0.14 (vfi64/agentic-project-kit, PR #2348, CI run 37122569105): `post-release-doi-closeout --version 1.0.14 --write` updated CHANGELOG.md, CITATION.cff, README.md, docs/STATUS.md, docs/handoff/CURRENT_HANDOFF.md, docs/releases/VERIFIED_RELEASES.md and the closeout report, but not docs/site; tests/test_site_fallback_staleness.py::test_docs_pages_fallback_projection_is_fresh failed (docs/site/index.html still showed release tag v1.0.9 / version DOI 10.5281/zenodo.22541661 instead of v1.0.14 / 10.5281/zenodo.23120536; 3070 other tests passed). `python site/scripts/build.py --docs-pages-fallback --json` regenerated docs/site/index.html and docs/site/site.json; `work finish` on the same branch reused PR #2348, CI green, merged as 43d30d23.",
+      "impact": "The documented release route stops at the closeout pull request with a red CI; the maintainer must know the regeneration command from the test's hint. The live-publication marker stays on main until the closeout is merged.",
+      "workaround": "Run `python site/scripts/build.py --docs-pages-fallback --json` on the closeout branch before `work finish` (done by the maintainer's local release script, tmp/release-1.0.14/release_1_0_14.py, closeout phase).",
+      "repair": "Let post-release-doi-closeout --write (or the release closeout plan) rebuild the docs-pages fallback projection and include docs/site in its changed paths; alternatively add the regeneration as an explicit closeout step with a staleness preflight.",
+      "regression": "After `post-release-doi-closeout --write` for a new version, test_docs_pages_fallback_projection_is_fresh passes without a manual rebuild.",
+      "evidence": [
+        "vfi64/agentic-project-kit PR #2348 CI run 37122569105 (failed), resumed commit on release/closeout-v1.0.14, merged 43d30d23; docs/site/index.html diff at index 3669 ('9' vs '1')."
+      ]
     }
   ],
   "explicit_exclusions": [

@@ -318,7 +318,8 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 7. P7 Arbeit beginnen (inputs: branch name, kind).
 8. P8 Wiederherstellen (diagnosis first, destructive steps ask). Full version
    waited for the Kit fix KIT-GF-033 (owner 2026-10-02); verified fixed with Kit 1.0.14
-   (2026-10-03), so the full version can be built on `work rescue`.
+   (2026-10-03). Full version implemented 2026-10-03 (AGP_DESTRUCTIVE_EXECUTE_GATE_V1):
+   rescue of main through the Kit route, signed execute only after approval.
 9. P9 Repo übernehmen, proven on a separate test repository.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
 11. P11 Release (always asks; verifier to be specified first; private only per

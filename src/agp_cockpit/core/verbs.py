@@ -60,10 +60,10 @@ VERBS: tuple[Verb, ...] = (
          "schreibt nur die Übergabedateien im Repo.",
          "in jedem ruhenden Zustand außer UNKLAR und KEIN_KIT.", task_key="chat-switch"),
     Verb(rs.WIEDERHERSTELLEN, "Wiederherstellen", "probleme", None, FRAGT,
-         "Grundversion: Diagnose über die Remote-LLM und Reparatur nur über Kit-Befehle; wo das Kit "
-         "keinen Weg hat (Änderungen oder Commits auf main, KIT-GF-033), fragt es dich. Die vollständige "
-         "Version auf „work rescue“ (Kit 1.0.14) folgt als eigener Schritt.",
-         "erst nur lesend; zerstörerische Schritte nur nach deiner Freigabe.",
+         "Diagnose über die Remote-LLM, Reparatur nur über Kit-Befehle. Änderungen oder Commits auf "
+         "main sichert das Kit erst auf einem Rescue-Branch, dann richtet es main neu aus (KIT-GF-033, "
+         "behoben in Kit 1.0.14).",
+         "erst nur lesend (Probelauf); jeder zerstörerische Schritt nur nach deiner Freigabe.",
          "bei einer Störung (Zustand STÖRUNG) oder nach einem abgebrochenen Abschließen.",
          task_key="recover"),
     Verb(rs.REPO_UEBERNEHMEN, "Repo übernehmen", "weitere", None, LOKAL,

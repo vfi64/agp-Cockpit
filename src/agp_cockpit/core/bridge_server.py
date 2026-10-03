@@ -513,10 +513,13 @@ class CockpitBridgeServer:
                             raise ValueError("bounded Python command content required")
                         from agp_cockpit.core.kit_command_catalog import (
                             KitCommandCatalog,
-                            remote_effect_commands,
+                            approval_required_commands,
+                            destructive_execute_commands,
                             unknown_effect_commands,
                         )
-                        wanted = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
+                        # AGP_DESTRUCTIVE_EXECUTE_GATE_V1: remote effects and
+                        # destructive local executes share the approval path.
+                        wanted = approval_required_commands(content, KitCommandCatalog.load(repo_root))
                         remote_effects_allowed = bool(wanted) and _remote_effects_permitted(
                             runtime_root, engine, wanted
                         )
@@ -548,8 +551,15 @@ class CockpitBridgeServer:
                             return
                         if not remote_effects_allowed and wanted:
                             unknown = unknown_effect_commands(content, KitCommandCatalog.load(repo_root))
+                            destructive = destructive_execute_commands(content, KitCommandCatalog.load(repo_root))
                             question = (
-                                f"Arbeitsauftrag {filename} will eine Wirkung nach außen "
+                                f"Arbeitsauftrag {filename} will "
+                                + ("einen Schritt, der den lokalen Verlauf oder lokale Dateien verändert "
+                                   f"({', '.join(destructive)}; die Kit-Route sichert vorher alles auf einem "
+                                   "Rescue-Branch bzw. prüft die Signatur des Probelaufs), "
+                                   if destructive else "")
+                                + ("eine Wirkung nach außen "
+                                   if set(wanted) - set(destructive) else "")
                                 + (f"oder eine noch nicht eingestufte Wirkung ({', '.join(unknown)}) "
                                    if unknown else "")
                                 + f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
@@ -707,14 +717,19 @@ class CockpitBridgeServer:
                             )
                             from agp_cockpit.core.kit_command_catalog import (
                                 KitCommandCatalog,
-                                remote_effect_commands,
+                                approval_required_commands,
+                                destructive_execute_commands,
                             )
-                            used = remote_effect_commands(content, KitCommandCatalog.load(repo_root))
+                            used = approval_required_commands(content, KitCommandCatalog.load(repo_root))
                             # AGP_EFFECT_REFUND_V1: nothing changed on origin -> the
                             # run had no remote effect (e.g. blocked by a Kit gate);
                             # the approval budget is kept. Unreadable refs consume.
+                            # AGP_DESTRUCTIVE_EXECUTE_GATE_V1: a destructive local
+                            # execute always consumes (origin never shows its effect).
                             unchanged_remote = False
-                            if used and pre_run_refs is not None:
+                            if used and pre_run_refs is not None and not destructive_execute_commands(
+                                content, KitCommandCatalog.load(repo_root)
+                            ):
                                 from agp_cockpit.core.ci_gate import (
                                     remote_refs as _refs_after,
                                 )

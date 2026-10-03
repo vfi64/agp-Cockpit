@@ -1223,3 +1223,11 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 - KIT-GF-033 → VERIFIED_FIXED (GF-E037): `work rescue` with dry-run signature recovers dirty main (changes committed on `rescue/main-…`) and main two commits ahead (rescue branch contains both commits); afterwards main == origin/main and the worktree is clean; a wrong signature is BLOCKED without change; repeated runs report `rescue_required: false`; no remote effect. The full P8 Wiederherstellen is no longer Kit-gated and follows as its own P step.
 - KIT-GF-032 stays OPEN (GF-E038): `release-check` still requires `src/agentic_project_kit/__init__.py`, CITATION.cff, docs/STATUS.md and docs/handoff/CURRENT_HANDOFF.md in an external workspace. P11 Release now waits only for KIT-GF-032.
 - The managed CI template pins Kit 1.0.14.
+
+## KIT-GF-034 — post-release-doi-closeout --write leaves the committed docs-pages fallback site stale
+
+- Status: OPEN · Severity: medium · First observed: 2026-10-03 (GF-E039)
+- Expected: the DOI closeout writes every projection that depends on the release records it changes, including `docs/site`, so the closeout pull request passes the Kit's own CI.
+- Observed (Kit release 1.0.14, PR #2348, CI run 37122569105): `post-release-doi-closeout --version 1.0.14 --write` updated CHANGELOG, CITATION, README, STATUS, CURRENT_HANDOFF, VERIFIED_RELEASES and the closeout report, but not `docs/site`; `test_docs_pages_fallback_projection_is_fresh` failed (v1.0.9 / 10.5281/zenodo.22541661 instead of v1.0.14 / 10.5281/zenodo.23120536). `python site/scripts/build.py --docs-pages-fallback --json` plus `work finish` on the same branch (PR reused) made it green; merged as 43d30d23.
+- Workaround: regenerate the fallback site on the closeout branch before `work finish` (maintainer's local release script).
+- Repair: the closeout rebuilds the docs-pages fallback projection and includes `docs/site` in its changed paths, or names the step with a staleness preflight.

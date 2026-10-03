@@ -275,7 +275,8 @@ def _recover_contract(root: Path) -> dict:
         "acceptance_criteria": ["The Cockpit's Lagebericht reports BEREIT or IN_ARBEIT."],
         "constraints": [
             "Diagnose first.",
-            "Destructive steps (reset, deleting branches or files) only after NEEDS_HUMAN and approval.",
+            "Destructive steps only through Kit routes, dry run first, the signed execute only after "
+            "NEEDS_HUMAN and approval (AGP_DESTRUCTIVE_EXECUTE_GATE_V1).",
         ],
     }
 
@@ -292,13 +293,17 @@ equal to origin/main with a passing post-merge check.
 
 Start with the Kit's read-only recovery and divergence diagnosis. Repair only through Kit
 routes from the command digest, which cover: main only behind origin/main, a detached HEAD
-without own commits, and discarding changes on a work branch (dry run with signature first, the
-destructive run only after NEEDS_HUMAN and approval). Never run raw git that changes the
-repository (reset, checkout, switch, clean, restore, branch -f/-D, stash). Where the Kit has no route — uncommitted changes on main, commits
-on main that are not on origin/main (KIT-GF-033) — stop with NEEDS_HUMAN, state the diagnosis
-and leave the repair to the human. Remote effects ask as usual. If an interrupted lifecycle only
-needs to be completed (for example an open, green pull request), say so in NEEDS_HUMAN instead
-of starting it.
+without own commits, discarding changes on a work branch, and — since Kit 1.0.14 — the
+non-lossy rescue of main with uncommitted changes or with commits that are not on origin/main
+(KIT-GF-033): it first saves everything on a new rescue branch and only then realigns main with
+origin/main. Destructive routes always run as a dry run first; report the planned actions, the
+rescue branch and the dry-run signature in NEEDS_HUMAN, and run the signed execute only after the
+human's approval (the Cockpit refuses the execute without one). Never run raw git that changes
+the repository (reset, checkout, switch, clean, restore, branch -f/-D, stash). If the Kit
+refuses a case, stop with NEEDS_HUMAN, state the diagnosis and leave the repair to the human.
+Remote effects ask as usual. If an interrupted lifecycle only needs to be completed (for example
+an open, green pull request), say so in NEEDS_HUMAN instead of starting it. After a rescue, name
+the rescue branch in DONE so the human can continue the saved work on it.
 {_COMMON}
 Completion is verified locally: DONE is accepted only when the Cockpit's own Lagebericht reports
 BEREIT or IN_ARBEIT.
