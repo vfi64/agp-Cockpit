@@ -317,12 +317,13 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    interruption, Wiederherstellen offered automatically (R6).
 7. P7 Arbeit beginnen (inputs: branch name, kind).
 8. P8 Wiederherstellen (diagnosis first, destructive steps ask). Full version
-   waits for the Kit fix KIT-GF-033 (owner 2026-10-02); the basic version stays.
+   waited for the Kit fix KIT-GF-033 (owner 2026-10-02); verified fixed with Kit 1.0.14
+   (2026-10-03), so the full version can be built on `work rescue`.
 9. P9 Repo übernehmen, proven on a separate test repository.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
 11. P11 Release (always asks; verifier to be specified first; private only per
-   `docs/planning/RELEASE_POLICY.md`). Waits for the Kit fixes KIT-GF-029 and
-   KIT-GF-032 (owner 2026-10-02).
+   `docs/planning/RELEASE_POLICY.md`). Waits for the Kit fix KIT-GF-032
+   (KIT-GF-029 verified fixed with Kit 1.0.14 on 2026-10-03).
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read
@@ -426,8 +427,8 @@ is not built with a Cockpit-local or raw-git workaround; it waits for the Kit fi
 
 | Button | Waits for | Kit gap |
 |---|---|---|
-| P8 Wiederherstellen (full) | KIT-GF-033 | no non-lossy recovery of main with uncommitted changes or local commits |
-| P11 Release | KIT-GF-029, KIT-GF-032 | release route assumes public publication (GitHub Release, Zenodo, PyPI) and the Kit's own package |
+| P8 Wiederherstellen (full) | — (KIT-GF-033 verified fixed in 1.0.14, 2026-10-03) | gate lifted: build on `work rescue` |
+| P11 Release | KIT-GF-032 (KIT-GF-029 verified fixed in 1.0.14) | release route assumes public publication (GitHub Release, Zenodo, PyPI) and the Kit's own package |
 
 The basic Wiederherstellen stays: remote diagnosis, repair through Kit routes only,
 NEEDS_HUMAN where the Kit has no route. Enforced in code: Kit-gated verbs are

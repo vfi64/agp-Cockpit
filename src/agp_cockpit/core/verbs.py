@@ -62,7 +62,7 @@ VERBS: tuple[Verb, ...] = (
     Verb(rs.WIEDERHERSTELLEN, "Wiederherstellen", "probleme", None, FRAGT,
          "Grundversion: Diagnose über die Remote-LLM und Reparatur nur über Kit-Befehle; wo das Kit "
          "keinen Weg hat (Änderungen oder Commits auf main, KIT-GF-033), fragt es dich. Die vollständige "
-         "Version folgt nach dem Kit-Fix.",
+         "Version auf „work rescue“ (Kit 1.0.14) folgt als eigener Schritt.",
          "erst nur lesend; zerstörerische Schritte nur nach deiner Freigabe.",
          "bei einer Störung (Zustand STÖRUNG) oder nach einem abgebrochenen Abschließen.",
          task_key="recover"),
@@ -74,7 +74,7 @@ VERBS: tuple[Verb, ...] = (
          "Prüft und veröffentlicht eine Version über das Kit.",
          "wirkt auf GitHub; fragt immer.",
          "auf sauberem, synchronem main (Zustand BEREIT).", slice="P11",
-         kit_gate="KIT-GF-029, KIT-GF-032"),
+         kit_gate="KIT-GF-032"),
     Verb(rs.PFLEGE, "Pflege", "weitere", None, LOKAL,
          "Räumt Kit-Übertragungsreste auf, prüft Dokumente auf Aktualität, hebt die Kit-Steuerschicht "
          "und das Kit selbst auf den neuesten Stand.",
