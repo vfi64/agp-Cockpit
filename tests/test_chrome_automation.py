@@ -83,3 +83,50 @@ def test_paste_send_never_types_into_foreign_target(monkeypatch):
         chrome.paste_and_send_active_chat()
 
     assert calls == []
+
+
+# --- AGP_CONNECTED_CHAT_TARGET_V1 (live 2026-10-03) -------------------------------------------
+
+def _handshake(tmp_path, url, age=10.0):
+    import json
+    import time
+    (tmp_path / "extension.json").write_text(json.dumps({"timestamp_unix": time.time() - age, "page_url": url}))
+
+
+def test_front_extensions_tab_falls_back_to_the_connected_chat(monkeypatch, tmp_path):
+    focused = []
+    monkeypatch.setattr(chrome, "active_chrome_url", lambda: "chrome://extensions/")
+    monkeypatch.setattr(chrome, "focus_chat_tab", lambda url: focused.append(url) or True)
+    _handshake(tmp_path, "https://chatgpt.com/c/abc")
+    target = chrome.require_allowed_active_chat(tmp_path)
+    assert target.url == "https://chatgpt.com/c/abc" and target.allowed
+    assert focused == ["https://chatgpt.com/c/abc"]
+
+
+def test_front_chat_tab_wins_and_nothing_is_focused(monkeypatch, tmp_path):
+    focused = []
+    monkeypatch.setattr(chrome, "active_chrome_url", lambda: "https://chatgpt.com/c/front")
+    monkeypatch.setattr(chrome, "focus_chat_tab", lambda url: focused.append(url) or True)
+    _handshake(tmp_path, "https://chatgpt.com/c/abc")
+    assert chrome.require_allowed_active_chat(tmp_path).url == "https://chatgpt.com/c/front"
+    assert focused == []
+
+
+def test_stale_or_foreign_handshake_still_blocks(monkeypatch, tmp_path):
+    monkeypatch.setattr(chrome, "active_chrome_url", lambda: "chrome://extensions/")
+    monkeypatch.setattr(chrome, "focus_chat_tab", lambda url: True)
+    _handshake(tmp_path, "https://chatgpt.com/c/abc", age=600)
+    with pytest.raises(PermissionError, match="keine verbundene ChatGPT-Seite"):
+        chrome.require_allowed_active_chat(tmp_path)
+    _handshake(tmp_path, "https://example.com/")
+    with pytest.raises(PermissionError):
+        chrome.require_allowed_active_chat(tmp_path)
+
+
+def test_unreadable_front_tab_falls_back_too(monkeypatch, tmp_path):
+    def broken():
+        raise RuntimeError("Google Chrome has no window")
+    monkeypatch.setattr(chrome, "active_chrome_url", broken)
+    monkeypatch.setattr(chrome, "focus_chat_tab", lambda url: True)
+    _handshake(tmp_path, "https://chatgpt.com/c/abc")
+    assert chrome.require_allowed_active_chat(tmp_path).url == "https://chatgpt.com/c/abc"

@@ -584,6 +584,10 @@ This section is normative for the file loop after local execution.
    repository is not reused. A ChatGPT conversation is bound to the repository
    of its first standard task; a start from a chat bound to another repository
    is blocked before anything is prepared ("neuen Chat öffnen").
+55. Chat target (`AGP_CONNECTED_CHAT_TARGET_V1`): a task starts in the front
+   Chrome tab when it is ChatGPT; otherwise in the ChatGPT page of the fresh
+   extension handshake (at most 3 minutes old), which is brought to the front.
+   Only when neither exists is the start blocked, with that reason.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

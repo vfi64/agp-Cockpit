@@ -1164,3 +1164,8 @@ repeat once.
 - „③ Abschließen“ of AGP_KIT_GATED_VERBS_V1: PR #168 and refresh #169 in one remote turn, `ci-verified`; KIT-GF-033 is on main 7f2e421 for the Kit-side work (Codex).
 - P4 found that the Cockpit could only steer its own checkout: the start gate required `chrome_extension/` and `.agentic/` in the repository, the staged-extension marker kept the first repository (identity check „repository-root-mismatch“ after a switch), an existing bridge was reused without comparing its repository, and other repositories had no `Download/run_next.py`. All four fixed with the switch (COMMUNICATION_PROTOCOL 54).
 
+## 2026-10-03 — P4 merged (#170/#171); start blocked by the front Chrome tab
+
+- „③ Abschließen“ of P4: PR #170 and refresh #171 in one remote turn, `ci-verified`.
+- The first start attempt was blocked: „Aktiver Chrome-Tab ist kein freigegebenes ChatGPT-Ziel: chrome://extensions/“. The bridge log shows a fresh handshake of the ChatGPT tab (11:00:51) — the chat was connected; only the front tab was the extensions page. The owner reloaded the chat by hand, which made it the front tab. Fix AGP_CONNECTED_CHAT_TARGET_V1 (COMMUNICATION_PROTOCOL 55): fall back to the chat of the fresh handshake and focus it.
+
