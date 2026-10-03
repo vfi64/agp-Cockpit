@@ -320,6 +320,7 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    waited for the Kit fix KIT-GF-033 (owner 2026-10-02); verified fixed with Kit 1.0.14
    (2026-10-03). Full version implemented 2026-10-03 (AGP_DESTRUCTIVE_EXECUTE_GATE_V1):
    rescue of main through the Kit route, signed execute only after approval.
+   Live-verified 2026-10-03 (live test 2, decision box of AGP_STANDARD_TASK_DECISION_V1).
 9. P9 Repo übernehmen, proven on a separate test repository.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
 11. P11 Release (always asks; verifier to be specified first; private only per

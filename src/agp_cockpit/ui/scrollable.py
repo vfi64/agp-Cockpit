@@ -13,10 +13,11 @@ import tkinter as tk
 from tkinter import ttk
 
 SCROLL_EXEMPT = ("Text", "Treeview", "Listbox", "TCombobox")
+REQUEST_POLL_MS = 300
 
 
 class ScrollableTab(ttk.Frame):
-    def __init__(self, master: tk.Misc, *, min_width: int = 900) -> None:
+    def __init__(self, master: tk.Misc, *, min_width: int = 0) -> None:
         super().__init__(master)
         self.min_width = min_width
         self.columnconfigure(0, weight=1)
@@ -35,11 +36,26 @@ class ScrollableTab(ttk.Frame):
         self._window = self.canvas.create_window(0, 0, anchor="nw", window=self.inner)
         self.inner.bind("<Configure>", lambda _e: self._layout())
         self.canvas.bind("<Configure>", lambda _e: self._layout())
+        # The window item has an explicit size, so a child that grows later (a
+        # decision box, a longer status) changes only the inner frame's
+        # requested size and fires no <Configure>; a cheap poll catches it.
+        self._requested = (0, 0)
+        self.after(REQUEST_POLL_MS, self._watch_request)
         self.canvas.bind("<Enter>", lambda _e: self.canvas.bind_all("<MouseWheel>", self._on_wheel))
         self.canvas.bind("<Leave>", lambda _e: self.canvas.unbind_all("<MouseWheel>"))
 
+    def _watch_request(self) -> None:
+        requested = (self.inner.winfo_reqwidth(), self.inner.winfo_reqheight())
+        if requested != self._requested:
+            self._requested = requested
+            self._layout()
+        self.after(REQUEST_POLL_MS, self._watch_request)
+
     def _layout(self) -> None:
-        width = max(self.canvas.winfo_width(), self.min_width, 1)
+        # AGP_SCROLL_WIDTH_FROM_CONTENT_V1 (P8 live test 2): the content's own
+        # width decides, not a fixed 900 px — with the vertical bar shown the
+        # canvas got narrower than 900 px and a needless horizontal bar appeared.
+        width = max(self.canvas.winfo_width(), self.min_width, self.inner.winfo_reqwidth(), 1)
         height = max(self.canvas.winfo_height(), self.inner.winfo_reqheight(), 1)
         self.canvas.itemconfigure(self._window, width=width, height=height)
         self.canvas.configure(scrollregion=(0, 0, width, height))
