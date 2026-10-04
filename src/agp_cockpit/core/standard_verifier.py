@@ -51,12 +51,37 @@ def verify_recovered(root: Path, *, lagebericht=None) -> tuple[bool, str]:
     return False, f"Lagebericht {state.state}: {state.summary}"
 
 
+def verify_released(root: Path, *, version: str, runner=subprocess.run) -> tuple[bool, str]:
+    """AGP_RELEASE_VERIFIER_V1 (plan P11): the annotated tag v<version> exists locally
+    and on origin (same object), its commit is in origin/main, pyproject.toml at the
+    tag names the version, and the worktree is clean."""
+    tag = f"v{version}"
+    if not _out(_git(root, "rev-parse", "--verify", "--quiet", f"{tag}^{{tag}}", runner=runner)):
+        return False, f"no annotated tag {tag}"   # ^{tag} resolves only an annotated tag
+    local = _out(_git(root, "rev-parse", f"refs/tags/{tag}", runner=runner))
+    remote = _out(_git(root, "ls-remote", "--tags", "origin", f"refs/tags/{tag}", runner=runner))
+    if not remote or remote.split()[0] != local:
+        return False, f"tag {tag} is not on origin (or differs from the local tag)"
+    contained = _git(root, "merge-base", "--is-ancestor", f"{tag}^{{commit}}", "origin/main", runner=runner)
+    if contained is None or contained.returncode != 0:
+        return False, f"the commit of {tag} is not in origin/main"
+    pyproject = _out(_git(root, "show", f"{tag}:pyproject.toml", runner=runner))
+    if f'version = "{version}"' not in pyproject:
+        return False, f"pyproject.toml at {tag} does not name version {version}"
+    if _out(_git(root, "status", "--porcelain", runner=runner)):
+        return False, "the worktree is not clean"
+    return True, f"tag {tag} on origin at {local[:12]}, release commit in origin/main"
+
+
 def verify(root: Path, contract: dict, **kw) -> tuple[bool, str]:
     name = str(contract.get("verifier") or "")
     params = dict(contract.get("params") or {})
     if name == "work-started":
         return verify_work_started(Path(root), branch=str(params.get("branch") or ""),
                                    runner=kw.get("runner", subprocess.run))
+    if name == "released":
+        return verify_released(Path(root), version=str(params.get("version") or ""),
+                               runner=kw.get("runner", subprocess.run))
     if name == "recovered":
         return verify_recovered(Path(root), lagebericht=kw.get("lagebericht"))
     return False, f"unknown standard verifier {name!r}"

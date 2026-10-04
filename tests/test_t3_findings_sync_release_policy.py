@@ -105,7 +105,6 @@ def order(body: str) -> str:
 
 
 def test_publication_steps_violate_the_release_policy():
-    assert rp.violations(order('subprocess.run(["agentic-kit", "release-publish", "--json"])'), ROOT)
     assert rp.violations(order('subprocess.run(["gh", "release", "create", "v0.1.0"])'), ROOT)
     assert rp.violations(order('URL = "https://zenodo.org/api/records"'), ROOT)
     assert rp.violations(order('subprocess.run(["agentic-kit", "post-release-doi-closeout"])'), ROOT)
@@ -184,3 +183,27 @@ def test_a_recommended_verb_without_button_points_to_arbeiten():
     assert no_kit.recommended == rs.REPO_UEBERNEHMEN
     hint = StandardTasksPanel._state_hint(no_kit)
     assert hint.startswith("Nächster Schritt wäre „Repo übernehmen“") and "Plan P9" in hint and "Arbeiten" in hint
+
+
+# --- AGP_SIGNED_PRIVATE_RELEASE_V1 (plan P11, owner 2026-10-04) -----------------------------
+
+def test_the_private_release_route_is_allowed_dry_run_free_live_only_signed():
+    dry = 'subprocess.run(["agentic-kit", "release-publish", "--version", "0.1.1", "--dry-run", "--json"])'
+    assert rp.violations(order(dry), ROOT) == []
+    unsigned = 'subprocess.run(["agentic-kit", "release-publish", "--version", "0.1.1", "--execute", "--allow-execute"])'
+    assert "--expected-signature" in rp.violations(order(unsigned), ROOT)[0]
+    signed = ('subprocess.run(["agentic-kit", "release-publish", "--version", "0.1.1", "--execute", '
+              '"--allow-execute", "--expected-signature", "4a080dd2175802a47217b9a3", "--json"])')
+    assert rp.violations(order(signed), ROOT) == []
+    marker = 'Path(".agentic/release/ENABLE_LIVE_PUBLISH").write_text("x")\n' + dry
+    assert "marker file" in rp.violations(order(marker), ROOT)[0]
+
+
+def test_release_publish_needs_publication_none(tmp_path):
+    (tmp_path / "docs/planning").mkdir(parents=True)
+    (tmp_path / "docs/planning/release_policy.json").write_text(
+        (ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"), encoding="utf-8")
+    (tmp_path / ".agentic").mkdir()
+    (tmp_path / ".agentic/config.yaml").write_text("publication: github\n", encoding="utf-8")
+    dry = 'subprocess.run(["agentic-kit", "release-publish", "--dry-run"])'
+    assert "publication: none" in rp.violations(order(dry), tmp_path)[0]

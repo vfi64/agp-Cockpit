@@ -51,6 +51,7 @@ def violations(source: str, repository_root: Path | None, catalog=None) -> list[
         if program == "gh" and " ".join(words[:2]) in set(policy.get("forbidden_gh") or ()):
             found.append(f"gh {' '.join(words[:2])} publishes a GitHub Release")
     found += [f"{name} is a publication step" for name in sorted(used & forbidden_kit)]
+    found += _signed_release_violations(source, repository_root, policy, used, catalog)
     strings = [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
     for host in policy.get("forbidden_hosts") or ():
         if any(host in text for text in strings):
@@ -61,3 +62,37 @@ def violations(source: str, repository_root: Path | None, catalog=None) -> list[
                f"no publication — {'; '.join(sorted(set(found)))}. "
                "A release here is private: version bump, changelog, annotated tag, local build.")
     return [message]
+
+
+def _signed_release_violations(source: str, repository_root: Path, policy: dict,
+                               used: set[str], catalog) -> list[str]:
+    """AGP_SIGNED_PRIVATE_RELEASE_V1 (plan P11, owner 2026-10-04): the private tag
+    route of the Kit is allowed — dry run freely, live only signed."""
+    signed = set((policy.get("signed_kit_commands") or {}).get("commands") or ())
+    names = set(used)
+    if catalog is None:   # without a catalog: a literal invocation still counts
+        names |= {name for name in signed if name.split()[1] in source}
+    if not names & signed:
+        return []
+    from agp_cockpit.core.kit_command_catalog import _may_execute
+    found = []
+    if _workspace_publication(repository_root) != "none":
+        found.append("agentic-kit release-publish runs here only for a private release "
+                     "(.agentic/config.yaml publication: none)")
+    if "ENABLE_LIVE_PUBLISH" in source:
+        found.append("a live release-publish uses its signed approval, never the marker file "
+                     ".agentic/release/ENABLE_LIVE_PUBLISH")
+    if _may_execute(source) and not all(flag in source for flag in (
+            "--execute", "--allow-execute", "--expected-signature")):
+        found.append("a live release-publish needs --execute --allow-execute --expected-signature "
+                     "<the signature of its dry run>")
+    return found
+
+
+def _workspace_publication(repository_root: Path) -> str:
+    try:
+        import yaml
+        data = yaml.safe_load((Path(repository_root) / ".agentic/config.yaml").read_text(encoding="utf-8"))
+    except (OSError, ValueError, ImportError):
+        return ""
+    return str((data or {}).get("publication") or "") if isinstance(data, dict) else ""

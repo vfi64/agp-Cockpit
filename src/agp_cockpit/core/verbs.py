@@ -73,9 +73,10 @@ VERBS: tuple[Verb, ...] = (
          "ändert lokal; ein neues GitHub-Repo nur nach Freigabe.",
          "wenn das Repo noch nicht unter Kit-Kontrolle steht (Zustand KEIN_KIT).", slice="P9"),
     Verb(rs.RELEASE, "Release", "weitere", None, FRAGT,
-         "Prüft und veröffentlicht eine Version über das Kit.",
-         "wirkt auf GitHub; fragt immer.",
-         "auf sauberem, synchronem main (Zustand BEREIT).", slice="P11"),   # Kit gate lifted: KIT-GF-032 verified fixed in 1.0.15
+         "Privates Release über das Kit: Release-Branch mit Release-Vorbereitung, Merge bei grüner CI, "
+         "dann das annotierte Tag (kein GitHub Release, kein PyPI, kein Zenodo).",
+         "der Start gibt Release-Branch und Merge frei; der Tag-Push fragt immer mit der Signatur des Probelaufs.",
+         "auf sauberem, synchronem main (Zustand BEREIT).", task_key="release"),
     Verb(rs.PFLEGE, "Pflege", "weitere", None, LOKAL,
          "Räumt Kit-Übertragungsreste auf, prüft Dokumente auf Aktualität, hebt die Kit-Steuerschicht "
          "und das Kit selbst auf den neuesten Stand.",

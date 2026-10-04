@@ -1043,7 +1043,9 @@ class CockpitBridgeServer:
                                     return
                         # AGP_STANDARD_VERIFIER_V1 (plan P5): a standard task with a
                         # local verifier is DONE only when the verifier passes.
-                        if state == "DONE" and task_id and authority != "ci-verified":
+                        # AGP_RELEASE_VERIFIER_V1 (P11): a verifier contract also runs after a
+                        # CI-verified merge (Release: the tag comes after the merge).
+                        if state == "DONE" and task_id:
                             from agp_cockpit.core import standard_verifier as _sv
                             durable = DurableTaskController(task_id, task_db_path)
                             try:
@@ -1059,7 +1061,9 @@ class CockpitBridgeServer:
                                              "verifier": verifier_contract.get("verifier"),
                                              "passed": verified, "finding": finding[:300]},
                                 )
-                                if verified:
+                                if verified and authority == "ci-verified":
+                                    human_reason = f"{human_reason} · Lokal geprüft ({finding})"
+                                elif verified:
                                     authority = "verifier-checked"
                                     human_reason = f"Lokal geprüft ({finding}) · {reply.reason}"
                                 else:

@@ -640,6 +640,17 @@ This section is normative for the file loop after local execution.
    finished and the R6 offer is withdrawn (read-only; the durable task state is
    not changed). Build `release-0.1.0-r4`, extension 0.4.3.
 
+62. Release (`AGP_RELEASE_APPROVAL_SCOPE_V1`, `AGP_RELEASE_DRY_RUN_FREE_V1`,
+   `AGP_SIGNED_PRIVATE_RELEASE_V1`, `AGP_RELEASE_VERIFIER_V1`, plan P11): the
+   standard task „Release“ takes a version; its start click approves the release
+   branch and its pull-request lifecycle, never the tag push. `release-publish`
+   needs no approval for its dry run (no execute flag anywhere in the work order);
+   any execute-related flag makes it a remote effect that asks, and the release
+   policy accepts the live run only signed (`--expected-signature`) under
+   `publication: none`, without the marker file. A verifier contract now also runs
+   after a CI-verified DONE, so Release ends only when the annotated tag is on
+   origin, in origin/main and names the version.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

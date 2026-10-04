@@ -64,6 +64,13 @@ LOCAL_ORCHESTRATORS = frozenset({
 # refunded (nothing changes on origin, but the local repository does).
 DESTRUCTIVE_EXECUTE_COMMANDS = frozenset({"work rescue", "work discard-changes"})
 EXECUTE_FLAG = "--execute"
+# AGP_RELEASE_DRY_RUN_FREE_V1 (plan P11): remote-effect orchestrators whose dry run
+# only reads (``release-publish --dry-run`` prints the plan and its approval
+# signature). Only an invocation that may execute needs an open approval; when the
+# work order mentions an execute flag anywhere, every invocation counts as one
+# (fail closed against flags appended at run time).
+EXECUTE_GATED_REMOTE_COMMANDS = frozenset({"release-publish"})
+EXECUTE_FLAGS = ("--execute", "--no-dry-run", "--allow-execute", "--expected-signature")
 COMMAND_RULES = (
     "Command authority (standing rules for every work order): "
     "use only agentic-kit commands listed in the attached agentic-kit-command-digest.json "
@@ -261,10 +268,25 @@ def kit_commands_used(source: str, catalog: KitCommandCatalog | None) -> list[di
     return [found[name] for name in sorted(found)]
 
 
+def _may_execute(source: str) -> bool:
+    """Any execute-related flag anywhere in the work order counts (the Kit itself
+    executes only with --execute, --allow-execute and a matching signature)."""
+    return any(flag in source for flag in EXECUTE_FLAGS)
+
+
 def remote_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
     """Qualified names of remote-effect Kit commands used by a work order."""
-    return [c["qualified_name"] for c in kit_commands_used(source, catalog)
-            if catalog is not None and catalog.has_remote_effect(c)]
+    if catalog is None:
+        return []
+    found = []
+    for command in kit_commands_used(source, catalog):
+        if not catalog.has_remote_effect(command):
+            continue
+        path = " ".join(str(p) for p in command["path"])
+        if path in EXECUTE_GATED_REMOTE_COMMANDS and not _may_execute(source):
+            continue   # AGP_RELEASE_DRY_RUN_FREE_V1
+        found.append(command["qualified_name"])
+    return found
 
 
 def destructive_execute_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:

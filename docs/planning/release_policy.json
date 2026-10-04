@@ -11,7 +11,6 @@
     "GitHub Release entry in the private repository, created by the owner by hand (owner_github_release)"
   ],
   "forbidden_kit_commands": [
-    "agentic-kit release-publish",
     "agentic-kit post-release-doi-closeout"
   ],
   "forbidden_gh": [
@@ -38,5 +37,13 @@
     "by": "the owner, by hand (gh release create --verify-tag)",
     "condition": "repository stays private; the tag exists; no Zenodo integration enabled for the repository",
     "work_orders": "still forbidden (forbidden_gh)"
+  },
+  "signed_kit_commands": {
+    "decided": "2026-10-04",
+    "marker": "AGP_SIGNED_PRIVATE_RELEASE_V1",
+    "commands": [
+      "agentic-kit release-publish"
+    ],
+    "rule": "The Kit's private release route (Kit 1.0.16, KIT-GF-038): the dry run is free and prints an approval signature; the live run needs --execute --allow-execute --expected-signature <that signature> and the owner's approval; .agentic/config.yaml must declare publication: none (tag push only, no GitHub Release, PyPI or Zenodo); never the marker file .agentic/release/ENABLE_LIVE_PUBLISH."
   }
 }

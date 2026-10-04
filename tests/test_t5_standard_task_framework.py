@@ -48,11 +48,11 @@ def repo(tmp_path):
 # --- P5 definitions -------------------------------------------------------------
 
 def test_every_standard_verb_has_a_task_and_later_slices_stay_disabled():
-    assert {t.key for t in standard_tasks()} == {"chat-switch", "finish", "work-start", "recover"}
-    for key in (rs.ABSCHLIESSEN, rs.ARBEIT_BEGINNEN, rs.WIEDERHERSTELLEN, rs.CHAT_WECHSELN):
+    assert {t.key for t in standard_tasks()} == {"chat-switch", "finish", "work-start", "recover", "release"}
+    for key in (rs.ABSCHLIESSEN, rs.ARBEIT_BEGINNEN, rs.WIEDERHERSTELLEN, rs.CHAT_WECHSELN, rs.RELEASE):
         verb = VERBS[key]
         assert verb.slice is None and verb.task_key in BY_KEY
-    assert {VERBS[k].slice for k in (rs.REPO_UEBERNEHMEN, rs.RELEASE, rs.PFLEGE)} == {"P9", "P11", "P10"}
+    assert {VERBS[k].slice for k in (rs.REPO_UEBERNEHMEN, rs.PFLEGE)} == {"P9", "P10"}
 
 
 @pytest.mark.parametrize("branch", ["feat/demo", "main"])
@@ -64,11 +64,13 @@ def test_new_goal_texts_name_no_kit_command(monkeypatch, branch):
     real = st._git_value
     monkeypatch.setattr(st, "_git_value", lambda root, *args: branch
                         if args == ("branch", "--show-current") else real(root, *args))
-    for key in ("finish", "work-start", "recover"):
+    inputs = {"work-start": {"kind": "feat", "name": "demo"}, "release": {"version": "9.9.9"}}
+    for key in ("finish", "work-start", "recover", "release"):
         task = BY_KEY[key]
-        prompt = task.prompt(ROOT, {"kind": "feat", "name": "demo"} if task.inputs else None)
+        prompt = task.prompt(ROOT, inputs.get(key))
         for command in ("pr-create", "pr-closeout", "work finish", "remote-work-start", "work recover",
-                        "post-merge-complete", "sync-main"):
+                        "post-merge-complete", "sync-main", "release-publish", "release prepare",
+                        "release-prep", "work start"):
             assert command not in prompt, (key, branch, command)
         assert "command digest" in prompt
 
@@ -431,13 +433,11 @@ def test_no_shipped_task_recommends_chat_switch():
 
 # --- AGP_KIT_GATED_VERBS_V1 (owner 2026-10-02) ------------------------------------------------
 
-def test_release_is_no_longer_kit_gated_but_still_in_preparation():
-    """KIT-GF-032 verified fixed with Kit 1.0.15 (2026-10-03): the Kit gate is lifted;
-    the button itself is plan P11."""
+def test_release_is_a_standard_task_now():
+    """KIT-GF-032 verified fixed with Kit 1.0.15; P11 built on Kit 1.0.16 (KIT-GF-037/038)."""
     from agp_cockpit.core.verbs import availability
-    assert VERBS[rs.RELEASE].kit_gate is None
-    enabled, reason = availability(VERBS[rs.RELEASE], None)
-    assert not enabled and reason == "In Vorbereitung (Plan P11)."
+    assert VERBS[rs.RELEASE].kit_gate is None and VERBS[rs.RELEASE].task_key == "release"
+    assert availability(VERBS[rs.RELEASE], None) == (False, "Lagebericht läuft noch.")
 
 
 def test_recover_uses_kit_routes_only():
@@ -598,3 +598,25 @@ def test_assistant_timeout_after_a_merged_finish_is_confirmed_locally(panel, mon
     assert widget.recover_offered is False
     assert "Lokal geprüft nach der Zeitüberschreitung" in widget.status_var.get()
     assert widget._late_check is False
+
+
+def test_release_asks_its_version_then_approves_only_the_branch_lifecycle(panel):
+    """P11 (owner 2026-10-04): the start click approves branch and merge; the tag
+    push is outside the scope and always asks."""
+    _root, widget, created, answers, repo, runtime = panel
+    (repo / ".agentic").mkdir()
+    (repo / ".agentic/config.yaml").write_text("publication: none\n")
+    git(repo, "add", ".agentic/config.yaml")
+    commit(repo, "pyproject.toml", '[project]\nname = "x"\nversion = "0.1.0"\n')
+    git(repo, "update-ref", "refs/remotes/origin/main", "main")
+    widget.apply_state(_offered(rs.RELEASE))
+    answers["inputs"] = {"version": "0.1.1"}
+    widget.run_verb(VERBS[rs.RELEASE])
+    assert created and created[0]["title"] == "Standard · Release"
+    assert "RELEASE 0.1.1" in created[0]["mission_text"]
+    record = json.loads((runtime / "human-decision.json").read_text())
+    scope = set(record["grant"]["scope"])
+    assert "agentic-kit transfer pr-create-complete" in scope
+    assert "agentic-kit release-publish" not in scope
+    gate = json.loads((runtime / "ci-gate.json").read_text())
+    assert gate[record["task_id"]]["merge_expected"]
