@@ -2042,6 +2042,7 @@
     STATE.processingAssistant = false;
     PENDING_SEND_TRANSPORT = null;
     AGP_FORMAT_REPAIR_ATTEMPTS = 0;
+    AGP_REMOTE_FILE_REGENERATE_ATTEMPTS = 0;
     resetCandidate();
     if (STATE.timer) clearInterval(STATE.timer);
     STATE.timer = null;
@@ -2614,6 +2615,65 @@
     };
   }
 
+  // AGP_K07_REMOTE_FILE_REGENERATE_V1 (live 2026-10-04, release 0.1.1, step 1712): ChatGPT
+  // showed the file card of the answer but could not deliver the file ("Herunterladen der Datei
+  // fehlgeschlagen", by hand as well). The extension retried the same broken card until
+  // maxErrors and stopped the task. Now the first failed browser download of a remote file asks
+  // the remote side once for the same answer as a new file under the next step; the broken step
+  // is reserved so its card can never be taken later.
+  let AGP_REMOTE_FILE_REGENERATE_ATTEMPTS = 0;
+  const AGP_MAX_REMOTE_FILE_REGENERATE_ATTEMPTS = 1;
+
+  function remoteFileDownloadFailed(err) {
+    const text = String(err || "");
+    return text.includes("browser download timed out") || text.includes("browser download interrupted");
+  }
+
+  function remoteFileRegeneratePrompt(filename, step) {
+    return (
+      `FILE TRANSFER REPAIR ONLY. The file ${filename} of your last answer could not be loaded in the chat ` +
+      "(the download failed on the chat side); the local side did not receive it and ran nothing. " +
+      `Create the same answer again as a new file for local step ${step}: the same decision and content, ` +
+      `with the step number and every step-scoped name set to ${step} ` +
+      `(a terminal reply is named ${step}_agp_terminal.json). ` +
+      "Do not repeat earlier work, do not change the decision, attach exactly one file."
+    );
+  }
+
+  async function requestRemoteFileRegeneration(err, runGeneration) {
+    if (!remoteFileDownloadFailed(err)) return false;
+    if (AGP_REMOTE_FILE_REGENERATE_ATTEMPTS >= AGP_MAX_REMOTE_FILE_REGENERATE_ATTEMPTS) return false;
+    if (!STATE.running || STATE.runGeneration !== runGeneration) return false;
+    const candidates = assistantPythonAttachmentCandidates();
+    if (candidates.length !== 1) return false;
+    const failedName = String(candidates[0].name || "");
+    const named = Number((failedName.match(/^(\d+)_/) || [])[1] || 0);
+    const failedStep = named || Number(STATE.nextLocalStep || 0);
+    AGP_REMOTE_FILE_REGENERATE_ATTEMPTS += 1;
+    STATE.lastProcessedAssistantAttachmentKey = assistantAttachmentKey(candidates);
+    await reserveRemoteStep("unloadable-remote-attachment", failedStep);
+    const nextStep = Number(STATE.nextLocalStep || 0);
+    if (nextStep <= failedStep) {
+      throw new Error(`K07 step ${failedStep} could not be reserved for the file regeneration`);
+    }
+    await clientEvent("K07_REMOTE_FILE_REGENERATION_REQUESTED", {
+      filename:failedName, failed_step:failedStep, next_step:nextStep,
+      attempt:AGP_REMOTE_FILE_REGENERATE_ATTEMPTS, error:String(err).slice(0, 200)
+    });
+    STATE.lastAssistantHash = await digest(lastAssistantText());
+    captureAssistantBaseline();
+    resetCandidate();
+    STATE.lastEvent = "K07_REMOTE_FILE_REGENERATION_REQUESTED";
+    STATE.note = `${failedName} war im Chat nicht ladbar — neu angefordert als Schritt ${nextStep}`;
+    render();
+    await sendPrompt(remoteFileRegeneratePrompt(failedName, nextStep));
+    if (STATE.running && STATE.runGeneration === runGeneration) {
+      STATE.waitingForAssistant = true;
+      STATE.assistantWaitStartedAt = Date.now();
+    }
+    return true;
+  }
+
   async function tick() {
     if (retireIfOrphaned()) return;
     // The catch block is a sibling lexical scope of try. Keep the generation
@@ -2775,7 +2835,10 @@
         render();
         try {
           const consumed = await processCompletedAssistant(lastAssistantText(), runGeneration);
-          if (consumed !== false) STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
+          if (consumed !== false) {
+            STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
+            AGP_REMOTE_FILE_REGENERATE_ATTEMPTS = 0;
+          }
         } finally {
           STATE.processingAssistant = false;
         }
@@ -2872,7 +2935,10 @@
         STATE.lastEvent = "ASSISTANT_RESPONSE_COMPLETE";
         try {
           const consumed = await processCompletedAssistant(completed, runGeneration);
-          if (consumed !== false) STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
+          if (consumed !== false) {
+            STATE.lastProcessedAssistantAttachmentKey = attachmentKey;
+            AGP_REMOTE_FILE_REGENERATE_ATTEMPTS = 0;
+          }
         } finally {
           STATE.processingAssistant = false;
         }
@@ -3031,6 +3097,15 @@
       await clientEvent("TICK_ERROR", {
         message:String(err)
       });
+
+      try {
+        if (await requestRemoteFileRegeneration(err, runGeneration)) {   // AGP_K07_REMOTE_FILE_REGENERATE_V1
+          render();
+          return;
+        }
+      } catch (regenerateError) {
+        await clientEvent("K07_REMOTE_FILE_REGENERATION_FAILED", {message:String(regenerateError)});
+      }
 
       if (STATE.errors >= LIMITS.maxErrors) {
         await stop(String(err), "AUTO_ERROR");
@@ -3525,6 +3600,7 @@
     STATE.lastTransportFailureClass = "";
     PENDING_SEND_TRANSPORT = null;
     AGP_FORMAT_REPAIR_ATTEMPTS = 0;
+    AGP_REMOTE_FILE_REGENERATE_ATTEMPTS = 0;
     STATE.waitingForAssistant = false;
         STATE.assistantWaitStartedAt = 0;
     STATE.lastAssistantHash = await digest(lastAssistantText());
