@@ -330,6 +330,14 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    version map (AGP_VERSION_MAP_V1) in the same work order, then `work finish`
    (Kit repair tracked as KIT-GF-037); the live publication keeps the Kit's marker flow
    (prepare PR, marker PR, tag, marker-removal PR; signed approval tracked as KIT-GF-038).
+   Update 2026-10-04: Kit 1.0.16 fixes both (VERIFIED_FIXED, GF-E051/GF-E052). P11 can
+   therefore declare `release.version_anchors` in `.agentic/config.yaml` (APP_VERSION and
+   the versions.json row) instead of a work-order edit, and use the signed
+   `release-publish --expected-signature` route instead of marker PRs. Open for P11
+   (Cockpit side): the anchor row template is static, so the version map must be aligned
+   (newest row position; extension and build_id policy) before tests/test_release_versions.py
+   passes on a release branch. Changing `.agentic/config.yaml` is a rule-source change —
+   watch KIT-GF-039 (no `rules communication-refresh --publish` in the release work order).
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read
