@@ -128,3 +128,37 @@ def test_command_endpoint_never_accepts_a_terminal_file(bridge):
     _root, call = bridge
     with pytest.raises(HTTPError):
         call("/v1/file-loop/command", {"filename": "1480_agp_terminal.json", "content": body()})
+
+
+def test_malformed_terminal_reply_of_a_running_mission_is_corrected(bridge):
+    """AGP_TERMINAL_REPLY_CORRECTION_V1 (live 2026-10-04, step 1724: keys "outcome" and
+    "sweep_findings" stopped Pflege although its work was complete)."""
+    root, call = bridge
+    with pytest.raises(HTTPError):   # no running mission: still a plain rejection
+        call("/v1/file-loop/terminal", {"filename": "1480_agp_terminal.json",
+                                        "content": body("DONE", "ok", outcome="nothing")})
+    start_mission(call)
+    result = call("/v1/file-loop/terminal", {"filename": "1480_agp_terminal.json",
+                                             "content": body("DONE", "ok", outcome="nothing")})
+    assert result["state"] == "CONTINUE" and result["terminal"] is False
+    assert result["next_step"] == 1481 and "1481_agp_terminal.json" in result["prompt"]
+    assert "unknown keys: outcome" in result["prompt"] and '"reason"' in result["prompt"]
+    assert json.loads((root / "Download" / "1480_agp_rejected.json").read_text())["count"] == 1
+    assert call("/v1/status")["mission"]["state"] not in ("NEEDS_HUMAN", "STOPPED", "DONE")
+    corrected = call("/v1/file-loop/terminal", {"filename": "1481_agp_terminal.json",
+                                                "content": body("DONE", "nothing to maintain")})
+    assert corrected["state"] == "DONE"
+
+
+def test_terminal_corrections_are_bounded(bridge):
+    root, call = bridge
+    start_mission(call)
+    step = 1480
+    for _ in range(3):
+        result = call("/v1/file-loop/terminal", {"filename": f"{step}_agp_terminal.json",
+                                                 "content": body("DONE", "ok", extra=1)})
+        assert result["state"] == "CONTINUE"
+        step = result["next_step"]
+    last = call("/v1/file-loop/terminal", {"filename": f"{step}_agp_terminal.json",
+                                           "content": body("DONE", "ok", extra=1)})
+    assert last["state"] == "NEEDS_HUMAN" and last["terminal"] is True

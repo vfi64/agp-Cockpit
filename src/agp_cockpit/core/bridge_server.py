@@ -51,7 +51,7 @@ from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_reply_policy import policy_for
-from agp_cockpit.core.terminal_reply import parse_terminal_reply, record_terminal_reply
+from agp_cockpit.core.terminal_reply import is_terminal_filename, parse_terminal_reply, record_terminal_reply
 from agp_cockpit.core.transport_protocol_v1 import (
     ActionRegistry,
     parse_action_frame,
@@ -103,7 +103,8 @@ def _correctable(error: Exception) -> bool:
 
 
 def _policy_rejection_response(runtime_root: Path, repo_root: Path, engine, diag, *,
-                               filename: str, reason: str, cycle_id: str) -> dict:
+                               filename: str, reason: str, cycle_id: str,
+                               terminal: bool = False) -> dict:
     """AGP_CORRECTABLE_REJECTION_V1: record the rejected work order under the
     expected step (the step is used up) and ask the remote side for a new one;
     after MAX_POLICY_REJECTIONS in one mission the human decides."""
@@ -133,6 +134,22 @@ def _policy_rejection_response(runtime_root: Path, repo_root: Path, engine, diag
         return {"state": "NEEDS_HUMAN", "step": None, "result_file": None, "prompt": None,
                 "terminal": True, "human_reason": human, "cycle_id": cycle_id, "replayed": False}
     next_step = next_step_number(download)
+    if terminal:
+        # AGP_TERMINAL_REPLY_CORRECTION_V1 (live 2026-10-04, step 1724): a terminal reply
+        # with keys outside the protocol stopped the task; it is corrected like a work order.
+        prompt = (
+            "AGP COCKPIT — TERMINAL REPLY NOT ACCEPTED\n\n"
+            f"Your terminal reply {filename} was rejected (attempt {count} of "
+            f"{MAX_POLICY_REJECTIONS}):\n{reason}\n\n"
+            "Return the same decision as a corrected terminal reply: one JSON object with only the "
+            "keys \"state\" (DONE or NEEDS_HUMAN), \"reason\" (text; put every report there), "
+            "\"step\" and, for a pull request, \"pr\". "
+            f"Use exactly {next_step}_agp_terminal.json as the attachment filename and {next_step} as step."
+        )
+        return {"state": "CONTINUE", "terminal": False, "step": step, "next_step": next_step,
+                "result_file": None, "prompt": prompt, "authority": "terminal-format",
+                "human_reason": "Abschlussdatei abgelehnt — " + reason[:300], "cycle_id": cycle_id,
+                "replayed": False}
     prompt = (
         "AGP COCKPIT — WORK ORDER NOT EXECUTED\n\n"
         f"Your work order {filename} was rejected by the local command authority and was not "
@@ -904,7 +921,22 @@ class CockpitBridgeServer:
                         data = self._body()
                         filename = str(data.get("filename") or "").strip()
                         content = data.get("content")
-                        reply = parse_terminal_reply(filename, content)
+                        try:
+                            reply = parse_terminal_reply(filename, content)
+                        except ValueError as rejection:
+                            # AGP_TERMINAL_REPLY_CORRECTION_V1: a malformed terminal reply of a
+                            # running mission is corrected (bounded), not a stop.
+                            mission_now = engine.runtime.state
+                            if (mission_now is None or mission_now.state in _MISSION_ENDED_STATES
+                                    or not is_terminal_filename(filename)
+                                    or not isinstance(content, str) or not content.strip()):
+                                raise
+                            self._json(200, _policy_rejection_response(
+                                runtime_root, repo_root, engine, diag, filename=filename,
+                                reason=str(rejection), cycle_id=str(data.get("cycle_id") or ""),
+                                terminal=True,
+                            ))
+                            return
                         download_sha256 = str(data.get("download_sha256") or "").strip()
                         if download_sha256 and download_sha256 != reply.sha256:
                             raise ValueError("terminal reply does not match the materialized browser download")
