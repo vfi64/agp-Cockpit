@@ -55,13 +55,21 @@ def test_every_standard_verb_has_a_task_and_later_slices_stay_disabled():
     assert {VERBS[k].slice for k in (rs.REPO_UEBERNEHMEN, rs.RELEASE, rs.PFLEGE)} == {"P9", "P11", "P10"}
 
 
-def test_new_goal_texts_name_no_kit_command():
+@pytest.mark.parametrize("branch", ["feat/demo", "main"])
+def test_new_goal_texts_name_no_kit_command(monkeypatch, branch):
+    """The finish prompt depends on the checked-out branch; CI on a push to main
+    runs on branch main (live 2026-10-04: main CI red after #190, PR CI green on
+    a detached merge ref). Both variants are checked independently of the runner."""
+    import agp_cockpit.core.standard_tasks as st
+    real = st._git_value
+    monkeypatch.setattr(st, "_git_value", lambda root, *args: branch
+                        if args == ("branch", "--show-current") else real(root, *args))
     for key in ("finish", "work-start", "recover"):
         task = BY_KEY[key]
         prompt = task.prompt(ROOT, {"kind": "feat", "name": "demo"} if task.inputs else None)
         for command in ("pr-create", "pr-closeout", "work finish", "remote-work-start", "work recover",
                         "post-merge-complete", "sync-main"):
-            assert command not in prompt, (key, command)
+            assert command not in prompt, (key, branch, command)
         assert "command digest" in prompt
 
 

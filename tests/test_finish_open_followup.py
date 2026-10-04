@@ -103,7 +103,9 @@ def test_finish_prompt_on_main_is_closeout_only(main_repo):
     assert "complete the open post-merge lifecycle on main" in prompt
     assert "AGP_FINISH_OPEN_FOLLOWUP_V1" in prompt
     assert "do not open a" in prompt and "pull request for main" in prompt
-    assert "pr-closeout-complete" in prompt
+    assert "closeout orchestrator from the command digest" in prompt
+    for command in ("pr-create", "pr-closeout", "post-merge-complete", "work finish", "sync-main"):
+        assert command not in prompt, command   # goal texts name no Kit command (T5)
 
 
 def test_finish_prompt_on_a_work_branch_is_unchanged(main_repo):
