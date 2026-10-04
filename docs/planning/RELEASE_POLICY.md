@@ -72,4 +72,8 @@ DONE is accepted only after the Cockpit verified the merged, green release pull
 request and, locally, the annotated tag on origin whose commit is in origin/main
 and whose `pyproject.toml` names the version (AGP_RELEASE_VERIFIER_V1). If the
 version was already prepared on main and only the tag is missing, the task
-skips phase 1.
+skips phase 1: the dialog then suggests that version, and the precheck ignores
+the squash-merged release branch that may still exist on origin
+(AGP_RELEASE_RESUME_PHASE2_V1). This is how a release continues when phase 2 was
+interrupted (release 0.1.1: the dry run's terminal file could not be loaded in
+the chat).

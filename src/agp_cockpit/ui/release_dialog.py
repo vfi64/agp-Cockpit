@@ -13,6 +13,7 @@ class ReleaseDialog(tk.Toplevel):
         self.resizable(False, False)
         self.result: dict | None = None
         self.check = check
+        self.current = current
         frame = ttk.Frame(self, padding=14)
         frame.grid(sticky="nsew")
         ttk.Label(frame, text="Privates Release", font=("TkDefaultFont", 14, "bold")).grid(
@@ -44,8 +45,7 @@ class ReleaseDialog(tk.Toplevel):
         return {"version": self.version_var.get().strip()}
 
     def _preview(self) -> None:
-        version = self.values()["version"] or "…"
-        self.preview_var.set(f"Branch: release/{version} · Tag: v{version}")
+        self.preview_var.set(release_preview(self.values()["version"], self.current))
 
     def accept(self) -> None:
         values = self.values()
@@ -57,6 +57,15 @@ class ReleaseDialog(tk.Toplevel):
         self.destroy()
 
 
+def release_preview(version: str, current: str) -> str:
+    """AGP_RELEASE_RESUME_PHASE2_V1: the version main already names only gets its tag."""
+    version = str(version or "").strip()
+    if version and version == str(current or "").strip():
+        return f"Release-Branch schon gemergt · nur noch Tag: v{version}"
+    shown = version or "…"
+    return f"Branch: release/{shown} · Tag: v{shown}"
+
+
 def next_patch(version: str) -> str:
     parts = str(version or "").split(".")
     if len(parts) == 3 and all(p.isdigit() for p in parts):
@@ -64,8 +73,10 @@ def next_patch(version: str) -> str:
     return ""
 
 
-def ask_release_inputs(master: tk.Misc, *, current: str = "", check=None) -> dict | None:
-    dialog = ReleaseDialog(master, current=current, suggestion=next_patch(current), check=check)
+def ask_release_inputs(master: tk.Misc, *, current: str = "", resume: str = "",
+                       check=None) -> dict | None:
+    """``resume``: the version whose tag is missing although main names it (phase 1 done)."""
+    dialog = ReleaseDialog(master, current=current, suggestion=resume or next_patch(current), check=check)
     dialog.transient(master.winfo_toplevel())
     dialog.grab_set()
     master.wait_window(dialog)

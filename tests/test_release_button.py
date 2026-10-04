@@ -121,3 +121,28 @@ def test_release_publish_dry_run_is_free_and_execute_asks():
 def test_release_dialog_suggests_the_next_patch_version():
     from agp_cockpit.ui.release_dialog import next_patch
     assert next_patch("0.1.0") == "0.1.1" and next_patch("1.9.9") == "1.9.10" and next_patch("x") == ""
+
+
+def test_resume_after_phase_one_despite_the_merged_release_branch(repo):
+    """AGP_RELEASE_RESUME_PHASE2_V1 (live 2026-10-04): #204 merged 0.1.1, origin/release/0.1.1
+    stayed, the terminal file of the dry run broke on the remote side; the task must restart
+    at the tag."""
+    from agp_cockpit.core.standard_tasks import release_resume_version
+    assert release_resume_version(repo) == "0.1.0"          # main names 0.1.0, no tag yet
+    git(repo, "push", "-q", "origin", "main:release/0.1.0")  # the squash-merged branch stayed
+    git(repo, "push", "-q", "origin", "main:release/0.1.1")
+    git(repo, "fetch", "-q", "origin")
+    assert TASK.check(repo, {"version": "0.1.0"}) is None     # resume: only the tag follows
+    assert "existiert schon" in TASK.check(repo, {"version": "0.1.1"})   # a new release still refuses
+    assert "Phase 1 is already done" in TASK.prompt(repo, {"version": "0.1.0"})
+    git(repo, "tag", "-a", "v0.1.0", "-m", "x")
+    assert release_resume_version(repo) == ""
+    assert "existiert schon" in TASK.check(repo, {"version": "0.1.0"})   # tag present: nothing to resume
+    assert "entfällt der Release-Branch" in TASK.confirm
+
+
+def test_release_dialog_preview_names_the_resume():
+    from agp_cockpit.ui.release_dialog import release_preview
+    assert release_preview("0.1.1", "0.1.1") == "Release-Branch schon gemergt · nur noch Tag: v0.1.1"
+    assert release_preview("0.1.2", "0.1.1") == "Branch: release/0.1.2 · Tag: v0.1.2"
+    assert release_preview("", "0.1.1") == "Branch: release/… · Tag: v…"
