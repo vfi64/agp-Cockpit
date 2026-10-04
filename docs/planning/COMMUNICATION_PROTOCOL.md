@@ -494,7 +494,7 @@ This section is normative for the file loop after local execution.
    contains origin/main, clean; `recovered`: Lagebericht BEREIT or IN_ARBEIT);
    otherwise the task continues with the finding, after three failures
    NEEDS_HUMAN. Abschließen arms the CI gate with merge expected at start.
-42. Abschließen (P6): never from main, only with own changes, explicit dialog,
+42. Abschließen (P6): never from main (except rule 59), only with own changes, explicit dialog,
    no force option on publishing Kit commands (`AGP_NO_FORCE_V1`); DONE only
    ci-verified; afterwards the recommendation follows the repository state
    (rule 52; until 2026-10-02 „Chat wechseln“ was recommended); an interrupted run
@@ -609,6 +609,14 @@ This section is normative for the file loop after local execution.
    „Standard · <Task> · Entscheidung“ bound to the same task (verifier and
    orchestrator rule unchanged). After a restart a waiting standard task is
    re-attached from the bridge status.
+59. Open Kit follow-up on main (`AGP_FINISH_OPEN_FOLLOWUP_V1`,
+   `AGP_RECOVER_OFFER_CLEARS_V1`, live 2026-10-03 #185): when main is clean and
+   equal to origin/main and only the Kit's post-merge check is not PASS (its own
+   follow-up pull request is open), the Lage stays STÖRUNG but offers and
+   recommends „Abschließen“; its precheck re-checks exactly that and its prompt
+   asks only for the Kit's closeout orchestrator (no commit, no pull request for
+   main). The R6 offer of an interrupted Abschließen is cleared once the state is
+   BEREIT, after a DONE and when its decision continues the task.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

@@ -326,10 +326,23 @@ def test_done_finish_recommends_chat_switch(panel, monkeypatch):
     monkeypatch.setattr(m, "describe_standard_task_progress",
                         lambda **_kw: StandardTaskProgress("Fertig ✓", True, "DONE"))
     monkeypatch.setattr(widget.api, "status", dict)
+    widget.recover_offered = True        # AGP_RECOVER_OFFER_CLEARS_V1: a DONE clears an old R6 offer
     widget.refresh_progress()
     assert "Als Nächstes empfohlen" not in widget.status_var.get()
     assert widget.follow_up_key is None
     assert not widget.recover_offered
+
+
+def test_recover_offer_clears_once_main_is_ready(panel):
+    """AGP_RECOVER_OFFER_CLEARS_V1 (live 2026-10-03): BEREIT recommended
+    „Wiederherstellen (nach dem letzten Task)“ after an interrupted Abschließen."""
+    _root, widget, _created, _answers, _repo, _runtime = panel
+    widget.recover_offered = True
+    widget.apply_state(rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
+                                    offered=rs.OFFERED[rs.BEREIT]))
+    assert not widget.recover_offered
+    assert widget.verb_badges[rs.ARBEIT_BEGINNEN].cget("text").startswith("★ empfohlen")
+    assert str(widget.verb_buttons[rs.WIEDERHERSTELLEN].cget("state")) == "disabled"
 
 
 def test_release_policy_allows_the_private_tag_push():

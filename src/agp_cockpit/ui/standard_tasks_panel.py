@@ -11,7 +11,7 @@ from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.conversation_binding import ConversationBindingStore
 from agp_cockpit.core.mission_http_client import create_live_full_auto, record_decision
 from agp_cockpit.core.mission_http_client import status as bridge_status
-from agp_cockpit.core.repo_state import ARBEITEN, LAEUFT, WIEDERHERSTELLEN
+from agp_cockpit.core.repo_state import ARBEITEN, BEREIT, LAEUFT, WIEDERHERSTELLEN
 from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
 from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
@@ -317,6 +317,7 @@ class StandardTasksPanel(ttk.Frame):
             self.status_var.set(f"Entscheidung nicht übermittelt — {exc}")
             return False
         self._hide_decision()
+        self.recover_offered = False   # AGP_RECOVER_OFFER_CLEARS_V1: the task itself continues
         self.status_var.set(("Freigegeben" if decision == "APPROVE" else "Abgelehnt")
                             + f" — {task.label} läuft im selben Chat weiter.")
         self._track(str(mission["mission_id"]))
@@ -386,6 +387,10 @@ class StandardTasksPanel(ttk.Frame):
         """Enable exactly the verbs valid in ``state``; mark the recommended one."""
         self.repo_state = state
         recommended = getattr(state, "recommended", None)
+        if self.recover_offered and getattr(state, "state", None) == BEREIT:
+            # AGP_RECOVER_OFFER_CLEARS_V1 (live 2026-10-03): once main is clean and
+            # synchronized there is nothing left to recover.
+            self.recover_offered = False
         if self.recover_offered and getattr(state, "state", None) != LAEUFT:
             recommended = WIEDERHERSTELLEN   # R6: interrupted Abschließen
         elif self.follow_up_key and getattr(state, "state", None) != LAEUFT \
@@ -551,6 +556,7 @@ class StandardTasksPanel(ttk.Frame):
         task = self._tracked_task
         if progress.terminal and task is not None and progress.outcome == "DONE":
             self._bind_active_chat()
+            self.recover_offered = False   # AGP_RECOVER_OFFER_CLEARS_V1
         if progress.terminal and task is not None:
             if progress.outcome == "DONE" and task.follow_up:
                 text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."

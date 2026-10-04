@@ -32,7 +32,8 @@ def facts(**kw):
     ({}, rs.BEREIT, rs.ARBEIT_BEGINNEN),
     ({"head": "b" * 40}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
     ({"changes": ("src/x.py",)}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
-    ({"post_merge": "NOT_PASS"}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
+    ({"post_merge": "NOT_PASS"}, rs.STOERUNG, rs.ABSCHLIESSEN),        # AGP_FINISH_OPEN_FOLLOWUP_V1
+    ({"post_merge": "NOT_PASS", "changes": ("x.py",)}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
     ({"branch": ""}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
     ({"branch": "feat/x", "own_commits": 2}, rs.IN_ARBEIT, rs.ABSCHLIESSEN),
     ({"branch": "feat/x", "own_commits": 2, "changes": ("a.py",)}, rs.IN_ARBEIT, rs.ARBEITEN),
@@ -44,7 +45,10 @@ def facts(**kw):
 def test_classify(kw, state, recommended):
     result = rs.classify(facts(**kw))
     assert (result.state, result.recommended) == (state, recommended)
-    assert result.offered == rs.OFFERED[state]
+    expected = rs.OFFERED[state]
+    if (state, recommended) == (rs.STOERUNG, rs.ABSCHLIESSEN):     # open Kit follow-up on main
+        expected = rs.OFFERED[rs.STOERUNG] + (rs.ABSCHLIESSEN,)
+    assert result.offered == expected
     if recommended and state != rs.UNKLAR:
         assert recommended in result.offered
 
