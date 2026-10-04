@@ -119,3 +119,46 @@ def describe_standard_task_progress(
             False, "RUNNING")
     return StandardTaskProgress(
         f"Läuft — {counters}. Mission: {mstate} · {local}", False, "RUNNING")
+
+
+ASSISTANT_TIMEOUT = "K07_ASSISTANT_RESPONSE_TIMEOUT"
+
+
+def stopped_by_assistant_timeout(mission: dict | None) -> bool:
+    """The mission ended because the remote answer did not arrive in time."""
+    if not isinstance(mission, dict) or mission.get("state") != "STOPPED":
+        return False
+    return any(ASSISTANT_TIMEOUT in str(mission.get(key) or "")
+               for key in ("last_error", "last_summary", "last_result"))
+
+
+def late_completion_verdict(task_key: str, start_head: str, state, root,
+                            *, runner=None) -> tuple[bool, str]:
+    """AGP_LATE_COMPLETION_CHECK_V1 (live 2026-10-04, step 1689): after an assistant
+    timeout the Cockpit checks the repository itself. Only „Abschließen“ can be
+    confirmed this way: its work (the commit the task started on) is contained in
+    origin/main, main is synchronized and clean and the Kit's post-merge check
+    passes. Read-only; it never changes the durable task state."""
+    import subprocess
+    from pathlib import Path
+
+    from agp_cockpit.core import merged_branch_guard as guard
+    from agp_cockpit.core import repo_state as rs
+    lage = f"Lage {state.state}: {state.summary}"
+    if task_key != "finish" or not start_head:
+        return False, f"Lokale Prüfung nach der Zeitüberschreitung: {lage}. Bitte den Stand prüfen."
+    facts = state.facts
+    found = guard.relation(Path(root), start_head, "origin/main", runner=runner or subprocess.run)
+    contained = found in (guard.MERGED, guard.NO_COMMITS)
+    if state.state == rs.BEREIT and facts.post_merge == "PASS" and contained:
+        return True, ("Lokal geprüft nach der Zeitüberschreitung: die Arbeit (Stand "
+                      f"{start_head[:12]}) ist in origin/main, main ist synchron und sauber, "
+                      "post-merge-check PASS — abgeschlossen; nur die Abschlussmeldung der "
+                      "Remote-Seite kam zu spät.")
+    missing = [text for ok, text in (
+        (state.state == rs.BEREIT, f"Lage {state.state}"),
+        (facts.post_merge == "PASS", f"post-merge-check {facts.post_merge or 'nicht geprüft'}"),
+        (contained, f"Stand {start_head[:12]} {found or 'nicht vergleichbar'}"),
+    ) if not ok]
+    return False, ("Lokale Prüfung nach der Zeitüberschreitung: nicht abgeschlossen ("
+                   + "; ".join(missing) + "). Bitte den Stand prüfen.")

@@ -1219,3 +1219,10 @@ repeat once.
 - AGP_REJECT_ENDS_TASK_V1 (COMMUNICATION_PROTOCOL 60): „Ablehnen“ ended in a continuation whose only answer was another question (step 1680). A rejection now ends the standard task locally.
 - AGP_EFFECTS_LOG_CONTINUITY_V1: after that rejection the panel said „Freigegebene Wirkungen: noch keine ausgeführt“ although step 1676 had run `pr-create-complete`; the new decision record had replaced the log. The log of executed effects now survives later decisions of the same task. (The star on „Wiederherstellen“ after step 1676 was R6 as designed; the app then running predated #190.)
 - AGP_REMOTE_BRANCH_FACT_V1: after the owner's push (steps 1684/1685) the facts still said only „has changes not in origin/main“; they now name origin/<branch> and whether local equals it, is ahead/behind or is unpublished.
+
+## 2026-10-04 — Reject/effects/remote-branch fixes merged (#196/#197); assistant wait by activity
+
+- „③ Abschließen“ of `fix/reject-ends-task`: step 1690 ran `pr-create-complete --post-merge-complete` (PR #196 merged, refresh #197 as 2e040bb, main CI green); DONE arrived in time and was CI-verified.
+- AGP_K07_ASSISTANT_ACTIVITY_WAIT_V1 (COMMUNICATION_PROTOCOL 61): the fixed 180 s wait of step 1689 now counts from the last visible activity, with a 900 s maximum. The bridge log of the waits (K07_ASSISTANT_WAIT_OBSERVATION) showed `generation_active: false` together with a composer button labelled „Stoppen“ in every observation: the generation probe's selectors miss the current German ChatGPT UI. The probe that guards attachment completeness is unchanged (a false positive there would stall the loop); the stop-like button only extends the wait.
+- AGP_LATE_COMPLETION_CHECK_V1: after such a timeout of „Abschließen“ the panel confirms the merged work from the repository (start commit in origin/main, Lage BEREIT, post-merge-check PASS) instead of recommending „Wiederherstellen“.
+- Build release-0.1.0-r4, extension 0.4.3 (the extension reloads only on a new build id, AGP_EXTENSION_AUTO_REFRESH_V2).

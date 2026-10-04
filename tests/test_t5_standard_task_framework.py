@@ -564,3 +564,37 @@ def test_pending_decision_is_adopted_after_a_restart(panel, monkeypatch):
     widget.adopt_pending_decision()
     assert widget._tracked_task_id == "t2" and widget._tracked_mission_id == "m2"
     assert widget.decision_frame.winfo_manager() == "grid" and widget.decision_question_var.get() == "approve?"
+
+
+def test_assistant_timeout_after_a_merged_finish_is_confirmed_locally(panel, monkeypatch):
+    """AGP_LATE_COMPLETION_CHECK_V1 (live 2026-10-04, step 1689): PR #194 was merged
+    and main green, but the remote answer came after the deadline; the panel offered
+    „Wiederherstellen“. Now the Lagebericht confirms the merged work."""
+    from agp_cockpit.core.standard_task_progress import StandardTaskProgress
+    from agp_cockpit.ui import standard_tasks_panel as m
+    _root, widget, _created, _answers, repo, _runtime = panel
+    git(repo, "switch", "-q", "-c", "chore/kit")
+    commit(repo, "kit.txt", "1.0.16\n")
+    widget._tracked_task = BY_KEY["finish"]
+    widget._tracked_task_id = "t"
+    widget._tracked_mission_id = "m"
+    widget._tracked_head = git(repo, "rev-parse", "HEAD")
+    git(repo, "switch", "-q", "main")
+    commit(repo, "kit.txt", "1.0.16\n")              # the squash merge
+    git(repo, "update-ref", "refs/remotes/origin/main", "main")
+    monkeypatch.setattr(m, "describe_standard_task_progress",
+                        lambda **_kw: StandardTaskProgress("Gestoppt — Mission: STOPPED", True, "STOPPED"))
+    monkeypatch.setattr(m, "bridge_status", lambda: {"mission": {
+        "mission_id": "m", "state": "STOPPED", "title": "Standard · Abschließen",
+        "last_summary": "K07_ASSISTANT_RESPONSE_TIMEOUT after 181s (180s without visible activity)"}})
+    monkeypatch.setattr(widget.api, "status", dict)
+    monkeypatch.setattr(widget, "_effects_executed", lambda: True)
+    widget.refresh_progress()
+    assert widget.recover_offered is True          # R6 until the repository says otherwise
+    assert "prüft den Stand lokal" in widget.status_var.get()
+    facts = rs.RepoFacts(root=str(repo), post_merge="PASS")
+    widget._poll_lage([rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
+                                    offered=(rs.ARBEIT_BEGINNEN,), facts=facts)])
+    assert widget.recover_offered is False
+    assert "Lokal geprüft nach der Zeitüberschreitung" in widget.status_var.get()
+    assert widget._late_check is False

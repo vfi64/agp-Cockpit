@@ -12,7 +12,11 @@ from agp_cockpit.core.conversation_binding import ConversationBindingStore
 from agp_cockpit.core.mission_http_client import create_live_full_auto, record_decision
 from agp_cockpit.core.mission_http_client import status as bridge_status
 from agp_cockpit.core.repo_state import ARBEITEN, BEREIT, LAEUFT, WIEDERHERSTELLEN
-from agp_cockpit.core.standard_task_progress import describe_standard_task_progress
+from agp_cockpit.core.standard_task_progress import (
+    describe_standard_task_progress,
+    late_completion_verdict,
+    stopped_by_assistant_timeout,
+)
 from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
@@ -45,6 +49,8 @@ class StandardTasksPanel(ttk.Frame):
         self._tracked_task_id = ""
         self._tracked_inputs: dict | None = None
         self.recover_offered = False
+        self._tracked_head = ""
+        self._late_check = False
         self.follow_up_key: str | None = None   # verb recommended after a finished task
         self.repository_root = repository_root.expanduser().resolve()
         self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
@@ -243,6 +249,8 @@ class StandardTasksPanel(ttk.Frame):
         self._tracked_task = task
         self._tracked_task_id = task_id
         self._tracked_inputs = inputs
+        self._tracked_head = self._head_sha()   # AGP_LATE_COMPLETION_CHECK_V1
+        self._late_check = False
         self._hide_decision()
         self.status_var.set(
             "Gestartet — das Cockpit wartet auf die erste Remote-Antwort. "
@@ -348,6 +356,15 @@ class StandardTasksPanel(ttk.Frame):
         self.status_var.set(text + (f"\n{effects}" if effects else ""))
         self.refresh_lage()
         return True
+
+    def _head_sha(self) -> str:
+        import subprocess
+        try:
+            done = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(self.repository_root),
+                                  text=True, capture_output=True, timeout=20, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            return ""
+        return done.stdout.strip() if done.returncode == 0 else ""
 
     def _bind_active_chat(self) -> None:
         """A task started in a fresh chat gets its conversation id only after the
@@ -538,6 +555,13 @@ class StandardTasksPanel(ttk.Frame):
             self.lage_var.set(f"Lagebericht fehlgeschlagen: {result}")
             return
         self.repo_state = result
+        if self._late_check and self._tracked_task is not None:
+            self._late_check = False
+            done, verdict = late_completion_verdict(
+                self._tracked_task.key, self._tracked_head, result, self.repository_root)
+            if done:
+                self.recover_offered = False   # nothing to recover: the work is merged
+            self.status_var.set(self.status_var.get() + "\n" + verdict)
         self.apply_state(result)
         text = describe(result)
         effective = getattr(self, "_effective_recommended", None)
@@ -586,7 +610,12 @@ class StandardTasksPanel(ttk.Frame):
             if progress.outcome == "DONE" and task.follow_up:
                 text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."
                 self.follow_up_key = next((v.key for v in VERBS if v.label == task.follow_up), None)
-            elif progress.outcome != "DONE" and task.offers_recover_on_interrupt:
+            if progress.outcome == "STOPPED" and stopped_by_assistant_timeout(current) \
+                    and current.get("mission_id") == mission_id:
+                # AGP_LATE_COMPLETION_CHECK_V1: verified against the Lagebericht below.
+                self._late_check = True
+                text += "\nDie Remote-Antwort kam nicht rechtzeitig — das Cockpit prüft den Stand lokal …"
+            if progress.outcome != "DONE" and task.offers_recover_on_interrupt:
                 if self._effects_executed():
                     # R6: an interrupted Abschließen with executed effects
                     # offers Wiederherstellen.

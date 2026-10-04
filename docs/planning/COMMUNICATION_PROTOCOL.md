@@ -628,6 +628,18 @@ This section is normative for the file loop after local execution.
    Cockpit-verified repository facts name the remote-tracking branch of each work
    branch (not published / equals local / local ahead and behind).
 
+61. Waiting for the remote answer (`AGP_K07_ASSISTANT_ACTIVITY_WAIT_V1`,
+   `AGP_LATE_COMPLETION_CHECK_V1`, live 2026-10-04, step 1689): the extension
+   stops a wait only after 180 s without visible activity — DOM changes in the
+   conversation outside the bridge overlay, a generation indicator or a stop-like
+   composer button (the German label „Stoppen“ carries no
+   `data-testid="stop-button"`) — or after 900 s in total; the stop reason names
+   which. After such a timeout of „Abschließen“ the panel checks the repository
+   itself: if the commit the task started on is contained in origin/main, the
+   Lage is BEREIT and the Kit's post-merge check passes, the work is reported as
+   finished and the R6 offer is withdrawn (read-only; the durable task state is
+   not changed). Build `release-0.1.0-r4`, extension 0.4.3.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the
