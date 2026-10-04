@@ -1,12 +1,11 @@
 {
   "schema_version": 1,
   "marker": "AGP_VERSION_MAP_V1",
-  "note": "One row per private release: the app version (pyproject, agp_cockpit.version), the Chrome extension version (manifest), the bridge build id and the Kit version it was validated with. Private release policy: docs/planning/RELEASE_POLICY.md.",
+  "note": "One row per private release, appended by `agentic-kit release prepare --write` (.agentic/config.yaml release.version_anchors): the app version (pyproject, agp_cockpit.version APP_VERSION), the release build id `release-<app>` (rebuilds between releases carry `-r<N>` in BRIDGE_BUILD_ID), the Kit version it was prepared with, date and tag. The Chrome extension version lives in chrome_extension/manifest.json only. Private release policy: docs/planning/RELEASE_POLICY.md.",
   "releases": [
     {
       "app": "0.1.0",
-      "extension": "0.4.3",
-      "build_id": "release-0.1.0-r4",
+      "build_id": "release-0.1.0",
       "kit": "1.0.13",
       "date": "2026-10-02",
       "tag": "v0.1.0",
