@@ -665,6 +665,12 @@ This section is normative for the file loop after local execution.
    approves only that route. The execute of the documentation lifecycle sweep asks
    like a destructive execute (owner decisions); `workspace ci-update --execute` is
    rejected outright (KIT-GF-042), its dry run is allowed.
+65. Malformed terminal reply (`AGP_TERMINAL_REPLY_CORRECTION_V1`, live 2026-10-04,
+   step 1724): a terminal reply of a running mission that breaks the strict schema
+   (unknown keys, wrong state, missing reason) uses up its step and is corrected like
+   a rejected work order — the remote side gets the reason, the allowed keys and the
+   next step; after three rejections in one mission the human decides. Without a
+   running mission it stays a plain rejection.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

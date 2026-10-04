@@ -84,6 +84,10 @@ def test_prompt_names_no_kit_command_and_keeps_the_sweep_a_report():
     for command in ("artifact-gc", "workspace upgrade", "docs lifecycle sweep", "ci-update", "work start"):
         assert command not in prompt
     assert "command digest" in prompt and "Never execute the sweep" in prompt and "KIT-GF-042" in prompt
+    # live 2026-10-04 step 1724: the DONE file allows only state, reason, step (and pr)
+    from agp_cockpit.core.terminal_reply import ALLOWED_KEYS
+    assert '"outcome"' not in prompt and '"sweep_findings"' not in prompt
+    assert all(f'"{key}"' in prompt for key in ("state", "reason", "step")) and "pr" in ALLOWED_KEYS
 
 
 def test_sweep_execute_asks_and_its_dry_run_is_free():

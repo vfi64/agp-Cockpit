@@ -552,13 +552,14 @@ Maintenance branch, only if needed: {branch}
    upgrade, the transient-artifact garbage collection in each of its collection modes (one mode
    per invocation) and the documentation lifecycle sweep.
 2. If neither the schema upgrade nor the garbage collection proposes a change: stop with DONE,
-   "outcome": "nothing", stay on main and change nothing.
+   stay on main and change nothing.
 3. Otherwise start {branch} from the current origin/main through the Kit's work-start route and
    run exactly the proposing routes in execute mode there. Leave the resulting changes on the
    branch; do not publish it and open no pull request — the human finishes it with Abschließen.
-   DONE with "outcome": "changes" and the list of changed paths.
-4. In both cases report the documentation lifecycle sweep in the DONE file
-   ("sweep_findings": count and the finding codes). Never execute the sweep: its actions are the
+4. The DONE file has only the keys "state", "reason" and "step" (AGP_K07_TERMINAL_REPLY_FILE_V1).
+   Its "reason" states the outcome ("nothing to maintain" or the changed paths) and the
+   documentation lifecycle sweep: the number of findings and their finding codes.
+   Never execute the sweep: its actions are the
    owner's decisions (the Cockpit asks for any execute of it). Never run the managed-CI template
    update in execute mode (KIT-GF-042) and do not change the Kit installation or its version pins.
 
