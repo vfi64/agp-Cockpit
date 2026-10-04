@@ -195,6 +195,30 @@ def _pull_requests(root: Path, branch: str, gh: str | None, runner) -> str | Non
     return ", ".join(f"#{i.get('number')} {i.get('state')}" for i in items if isinstance(i, dict)) or "none"
 
 
+def _remote_branch_fact(root: Path, name: str, runner) -> str:
+    """AGP_REMOTE_BRANCH_FACT_V1 (live 2026-10-04, PR #192, steps 1684/1685): after the
+    owner pushed the branch the facts still said only "has changes not in
+    origin/main", and the remote side kept asking to publish what was already on
+    GitHub. Name the remote-tracking branch and how local relates to it."""
+    remote = _short(root, runner, f"refs/remotes/origin/{name}")
+    if remote is None:
+        return f"origin/{name}: not published"
+    local = _short(root, runner, f"refs/heads/{name}")
+    if local is None:
+        return f"origin/{name} {remote}"
+    if local == remote:
+        return f"origin/{name} {remote}: equals local {name} (already published)"
+    counts = _git(root, runner, "rev-list", "--left-right", "--count",
+                  f"refs/heads/{name}...refs/remotes/origin/{name}")
+    try:
+        ahead, behind = (int(x) for x in (counts.stdout or "").split()) if counts else (None, None)
+    except ValueError:
+        ahead = behind = None
+    if ahead is None or counts.returncode != 0:
+        return f"origin/{name} {remote}: differs from local {name} {local}"
+    return f"origin/{name} {remote}: local {name} is {ahead} ahead and {behind} behind"
+
+
 def repository_facts(root: Path, command_source: str | None = None, *,
                      runner=subprocess.run, gh: str | None = None) -> str | None:
     """One line of locally verified facts, or None outside a git work tree."""
@@ -226,6 +250,7 @@ def repository_facts(root: Path, command_source: str | None = None, *,
         pulls = _pull_requests(root, name, gh, runner)
         parts.append(f"{name} {found or 'not comparable (ref missing)'}"
                      + (f" (pull requests: {pulls})" if pulls else ""))
+        parts.append(_remote_branch_fact(root, name, runner))
         if found == MERGED:
             merged.append(name)
     line = "Cockpit-verified repository facts (local git): " + "; ".join(parts) + "."

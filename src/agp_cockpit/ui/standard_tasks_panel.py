@@ -300,6 +300,8 @@ class StandardTasksPanel(ttk.Frame):
             self.status_var.set(blocked)
             return False
         note = self.decision_note.get("1.0", "end-1c").strip()
+        if decision == "REJECT":
+            return self._reject(task, mission_id, note)
         goal = (task.prompt(self.repository_root, self._tracked_inputs)
                 if self._tracked_inputs is not None or not task.inputs else task.description)
         try:
@@ -321,6 +323,29 @@ class StandardTasksPanel(ttk.Frame):
         self.status_var.set(("Freigegeben" if decision == "APPROVE" else "Abgelehnt")
                             + f" — {task.label} läuft im selben Chat weiter.")
         self._track(str(mission["mission_id"]))
+        self.refresh_lage()
+        return True
+
+    def _reject(self, task: StandardTask, mission_id: str, note: str) -> bool:
+        """AGP_REJECT_ENDS_TASK_V1 (live 2026-10-04, steps 1679/1680): a rejection
+        used to continue the task in the chat without the action; the remote side
+        could only ask again (NEEDS_HUMAN 1680). Rejecting now ends the task here:
+        the decision is recorded, no remote turn follows."""
+        try:
+            record_decision(mission_id=mission_id, decision="REJECT", note=note)
+        except Exception as exc:  # noqa: BLE001 - UI boundary surfaces decision failures
+            self.status_var.set(f"Entscheidung nicht übermittelt — {exc}")
+            return False
+        self._hide_decision()
+        text = f"Abgelehnt — {task.label} ist beendet; es wurde nichts weiter ausgeführt."
+        if task.offers_recover_on_interrupt and self._effects_executed():
+            self.recover_offered = True   # R6: effects of this task already ran
+            text += " Freigegebene Wirkungen liefen bereits — „Wiederherstellen“ ist freigeschaltet."
+        else:
+            self.recover_offered = False
+            text += f" „{task.label}“ kann neu gestartet werden."
+        effects = self.effects_text()
+        self.status_var.set(text + (f"\n{effects}" if effects else ""))
         self.refresh_lage()
         return True
 

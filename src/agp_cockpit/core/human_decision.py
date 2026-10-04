@@ -67,9 +67,14 @@ class HumanDecisionStore:
             raise ValueError("decision must be APPROVE or REJECT")
         if not mission_id or not task_id:
             raise ValueError("decision requires the mission and its task")
+        previous = self.current()
         record = {
             "mission_id": mission_id,
             "task_id": task_id,
+            # AGP_EFFECTS_LOG_CONTINUITY_V1 (live 2026-10-04, steps 1676/1680): a later
+            # decision of the same task replaced the record and the UI claimed that
+            # no approved effect had run, although step 1676 had run one.
+            "effects": list(_effects_of(previous)) if previous.get("task_id") == task_id else [],
             "decision": decision,
             "question": " ".join(str(question or "").split())[:2000],
             "note": " ".join(str(note or "").split())[:2000],
@@ -97,7 +102,7 @@ class HumanDecisionStore:
         record = self.current()
         if record.get("task_id") != task_id:
             return []
-        return list((record.get("grant") or {}).get("log") or [])
+        return list(_effects_of(record))
 
     def remote_effects_allowed(self, task_id: str, now: float | None = None) -> bool:
         """True while any part of the task's approval is open."""
@@ -197,12 +202,20 @@ class HumanDecisionStore:
             grant["repair_pushes"] = int(grant.get("repair_pushes", 0)) - 1
         grant["consumed_by"] = command_sha256
         grant["consumed"] = [*grant.get("consumed", []), command_sha256]
-        grant["log"] = [*grant.get("log", []), {
-            "at": time.time() if now is None else now, "step": step,
-            "commands": sorted(set(used)), "command_sha256": command_sha256}]
+        entry = {"at": time.time() if now is None else now, "step": step,
+                 "commands": sorted(set(used)), "command_sha256": command_sha256}
+        record["effects"] = [*_effects_of(record), entry]
+        grant["log"] = [*grant.get("log", []), entry]
         record["grant"] = grant
         self._save(record)
         return record
+
+
+def _effects_of(record: dict) -> list[dict]:
+    """Every approved effect of the record's task, also from earlier decisions."""
+    if "effects" in record:
+        return list(record.get("effects") or [])
+    return list((record.get("grant") or {}).get("log") or [])   # records before the field
 
 
 def decision_mission_text(*, goal_text: str, decision: str, question: str, note: str) -> str:

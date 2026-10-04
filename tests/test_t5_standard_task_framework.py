@@ -518,12 +518,32 @@ def test_needs_human_of_a_standard_task_is_answered_in_the_panel(panel, monkeypa
     assert "läuft im selben Chat weiter" in widget.status_var.get()
 
 
-def test_rejecting_continues_without_the_action(panel, monkeypatch):
+def test_rejecting_ends_the_task_without_a_remote_turn(panel, monkeypatch):
+    """AGP_REJECT_ENDS_TASK_V1 (live 2026-10-04, steps 1679/1680): a rejection used
+    to start a continuation whose only possible answer was another question."""
     _root, widget, created, _answers, _repo, _runtime = panel
     decisions = _needs_human(monkeypatch, widget)
     widget.refresh_progress()
+    before = len(created)
+    widget.decision_note.insert("1.0", "nein")
     assert widget.decide("REJECT")
-    assert decisions[0]["decision"] == "REJECT" and "REJECTED" in created[-1]["mission_text"]
+    assert decisions == [{"mission_id": "m", "decision": "REJECT", "note": "nein"}]
+    assert len(created) == before   # no continuation mission
+    assert widget.decision_frame.winfo_manager() == ""
+    assert "Abgelehnt — Wiederherstellen ist beendet" in widget.status_var.get()
+    assert widget.recover_offered is False
+
+
+def test_rejecting_after_executed_effects_offers_recover(panel, monkeypatch):
+    _root, widget, created, _answers, _repo, _runtime = panel
+    _needs_human(monkeypatch, widget)
+    widget.refresh_progress()
+    import dataclasses
+    widget._tracked_task = dataclasses.replace(widget._tracked_task, offers_recover_on_interrupt=True)
+    monkeypatch.setattr(widget, "_effects_executed", lambda: True)
+    assert widget.decide("REJECT")
+    assert widget.recover_offered is True
+    assert "„Wiederherstellen“ ist freigeschaltet" in widget.status_var.get()
 
 
 def test_pending_decision_is_adopted_after_a_restart(panel, monkeypatch):
