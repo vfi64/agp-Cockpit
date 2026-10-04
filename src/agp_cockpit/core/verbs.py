@@ -73,8 +73,7 @@ VERBS: tuple[Verb, ...] = (
     Verb(rs.RELEASE, "Release", "weitere", None, FRAGT,
          "Prüft und veröffentlicht eine Version über das Kit.",
          "wirkt auf GitHub; fragt immer.",
-         "auf sauberem, synchronem main (Zustand BEREIT).", slice="P11",
-         kit_gate="KIT-GF-032"),
+         "auf sauberem, synchronem main (Zustand BEREIT).", slice="P11"),   # Kit gate lifted: KIT-GF-032 verified fixed in 1.0.15
     Verb(rs.PFLEGE, "Pflege", "weitere", None, LOKAL,
          "Räumt Kit-Übertragungsreste auf, prüft Dokumente auf Aktualität, hebt die Kit-Steuerschicht "
          "und das Kit selbst auf den neuesten Stand.",
