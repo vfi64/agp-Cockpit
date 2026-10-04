@@ -63,6 +63,14 @@ LOCAL_ORCHESTRATORS = frozenset({
 # human approval exactly like a remote effect, and its consumption is never
 # refunded (nothing changes on origin, but the local repository does).
 DESTRUCTIVE_EXECUTE_COMMANDS = frozenset({"work rescue", "work discard-changes"})
+# AGP_OWNER_DECISION_EXECUTE_V1 (plan P10a, owner 2026-10-04): local routes whose
+# execute applies decisions that belong to the owner (documentation lifecycle:
+# defer or confirm a document). Gated exactly like a destructive execute.
+OWNER_DECISION_EXECUTE_COMMANDS = frozenset({"docs lifecycle sweep"})
+# AGP_CI_UPDATE_GUARD_V1 (KIT-GF-042): the Kit's managed-CI template update would
+# replace the Cockpit's customized CI (pytest and Playwright jobs). Its execute is
+# rejected outright; the Kit pin in both workflow files is updated by hand (P10b).
+FORBIDDEN_EXECUTE_COMMANDS = frozenset({"workspace ci-update"})
 EXECUTE_FLAG = "--execute"
 # AGP_RELEASE_DRY_RUN_FREE_V1 (plan P11): remote-effect orchestrators whose dry run
 # only reads (``release-publish --dry-run`` prints the plan and its approval
@@ -303,9 +311,26 @@ def destructive_execute_commands(source: str, catalog: KitCommandCatalog | None)
                 break
             subcommands.append(token)
         command = catalog.resolve(subcommands) if subcommands else None
-        if command is not None and " ".join(str(p) for p in command["path"]) in DESTRUCTIVE_EXECUTE_COMMANDS:
+        gated = DESTRUCTIVE_EXECUTE_COMMANDS | OWNER_DECISION_EXECUTE_COMMANDS
+        if command is not None and " ".join(str(p) for p in command["path"]) in gated:
             found.add(f"{command['qualified_name']} {EXECUTE_FLAG}")
     return sorted(found)
+
+
+def forbidden_execute_violations(source: str) -> list[str]:
+    """AGP_CI_UPDATE_GUARD_V1: executes the Cockpit never runs (independent of a catalog)."""
+    found = []
+    for argv in _invocations(ast.parse(source)):
+        if _program(argv[0]) != "agentic-kit":
+            continue
+        words = [w for w in argv[1:] if not w.startswith("-")]
+        for name in FORBIDDEN_EXECUTE_COMMANDS:
+            parts = name.split()
+            hidden = "<expr>" in argv[1:] and EXECUTE_FLAG in source   # flag passed via a variable
+            if words[:len(parts)] == parts and (EXECUTE_FLAG in argv[1:] or hidden):
+                found.append(f"agentic-kit {name} --execute would replace the customized CI workflow "
+                             "(KIT-GF-042); its dry run is allowed, the Kit pin is updated by hand")
+    return found
 
 
 def approval_required_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:

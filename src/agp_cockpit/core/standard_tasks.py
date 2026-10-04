@@ -500,6 +500,77 @@ request as "pr" in the DONE file.
 """
 
 
+# --- P10a Pflege (maintenance) ---------------------------------------------------
+
+def maintenance_branch(today: str | None = None) -> str:
+    import datetime
+    return f"chore/pflege-{today or datetime.date.today().isoformat()}"
+
+
+def _maintain_precheck(root: Path, _inputs: dict) -> str | None:
+    if _git_value(root, "branch", "--show-current") != "main":
+        return "Pflege startet nur auf main (Zustand BEREIT)."
+    if _git_value(root, "status", "--porcelain"):
+        return "main hat ungesicherte Änderungen — erst abschließen oder wiederherstellen."
+    head = _git_value(root, "rev-parse", "HEAD")
+    if not head or head != _git_value(root, "rev-parse", "--verify", "-q", "refs/remotes/origin/main"):
+        return "main ist nicht synchron mit origin/main — erst Lagebericht/Wiederherstellen."
+    branch = maintenance_branch()
+    for ref in (branch, f"origin/{branch}"):
+        if _git_value(root, "rev-parse", "--verify", "--quiet", ref):
+            return f"Branch {branch} existiert schon ({ref}) — erst abschließen; Pflege einmal pro Tag."
+    return None
+
+
+def _maintain_contract(root: Path) -> dict:
+    branch = maintenance_branch()
+    return {
+        "title": "Standard Task: Pflege",
+        "goal": ("Maintain the repository's Kit control layer with the Kit's own maintenance routes: "
+                 f"dry runs on main first; only if a route proposes a change, branch {branch} with the "
+                 "changes left for Abschließen."),
+        "repository_root": str(root),
+        "completion_contract": _verifier("maintained", branch=branch),
+        "acceptance_criteria": [
+            "Nothing to maintain: main unchanged, clean, equal to origin/main.",
+            f"Otherwise: {branch} contains origin/main and carries the maintenance changes.",
+        ],
+        "constraints": ["No pull request (Abschließen publishes).",
+                        "The documentation lifecycle sweep is reported, never executed.",
+                        "No managed-CI template update (KIT-GF-042); no Kit installation change."],
+    }
+
+
+def _maintain_prompt(root: Path) -> str:
+    branch = maintenance_branch()
+    return f"""STANDARD TASK — PFLEGE (maintenance of the Kit control layer)
+
+Repository: {root}
+Maintenance branch, only if needed: {branch}
+
+1. On main, read-only: run the Kit's maintenance orchestrators as dry runs — the workspace schema
+   upgrade, the transient-artifact garbage collection in each of its collection modes (one mode
+   per invocation) and the documentation lifecycle sweep.
+2. If neither the schema upgrade nor the garbage collection proposes a change: stop with DONE,
+   "outcome": "nothing", stay on main and change nothing.
+3. Otherwise start {branch} from the current origin/main through the Kit's work-start route and
+   run exactly the proposing routes in execute mode there. Leave the resulting changes on the
+   branch; do not publish it and open no pull request — the human finishes it with Abschließen.
+   DONE with "outcome": "changes" and the list of changed paths.
+4. In both cases report the documentation lifecycle sweep in the DONE file
+   ("sweep_findings": count and the finding codes). Never execute the sweep: its actions are the
+   owner's decisions (the Cockpit asks for any execute of it). Never run the managed-CI template
+   update in execute mode (KIT-GF-042) and do not change the Kit installation or its version pins.
+
+The human approved by starting this task only the synchronization with origin and the creation of
+the maintenance branch through the Kit's work-start route. Any other remote effect still needs a
+decision.
+{_COMMON}
+Completion is verified locally: DONE is accepted only when either main is unchanged, clean and
+equal to origin/main, or {branch} is checked out, contains origin/main and carries changes.
+"""
+
+
 STANDARD_TASKS: tuple[StandardTask, ...] = (
     StandardTask(
         key="chat-switch",
@@ -561,6 +632,23 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
                  "Release-Branch: Es folgt nur der Tag.\n\n"
                  "Jetzt starten?"),
         offers_recover_on_interrupt=True,
+    ),
+    StandardTask(
+        key="maintain",
+        label="Pflege",
+        description="Pflegt die Kit-Steuerschicht mit den Kit-Routen; Änderungen gehen über „Abschließen“ ins Repo.",
+        contract_factory=_maintain_contract,
+        prompt_factory=_maintain_prompt,
+        effect="local",
+        precheck=_maintain_precheck,
+        approved_scope=WORK_START_SCOPE,
+        confirm=("„Pflege“ prüft die Kit-Steuerschicht mit den Pflege-Routen des Kits "
+                 "(Schema-Upgrade, Aufräumen von Übertragungsresten, Dokument-Aktualität) — erst als Probelauf.\n\n"
+                 "Gibt es nichts zu tun, bleibt alles, wie es ist. Sonst legt sie einen Branch "
+                 "chore/pflege-<Datum> an und lässt die Änderungen dort; veröffentlicht wird erst mit "
+                 "„Abschließen“.\n\nDer Start gibt nur die Synchronisierung mit origin und den Branch frei. "
+                 "Dokument-Hinweise werden nur berichtet; die CI-Vorlage und die Kit-Version bleiben unberührt.\n\n"
+                 "Jetzt starten?"),
     ),
     StandardTask(
         key="recover",

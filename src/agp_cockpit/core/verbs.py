@@ -78,10 +78,11 @@ VERBS: tuple[Verb, ...] = (
          "der Start gibt Release-Branch und Merge frei; der Tag-Push fragt immer mit der Signatur des Probelaufs.",
          "auf sauberem, synchronem main (Zustand BEREIT).", task_key="release"),
     Verb(rs.PFLEGE, "Pflege", "weitere", None, LOKAL,
-         "Räumt Kit-Übertragungsreste auf, prüft Dokumente auf Aktualität, hebt die Kit-Steuerschicht "
-         "und das Kit selbst auf den neuesten Stand.",
+         "Pflegt die Kit-Steuerschicht mit den Kit-Routen: Schema-Upgrade, Aufräumen von "
+         "Übertragungsresten — erst als Probelauf; Dokument-Hinweise nur als Bericht. "
+         "Das Kit-Update folgt mit P10b.",
          "ändert lokal; Ergebnisse gehen über „Abschließen“ ins Repo.",
-         "auf sauberem, synchronem main (Zustand BEREIT).", slice="P10"),
+         "auf sauberem, synchronem main (Zustand BEREIT).", task_key="maintain"),
 )
 BY_KEY = {verb.key: verb for verb in VERBS}
 

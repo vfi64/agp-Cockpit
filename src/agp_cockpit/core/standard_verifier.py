@@ -73,6 +73,30 @@ def verify_released(root: Path, *, version: str, runner=subprocess.run) -> tuple
     return True, f"tag {tag} on origin at {local[:12]}, release commit in origin/main"
 
 
+def verify_maintained(root: Path, *, branch: str, runner=subprocess.run) -> tuple[bool, str]:
+    """AGP_MAINTENANCE_VERIFIER_V1 (plan P10a): nothing to maintain (main unchanged,
+    clean, equal to origin/main) or the maintenance branch from origin/main with changes."""
+    current = _out(_git(root, "branch", "--show-current", runner=runner))
+    dirty = bool(_out(_git(root, "status", "--porcelain", runner=runner)))
+    if current == "main":
+        head = _out(_git(root, "rev-parse", "HEAD", runner=runner))
+        origin = _out(_git(root, "rev-parse", "--verify", "-q", "refs/remotes/origin/main", runner=runner))
+        if dirty:
+            return False, "main has uncommitted changes; maintenance changes belong on " + branch
+        if not head or head != origin:
+            return False, "main differs from origin/main"
+        return True, "nothing to maintain: main unchanged, clean and equal to origin/main"
+    if current != branch:
+        return False, f"current branch is {current or '(none)'}, expected main or {branch}"
+    contains = _git(root, "merge-base", "--is-ancestor", "origin/main", "HEAD", runner=runner)
+    if contains is None or contains.returncode != 0:
+        return False, f"{branch} does not contain the current origin/main"
+    ahead = _out(_git(root, "rev-list", "--count", "origin/main..HEAD", runner=runner))
+    if not dirty and ahead in ("", "0"):
+        return False, f"{branch} carries no changes; a maintenance without changes stays on main"
+    return True, f"maintenance changes on {branch}; finish them with Abschließen"
+
+
 def verify(root: Path, contract: dict, **kw) -> tuple[bool, str]:
     name = str(contract.get("verifier") or "")
     params = dict(contract.get("params") or {})
@@ -82,6 +106,9 @@ def verify(root: Path, contract: dict, **kw) -> tuple[bool, str]:
     if name == "released":
         return verify_released(Path(root), version=str(params.get("version") or ""),
                                runner=kw.get("runner", subprocess.run))
+    if name == "maintained":
+        return verify_maintained(Path(root), branch=str(params.get("branch") or ""),
+                                 runner=kw.get("runner", subprocess.run))
     if name == "recovered":
         return verify_recovered(Path(root), lagebericht=kw.get("lagebericht"))
     return False, f"unknown standard verifier {name!r}"
