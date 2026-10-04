@@ -234,8 +234,7 @@ Situation: the last pull request is merged, but the Kit's post-merge check is no
 Kit's post-merge lifecycle is incomplete, typically because its own follow-up pull request
 (successor-package or handoff refresh) is still open or its CI was re-run.
 
-Goal: complete exactly that lifecycle with the Kit's closeout orchestrator from the digest
-(for example agentic-kit transfer pr-closeout-complete, or transfer post-merge-complete), so
+Goal: complete exactly that lifecycle with the Kit's closeout orchestrator from the command digest, so
 that the follow-up pull request is merged with green CI, the post-merge check passes and local
 main equals origin/main. Do not commit anything, do not start a work branch and do not open a
 pull request for main; if the Kit reuses its existing follow-up pull request, that is expected.
