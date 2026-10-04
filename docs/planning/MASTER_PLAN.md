@@ -323,6 +323,18 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    Live-verified 2026-10-03 (live test 2, decision box of AGP_STANDARD_TASK_DECISION_V1).
 9. P9 Repo übernehmen, proven on a separate test repository.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
+   Inventory 2026-10-04 with Kit 1.0.16 on main 989bb2f: `workspace upgrade` nothing to do
+   (schema v2), `artifact-gc` nothing to collect in all four modes, `docs lifecycle sweep` 21
+   findings (missing Status/Decision/Review headers in planning documents: owner decides, done
+   as an Arbeiten task), no Kit route for updating the Kit itself. P10a (built 2026-10-04,
+   COMMUNICATION_PROTOCOL 64): the Pflege standard task — dry runs on main; nothing to do stays
+   on main; otherwise `chore/pflege-<date>` through the work-start route with the changes left
+   for Abschließen (AGP_MAINTENANCE_VERIFIER_V1); the sweep only reported, its execute asks
+   (AGP_OWNER_DECISION_EXECUTE_V1); `workspace ci-update --execute` rejected
+   (AGP_CI_UPDATE_GUARD_V1, KIT-GF-042). P10b: Kit update (new version → owner asks → `.venv`,
+   both CI pins, `commands sync-entrypoints`; verifier: installed = pinned, check/doctor PASS);
+   first real use: the Kit release after 1.0.16 that carries KIT-GF-039 to 042 (fixed on Kit
+   main #2379/#2381/#2383, not released yet).
 11. P11 Release (always asks; verifier to be specified first; private only per
    `docs/planning/RELEASE_POLICY.md`). Kit gate lifted: KIT-GF-032 verified fixed
    with Kit 1.0.15 (2026-10-03; KIT-GF-029 with 1.0.14). Owner's decisions 2026-10-04:
@@ -500,6 +512,8 @@ Assessment after P8 and the Kit 1.0.14 release; none is decided yet, each needs 
 3. **Deterministic standard tasks without a ChatGPT round trip (Cockpit).** Abschließen runs exactly one Kit orchestrator; the Cockpit could start it directly with the same gates (approval scope, CI gate, local verifier). Conflicts with the wording „die Remote-LLM steuert“, not with „das Kit kontrolliert“ — owner decision required before any work. The remote LLM keeps diagnosis (Wiederherstellen) and content work (Arbeiten).
 4. **Lean Kit profile for external repositories (Kit).** Core routes (work start/finish, rescue, release with publication policy) without the Kit's self-administration.
 5. **Long term: an agent with direct tool access plus the Kit CLI** instead of the browser transport; the Cockpit stays justified where the ChatGPT web model is used deliberately without an API.
+6. **Rejected work orders into Download/ (Cockpit, owner 2026-10-04: yes).** A rejected work order keeps its browser copy in ~/Downloads (AGP_DOWNLOAD_HYGIENE_V1 removes only accepted ones); persist it in Download/ beside the rejection record and remove the browser copy.
+7. **Narrow scope when a release resumes (Cockpit, owner 2026-10-04: yes).** A resumed Release (phase 1 merged) still grants the release-branch and pull-request effects with its start click; grant only what the tag phase needs.
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority

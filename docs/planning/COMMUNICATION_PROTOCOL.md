@@ -657,6 +657,14 @@ This section is normative for the file loop after local execution.
    step, never retries its card, and asks once, with „FILE TRANSFER REPAIR ONLY“,
    for the same answer as a new file under the next step. A second failure stops
    the task as before. A release whose phase 1 is merged resumes at the tag.
+64. Pflege (`AGP_MAINTENANCE_VERIFIER_V1`, `AGP_OWNER_DECISION_EXECUTE_V1`,
+   `AGP_CI_UPDATE_GUARD_V1`, plan P10a): the standard task „Pflege“ runs the Kit's
+   maintenance orchestrators as dry runs on a clean, synchronized main; with nothing
+   to do it stays on main, otherwise it creates `chore/pflege-<date>` through the
+   work-start route and leaves the changes for „Abschließen“. Its start click
+   approves only that route. The execute of the documentation lifecycle sweep asks
+   like a destructive execute (owner decisions); `workspace ci-update --execute` is
+   rejected outright (KIT-GF-042), its dry run is allowed.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

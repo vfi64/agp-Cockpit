@@ -1449,7 +1449,14 @@
       "evidence": [
         "agp-Cockpit Download/1650-1657 return bundles (2026-10-04)",
         "sandbox: pr-create-complete BLOCK 'Commit and publish the rule capsule before sending d2' with the pending file present; PASSES the rule gate without it after untracking .agentic/rule_ack/current.json"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-04",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.16 (#2383 53c2d19f; local Kit checkout b00f6e61); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-039-communication-refresh-branch-publish-2026-10-04.md"
+      }
     },
     {
       "id": "KIT-GF-040",
@@ -1470,7 +1477,14 @@
         "agp-Cockpit Download/1676 return bundle (pr-create-complete BLOCKED, pr-complete_failed)",
         "sandbox: transfer push-current fast-forward PASS against a bare origin",
         "agentic_project_kit/transfer_repo_actions.py ensure_remote_head (1.0.16 unchanged)"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-04",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.16 (#2379 5c8db40e; local Kit checkout b00f6e61); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-040-041-work-finish-pr-flow-2026-10-04.md"
+      }
     },
     {
       "id": "KIT-GF-041",
@@ -1489,7 +1503,14 @@
       "regression": "work finish without --execute returns a non-PASS planning status or a next_action naming --execute.",
       "evidence": [
         "agp-Cockpit Download/1678, 1681, 1684 return bundles (dry_run true, result_status PASS, 'Workflow completed.')"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-04",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.16 (#2379 5c8db40e; local Kit checkout b00f6e61); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-040-041-work-finish-pr-flow-2026-10-04.md"
+      }
     },
     {
       "id": "KIT-GF-042",
@@ -1508,6 +1529,20 @@
       "regression": "ci-update on a managed template with local changes blocks or reports the discarded changes; an unchanged one is updated.",
       "evidence": [
         "sandbox diff: .github/workflows/agentic-gate.yaml 32 insertions, 94 deletions (python/browser jobs removed)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-04",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.16 (#2381 5ed54c80; local Kit checkout b00f6e61); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-042-ci-update-managed-drift-2026-10-04.md"
+      },
+      "cockpit_mitigation": [
+        {
+          "date": "2026-10-04",
+          "marker": "AGP_CI_UPDATE_GUARD_V1",
+          "description": "Work orders with agentic-kit workspace ci-update --execute are rejected (correctable); its dry run stays allowed. Kept until the fix is released, installed and retested (it would then block, not overwrite)."
+        }
       ]
     },
     {

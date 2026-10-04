@@ -48,11 +48,13 @@ def repo(tmp_path):
 # --- P5 definitions -------------------------------------------------------------
 
 def test_every_standard_verb_has_a_task_and_later_slices_stay_disabled():
-    assert {t.key for t in standard_tasks()} == {"chat-switch", "finish", "work-start", "recover", "release"}
-    for key in (rs.ABSCHLIESSEN, rs.ARBEIT_BEGINNEN, rs.WIEDERHERSTELLEN, rs.CHAT_WECHSELN, rs.RELEASE):
+    assert {t.key for t in standard_tasks()} == {"chat-switch", "finish", "work-start", "recover", "release",
+                                                 "maintain"}
+    for key in (rs.ABSCHLIESSEN, rs.ARBEIT_BEGINNEN, rs.WIEDERHERSTELLEN, rs.CHAT_WECHSELN, rs.RELEASE,
+                rs.PFLEGE):
         verb = VERBS[key]
         assert verb.slice is None and verb.task_key in BY_KEY
-    assert {VERBS[k].slice for k in (rs.REPO_UEBERNEHMEN, rs.PFLEGE)} == {"P9", "P10"}
+    assert VERBS[rs.REPO_UEBERNEHMEN].slice == "P9"
 
 
 @pytest.mark.parametrize("branch", ["feat/demo", "main"])
