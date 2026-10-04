@@ -346,6 +346,8 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    `release-publish` that always asks; verifier: tag on origin at the merged release
    commit). P11b must lift the Cockpit's blanket rejection of `agentic-kit release-publish`
    for `publication: none` with an approved signature (RELEASE_POLICY.md).
+   P11a merged 2026-10-04 (#200). P11b built 2026-10-04: the Release standard task
+   (RELEASE_POLICY.md, COMMUNICATION_PROTOCOL 62); proven live by the first real release.
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read

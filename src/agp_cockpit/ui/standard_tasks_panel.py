@@ -170,8 +170,13 @@ class StandardTasksPanel(ttk.Frame):
         return self._runtime_root
 
     def _ask_inputs(self, task: StandardTask) -> dict | None:
+        check = lambda values: task.check(self.repository_root, values)  # noqa: E731
+        if task.key == "release":
+            from agp_cockpit.core.standard_tasks import _current_version
+            from agp_cockpit.ui.release_dialog import ask_release_inputs
+            return ask_release_inputs(self, current=_current_version(self.repository_root), check=check)
         from agp_cockpit.ui.work_start_dialog import ask_work_inputs
-        return ask_work_inputs(self, check=lambda values: task.check(self.repository_root, values))
+        return ask_work_inputs(self, check=check)
 
     def _confirm(self, task: StandardTask) -> bool:
         from tkinter import messagebox

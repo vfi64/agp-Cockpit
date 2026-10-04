@@ -233,7 +233,7 @@ def test_http_done_is_accepted_only_with_green_ci_for_the_local_head(bridge):
     assert (b.root / ".local/agp-cockpit/ci" / f"{b.head}.json").is_file()
     assert command(b, "repair_push", ["transfer", "push-current"]).get("terminal") is not True
     # a remote effect outside the repair budget still asks the human
-    assert command(b, "publish", ["release-publish"])["state"] == "NEEDS_HUMAN"
+    assert command(b, "publish", ["release-publish", "--execute"])["state"] == "NEEDS_HUMAN"
 
 
 def test_http_green_ci_completes_and_pending_waits(bridge):
@@ -310,7 +310,7 @@ def test_http_open_green_pr_is_not_enough_after_a_merging_orchestrator(bridge):
     # re-running the approved orchestrator is covered by the repair budget
     assert command(b, "finish_again", ["work", "finish"]).get("terminal") is not True
     assert command(b, "closeout", ["transfer", "post-merge-complete"]).get("terminal") is not True
-    assert command(b, "publish", ["release-publish"])["state"] == "NEEDS_HUMAN"
+    assert command(b, "publish", ["release-publish", "--execute"])["state"] == "NEEDS_HUMAN"
 
 
 def test_http_merged_lifecycle_needs_sync_closeout_and_green_main(bridge, monkeypatch):
@@ -377,3 +377,25 @@ def test_http_a_run_without_any_change_on_origin_keeps_the_approval(bridge):
     assert command(b, "push_again", ["transfer", "push-current", "--json"]).get("terminal") is not True
     assert HumanDecisionStore(b.runtime).current()["grant"]["remaining"] == 0
     assert ci_gate.CiGateStore(b.runtime).required("T")
+
+
+def test_http_a_release_verifier_also_runs_after_green_ci(bridge, monkeypatch):
+    """AGP_RELEASE_VERIFIER_V1 (P11): the Release task's tag comes after the merge, so a
+    CI-verified DONE is accepted only when its verifier contract passes as well."""
+    from agp_cockpit.core import standard_verifier as sv
+    b = bridge
+    contract = {"kind": sv.KIND, "verifier": "released", "params": {"version": "0.1.1"}}
+    monkeypatch.setattr(sv, "contract_of", lambda _store, _task: contract)
+    results = iter([(False, "no annotated tag v0.1.1"), (True, "tag v0.1.1 on origin")])
+    monkeypatch.setattr(sv, "verify", lambda _root, _contract, **_kw: next(results))
+    first = start(b)
+    command(b, "push", ["transfer", "push-current"])
+    b.call("/v1/task/decision", {"mission_id": first, "decision": "APPROVE"})
+    start(b)
+    command(b, "push", ["transfer", "push-current"])
+    b.status.write_text(json.dumps({"decision": "green", "head_ref_oid": b.head}))
+    rejected = done(b, pr=7)
+    assert rejected["state"] == "CONTINUE" and "no annotated tag v0.1.1" in rejected["prompt"]
+    finished = done(b)
+    assert finished["state"] == "DONE" and finished["authority"] == "ci-verified"
+    assert "Lokal geprüft (tag v0.1.1 on origin)" in b.call("/v1/status")["mission"]["last_summary"]

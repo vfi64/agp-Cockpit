@@ -35,7 +35,7 @@ def test_availability_follows_state_and_implementation():
     assert availability(BY_KEY[rs.CHAT_WECHSELN], ready) == (True, "")
     enabled, reason = availability(BY_KEY[rs.ARBEITEN], ready)
     assert not enabled and "Zustand IN_ARBEIT" in reason and "Aktuell: BEREIT" in reason
-    assert availability(BY_KEY[rs.RELEASE], ready) == (False, "In Vorbereitung (Plan P11).")   # Kit gate lifted (1.0.15)
+    assert availability(BY_KEY[rs.RELEASE], ready) == (True, "")   # P11 (Kit 1.0.16)
     assert availability(BY_KEY[rs.ARBEIT_BEGINNEN], ready) == (True, "")   # T5: plan P7
     assert availability(BY_KEY[rs.CHAT_WECHSELN], None) == (False, "Lagebericht läuft noch.")
     running = state(task_running=True)

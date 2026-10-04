@@ -359,6 +359,126 @@ BEREIT or IN_ARBEIT.
 """
 
 
+# --- P11 Release -----------------------------------------------------------------
+
+_VERSION = __import__("re").compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
+
+
+def _release_scope() -> frozenset[str]:
+    """AGP_RELEASE_APPROVAL_SCOPE_V1: the start click approves the release branch and
+    its pull-request lifecycle; the live tag publication is not in the scope and
+    always asks (with the signature of its dry run)."""
+    return frozenset(_finish_scope() | WORK_START_SCOPE)
+
+
+def _version_tuple(text: str) -> tuple[int, ...] | None:
+    match = _VERSION.match(str(text or "").strip())
+    return tuple(int(part) for part in match.groups()) if match else None
+
+
+def _current_version(root: Path) -> str:
+    import re
+    try:
+        text = (Path(root) / "pyproject.toml").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    found = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    return found.group(1) if found else ""
+
+
+def _publication(root: Path) -> str:
+    from agp_cockpit.core.release_policy import _workspace_publication
+    return _workspace_publication(root)
+
+
+def _release_precheck(root: Path, inputs: dict) -> str | None:
+    version = str(inputs.get("version") or "").strip()
+    wanted = _version_tuple(version)
+    if wanted is None:
+        return "Version im Format X.Y.Z angeben (z. B. 0.1.1)."
+    if _publication(root) != "none":
+        return ("Der Release-Button macht nur private Releases: .agentic/config.yaml muss "
+                "publication: none deklarieren.")
+    if _git_value(root, "branch", "--show-current") != "main":
+        return "Release startet nur auf main (Zustand BEREIT)."
+    if _git_value(root, "status", "--porcelain"):
+        return "main hat ungesicherte Änderungen — erst abschließen oder wiederherstellen."
+    head = _git_value(root, "rev-parse", "HEAD")
+    if not head or head != _git_value(root, "rev-parse", "--verify", "-q", "refs/remotes/origin/main"):
+        return "main ist nicht synchron mit origin/main — erst Lagebericht/Wiederherstellen."
+    if _git_value(root, "rev-parse", "--verify", "--quiet", f"refs/tags/v{version}"):
+        return f"Tag v{version} existiert schon — andere Version wählen."
+    current = _version_tuple(_current_version(root))
+    if current is not None and wanted < current:
+        return f"Version {version} ist kleiner als die aktuelle {_current_version(root)}."
+    branch = f"release/{version}"
+    for ref in (branch, f"origin/{branch}"):
+        if _git_value(root, "rev-parse", "--verify", "--quiet", ref):
+            return f"Branch {branch} existiert schon ({ref})."
+    return None
+
+
+def _release_contract(root: Path, inputs: dict) -> dict:
+    version = str(inputs.get("version") or "").strip()
+    return {
+        "title": f"Standard Task: Release {version}",
+        "goal": (f"Private release {version}: release branch with the Kit's release preparation, "
+                 "merged with green CI, then the annotated tag pushed through the Kit's signed private "
+                 "release route after the owner's approval."),
+        "repository_root": str(root),
+        "completion_contract": _verifier("released", version=version),
+        "acceptance_criteria": [
+            f"Release pull request for {version} merged with green CI; main green.",
+            f"Annotated tag v{version} on origin; its commit is in origin/main; pyproject names {version}.",
+        ],
+        "constraints": ["publication: none — no GitHub Release, PyPI or Zenodo.",
+                        "The live tag publication only with the owner's approval of its signed plan.",
+                        "No force push; no marker file."],
+    }
+
+
+def _release_prompt(root: Path, inputs: dict) -> str:
+    version = str(inputs.get("version") or "").strip()
+    prepared = _current_version(root) == version
+    phase_one = (f"""Phase 1 is already done: main names version {version} (prepared and merged earlier) and
+the tag is missing. Skip to phase 2.""" if prepared else f"""Phase 1 — release branch:
+1. Start the work branch release/{version} from the current origin/main through the Kit's
+   work-start route.
+2. Run the Kit's release preparation for version {version} in write mode (it updates the version
+   anchors declared in .agentic/config.yaml and the changelog).
+3. If the repository has docs/planning/RELEASE_POLICY.md, perform the release-branch steps it names
+   in the same branch (agp-Cockpit: set the build identity in src/agp_cockpit/version.py and
+   chrome_extension/build_identity.js to release-{version}); the repository's tests check them.
+4. Finish the branch through the Kit's pull-request lifecycle: green CI, merge, post-merge closeout,
+   local main equal to origin/main.""")
+    return f"""STANDARD TASK — RELEASE {version} (private release)
+
+Repository: {root}
+Version: {version} · tag v{version} · publication: none (no GitHub Release, PyPI or Zenodo)
+
+{phase_one}
+
+Phase 2 — tag publication (always asks):
+5. On main, run the Kit's private release publication as a dry run. Then stop with NEEDS_HUMAN and
+   state the version, the tag, the target commit, the planned actions and the approval signature
+   of the dry run, so the owner can approve exactly that plan.
+6. After the approval, run the live publication with that signature (the Kit's execute options
+   with the expected signature); it creates and pushes only the annotated tag. Never create the
+   marker file .agentic/release/ENABLE_LIVE_PUBLISH. If HEAD changed since the dry run, start again
+   at step 5.
+
+The human approved by starting this task the release branch and its pull-request lifecycle
+(starting the branch, publishing, pull request, merge, post-merge closeout, main synchronization): do not
+ask NEEDS_HUMAN for them. The live tag publication is not approved yet and always asks.
+Never force-push; never merge red CI.
+{_COMMON}
+Completion is verified locally: DONE is accepted only after the Cockpit checked that the release
+pull request is merged with green CI, main is green, the annotated tag v{version} is on origin, its
+commit is in origin/main and pyproject.toml at the tag names {version}. Name the release pull
+request as "pr" in the DONE file.
+"""
+
+
 STANDARD_TASKS: tuple[StandardTask, ...] = (
     StandardTask(
         key="chat-switch",
@@ -398,6 +518,26 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
         inputs=("kind", "name"),
         precheck=_work_start_precheck,
         approved_scope=WORK_START_SCOPE,
+    ),
+    StandardTask(
+        key="release",
+        label="Release",
+        description="Privates Release: Release-Branch über das Kit, Merge, dann der signierte Tag-Push nach Freigabe.",
+        contract_factory=_release_contract,
+        prompt_factory=_release_prompt,
+        effect="github",
+        inputs=("version",),
+        precheck=_release_precheck,
+        approved_scope=_release_scope(),
+        ci_gate_merge=True,
+        confirm=("„Release“ erstellt ein privates Release:\n"
+                 "Release-Branch · Release-Vorbereitung des Kits · Pull Request · grüne CI · Merge · "
+                 "Post-Merge-Abschluss.\n\n"
+                 "Der Start gibt genau diese Wirkungen frei. Der Push des Tags fragt danach noch "
+                 "einmal: Du siehst Version, Tag, Ziel-Commit und die Signatur des Probelaufs und "
+                 "gibst genau diesen Plan frei. Kein GitHub Release, kein PyPI, kein Zenodo.\n\n"
+                 "Jetzt starten?"),
+        offers_recover_on_interrupt=True,
     ),
     StandardTask(
         key="recover",

@@ -18,9 +18,14 @@ agp-Cockpit is the owner's private tool. It is not published anywhere.
   record for this repository; none may be created, updated or queried, and a
   release must not attempt a Zenodo or DOI step.
 - Enforced in code: the Cockpit rejects work orders that run
-  `agentic-kit release-publish`, `agentic-kit post-release-doi-closeout`,
-  `gh release create|upload|edit|delete` or contact Zenodo or PyPI upload hosts
-  (correctable rejection, the remote side gets the reason).
+  `agentic-kit post-release-doi-closeout`, `gh release create|upload|edit|delete`
+  or contact Zenodo or PyPI upload hosts (correctable rejection, the remote side
+  gets the reason). Since 2026-10-04 (P11, AGP_SIGNED_PRIVATE_RELEASE_V1)
+  `agentic-kit release-publish` is allowed as the Kit's private tag route only:
+  its dry run freely; its live run only with `--execute --allow-execute
+  --expected-signature <signature of the dry run>`, `publication: none` in
+  `.agentic/config.yaml`, never the marker file, and only after the owner's
+  approval (the tag push is never part of a start-click scope).
 - The Kit's release lifecycle currently assumes public publication (GitHub
   Release, Zenodo DOI, PyPI); recorded as Greenfield finding KIT-GF-029.
 
@@ -47,3 +52,24 @@ annotated tag `v0.1.0` set by the owner on main after the merge.
 - Rehearsed 2026-10-04 with Kit 1.0.16 in a sandbox clone: `release prepare
   --version 0.1.1 --write` plus the build-id step → full test suite, `release-check`,
   `check` and `doctor` PASS.
+
+## Release button (plan P11, 2026-10-04)
+
+The Standard Tasks tab offers „Release“ on a clean, synchronized main (BEREIT).
+It asks for the version (X.Y.Z, not lower than the current one, tag not yet
+present) and runs two phases in one task:
+
+1. Release branch `release/<version>`: the Kit's release preparation in write
+   mode, the build-id step of the version map above, then the Kit's pull-request
+   lifecycle (green CI, merge, post-merge closeout). The start click approves
+   exactly this.
+2. Tag: the Kit's private release publication as a dry run; the remote side stops
+   with NEEDS_HUMAN naming version, tag, target commit and the approval
+   signature; after the owner's approval the signed live run creates and pushes
+   only the annotated tag.
+
+DONE is accepted only after the Cockpit verified the merged, green release pull
+request and, locally, the annotated tag on origin whose commit is in origin/main
+and whose `pyproject.toml` names the version (AGP_RELEASE_VERIFIER_V1). If the
+version was already prepared on main and only the tag is missing, the task
+skips phase 1.

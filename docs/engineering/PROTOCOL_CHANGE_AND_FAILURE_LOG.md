@@ -1231,3 +1231,8 @@ repeat once.
 
 - „③ Abschließen“ of `fix/assistant-wait-activity`: step 1692, PR #198 merged, refresh #199 as a058b8d, CI-verified; the app ran build release-0.1.0-r4 and the extension 0.4.3 (auto-reloaded on the new build id). The answer came after 27 s, so the activity-based wait is not yet proven on a long answer.
 - P11a (AGP_VERSION_MAP_V2, owner 2026-10-04): `.agentic/config.yaml` declares the release version anchors for Kit 1.0.16; versions.json rows are appended, without the extension version; the release build id is `release-<app>`. Correction of my proposal that the owner accepted: BRIDGE_BUILD_ID cannot be derived in code — the stale-app guard reads it literally from the checkout and the extension from build_identity.js — so the release work order sets both (tests name the two files). Sandbox rehearsal of release 0.1.1 with Kit 1.0.16: full suite, release-check, check and doctor PASS. `.agentic/config.yaml` is a rule source: Abschließen must not run `rules communication-refresh --publish` (KIT-GF-039).
+
+## 2026-10-04 — P11a merged (#200/#201); P11b Release button
+
+- „③ Abschließen“ of `chore/release-version-anchors`: step 1694, PR #200 merged, refresh #201 as 7719232, CI-verified; the rule-source change of `.agentic/config.yaml` went through without a communication refresh (KIT-GF-039 not triggered).
+- P11b (COMMUNICATION_PROTOCOL 62, RELEASE_POLICY.md „Release button“): the Release standard task with version input, precheck, two-phase prompt (no Kit command names, T5), start-click scope without the tag push, the release verifier, the free dry run of `release-publish` and the signed-only live run in the release policy (which until now rejected `release-publish` outright). Not yet proven live; the first real release is the test.
