@@ -325,9 +325,11 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
 10. P10 Pflege (including Kit update and `workspace upgrade`).
 11. P11 Release (always asks; verifier to be specified first; private only per
    `docs/planning/RELEASE_POLICY.md`). Kit gate lifted: KIT-GF-032 verified fixed
-   with Kit 1.0.15 (2026-10-03; KIT-GF-029 with 1.0.14). Before building, decide: the
-   Cockpit's version map as release anchor (AGP_VERSION_MAP_V1) and the live-publication
-   marker flow of `release-publish`.
+   with Kit 1.0.15 (2026-10-03; KIT-GF-029 with 1.0.14). Owner's decisions 2026-10-04:
+   the release work order runs `release prepare --write`, then updates the Cockpit's
+   version map (AGP_VERSION_MAP_V1) in the same work order, then `work finish`
+   (Kit repair tracked as KIT-GF-037); the live publication keeps the Kit's marker flow
+   (prepare PR, marker PR, tag, marker-removal PR; signed approval tracked as KIT-GF-038).
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read

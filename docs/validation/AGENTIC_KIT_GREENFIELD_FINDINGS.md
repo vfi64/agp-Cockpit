@@ -1261,3 +1261,17 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 - Observed (Kit release 1.0.15): `release prepare --write` used the PR titles as summary lines; they hit two of four CHANGELOG quality categories. `release ready` passed; PR #2360 CI failed in check-docs/docs-audit. Same for 1.0.12.
 - Workaround: rewrite the section through `release-prep --summary-line …` on the release branch and push with work finish.
 - Repair: check the planned section before writing; accept explicit summary lines in `release prepare`.
+
+## KIT-GF-037 — Workspaces cannot declare further release version anchors
+
+- Status: OPEN · Severity: medium · First observed: 2026-10-04 (GF-E044)
+- Observed (Kit 1.0.15): `release prepare --write` updates `pyproject.toml` only; the Cockpit's version map (`APP_VERSION`, `docs/releases/versions.json`) stays behind and `tests/test_release_versions.py` fails on the release branch.
+- Workaround (owner 2026-10-04): the P11 work order updates the version map between `release prepare --write` and `work finish`; the test enforces it in CI.
+- Repair: manifest key for additional version anchors, used by release-prep, release-check and the release commit integrity check.
+
+## KIT-GF-038 — Live release-publish requires a committed marker file instead of a signed approval
+
+- Status: OPEN · Severity: low · First observed: 2026-10-04 (GF-E045)
+- Observed: `release-publish --execute` needs `.agentic/release/ENABLE_LIVE_PUBLISH` committed on main; two extra PRs per release (Kit 1.0.15: #2362, removal in #2364).
+- Workaround (owner 2026-10-04): P11 uses the marker flow as it is.
+- Repair: signed dry-run approval as in `work rescue`.

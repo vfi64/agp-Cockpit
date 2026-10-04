@@ -335,6 +335,20 @@
       "historical_id": "Kit release 1.0.15 PR #2360",
       "canonical_family": "KIT-GF-036",
       "summary": "release prepare wrote PR titles as summary lines that fail the Kit's own CHANGELOG quality gate; found only by PR CI"
+    },
+    {
+      "date": "2026-10-04",
+      "event_id": "GF-E044",
+      "historical_id": "Kit 1.0.15 sandbox of agp-Cockpit main 5e9c26c (release prepare --write)",
+      "canonical_family": "KIT-GF-037",
+      "summary": "release prepare bumps pyproject.toml only; the workspace's further version locations cannot be declared as anchors"
+    },
+    {
+      "date": "2026-10-04",
+      "event_id": "GF-E045",
+      "historical_id": "Kit release 1.0.15 (PRs #2362/#2364) and GF-E041 private-route sandbox",
+      "canonical_family": "KIT-GF-038",
+      "summary": "live release-publish requires a committed marker file: two extra PRs per release"
     }
   ],
   "families": [
@@ -1290,6 +1304,46 @@
       "evidence": [
         "Kit PR #2360 CI (check-docs, docs-audit) 2026-10-03",
         "agentic_project_kit/checks.py check_changelog_quality (three of four categories required)"
+      ]
+    },
+    {
+      "id": "KIT-GF-037",
+      "title": "Workspaces cannot declare further release version anchors",
+      "first_observed": "2026-10-04",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "An external workspace can declare additional version locations in its manifest (for example a constant in a source file, a version table row), and release-prep, release-check and the release commit integrity check treat them like the built-in anchors.",
+      "observed": "Kit 1.0.15 in agp-Cockpit: release prepare --write updates pyproject.toml (and a literal package __version__ if present) only. The Cockpit's version map — src/agp_cockpit/version.py APP_VERSION and docs/releases/versions.json (AGP_VERSION_MAP_V1) — stays at 0.1.0, so tests/test_release_versions.py fails on the release branch.",
+      "impact": "Every release of such a workspace needs a manual (work-order) edit of its own version locations between release prepare and work finish; the Kit's release integrity check does not cover them.",
+      "workaround": "Owner decision 2026-10-04: the P11 release work order runs release prepare --write, then the remote LLM updates APP_VERSION and appends the versions.json row in the same work order, then work finish; tests/test_release_versions.py enforces consistency in CI.",
+      "repair": "Manifest key for additional version anchors (path plus pattern, or a version table with a row template) used by release-prep, release-check, release_version_anchors and the release commit integrity check.",
+      "regression": "An external workspace that declares a source-constant anchor and a JSON table anchor gets both updated by release prepare --write, and release-check fails if either disagrees.",
+      "evidence": [
+        "GF-E044: tests/test_release_versions.py assert '0.1.1' == '0.1.0' after release prepare --write in the Kit 1.0.15 sandbox",
+        "agentic_project_kit/release_version_sources.py (built-in anchors only)"
+      ]
+    },
+    {
+      "id": "KIT-GF-038",
+      "title": "Live release-publish requires a committed marker file instead of a signed approval",
+      "first_observed": "2026-10-04",
+      "status": "OPEN",
+      "severity": "low",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "Live release publication is approved like work rescue: a dry run prints a signature over the exact planned actions (version, tag, target commit, publication policy), and --execute --expected-signature runs only those actions; no repository commit is needed for the approval.",
+      "observed": "release-publish --execute --allow-execute requires .agentic/release/ENABLE_LIVE_PUBLISH and a clean worktree, so the marker must be committed on main through its own PR and removed by another PR (Kit 1.0.15: #2362 authorize, removal in the closeout #2364; for a private release an extra unmark PR).",
+      "impact": "Two extra pull requests and CI runs per release; the marker sits on main between publish and closeout.",
+      "workaround": "Owner decision 2026-10-04: P11 uses the current marker flow (prepare PR, marker PR, tag, marker-removal PR).",
+      "repair": "Signed dry-run approval for release-publish (as in work rescue, KIT-GF-033); keep the marker file as an optional repository-level switch.",
+      "regression": "release-publish --dry-run prints a signature; --execute with that signature creates and pushes the tag without a marker commit; a changed HEAD or version invalidates the signature.",
+      "evidence": [
+        "Kit release 1.0.15 PRs #2362 (authorize) and #2364 (closeout with marker removal)",
+        "agentic_project_kit/release_publish_orchestration.py EXECUTE_CAPABILITY_PATH"
       ]
     }
   ],
