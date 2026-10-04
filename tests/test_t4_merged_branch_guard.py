@@ -156,3 +156,16 @@ def test_live_1574_would_have_been_stopped():
         pytest.skip("commit 5c1544c not present")
     assert g.relation(ROOT, "639d895", "5c1544c") == g.MERGED
     assert g.relation(ROOT, "639d895", "effbc85") == g.CHANGES
+
+
+def test_facts_name_the_remote_branch_state(repo):
+    """AGP_REMOTE_BRANCH_FACT_V1 (live 2026-10-04, steps 1684/1685): the remote side
+    could not see that the owner had already pushed the branch."""
+    git(repo, "switch", "-q", "feat")
+    line = g.repository_facts(repo)
+    assert "equals local feat (already published)" in line
+    commit(repo, "more.txt", "m\n", "C")
+    line = g.repository_facts(repo)
+    assert "local feat is 1 ahead and 0 behind" in line
+    git(repo, "update-ref", "-d", "refs/remotes/origin/feat")
+    assert "origin/feat: not published" in g.repository_facts(repo)

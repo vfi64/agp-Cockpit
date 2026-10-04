@@ -245,3 +245,21 @@ def test_http_status_reports_the_approval_and_it_expires_with_the_mission(bridge
     asked = call("/v1/file-loop/command", {"filename": "1482_push.py",
                                            "content": work_order(["transfer", "push-current"])})
     assert asked["state"] == "NEEDS_HUMAN"
+
+
+def test_a_later_decision_keeps_the_effects_of_the_task(tmp_path):
+    """AGP_EFFECTS_LOG_CONTINUITY_V1 (live 2026-10-04): after a rejection the panel
+    said no approved effect had run, although step 1676 had run one."""
+    store = HumanDecisionStore(tmp_path)
+    store.pre_approve(task_id="T", label="Abschließen", scope={"agentic-kit transfer pr-create-complete"})
+    store.grant_for_mission("T", "m1", mission_ended=False)
+    store.consume("T", "sha1", used=["agentic-kit transfer pr-create-complete"], step=1676)
+    store.record(mission_id="m1", task_id="T", decision="REJECT", question="remote-next?")
+    log = store.effects_log("T")
+    assert [e["step"] for e in log] == [1676]
+    assert log[0]["commands"] == ["agentic-kit transfer pr-create-complete"]
+    store.record(mission_id="m2", task_id="T", decision="APPROVE", question="again?")
+    store.consume("T", "sha2", used=["agentic-kit transfer pr-create-complete"], step=1686)
+    assert [e["step"] for e in store.effects_log("T")] == [1676, 1686]
+    store.pre_approve(task_id="U", label="Abschließen", scope={"agentic-kit transfer pr-create-complete"})
+    assert store.effects_log("U") == [] and store.effects_log("T") == []

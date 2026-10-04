@@ -607,7 +607,8 @@ This section is normative for the file loop after local execution.
    the question with „Freigeben“/„Ablehnen“ and an optional note; the answer is
    recorded for that mission and the task continues in the same chat as
    „Standard · <Task> · Entscheidung“ bound to the same task (verifier and
-   orchestrator rule unchanged). After a restart a waiting standard task is
+   orchestrator rule unchanged). Since rule 60 only an approval continues;
+   a rejection ends the task. After a restart a waiting standard task is
    re-attached from the bridge status.
 59. Open Kit follow-up on main (`AGP_FINISH_OPEN_FOLLOWUP_V1`,
    `AGP_RECOVER_OFFER_CLEARS_V1`, live 2026-10-03 #185): when main is clean and
@@ -617,6 +618,15 @@ This section is normative for the file loop after local execution.
    asks only for the Kit's closeout orchestrator (no commit, no pull request for
    main). The R6 offer of an interrupted Abschließen is cleared once the state is
    BEREIT, after a DONE and when its decision continues the task.
+60. Rejection, effects and remote branch facts (`AGP_REJECT_ENDS_TASK_V1`,
+   `AGP_EFFECTS_LOG_CONTINUITY_V1`, `AGP_REMOTE_BRANCH_FACT_V1`, live 2026-10-04,
+   steps 1676–1686): „Ablehnen“ in the Standard Tasks tab records the decision and
+   ends the task locally — no continuation in the chat (it could only ask again);
+   with already executed effects the R6 offer of „Wiederherstellen“ applies, else
+   the task can be started again. A later decision of the same task keeps the log
+   of its executed effects, so the panel never claims that none ran. The
+   Cockpit-verified repository facts name the remote-tracking branch of each work
+   branch (not published / equals local / local ahead and behind).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
