@@ -1275,3 +1275,10 @@ Kit-owned files dirty after lifecycle runs (extension of KIT-GF-011).
 - Observed: `release-publish --execute` needs `.agentic/release/ENABLE_LIVE_PUBLISH` committed on main; two extra PRs per release (Kit 1.0.15: #2362, removal in #2364).
 - Workaround (owner 2026-10-04): P11 uses the marker flow as it is.
 - Repair: signed dry-run approval as in `work rescue`.
+
+## KIT-GF-039 — Communication refresh on a work branch blocks the lifecycle that would publish it
+
+- Status: OPEN · Severity: high · First observed: 2026-10-04 (GF-E046)
+- Observed: `publication: none` in `.agentic/config.yaml` changed the rule snapshot. The committed `.agentic/rule_ack/current.json` was restored before each push (snapshot_id_mismatch, Cockpit-side cause, fixed by untracking). `rules communication-refresh --publish` then wrote a pending state with `blocks_normal_go: true` that demands the capsule on main; `pr-create-complete` blocks on it — deadlock.
+- Workaround: stop, move the pending file and capsule aside (`.agentic/tmp/stale-1656/`), untrack `.agentic/rule_ack/`, rerun.
+- Repair: let the branch's own pull request publish the capsule, or keep the pending state advisory for `pr-create-complete`.

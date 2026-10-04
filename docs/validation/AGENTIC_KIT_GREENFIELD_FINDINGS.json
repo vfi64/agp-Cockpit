@@ -349,6 +349,13 @@
       "historical_id": "Kit release 1.0.15 (PRs #2362/#2364) and GF-E041 private-route sandbox",
       "canonical_family": "KIT-GF-038",
       "summary": "live release-publish requires a committed marker file: two extra PRs per release"
+    },
+    {
+      "date": "2026-10-04",
+      "event_id": "GF-E046",
+      "historical_id": "agp-Cockpit Abschließen of chore/kit-1.0.15, steps 1650-1657",
+      "canonical_family": "KIT-GF-039",
+      "summary": "rule-source change: committed rule_ack restored before push (snapshot_id_mismatch); communication-refresh --publish then wrote a blocking pending state that only a merge to main could clear"
     }
   ],
   "families": [
@@ -1344,6 +1351,26 @@
       "evidence": [
         "Kit release 1.0.15 PRs #2362 (authorize) and #2364 (closeout with marker removal)",
         "agentic_project_kit/release_publish_orchestration.py EXECUTE_CAPABILITY_PATH"
+      ]
+    },
+    {
+      "id": "KIT-GF-039",
+      "title": "Communication refresh on a work branch blocks the lifecycle that would publish it",
+      "first_observed": "2026-10-04",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "A branch that changes a rule source (here .agentic/config.yaml) can be finished: the rule acknowledgement is refreshed locally and the communication-rule capsule travels with the branch's own pull request; nothing requires the capsule on main before that pull request can be created.",
+      "observed": "Kit 1.0.14 in agp-Cockpit, branch chore/kit-1.0.15 adding `publication: none` to .agentic/config.yaml (a rule source): (1) pr-create-complete BLOCKED with snapshot_id_mismatch three times although `rules acknowledge` succeeded before each run — the workspace tracked .agentic/rule_ack/current.json and the pre-push volatile restore put the stale committed copy back (Cockpit-side cause, fixed by untracking); (2) the remote side then ran `rules communication-refresh --publish`, which wrote .agentic/rule_ack/communication_refresh_pending.json with blocks_normal_go=true and remote_ref=main ('Send d2 only after the rule capsule is committed and remote-readable'); pr-create-complete then BLOCKED with 'Commit and publish the rule capsule before sending d2' (reproduced in a sandbox) — a deadlock, because only that pull request could put the capsule on main; push-current was correctly refused by the Cockpit in a standard task.",
+      "impact": "A finishing run cannot complete once the communication refresh was started; recovery needs a human to move the pending file away.",
+      "workaround": "Stop the run; move .agentic/rule_ack/communication_refresh_pending.json and the generated capsule files out of the way (kept under .agentic/tmp/stale-1656/); untrack .agentic/rule_ack/; rerun Abschließen.",
+      "repair": "Let the capsule be published by the branch's own pull request (pending state scoped to the branch, satisfied by the PR head), or keep the pending state advisory for pr-create-complete; document which rule sources trigger a communication refresh.",
+      "regression": "A branch that changes .agentic/config.yaml finishes with pr-create-complete --post-merge-complete after rules acknowledge, with or without a preceding communication-refresh --publish.",
+      "evidence": [
+        "agp-Cockpit Download/1650-1657 return bundles (2026-10-04)",
+        "sandbox: pr-create-complete BLOCK 'Commit and publish the rule capsule before sending d2' with the pending file present; PASSES the rule gate without it after untracking .agentic/rule_ack/current.json"
       ]
     }
   ],

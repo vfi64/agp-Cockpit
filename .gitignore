@@ -23,3 +23,8 @@ playwright-report/
 
 # Local recovery files created by bounded repair steps
 *.bak
+
+# Kit rule acknowledgement: local runtime state, never committed (Kit layout).
+# A committed copy is restored by the Kit before push and then mismatches the
+# current rule snapshot (snapshot_id_mismatch, 2026-10-04 steps 1650-1652).
+/.agentic/rule_ack/
