@@ -650,6 +650,13 @@ This section is normative for the file loop after local execution.
    `publication: none`, without the marker file. A verifier contract now also runs
    after a CI-verified DONE, so Release ends only when the annotated tag is on
    origin, in origin/main and names the version.
+63. Unloadable remote file (`AGP_K07_REMOTE_FILE_REGENERATE_V1`,
+   `AGP_RELEASE_RESUME_PHASE2_V1`, live 2026-10-04, release 0.1.1 step 1712): when
+   the browser download of the remote file fails (timeout or interrupted — the chat
+   showed „Herunterladen der Datei fehlgeschlagen“), the extension reserves that
+   step, never retries its card, and asks once, with „FILE TRANSFER REPAIR ONLY“,
+   for the same answer as a new file under the next step. A second failure stops
+   the task as before. A release whose phase 1 is merged resumes at the tag.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

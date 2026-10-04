@@ -69,6 +69,8 @@ def test_prompt_has_both_phases_and_skips_phase_one_when_prepared(repo):
     assert "Phase 1 — release branch" in fresh and "release/0.1.1" in fresh
     assert "approval signature" in fresh and "ENABLE_LIVE_PUBLISH" in fresh
     assert "RELEASE_POLICY.md" in fresh
+    # AGP_RELEASE_CHANGELOG_SUMMARY_V1 (live 0.1.1: the changelog got only "Prepare private release")
+    assert '"Unreleased" section' in fresh and "never a" in fresh and "one-line stub" in fresh
     prepared = TASK.prompt(repo, {"version": "0.1.0"})
     assert "Phase 1 is already done" in prepared and "release/0.1.0" not in prepared
 

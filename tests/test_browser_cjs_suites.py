@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.parametrize("suite", ["orphan_guard_browser.cjs", "send_not_ready_retry.cjs",
-                                   "send_probe_template.cjs", "assistant_activity_wait_browser.cjs"])
+                                   "send_probe_template.cjs", "assistant_activity_wait_browser.cjs",
+                                   "remote_file_regenerate_browser.cjs"])
 def test_content_script_suite(suite):
     node = shutil.which("node")
     if node is None:

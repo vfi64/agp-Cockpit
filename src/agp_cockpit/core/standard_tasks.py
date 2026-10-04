@@ -453,6 +453,8 @@ def _release_contract(root: Path, inputs: dict) -> dict:
     }
 
 
+# AGP_RELEASE_CHANGELOG_SUMMARY_V1 (live 2026-10-04, release 0.1.1): the changelog entry was a
+# one-line stub and the Unreleased section stayed; step 2 names the summary source.
 def _release_prompt(root: Path, inputs: dict) -> str:
     version = str(inputs.get("version") or "").strip()
     prepared = _current_version(root) == version
@@ -461,7 +463,10 @@ the tag is missing. Skip to phase 2.""" if prepared else f"""Phase 1 — release
 1. Start the work branch release/{version} from the current origin/main through the Kit's
    work-start route.
 2. Run the Kit's release preparation for version {version} in write mode (it updates the version
-   anchors declared in .agentic/config.yaml and the changelog).
+   anchors declared in .agentic/config.yaml and the changelog). Its changelog summary lines name
+   the user-visible changes since the previous release tag: the entries of the CHANGELOG.md
+   "Unreleased" section, completed from the merged pull requests since that tag — never a
+   one-line stub such as "Prepare release". Then empty the Unreleased section in the same branch.
 3. If the repository has docs/planning/RELEASE_POLICY.md, perform the release-branch steps it names
    in the same branch (agp-Cockpit: set the build identity in src/agp_cockpit/version.py and
    chrome_extension/build_identity.js to release-{version}); the repository's tests check them.

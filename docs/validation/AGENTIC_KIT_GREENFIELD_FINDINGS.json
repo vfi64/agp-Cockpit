@@ -419,6 +419,13 @@
       "historical_id": "Kit 1.0.16 sandbox of agp-Cockpit main 3ffa74a (workspace ci-update --execute)",
       "canonical_family": "KIT-GF-042",
       "summary": "ci-update replaced the customized managed workflow (Cockpit tests dropped)"
+    },
+    {
+      "date": "2026-10-04",
+      "event_id": "GF-E056",
+      "historical_id": "agp-Cockpit release 0.1.1 (owner wants the Kit to create the GitHub Release entry)",
+      "canonical_family": "KIT-GF-043",
+      "summary": "GitHub publication path creates a lightweight tag and a tag-titled release"
     }
   ],
   "families": [
@@ -1501,6 +1508,26 @@
       "regression": "ci-update on a managed template with local changes blocks or reports the discarded changes; an unchanged one is updated.",
       "evidence": [
         "sandbox diff: .github/workflows/agentic-gate.yaml 32 insertions, 94 deletions (python/browser jobs removed)"
+      ]
+    },
+    {
+      "id": "KIT-GF-043",
+      "title": "release-publish creates a lightweight tag and a tag-titled GitHub Release when publication uses GitHub",
+      "first_observed": "2026-10-04",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The live release-publish run creates the same annotated tag for every publication policy (as it does for publication: none) and lets the workspace set the GitHub Release title (for example from the workspace config or the changelog heading).",
+      "observed": "Kit 1.0.16, release_publish_orchestration.py: with publication none the live run creates an annotated private tag; with github, github+pypi or github+pypi+zenodo it runs `git tag <tag>` (lightweight), pushes it and runs `gh release create <tag> --title <tag> --notes <changelog section>`. The Cockpit's release verifier requires an annotated tag (AGP_RELEASE_VERIFIER_V1), and the owner's release entries are titled 'AGP Cockpit <version> (privat)'.",
+      "impact": "A workspace that wants the Kit to create its (private) GitHub Release entry gets a lightweight tag that its own verifier rejects and a title it cannot choose; the Cockpit therefore keeps publication: none and the owner creates the entry by hand (release 0.1.1).",
+      "workaround": "Keep publication: none; create the GitHub Release entry by hand with gh release create <tag> --verify-tag.",
+      "repair": "Use an annotated tag (git tag -a <tag> -m <message>) in the GitHub path too; add an optional release title template to the workspace config.",
+      "regression": "release-publish --execute with publication github creates an annotated tag (git cat-file -t <tag> = tag) and a release with the configured title.",
+      "evidence": [
+        "Kit 1.0.16 source: _append_live_release_publish_checks runs ('git','tag',tag); _append_private_tag_publish_checks creates the annotated tag",
+        "agp-Cockpit release 0.1.1 (2026-10-04): tag v0.1.1 annotated via publication none; GitHub Release entry created by the owner by hand"
       ]
     }
   ],

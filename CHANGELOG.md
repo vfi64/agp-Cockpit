@@ -1,21 +1,32 @@
 # Changelog — AGP Cockpit
 
-Private tool; releases are not published (no GitHub Release, PyPI or Zenodo —
-`docs/planning/RELEASE_POLICY.md`). Version map: `docs/releases/versions.json`.
+Private tool; releases are not published (no PyPI or Zenodo); the private
+repository may carry a GitHub Release entry made by the owner
+(`docs/planning/RELEASE_POLICY.md`). Version map: `docs/releases/versions.json`.
 
 ## Unreleased
 
-- Repo wechseln (P4): read-only check, transport-path provisioning, restart; one
-  ChatGPT conversation per repository.
-- Kit-gated buttons: Release (KIT-GF-029, KIT-GF-032) and the full
-  Wiederherstellen (KIT-GF-033) wait for Kit fixes; the Cockpit runs no
-  repository-changing git.
-- Send probe escapes fixed; Kit handoff projection is Kit-internal; no
-  Chat-wechseln recommendation; owner's window size.
+- An unloadable remote file is requested once more under the next step instead of
+  stopping the task (AGP_K07_REMOTE_FILE_REGENERATE_V1); build `release-0.1.1-r1`.
+- The release work order fills the changelog from the Unreleased section and the
+  merged pull requests (corrected entry for 0.1.1 below).
 
 ## v0.1.1 - 2026-10-04
 
-- Prepare private release 0.1.1.
+App 0.1.1 · build `release-0.1.1` · agentic-project-kit 1.0.16 · made with the
+Release button (corrected entry; the tag carries the one-line stub).
+
+- Release button (P11): version map V2, release branch through the Kit, signed
+  private tag push after the owner's approval, local release verifier; resumes at
+  the tag after an interrupted phase 2.
+- Standard Tasks: NEEDS_HUMAN answered in the tab, Ablehnen ends the task, effects
+  log kept, remote branch facts, full Wiederherstellen on the Kit's work rescue,
+  late Abschließen confirmed locally.
+- Waiting for the remote answer by activity (German „Stoppen“ button).
+- Repo wechseln (P4): one ChatGPT conversation per repository; start in the
+  connected chat when another tab is in front.
+- Kit 1.0.14–1.0.16 adopted; findings verified and recorded; e2e never loads the
+  live chatgpt.com; owner's window size.
 
 ## v0.1.0 - 2026-10-02
 

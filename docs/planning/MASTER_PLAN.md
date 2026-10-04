@@ -348,6 +348,15 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    for `publication: none` with an approved signature (RELEASE_POLICY.md).
    P11a merged 2026-10-04 (#200). P11b built 2026-10-04: the Release standard task
    (RELEASE_POLICY.md, COMMUNICATION_PROTOCOL 62); proven live by the first real release.
+   Release 0.1.1 made with the button on 2026-10-04 (#204/#205, resume #206, signed tag
+   v0.1.1 on 20a61dd, VERIFIED_COMPLETE); the GitHub Release entry by the owner by hand.
+   P11c (waits for KIT-GF-043): the owner wants the Kit to create the private GitHub
+   Release entry in the same signed `release-publish` run (owner 2026-10-04). Then:
+   `publication: github` in `.agentic/config.yaml` (rule source, KIT-GF-039), release
+   policy and its JSON (the Kit's own `gh release create` inside the signed run; Cockpit
+   work orders still never run gh release), the Release precheck and the signed-route
+   check accept `github`, the verifier also checks the release entry; rehearse in a
+   disposable clone first. Until then the owner creates the entry by hand.
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read
