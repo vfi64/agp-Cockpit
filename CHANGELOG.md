@@ -13,6 +13,10 @@ Private tool; releases are not published (no GitHub Release, PyPI or Zenodo —
 - Send probe escapes fixed; Kit handoff projection is Kit-internal; no
   Chat-wechseln recommendation; owner's window size.
 
+## v0.1.1 - 2026-10-04
+
+- Prepare private release 0.1.1.
+
 ## v0.1.0 - 2026-10-02
 
 First private release. App 0.1.0 · extension 0.4.3 · build `release-0.1.0-r4` ·

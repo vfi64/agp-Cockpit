@@ -11,6 +11,14 @@
       "tag": "v0.1.0",
       "published": false,
       "how": "manual (owner's decision 2026-10-02): Kit 1.0.13 has no private release route (KIT-GF-029, KIT-GF-032); version files and changelog in this branch, annotated tag set by the owner on main after the merge."
+    },
+    {
+      "app": "0.1.1",
+      "build_id": "release-0.1.1",
+      "kit": "1.0.16",
+      "date": "2026-10-04",
+      "tag": "v0.1.1",
+      "published": false
     }
   ]
 }
