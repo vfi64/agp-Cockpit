@@ -338,6 +338,14 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    (newest row position; extension and build_id policy) before tests/test_release_versions.py
    passes on a release branch. Changing `.agentic/config.yaml` is a rule-source change —
    watch KIT-GF-039 (no `rules communication-refresh --publish` in the release work order).
+   Owner's decision 2026-10-04 (AGP_VERSION_MAP_V2, RELEASE_POLICY.md): the Kit appends the
+   versions.json row; its build id is `release-<app>`, set in version.py and
+   build_identity.js by the release work order (rebuilds `-r<N>`); the extension version
+   leaves the row. P11a (this version map) first, then P11b: the Release standard task
+   (input: version; precheck BEREIT on main; release PR via the Kit, then the signed private
+   `release-publish` that always asks; verifier: tag on origin at the merged release
+   commit). P11b must lift the Cockpit's blanket rejection of `agentic-kit release-publish`
+   for `publication: none` with an approved signature (RELEASE_POLICY.md).
 
 Kit-side prerequisites that would simplify P1–P3 (tracked in the 2026-10-01
 handoff, not Cockpit work): effect classification in the manifest, a read

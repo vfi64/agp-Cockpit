@@ -22,3 +22,25 @@ gates:
   extra: []
   skip: []
 publication: none
+release:
+  # AGP_VERSION_MAP_V2 (owner 2026-10-04, KIT-GF-037 fixed in Kit 1.0.16):
+  # `release prepare --write` updates these anchors; release-check and the
+  # release commit integrity check verify them.
+  version_anchors:
+    - kind: source_constant
+      path: src/agp_cockpit/version.py
+      name: APP_VERSION
+      label: APP_VERSION
+    - kind: json_table
+      path: docs/releases/versions.json
+      label: AGP_VERSION_MAP_V1 app version
+      list: releases
+      version_field: app
+      position: append
+      row:
+        app: '{version}'
+        build_id: 'release-{version}'
+        kit: '{kit_version}'
+        date: '{date}'
+        tag: '{tag}'
+        published: false
