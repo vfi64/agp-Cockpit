@@ -1195,3 +1195,9 @@ repeat once.
 
 - `publication: none` changed `.agentic/config.yaml`, a Kit rule source. `pr-create-complete` blocked with `snapshot_id_mismatch` although `rules acknowledge` passed: the repository tracked `.agentic/rule_ack/current.json`, and the Kit's pre-push volatile restore put the stale committed copy back (as for #134/#137). The remote side then ran `rules communication-refresh --publish`, whose pending state blocks `pr-create-complete` until the capsule is on main — a deadlock (KIT-GF-039). The Cockpit correctly refused `transfer push-current` twice (1654, 1657).
 - Recovery: the owner stopped the run; the pending file and the generated capsule were moved to `.agentic/tmp/stale-1656/` (nothing deleted); `.agentic/rule_ack/` is no longer tracked and is ignored, as in the Kit's own layout. Reproduced in a sandbox: without the tracked copy the rule gate passes.
+
+## 2026-10-04 — Kit 1.0.15 in the Cockpit (#188/#189); Abschließen for an open Kit follow-up
+
+- „③ Abschließen“ of `chore/kit-1.0.15`: step 1662 merged PR #188 and refresh #189 (`pr-create-complete --post-merge-complete`, rc 0); the remote side then tried another pull request for the merged branch (1663), which AGP_MERGED_BRANCH_GUARD_V1 refused; the next turn returned DONE, `ci-verified`. Local Kit raised to 1.0.15.
+- AGP_FINISH_OPEN_FOLLOWUP_V1 (COMMUNICATION_PROTOCOL 59): after #184 the Kit's follow-up #185 stayed open with red CI; main was clean and synchronized, Abschließen refused main and Wiederherstellen would only have reported the open pull request. Now the Lage offers and recommends Abschließen for exactly this case, with a closeout-only prompt.
+- AGP_RECOVER_OFFER_CLEARS_V1: the Lage recommended „Wiederherstellen (nach dem letzten Task)“ in BEREIT after the interrupted Abschließen had been completed through the decision box; the R6 offer is now cleared on BEREIT, on DONE and when the decision continues the task.

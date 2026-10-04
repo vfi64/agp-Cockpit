@@ -152,7 +152,10 @@ def _finish_precheck(root: Path, _inputs: dict) -> str | None:
     if not branch:
         return "Kein Branch ausgecheckt (detached HEAD) — Abschließen braucht einen Arbeitsbranch."
     if branch in ("main", "master"):
-        return "Abschließen läuft nie von main aus (R4). Erst „Arbeit beginnen“."
+        if _main_followup_open(root):
+            return None   # AGP_FINISH_OPEN_FOLLOWUP_V1: complete the open post-merge lifecycle
+        return ("Abschließen läuft nie von main aus (R4), außer um einen offenen Post-Merge-Abschluss "
+                "des Kits zu Ende zu bringen. Erst „Arbeit beginnen“.")
     dirty = bool(_git_value(root, "status", "--porcelain"))
     found = relation(root, branch, "origin/main")
     if found == CHANGES or (dirty and found in (NO_COMMITS, None)):
@@ -161,6 +164,23 @@ def _finish_precheck(root: Path, _inputs: dict) -> str | None:
         return f"Branch {branch} ist mit origin/main nicht vergleichbar — erst Lagebericht/Wiederherstellen."
     return (f"Branch {branch} enthält nichts, was nicht schon in origin/main ist "
             "(bereits gemergt oder ohne eigene Änderungen) — nichts abzuschließen.")
+
+
+def _main_followup_open(root: Path) -> bool:
+    """AGP_FINISH_OPEN_FOLLOWUP_V1: main is clean, equals its tracking ref
+    origin/main, and the Kit's post-merge check is not PASS."""
+    from agp_cockpit.core.repo_state import WORKSPACE_MARKERS
+    if not any((Path(root) / marker).is_file() for marker in WORKSPACE_MARKERS):
+        return False
+    if _git_value(root, "status", "--porcelain"):
+        return False
+    head = _git_value(root, "rev-parse", "HEAD")
+    if not head or head != _git_value(root, "rev-parse", "--verify", "-q", "refs/remotes/origin/main"):
+        return False
+    from agp_cockpit.core.kit_installation import discover
+    from agp_cockpit.core.repo_state import post_merge_check
+    kit = discover(Path(root))
+    return kit is not None and post_merge_check(Path(root), kit)[0] == "NOT_PASS"
 
 
 def _finish_contract(root: Path) -> dict:
@@ -175,12 +195,16 @@ def _finish_contract(root: Path) -> dict:
             "Pull request merged with green CI for its head (verified by the Cockpit).",
             "Kit post-merge lifecycle complete; local main equals origin/main; main green.",
         ],
-        "constraints": ["Never from main.", "No force push.", "Merge only through the Kit's green-CI gates."],
+        "constraints": ["Never from main, except to complete an open Kit post-merge lifecycle "
+                        "(AGP_FINISH_OPEN_FOLLOWUP_V1).", "No force push.",
+                        "Merge only through the Kit's green-CI gates."],
     }
 
 
 def _finish_prompt(root: Path) -> str:
     branch = _git_value(root, "branch", "--show-current")
+    if branch in ("main", "master"):
+        return _finish_followup_prompt(root)
     return f"""STANDARD TASK — ABSCHLIESSEN (finish the work branch)
 
 Repository: {root}
@@ -197,6 +221,32 @@ Completion is verified locally: DONE is accepted only after the Cockpit checked 
 request is merged with green CI, the post-merge check passes and main is green. Name the pull
 request as "pr" in the DONE file. Run the lifecycle once; do not open another pull request for a
 branch the facts report as already merged.
+"""
+
+
+def _finish_followup_prompt(root: Path) -> str:
+    return f"""STANDARD TASK — ABSCHLIESSEN (complete the open post-merge lifecycle on main)
+
+Repository: {root}
+Branch: main (clean, equal to origin/main; AGP_FINISH_OPEN_FOLLOWUP_V1)
+
+Situation: the last pull request is merged, but the Kit's post-merge check is not PASS — the
+Kit's post-merge lifecycle is incomplete, typically because its own follow-up pull request
+(successor-package or handoff refresh) is still open or its CI was re-run.
+
+Goal: complete exactly that lifecycle with the Kit's closeout orchestrator from the digest
+(for example agentic-kit transfer pr-closeout-complete, or transfer post-merge-complete), so
+that the follow-up pull request is merged with green CI, the post-merge check passes and local
+main equals origin/main. Do not commit anything, do not start a work branch and do not open a
+pull request for main; if the Kit reuses its existing follow-up pull request, that is expected.
+
+The human approved exactly these effects by starting this standard task (merge of the Kit's
+follow-up pull request, post-merge closeout, main synchronization): do not ask NEEDS_HUMAN for
+them. Any other remote effect still needs a decision. Never force-push; never merge red CI.
+{_COMMON}
+Completion is verified locally: DONE is accepted only after the Cockpit checked that the
+follow-up pull request is merged with green CI, the post-merge check passes and main is green.
+Name that pull request as "pr" in the DONE file. Run the closeout once.
 """
 
 
@@ -330,8 +380,9 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
         ci_gate_merge=True,
         confirm=("„Abschließen“ veröffentlicht den aktuellen Arbeitsbranch und mergt ihn nach main:\n"
                  "Push · Pull Request · grüne CI · Merge · Post-Merge-Abschluss des Kits.\n\n"
-                 "Der Start ist deine Freigabe für genau diese Wirkungen (nie von main, kein "
-                 "Force-Push, Merge nur bei grüner CI). Jede andere Wirkung fragt weiterhin.\n\n"
+                 "Der Start ist deine Freigabe für genau diese Wirkungen (von main nur, um einen "
+                 "offenen Post-Merge-Abschluss des Kits zu Ende zu bringen; kein Force-Push, Merge "
+                 "nur bei grüner CI). Jede andere Wirkung fragt weiterhin.\n\n"
                  "Jetzt abschließen?"),
         offers_recover_on_interrupt=True,
         # AGP_NO_CHAT_SWITCH_FOLLOW_UP_V1 (owner 2026-10-02): no follow-up; „Chat

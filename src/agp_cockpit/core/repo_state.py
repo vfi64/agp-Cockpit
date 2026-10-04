@@ -135,6 +135,15 @@ def _git(root: Path, runner, *args: str, raw: bool = False) -> str | None:
     return completed.stdout if raw else completed.stdout.strip()
 
 
+def post_merge_check(root: Path, kit, *, runner=subprocess.run) -> tuple[str, str]:
+    """("PASS" | "NOT_PASS", output tail) of the Kit's read-only post-merge check on main."""
+    check = _run([str(kit.binary), "transfer", "post-merge-check", "--main-branch", "main",
+                  "--json"], Path(root), runner, timeout=120)
+    output = f"{check.stdout or ''}\n{check.stderr or ''}"
+    passed = check.returncode == 0 and "NEEDS_" not in output and "BLOCKED" not in output
+    return ("PASS" if passed else "NOT_PASS"), output.strip()[-600:]
+
+
 def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
             kit=None, network: bool = True) -> RepoFacts:
     """Read-only facts about the repository (E0)."""
@@ -172,12 +181,7 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
         gh_ok = _run([gh, "auth", "status"], root, runner).returncode == 0
     post_merge, detail = None, ""
     if kit is not None and branch == "main" and workspace:
-        check = _run([str(kit.binary), "transfer", "post-merge-check", "--main-branch", "main",
-                      "--json"], root, runner, timeout=120)
-        output = f"{check.stdout or ''}\n{check.stderr or ''}"
-        post_merge = "PASS" if check.returncode == 0 and "NEEDS_" not in output and "BLOCKED" not in output \
-            else "NOT_PASS"
-        detail = output.strip()[-600:]
+        post_merge, detail = post_merge_check(root, kit, runner=runner)
     return RepoFacts(root=str(root), is_git=True, branch=branch, head=head, origin_main=origin_main,
                      tracking_main=tracking, own_commits=own, changes=tuple(changes),
                      volatile_changes=tuple(volatile), kit_version=kit_version, workspace=workspace,
@@ -185,8 +189,10 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
                      task_running=task_running)
 
 
-def _state(name: str, summary: str, recommended: str | None, reasons, facts: RepoFacts) -> RepoState:
-    return RepoState(name, summary, recommended, OFFERED[name], tuple(reasons), facts)
+def _state(name: str, summary: str, recommended: str | None, reasons, facts: RepoFacts,
+           offered: tuple[str, ...] | None = None) -> RepoState:
+    return RepoState(name, summary, recommended, OFFERED[name] if offered is None else offered,
+                     tuple(reasons), facts)
 
 
 def classify(facts: RepoFacts) -> RepoState:
@@ -223,6 +229,14 @@ def classify(facts: RepoFacts) -> RepoState:
         if facts.changes:
             problems.append("Unerwartete Änderungen auf main: " + ", ".join(facts.changes[:5]))
         if facts.post_merge == "NOT_PASS":
+            if not problems:
+                # AGP_FINISH_OPEN_FOLLOWUP_V1 (live 2026-10-03, #185): main is clean and
+                # synchronized, only the Kit's post-merge lifecycle of the last merge is
+                # open (typically its follow-up pull request). Abschließen completes it.
+                return _state(STOERUNG, "main ist synchron und sauber, aber der Post-Merge-Abschluss "
+                              "des Kits ist offen (z. B. ein offener Folge-PR).", ABSCHLIESSEN,
+                              ("Kit post-merge-check ist nicht PASS.",), facts,
+                              offered=OFFERED[STOERUNG] + (ABSCHLIESSEN,))
             problems.append("Kit post-merge-check ist nicht PASS.")
         if problems:
             return _state(STOERUNG, "main ist nicht im sauberen Ausgangszustand.", WIEDERHERSTELLEN,

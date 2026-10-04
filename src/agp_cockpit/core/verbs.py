@@ -53,8 +53,10 @@ VERBS: tuple[Verb, ...] = (
     Verb(rs.ABSCHLIESSEN, "Abschließen", "weg", 3, GITHUB,
          "Veröffentlicht die Arbeit: Commit, Push, Pull Request, grüne CI, Merge und Post-Merge-Abschluss "
          "des Kits. Fertig erst, wenn das Cockpit GitHub selbst grün geprüft hat.",
-         "pusht und mergt nach main (der Start ist die Freigabe; nie von main, kein Force-Push).",
-         "auf einem Arbeitsbranch mit eigenen Commits (Zustand IN_ARBEIT).", task_key="finish"),
+         "pusht und mergt nach main (der Start ist die Freigabe; von main nur, um den offenen "
+         "Post-Merge-Abschluss des Kits zu Ende zu bringen; kein Force-Push).",
+         "auf einem Arbeitsbranch mit eigenen Commits (Zustand IN_ARBEIT) oder auf main, wenn nur "
+         "der Post-Merge-Abschluss des Kits offen ist.", task_key="finish"),
     Verb(rs.CHAT_WECHSELN, "Chat wechseln", "weg", 4, LOKAL,
          "Erzeugt und prüft das Übergabepaket für einen neuen Chat; öffnet selbst keinen neuen Chat.",
          "schreibt nur die Übergabedateien im Repo.",
