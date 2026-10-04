@@ -671,6 +671,11 @@ This section is normative for the file loop after local execution.
    a rejected work order — the remote side gets the reason, the allowed keys and the
    next step; after three rejections in one mission the human decides. Without a
    running mission it stays a plain rejection.
+66. One task in every tab (`AGP_ONE_TASK_ALL_TABS_V1`, R5, live 2026-10-04): the
+   Arbeiten tab refuses to start while a task runs, exactly like the Standard Tasks
+   tab (one shared check). Twice a start there replaced the running „Arbeit
+   beginnen“ mission; its work order then landed in the new task, which had no
+   scope for it, and the decision could not be recorded (no task binding).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

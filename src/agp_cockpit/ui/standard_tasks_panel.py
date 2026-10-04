@@ -505,14 +505,12 @@ class StandardTasksPanel(ttk.Frame):
         self.start_standard_task(task, inputs)
 
     def _task_running(self) -> bool:
+        from agp_cockpit.core.mission_http_client import mission_running   # AGP_ONE_TASK_ALL_TABS_V1
         try:
             mission = (bridge_status() or {}).get("mission") or {}
         except Exception:  # noqa: BLE001 - an unreachable bridge runs no task
             return False
-        return bool(mission) and str(mission.get("state") or "") not in {
-            "", "IDLE", "DONE", "COMPLETED", "NEEDS_HUMAN", "BLOCKED", "FAILED", "ERROR",
-            "STOPPED", "CANCELLED",
-        }
+        return mission_running(mission)
 
     def _watch_lage(self) -> None:
         from agp_cockpit.core.repo_state import local_fingerprint
