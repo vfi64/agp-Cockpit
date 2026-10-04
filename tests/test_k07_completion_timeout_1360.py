@@ -8,7 +8,8 @@ def test_gui_authority_forwarded_at_all_legacy_calls():
 def test_k07_assistant_wait_is_bounded_and_accounting_remains_transition_derived():
     s=Path("chrome_extension/content.js").read_text()
     assert "AGP_K07_ASSISTANT_WAIT_TIMEOUT_1360" in s
-    assert "K07_ASSISTANT_RESPONSE_TIMEOUT after 180s" in s
+    assert "K07_ASSISTANT_RESPONSE_TIMEOUT after ${waitExpiry.waitedSeconds}s" in s
+    assert "AGP_K07_ASSISTANT_ACTIVITY_WAIT_V1" in s   # 180 s without activity, 900 s maximum
     assert "assistantWaitStartedAt" in s
     assert "STATE.turns += 1;" in s
 

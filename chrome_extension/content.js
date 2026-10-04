@@ -2620,19 +2620,25 @@
     // fence outside try so polling failures can never turn into a ReferenceError.
     const runGeneration = STATE.runGeneration;
     try {
-    // AGP_K07_ASSISTANT_WAIT_TIMEOUT_1360
-    if (STATE.running && STATE.waitingForAssistant &&
-        STATE.assistantWaitStartedAt > 0 &&
-        Date.now() - STATE.assistantWaitStartedAt > 180000) {
+    // AGP_K07_ASSISTANT_WAIT_TIMEOUT_1360 + AGP_K07_ASSISTANT_ACTIVITY_WAIT_V1
+    const waitExpiry = STATE.running && STATE.waitingForAssistant && STATE.assistantWaitStartedAt > 0
+      ? assistantWaitExpiry(Date.now()) : null;
+    if (waitExpiry) {
       STATE.waitingForAssistant = false;
       STATE.assistantWaitStartedAt = 0;
       const awaitedStep = Number(STATE.nextLocalStep || 0);
-      const message = "K07_ASSISTANT_RESPONSE_TIMEOUT after 180s — Mensch muss prüfen: keine Datei " +
+      const message = `K07_ASSISTANT_RESPONSE_TIMEOUT after ${waitExpiry.waitedSeconds}s ` +
+        `(${waitExpiry.idle ? "180s without visible activity" : "maximum wait of 900s"}) — ` +
+        "Mensch muss prüfen: keine Datei " +
         (awaitedStep > 0 ? `${awaitedStep}_*.py oder ${awaitedStep}_agp_terminal.json` : "der Remote-Antwort") +
         " erschienen; eine reine Textantwort wird nicht ausgewertet.";
       STATE.lastEvent = "K07_ASSISTANT_WAIT_TIMEOUT";
       STATE.note = message;
-      await clientEvent("K07_ASSISTANT_WAIT_TIMEOUT", {timeout_ms:180000});
+      await clientEvent("K07_ASSISTANT_WAIT_TIMEOUT", {
+        idle_timeout_ms:ASSISTANT_IDLE_TIMEOUT_MS, max_wait_ms:ASSISTANT_MAX_WAIT_MS,
+        waited_ms:waitExpiry.waitedMs, idle_ms:waitExpiry.idleMs, idle:waitExpiry.idle,
+        dom_mutations:waitExpiry.mutations
+      });
       await stop(message, "K07_ASSISTANT_WAIT_TIMEOUT");
       return;
     }
@@ -3035,6 +3041,59 @@
         render();
       }
     }
+  }
+
+  // AGP_K07_ASSISTANT_ACTIVITY_WAIT_V1 (live 2026-10-04, step 1689): the wait for
+  // the remote answer was a fixed 180 s from the send. ChatGPT thought 58 s and ran
+  // four analyses; its terminal file appeared after the deadline and a finished
+  // task ended STOPPED. The stop-button probe saw no generation (German label
+  // "Stoppen" without data-testid="stop-button"). Now the 180 s count from the
+  // last visible activity — DOM changes in the conversation (outside this
+  // overlay) or a stop-like composer button — with a hard maximum of 900 s.
+  const ASSISTANT_IDLE_TIMEOUT_MS = 180000;
+  const ASSISTANT_MAX_WAIT_MS = 900000;
+  let ASSISTANT_ACTIVITY_OBSERVER = null;
+  let ASSISTANT_ACTIVITY_TARGET = null;
+  let ASSISTANT_DOM_MUTATIONS = 0;
+
+  function ensureAssistantActivityObserver() {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+    const target = document.querySelector("main") || document.body;
+    if (!target || (target === ASSISTANT_ACTIVITY_TARGET && target.isConnected)) return;
+    if (ASSISTANT_ACTIVITY_OBSERVER) ASSISTANT_ACTIVITY_OBSERVER.disconnect();
+    ASSISTANT_ACTIVITY_TARGET = target;
+    ASSISTANT_ACTIVITY_OBSERVER = new MutationObserver(records => {
+      const overlay = document.getElementById("agp-cockpit-bridge");
+      for (const record of records) {
+        if (!overlay || !overlay.contains(record.target)) ASSISTANT_DOM_MUTATIONS += 1;
+      }
+    });
+    ASSISTANT_ACTIVITY_OBSERVER.observe(target, {childList:true, subtree:true, characterData:true});
+  }
+
+  function stopLikeComposerButtonVisible() {
+    if (typeof document === "undefined") return false;
+    return Array.from(document.querySelectorAll("form button, [data-testid*='composer'] button"))
+      .some(button => !button.disabled && (
+        /^(stop|stoppen)\b/i.test(String(button.getAttribute("aria-label") || "").trim()) ||
+        /stop/i.test(String(button.getAttribute("data-testid") || ""))));
+  }
+
+  function assistantWaitExpiry(now) {
+    ensureAssistantActivityObserver();
+    const started = Number(STATE.assistantWaitStartedAt || 0);
+    const mutations = ASSISTANT_DOM_MUTATIONS;
+    if (mutations !== Number(STATE.assistantSeenMutations || 0) ||
+        chatgptGenerationActive() || stopLikeComposerButtonVisible()) {
+      STATE.assistantSeenMutations = mutations;
+      STATE.assistantLastActivityAt = now;
+    }
+    const lastActivity = Math.max(started, Number(STATE.assistantLastActivityAt || 0));
+    const waitedMs = now - started;
+    const idleMs = now - lastActivity;
+    if (idleMs <= ASSISTANT_IDLE_TIMEOUT_MS && waitedMs <= ASSISTANT_MAX_WAIT_MS) return null;
+    return {idle:idleMs > ASSISTANT_IDLE_TIMEOUT_MS, waitedMs, idleMs, mutations,
+            waitedSeconds:Math.round(waitedMs / 1000)};
   }
 
   const LIVE_PROBE = {
