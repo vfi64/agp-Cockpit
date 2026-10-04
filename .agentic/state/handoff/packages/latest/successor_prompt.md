@@ -30,13 +30,14 @@ Critical rule IDs:
 - `gc-retention-not-document-migration` (critical)
 - `ns-legacy-not-active-control-plane` (critical)
 - `generated-handoff-projection-update-policy` (critical)
+- `successor-final-head-identity` (critical)
 - `patch-cycle-diagnostic-gate` (critical)
 - `copy-paste-output-discipline` (critical)
 - `protected-file-preservation` (critical)
 
 ## Current continuation state
 
-- branch: `docs/post-pr192-successor-package-refresh`
+- branch: `docs/post-pr194-successor-package-refresh`
 - head_matches_origin_main: `True`
 - worktree_clean: `True`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
@@ -153,14 +154,14 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
     "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
   ],
   "repo": {
-    "branch": "docs/post-pr192-successor-package-refresh",
+    "branch": "docs/post-pr194-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "e7552e25a7381a0682353c5f1ce233090dcbfc7f",
+    "head": "dd51ca0c72efb993e7cde69b08cc732a186dc667",
     "head_matches_origin_main": true,
-    "head_short": "e7552e25",
+    "head_short": "dd51ca0c",
     "local_path": "cd /path/to/",
-    "origin_main": "e7552e25a7381a0682353c5f1ce233090dcbfc7f",
-    "origin_main_short": "e7552e25",
+    "origin_main": "dd51ca0c72efb993e7cde69b08cc732a186dc667",
+    "origin_main_short": "dd51ca0c",
     "worktree_clean": true
   }
 }
