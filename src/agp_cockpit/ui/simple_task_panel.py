@@ -304,6 +304,13 @@ class SimpleTaskPanel(ttk.Frame):
         if blocked:
             self.state_var.set(blocked)
             return
+        # AGP_ONE_TASK_ALL_TABS_V1 (R5, live 2026-10-04): a start here while „Arbeit beginnen“
+        # still ran replaced its mission; its work order then landed in this task without scope.
+        from agp_cockpit.core.mission_http_client import task_running
+        if task_running():
+            self.state_var.set("Blockiert — es läuft bereits ein Task (z. B. „Arbeit beginnen“); "
+                               "neue Aufträge erst nach seinem Ende (R5).")
+            return
         try:
             self.contract = contract_from_text(self._editor_text())
         except ValueError as exc:

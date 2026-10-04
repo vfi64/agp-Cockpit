@@ -39,6 +39,26 @@ def status(*, base_url: str = DEFAULT_BASE_URL) -> dict:
     return _request("/v1/status", base_url=base_url)
 
 
+# R5 (one task at a time per repository), AGP_ONE_TASK_ALL_TABS_V1 (live 2026-10-04,
+# missions 1729/1730): both tabs ask the same question before they create a mission.
+MISSION_RESTING_STATES = frozenset({
+    "", "IDLE", "DONE", "COMPLETED", "NEEDS_HUMAN", "BLOCKED", "FAILED", "ERROR",
+    "STOPPED", "CANCELLED",
+})
+
+
+def mission_running(mission: dict | None) -> bool:
+    return bool(mission) and str((mission or {}).get("state") or "") not in MISSION_RESTING_STATES
+
+
+def task_running(*, base_url: str = DEFAULT_BASE_URL) -> bool:
+    try:
+        mission = (status(base_url=base_url) or {}).get("mission") or {}
+    except Exception:  # noqa: BLE001 - an unreachable bridge runs no task
+        return False
+    return mission_running(mission)
+
+
 def record_decision(*, mission_id: str, decision: str, note: str = "",
                     base_url: str = DEFAULT_BASE_URL) -> dict:
     """AGP_HUMAN_DECISION_V1: answer the NEEDS_HUMAN question of a mission."""
