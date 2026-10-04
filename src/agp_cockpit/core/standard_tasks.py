@@ -411,11 +411,27 @@ def _release_precheck(root: Path, inputs: dict) -> str | None:
     current = _version_tuple(_current_version(root))
     if current is not None and wanted < current:
         return f"Version {version} ist kleiner als die aktuelle {_current_version(root)}."
+    if _current_version(root) == version:
+        # AGP_RELEASE_RESUME_PHASE2_V1 (live 2026-10-04, release 0.1.1): phase 1 is merged and only
+        # the tag is missing. The squash-merged release branch may still exist (origin/release/<v>
+        # stayed after #204); it is not reused, the task skips to the tag.
+        return None
     branch = f"release/{version}"
     for ref in (branch, f"origin/{branch}"):
         if _git_value(root, "rev-parse", "--verify", "--quiet", ref):
             return f"Branch {branch} existiert schon ({ref})."
     return None
+
+
+def release_resume_version(root: Path) -> str:
+    """AGP_RELEASE_RESUME_PHASE2_V1: the version main already names whose tag is still
+    missing (phase 1 merged, tag not pushed), else ""."""
+    current = _current_version(root)
+    if _version_tuple(current) is None:
+        return ""
+    if _git_value(root, "rev-parse", "--verify", "--quiet", f"refs/tags/v{current}"):
+        return ""
+    return current
 
 
 def _release_contract(root: Path, inputs: dict) -> dict:
@@ -536,6 +552,8 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
                  "Der Start gibt genau diese Wirkungen frei. Der Push des Tags fragt danach noch "
                  "einmal: Du siehst Version, Tag, Ziel-Commit und die Signatur des Probelaufs und "
                  "gibst genau diesen Plan frei. Kein GitHub Release, kein PyPI, kein Zenodo.\n\n"
+                 "Nennt main die Version schon (Release-Branch gemergt, Tag fehlt), entfällt der "
+                 "Release-Branch: Es folgt nur der Tag.\n\n"
                  "Jetzt starten?"),
         offers_recover_on_interrupt=True,
     ),
