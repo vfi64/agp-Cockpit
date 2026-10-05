@@ -1134,7 +1134,14 @@
         "Step 1279 command-reference-check FAIL",
         "Step 1280 refresh FAIL on missing generator",
         "Step 1281 installed 1.0.13 source hard-codes checkout-local generator path"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "PARTIAL",
+        "raw": "repair in progress on Kit branch codex-gf022-command-reference-refresh (b73a2020 \"Fix packaged command reference refresh\"), not on main eebe6fbe",
+        "report": ""
+      }
     },
     {
       "id": "KIT-GF-023",
@@ -1174,7 +1181,14 @@
       "status": "OPEN",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null
+      "fixed_in": null,
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.18 (#2407 58364a96: `agentic-kit ci status --commit/--branch --json`); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-024-025-ci-status-manifest-effects-2026-10-05.md"
+      }
     },
     {
       "id": "KIT-GF-025",
@@ -1194,7 +1208,14 @@
       "status": "OPEN",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null
+      "fixed_in": null,
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.18 (#2407 58364a96: command manifest classifies remote effects, ci status as network_read); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-024-025-ci-status-manifest-effects-2026-10-05.md"
+      }
     },
     {
       "id": "KIT-GF-026",
@@ -1277,7 +1298,14 @@
       "status": "OPEN",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null
+      "fixed_in": null,
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.18 (#2403 b8396354: tempfile.gettempdir() unless --local-tmp; artifact-gc covers protected diffs); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-028-tempdir-artifacts-2026-10-05.md"
+      }
     },
     {
       "id": "KIT-GF-029",
@@ -1783,7 +1811,14 @@
       "evidence": [
         "owner's 1.0.17 result files kit_1017_*.json (2026-10-05)",
         "kit_release_1.0.18.log and kit_release_1.0.18.state.json (2026-10-05): A1 to D5 PASS, DOI 10.5281/zenodo.23166532"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.18 (#2405 1f0b069d: resumable `agentic-kit release run --version X` with signed gates B4/C2/C3/D4; publication none skips index/Zenodo/DOI); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-047-release-run-orchestrator-2026-10-05.md"
+      }
     },
     {
       "id": "KIT-GF-048",
@@ -1804,7 +1839,14 @@
         "agentic-kit 1.0.18 `work finish --help` (no body/label option) vs `transfer pr-create-complete --help` (--body)",
         "agentic_project_kit/release_notes.py _classify_with_metadata: body line, then labels, then subject",
         "agp-Cockpit rehearsal 2026-10-05: release ready with publication github BLOCKs on unclassified/missing-evidence items"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main eebe6fbe; Codex task prepared (.local/agp-cockpit/tmp/codex_task_KIT-GF-048.md), waiting for Codex capacity",
+        "report": ""
+      }
     },
     {
       "id": "KIT-GF-049",
@@ -1824,7 +1866,19 @@
       "evidence": [
         "agentic_project_kit/release_publish_orchestration.py (1.0.18): docs audit and command reference check in the non-private branch",
         "agp-Cockpit rehearsal 2026-10-05: release-publish --version 0.2.0 --json → FAIL, blockers docs audit (Overall: FAIL) and command reference check, rc 1",
-        "agentic-kit docs-audit in the clone: missing required documentation files (docs/TEST_GATES.md, docs/DOCUMENTATION_COVERAGE.yaml, sentinel.yaml, …)"
+        "agentic-kit docs-audit in the clone: missing required documentation files (docs/TEST_GATES.md, docs/DOCUMENTATION_COVERAGE.yaml, sentinel.yaml, …)",
+        "Related: KIT-GF-035 (docs-audit checks the Kit's own document set in an external workspace, OPEN) is the docs-audit half of this blocker; KIT-GF-022 (command-reference refresh in packaged use, repair in progress) touches the command-reference half. 049 stays separate: release-publish must not block on either check where it does not apply, even after 035/022."
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main eebe6fbe; Codex task prepared (.local/agp-cockpit/tmp/codex_task_KIT-GF-049.md), waiting for Codex capacity",
+        "report": ""
+      },
+      "related": [
+        "KIT-GF-035",
+        "KIT-GF-022"
       ]
     }
   ],
@@ -1982,9 +2036,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "26be95becefb307107edbbc52f97b174e3ced1e9",
-    "latest_release": "1.0.13",
-    "synced": "2026-10-02",
+    "kit_commit": "eebe6fbec4cb6465d90245ab5c1f0897cec8a161",
+    "latest_release": "1.0.18",
+    "synced": "2026-10-05",
     "note": "Snapshot of the Kit's own adjudication (docs/reports/*.json of the Kit repository). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
   }
 }

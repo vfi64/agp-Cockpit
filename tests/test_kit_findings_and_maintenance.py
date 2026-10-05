@@ -62,7 +62,12 @@ def test_the_real_register_tracks_the_kit_1_0_18_adoption():
     assert by_id["KIT-GF-042"].mitigations[-1]["marker"] == "AGP_CI_UPDATE_GUARD_V1"
     for fid in ("KIT-GF-030", "KIT-GF-031", "KIT-GF-039", "KIT-GF-040", "KIT-GF-043"):
         assert by_id[fid].effective_status("1.0.18") == kf.FIXED_UNVERIFIED
-    assert by_id["KIT-GF-047"].effective_status("1.0.18") == kf.OPEN
+    for fid in ("KIT-GF-024", "KIT-GF-025", "KIT-GF-028", "KIT-GF-047"):     # Kit main eebe6fbe, unreleased
+        assert by_id[fid].effective_status("1.0.18") == kf.FIXED_NOT_INSTALLED
+        assert by_id[fid].kit["fixed_in"] == ""
+    assert by_id["KIT-GF-022"].effective_status("1.0.18") == kf.IN_PROGRESS
+    for fid in ("KIT-GF-048", "KIT-GF-049"):
+        assert by_id[fid].effective_status("1.0.18") == kf.OPEN
 
 
 def test_window_filters_and_shows_details(tmp_path):
