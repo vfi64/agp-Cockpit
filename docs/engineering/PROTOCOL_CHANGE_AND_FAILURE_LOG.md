@@ -1339,3 +1339,8 @@ repeat once.
 - AGP_SHORT_RESULT_LINE_V1 (live PR #236, step 1773): the result line carried the remote side's English report and was cut („Step 1773 passed: agentic-kit transfer pr-create-complete returned PASS … current …“); it now keeps only the Cockpit's verdicts (CI grün geprüft, Lokal geprüft), the report is in the tooltip; counters in German singular/plural.
 - AGP_FRESHNESS_LINE_V1: the stale-app warning was appended to the one-line build label and cut at the window edge; it has its own wrapped line.
 - AGP_UNKLAR_HINT_V1 (found while rendering the preview): UNKLAR recommends the Lagebericht, which is no button; `_state_hint` raised KeyError, apply_state aborted and the Lage stayed at „Lagebericht wird erstellt …“. Build release-0.2.0-r2.
+
+## 2026-10-05 — Rebuild button; extension refresh proven
+
+- Bridge log 2026-10-05 18:34:48/50 UTC: after the restart into release-0.2.0-r2 the old extension (r1) handshook once, the bridge requested the refresh, and two seconds later the extension reported r2 (AGP_EXTENSION_AUTO_REFRESH_V2). The manual „Erweiterung neu laden“ step in Claude's instructions was unnecessary and is dropped.
+- AGP_REBUILD_BUTTON_V1: the stale-app warning line offers the step it names. The app runs `scripts/build_macos_app.py` (no `--restart`, log in `.local/agp-cockpit/logs/rebuild-*.log`), watches it, and only after a successful build and while no task runs starts a detached `/bin/sh` relauncher (waits for the app's pid, then `open`s the bundle) and closes itself through Tk (the bridge stops cleanly). No Apple Event; a failed build leaves the app running with the log tail in the header. Child environment without PyInstaller variables. Build release-0.2.0-r3.

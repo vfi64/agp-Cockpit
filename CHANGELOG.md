@@ -6,6 +6,9 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- „Neu bauen und neu starten“ (or „Neu starten“) in the stale-app warning: the app
+  builds itself, closes and reopens after a successful build; a failed build leaves it
+  running with the log; the extension reloads itself; build `release-0.2.0-r3`.
 - Lage: a traffic light (Grün/Gelb/Rot with a word) for the whole repository; the
   result line after a finished task is short and German, the remote side's report is
   in its tooltip; the stale-app warning has its own line in the window header; the
