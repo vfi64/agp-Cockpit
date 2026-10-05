@@ -123,3 +123,21 @@ If evidence is missing or contradictory, stop mutation and perform bounded diagn
 ## Handoff discipline
 
 When stopping or handing work to another LLM, use the current canonical Agentic Project Kit handoff mechanism once the workspace is bootstrapped. The successor must reconstruct state from repository/Kit evidence rather than relying on prose chat summaries.
+
+### Switching to a new Claude chat (`AGP_CLAUDE_HANDOFF_FACTS_V1`)
+
+Live 2026-10-05: a hand-written Claude handoff claimed connected folders the new
+Cowork session did not have, carried the old session id for commit trailers and
+stated a guess as a fact. Therefore:
+
+- Before a chat switch, write the handoff with
+  `python3 scripts/claude_handoff.py write --host-root <repository path on the owner's computer> --notes <notes.md>`.
+  It writes `.local/agp-cockpit/handoff/CLAUDE_HANDOFF_<UTC>.md` (local, not committed): a start
+  sentence for the owner, fixed start rules and a facts block derived from the repository
+  (branch, HEAD, origin/main, build ids, Kit CI pin, command manifest SHA, last protocol rule,
+  last failure-log entry, Kit findings status). Every note bullet must be tagged
+  `[belegt: <ref>]`, `[Vermutung]`, `[Nächster Schritt]` or `[Owner]`; untagged notes are refused.
+- A new chat first requests access to the Cockpit and Kit folders, then runs
+  `python3 scripts/claude_handoff.py check` (newest handoff by default; exit 1 lists every fact
+  that differs) and confirms the state including each difference before changing anything.
+- The commit-trailer session id always comes from the current session, never from a handoff.
