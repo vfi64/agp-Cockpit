@@ -428,6 +428,12 @@ class SimpleTaskPanel(ttk.Frame):
                     self.activity_var.set("Aktivität: " + str(mission.get("browser_transport_note") or transport_event))
                     self.after(1000, self.refresh_status)
                     return
+                if transport_event == "MISSION_TOUCHPOINT_SELFTEST_FAILED":
+                    # AGP_MISSION_TOUCHPOINT_SELFTEST_V1: stopped before any send.
+                    self.state_var.set("Selbsttest vor dem Start fehlgeschlagen — nichts gesendet; Seite prüfen, dann erneut starten.")
+                    self.activity_var.set("Aktivität: " + str(mission.get("browser_transport_note") or transport_event))
+                    self.after(1000, self.refresh_status)
+                    return
                 if transport_event == "SEND_INDETERMINATE":
                     self.state_var.set("Browser-Übertragung unbestätigt — Ergebnis wird geprüft; kein erneutes Senden.")
                 turns = int(mission.get("turn_count", 0) or 0)

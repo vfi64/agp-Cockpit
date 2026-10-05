@@ -691,6 +691,17 @@ This section is normative for the file loop after local execution.
    sent only after the resolved composer is focused again; the DOM send fallback clicks
    only the send button of that composer's form (`AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1`).
 
+68. Touchpoint self-test at mission start (`AGP_MISSION_TOUCHPOINT_SELFTEST_V1`, Slice C,
+   2026-10-05): before a mission start cleans, attaches or sends anything, the extension
+   checks the visible composer (`agpResolveComposer`), its form and an enabled file input
+   in that form, retrying for up to 8 s while the page renders. A failure stops the start
+   with `AGP_TOUCHPOINT_<REASON>` and a German instruction (reload, sign in, or report);
+   nothing has been inserted, attached or sent, the bridge records
+   `MISSION_TOUCHPOINT_SELFTEST_FAILED` without a transport block, and the start request
+   stays retryable. Every start logs `MISSION_TOUCHPOINT_SELFTEST` with a page-shape
+   snapshot (counts, ids, tags; no chat text). The send button is not part of the check:
+   ChatGPT renders it only after text is inserted (rule 67 covers the submit).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

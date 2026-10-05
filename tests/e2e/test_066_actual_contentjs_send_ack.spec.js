@@ -58,15 +58,18 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "../..");
 const CONTENT_JS = path.join(ROOT, "chrome_extension", "content.js");
 
-async function installBridgeMocks(page) {
+async function installBridgeMocks(page, {fileInput = true} = {}) {
   await page.setContent(`
     <!doctype html>
     <html>
       <body>
         <main>
           <div id="assistant" data-message-author-role="assistant">previous assistant response</div>
+          <form><!-- AGP_MISSION_TOUCHPOINT_SELFTEST_V1: composer, its form and a file input -->
           <textarea id="prompt-textarea"></textarea>
+          ${fileInput ? '<input type="file" multiple>' : ""}
           <button data-testid="send-button" type="button">Send</button>
+          </form>
         </main>
       </body>
     </html>
@@ -108,8 +111,11 @@ async function installBridgeMocks(page) {
         id: "phase066-test-extension",
         getManifest: () => ({version: "0.3.13"}),
         // AGP_COMPOSER_CLEAN_START_V1: the background answers the clean step.
-        sendMessage: async (message) => (message && message.type === "AGP_K07_CLEAN_COMPOSER")
-          ? {ok:true, stage:"COMPOSER_EMPTY"} : {ok:false, error:"not stubbed"},
+        sendMessage: async (message) => {
+          (window.__agpSendMessages = window.__agpSendMessages || []).push(String(message && message.type));
+          return (message && message.type === "AGP_K07_CLEAN_COMPOSER")
+            ? {ok:true, stage:"COMPOSER_EMPTY"} : {ok:false, error:"not stubbed"};
+        },
         onMessage: {addListener: () => {}}
       }
     };
@@ -129,7 +135,10 @@ async function installBridgeMocks(page) {
       }
 
       if (u.pathname.includes("client-event")) {
-        if (body && body.event) window.__agpEvents.push(body.event);
+        if (body && body.event) {
+          window.__agpEvents.push(body.event);
+          (window.__agpEventLog = window.__agpEventLog || []).push({event:body.event, details:body.details || {}});
+        }
         return jsonResponse({ok:true});
       }
 
@@ -264,4 +273,48 @@ test("actual content.js reconciles an indeterminate send by its nonce in unknown
   expect(submitted).toMatch(/^AGP-SEND-[0-9a-f]{16}\n/);
   const events = await page.evaluate(() => window.__agpEvents);
   expect(events).not.toContain("MISSION_BOOTSTRAP_SEND_FAILED");
+});
+
+test("AGP_MISSION_TOUCHPOINT_SELFTEST_V1 stops the start before the composer is touched", async ({page}) => {
+  test.setTimeout(40000);
+  await installCryptoSubtleHarness(page);
+  await installBridgeMocks(page, {fileInput:false});
+  await page.evaluate(() => {
+    window.AGPBrowserNativeTransport = {
+      available: () => true,
+      submit: async () => { window.__agpSubmitted = true; return {stage:"USER_TURN_COMMITTED", request_id:"never", tab_id:1}; }
+    };
+  });
+  await expect.poll(() => page.evaluate(() => window.__agpEvents), {timeout:30000})
+    .toContain("MISSION_TOUCHPOINT_SELFTEST_FAILED");
+  const events = await page.evaluate(() => window.__agpEvents);
+  expect(events).toContain("MISSION_TOUCHPOINT_SELFTEST");
+  expect(events).not.toContain("MISSION_BOOTSTRAP_SENT");
+  expect(events).not.toContain("NATIVE_TRANSPORT_REQUESTED");
+  expect(await page.evaluate(() => window.__agpSubmitted || false)).toBe(false);
+  const messages = await page.evaluate(() => window.__agpSendMessages || []);
+  expect(messages).not.toContain("AGP_K07_CLEAN_COMPOSER");
+  expect(messages).not.toContain("AGP_K07_ATTACH_FILES");
+  const log = await page.evaluate(() => window.__agpEventLog || []);
+  const failed = log.find(entry => entry.event === "MISSION_TOUCHPOINT_SELFTEST_FAILED");
+  expect(failed.details.reason).toMatch(/^AGP_TOUCHPOINT_FILE_INPUT_NOT_FOUND: Selbsttest vor dem Start/);
+  const selftest = log.find(entry => entry.event === "MISSION_TOUCHPOINT_SELFTEST");
+  expect(selftest.details).toMatchObject({ok:false, failure:"file_input_not_found"});
+  expect(selftest.details.snapshot).toMatchObject({composer_found:true, file_inputs_in_form:0});
+});
+
+test("AGP_MISSION_TOUCHPOINT_SELFTEST_V1 passes and records the page shape on a normal start", async ({page}) => {
+  await installCryptoSubtleHarness(page);
+  await installBridgeMocks(page);
+  await page.evaluate(() => {
+    window.AGPBrowserNativeTransport = {
+      available: () => true,
+      submit: async () => ({stage:"USER_TURN_COMMITTED", request_id:"fixture-native", tab_id:1})
+    };
+  });
+  await expect.poll(() => page.evaluate(() => window.__agpEvents)).toContain("MISSION_BOOTSTRAP_SENT");
+  const events = await page.evaluate(() => window.__agpEvents);
+  expect(events.indexOf("MISSION_TOUCHPOINT_SELFTEST")).toBeGreaterThan(-1);
+  expect(events.indexOf("MISSION_TOUCHPOINT_SELFTEST")).toBeLessThan(events.indexOf("MISSION_BOOTSTRAP_SENT"));
+  expect(events).not.toContain("MISSION_TOUCHPOINT_SELFTEST_FAILED");
 });
