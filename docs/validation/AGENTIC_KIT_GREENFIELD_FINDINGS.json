@@ -426,6 +426,13 @@
       "historical_id": "agp-Cockpit release 0.1.1 (owner wants the Kit to create the GitHub Release entry)",
       "canonical_family": "KIT-GF-043",
       "summary": "GitHub publication path creates a lightweight tag and a tag-titled release"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E057",
+      "historical_id": "agp-Cockpit docs lifecycle headers task (#216), ULTRA_REVIEW_REMEDIATION.md",
+      "canonical_family": "KIT-GF-044",
+      "summary": "lifecycle sweep accepts a Review policy line in the document body"
     }
   ],
   "families": [
@@ -1563,7 +1570,41 @@
       "evidence": [
         "Kit 1.0.16 source: _append_live_release_publish_checks runs ('git','tag',tag); _append_private_tag_publish_checks creates the annotated tag",
         "agp-Cockpit release 0.1.1 (2026-10-04): tag v0.1.1 annotated via publication none; GitHub Release entry created by the owner by hand"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.16 (#2387 7e783920); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-043-044-release-publish-doc-lifecycle-2026-10-05.md"
+      }
+    },
+    {
+      "id": "KIT-GF-044",
+      "title": "Documentation lifecycle sweep accepts lifecycle header labels anywhere in the file",
+      "first_observed": "2026-10-05",
+      "status": "OPEN",
+      "severity": "low",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "Status, Decision status, Status-date, Superseded-by and Review policy count only in the document's head block (before the first ## section); a label in later prose does not satisfy the lifecycle sweep.",
+      "observed": "Kit 1.0.16, doc_lifecycle.py: _audit_document accepted Review policy through a full-file substring check, and _first_header_value scanned the whole document. An Arbeiten task put a Review policy line into the body of docs/planning/ULTRA_REVIEW_REMEDIATION.md; the docs lifecycle sweep then reported 0 findings.",
+      "impact": "The sweep reports documents as complete whose lifecycle header is incomplete; a misplaced header line is not noticed.",
+      "workaround": "Check the head block by hand after a header edit; the ULTRA_REVIEW_REMEDIATION.md line was moved into the header by hand (2026-10-05).",
+      "repair": "Read lifecycle metadata only before the first ## section (_lifecycle_header_block / _first_header_value) and check Review policy through it.",
+      "regression": "A document whose lifecycle labels (or only Review policy) stand after the first ## section is reported as missing those headers.",
+      "evidence": [
+        "agp-Cockpit 2026-10-05: docs lifecycle headers task (#216), Review policy line found in the body of docs/planning/ULTRA_REVIEW_REMEDIATION.md, sweep dry run 0 findings (PROTOCOL_CHANGE_AND_FAILURE_LOG 2026-10-05)",
+        "Kit #2387 (7e783920): cause confirmed in doc_lifecycle.py, tests test_doc_lifecycle_ignores_lifecycle_headers_after_first_section and test_doc_lifecycle_requires_review_policy_in_header_block"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "fixed on Kit main after 1.0.16 (#2387 7e783920); not in a released Kit yet",
+        "report": "docs/reports/greenfield/KIT-GF-043-044-release-publish-doc-lifecycle-2026-10-05.md"
+      }
     }
   ],
   "explicit_exclusions": [

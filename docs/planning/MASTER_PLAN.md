@@ -363,7 +363,7 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    (RELEASE_POLICY.md, COMMUNICATION_PROTOCOL 62); proven live by the first real release.
    Release 0.1.1 made with the button on 2026-10-04 (#204/#205, resume #206, signed tag
    v0.1.1 on 20a61dd, VERIFIED_COMPLETE); the GitHub Release entry by the owner by hand.
-   P11c (waits for KIT-GF-043): the owner wants the Kit to create the private GitHub
+   P11c (waits for a Kit release with KIT-GF-043; fixed on Kit main #2387, 2026-10-05): the owner wants the Kit to create the private GitHub
    Release entry in the same signed `release-publish` run (owner 2026-10-04). Then:
    `publication: github` in `.agentic/config.yaml` (rule source, KIT-GF-039), release
    policy and its JSON (the Kit's own `gh release create` inside the signed run; Cockpit
