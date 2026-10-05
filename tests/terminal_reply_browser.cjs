@@ -20,7 +20,7 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
             pendingAttachmentKey:"", lastProcessedAssistantAttachmentKey:""},
     PENDING_SEND_TRANSPORT:null, AGP_FORMAT_REPAIR_ATTEMPTS:0,
     LIMITS:{minAssistantChars:1, stablePollsRequired:2},
-    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {},
+    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {}, refreshLiveMissionStatus:async () => {},
     expectedStepFileVisible:() => true, chatgptGenerationActive:() => false,
     newAssistantTextAfterBaseline:() => "", reportAssistantWaitObservation:async () => {},
     assistantPythonAttachmentCandidates:() => Array.from({length:python}, () => ({name:"1480_x.py"})),
