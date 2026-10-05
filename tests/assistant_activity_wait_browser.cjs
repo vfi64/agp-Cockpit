@@ -17,7 +17,7 @@ function run({waitedMs, lastActivityAgoMs=null, generation=false, document=undef
   if (lastActivityAgoMs !== null) STATE.assistantLastActivityAt = now - lastActivityAgoMs;
   const context = vm.createContext({
     STATE, LIMITS:{minAssistantChars:1, stablePollsRequired:2}, Date, Math, Number, String, Array,
-    retireIfOrphaned:() => false, pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {},
+    retireIfOrphaned:() => false, pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {}, refreshLiveMissionStatus:async () => {},
     expectedStepFileVisible:() => false, newAssistantTextAfterBaseline:() => "",
     reportAssistantWaitObservation:async () => {}, chatgptGenerationActive:() => generation,
     clientEvent:async (name, details) => { events.push([name, details]); },

@@ -211,3 +211,32 @@ function agpComposerSendButton(resolveComposer) {
       style.display !== "none" && style.pointerEvents !== "none";
   }) || null;
 }
+
+// AGP_PANEL_LIVE_STATUS_V1 (live 2026-10-05): the bridge panel showed
+// "0 / 40" and "Aktualisiert 10:25:46" for the whole run although the bridge
+// counted turn 1 at 10:27:17; a local step that waits for CI (8 min) showed no
+// sign of life either. Pure helpers, used by content.js and tested in node.
+function agpMergeLiveMission(current, fresh) {
+  // Observational only: take the counters of the same mission, nothing else.
+  if (!current || !fresh || !current.mission_id || fresh.mission_id !== current.mission_id) return null;
+  return Object.assign({}, current, {
+    turn_count: Number(fresh.turn_count || 0),
+    step_count: Number(fresh.step_count || 0)
+  });
+}
+
+function agpMissionPhaseText(phase, nowMs) {
+  const since = startedAt => {
+    const seconds = Math.max(0, Math.floor((Number(nowMs) - Number(startedAt)) / 1000));
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  };
+  if (!phase) return "";
+  if (Number(phase.processingStartedAt) > 0) {
+    const file = String(phase.processingFile || "").trim();
+    return `${file || "Auftrag"} läuft lokal seit ${since(phase.processingStartedAt)}`;
+  }
+  if (phase.waitingForAssistant && Number(phase.assistantWaitStartedAt) > 0) {
+    return `wartet auf ChatGPT seit ${since(phase.assistantWaitStartedAt)}`;
+  }
+  return "";
+}

@@ -26,7 +26,7 @@ function baseContext(calls) {
 async function rejectionStopsOnFirstError() {
   const calls = [];
   const context = Object.assign(baseContext(calls), {
-    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {},
+    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {}, refreshLiveMissionStatus:async () => {},
     expectedStepFileVisible:() => true, chatgptGenerationActive:() => false,
     newAssistantTextAfterBaseline:() => "", reportAssistantWaitObservation:async () => {},
     expectedStepTerminalCandidates:() => [],
@@ -54,7 +54,7 @@ async function rejectionStopsOnFirstError() {
 async function transientErrorIsRetried() {
   const calls = [];
   const context = Object.assign(baseContext(calls), {
-    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {},
+    pollOperatorControl:async () => {}, pollExplicitTaskStartRequest:async () => {}, refreshLiveMissionStatus:async () => {},
     expectedStepFileVisible:() => true, chatgptGenerationActive:() => false,
     newAssistantTextAfterBaseline:() => "", reportAssistantWaitObservation:async () => {},
     expectedStepTerminalCandidates:() => [],

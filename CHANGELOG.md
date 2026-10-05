@@ -15,6 +15,9 @@ repository may carry a GitHub Release entry made by the owner
   its own draft instead of stopping; build `release-0.1.1-r6`. The send refocuses the
   composer before Enter and its fallback uses the composer form's send button (the
   current UI has no `send-button` test id); build `release-0.1.1-r7`.
+- The bridge panel refreshes turns, steps and its time every 5 s during a run and shows
+  how long the current work order runs or how long it waits for ChatGPT; build
+  `release-0.1.1-r8`.
 
 ## v0.1.1 - 2026-10-04
 

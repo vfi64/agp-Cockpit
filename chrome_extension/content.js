@@ -5,6 +5,9 @@
     paused: false,
     operatorControlGeneration: 0,
     processingAssistant: false,
+    processingStartedAt: 0,
+    processingFile: "",
+    lastLiveStatusAt: 0,
     lastAssistantHash: "",
     lastPrompt: "",
     turns: 0,
@@ -2391,6 +2394,24 @@
     return result;
   }
 
+  // AGP_PANEL_LIVE_STATUS_V1: while a mission runs, refresh the counters and the
+  // "Aktualisiert" time every few seconds. Observational only: state, note,
+  // next step and every decision stay with the existing paths.
+  const LIVE_STATUS_INTERVAL_MS = 5000;
+  async function refreshLiveMissionStatus() {
+    if (!STATE.running || !STATE.mission) return;
+    const now = Date.now();
+    if (now - Number(STATE.lastLiveStatusAt || 0) < LIVE_STATUS_INTERVAL_MS) return;
+    STATE.lastLiveStatusAt = now;
+    try {
+      const result = await api("/v1/status");
+      const merged = agpMergeLiveMission(STATE.mission, result && result.mission);
+      if (merged) STATE.mission = merged;
+      STATE.lastRefresh = new Date();
+      render();
+    } catch (_) {}
+  }
+
   async function submitAssistant(text) {
     // AGP_LIVE_PROBE_TERMINAL_SIGNAL_074
     // A terminal mission signal is not a work order. Let the server/runtime
@@ -2741,6 +2762,7 @@
     await pollOperatorControl();
     if (STATE.paused) return;
     await pollExplicitTaskStartRequest();
+    await refreshLiveMissionStatus();
     if (!STATE.running || !STATE.waitingForAssistant) return;
       // A historical attachment can briefly be the only visible Python card
       // while ChatGPT is still materializing the new assistant response. Do
@@ -2868,6 +2890,9 @@
           filename:directCommandFiles[0].name,
           href:directCommandFiles[0].href || null
         });
+        // AGP_PANEL_LIVE_STATUS_V1: the panel shows how long this work order runs.
+        STATE.processingStartedAt = Date.now();
+        STATE.processingFile = directCommandFiles[0].name;
         render();
         try {
           const consumed = await processCompletedAssistant(lastAssistantText(), runGeneration);
@@ -2877,6 +2902,8 @@
           }
         } finally {
           STATE.processingAssistant = false;
+          STATE.processingStartedAt = 0;
+          STATE.processingFile = "";
         }
         return;
       }
@@ -4034,6 +4061,16 @@
       ? `${STATE.mission.state} — ${STATE.mission.title || "Mission"} · Steps ${STATE.mission.step_count || 0}`
       : "IDLE — Keine aktive Mission";
     mission.appendChild(mText);
+
+    const phaseText = STATE.running && typeof agpMissionPhaseText === "function"
+      ? agpMissionPhaseText(STATE, Date.now()) : "";
+    if (phaseText) {
+      const phase = document.createElement("div");
+      phase.className = "agp-note";
+      phase.style.marginTop = "4px";
+      phase.textContent = phaseText;
+      mission.appendChild(phase);
+    }
 
     if (STATE.note) {
       const note = document.createElement("div");
