@@ -3,6 +3,7 @@
 Status: active
 Status-date: 2026-09-09
 Decision status: accepted
+Review policy: on material change
 
 G0 Authority: read current repository/planning/Kit authority before mutation.
 G1 Scope: preserve Remote-LLM / deterministic-controller / Kit split.

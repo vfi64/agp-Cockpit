@@ -2,6 +2,7 @@
 
 Status: active
 Decision status: accepted
+Review policy: on material change
 Status-date: 2026-09-09
 
 Highest product-scope authority:

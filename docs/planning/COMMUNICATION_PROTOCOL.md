@@ -1,5 +1,9 @@
 # AGP Cockpit Communication Protocol
-Status: canonical communication authority; complete cross-component lifecycle baseline.
+Status: active
+Status-date: 2026-10-04
+Decision status: accepted
+Review policy: on material change
+Note: canonical communication authority; complete cross-component lifecycle baseline.
 
 This document complements `docs/planning/PROTOCOL.md`: that file defines Protocol-v1 frame semantics; this file governs the complete cross-component Cockpit communication/lifecycle protocol.
 

@@ -1,7 +1,10 @@
 # Independent Ultra Review Remediation Plan
 
-Status: ACTIVE
+Status: active
 Status-date: 2026-09-11
+Decision status: accepted
+Review policy: on material change
+Note: ACTIVE
 Decision owner: Maintainer
 Review baseline: independent review of revision `90eff979e8e27e52b4e50b6de20655e30d8000fb`
 Current implementation baseline at plan creation: `f1076d6f8c7133a4db088b38b46926de9a5409b4`

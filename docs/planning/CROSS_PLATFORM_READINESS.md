@@ -1,4 +1,8 @@
 # Cross-platform Product Readiness — S12
+Status: active
+Status-date: 2026-10-04
+Decision status: accepted
+Review policy: on material change
 
 ## Status and scope
 

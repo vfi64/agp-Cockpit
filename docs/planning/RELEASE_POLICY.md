@@ -1,6 +1,10 @@
 # Release policy — agp-Cockpit
 
-Status: active · Decided by the owner on 2026-10-02 · Machine-readable form:
+Status: active
+Status-date: 2026-10-04
+Decision status: accepted
+Review policy: on material change
+Note: active · Decided by the owner on 2026-10-02 · Machine-readable form:
 `docs/planning/release_policy.json` (marker `AGP_RELEASE_POLICY_V1`).
 
 agp-Cockpit is the owner's private tool. It is not published anywhere.

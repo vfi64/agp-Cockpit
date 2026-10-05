@@ -3,6 +3,7 @@
 Status: active
 Status-date: 2026-09-09
 Decision status: accepted
+Review policy: on material change
 Current deployed protocol: V1
 Target task-runtime protocol: V2
 
