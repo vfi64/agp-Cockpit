@@ -27,6 +27,22 @@ repository may carry a GitHub Release entry made by the owner
 - Kit 1.0.18 adopted (CI pins, command manifest 5f78167f2644); KIT-GF-042 and KIT-GF-046
   verified fixed, KIT-GF-047 recorded.
 
+## v0.2.0 - 2026-10-05
+
+- Fix remote file regeneration
+- P10a: Pflege standard task; sweep execute asks; ci-update guard
+- Pflege DONE file within the terminal schema; correct malformed terminal replies
+- R5 in every tab: the Arbeiten tab refuses to start while a task runs
+- Docs lifecycle headers for the planning documents
+- Lagebericht: uncommitted work on a new branch is IN_ARBEIT, not STÖRUNG
+- Fix new chat composer attachment
+- Claude chat switch from repository facts (AGP_CLAUDE_HANDOFF_FACTS_V1)
+- Bridge panel: live counters and phase during a run (AGP_PANEL_LIVE_STATUS_V1)
+- Record KIT-GF-044; KIT-GF-043/044 fixed on Kit main (#2387)
+- Adopt Kit 1.0.17; KIT-GF-042 retest still fails, record KIT-GF-045/046
+- Adopt Kit 1.0.18; KIT-GF-042 and KIT-GF-046 verified fixed, record KIT-GF-047
+- Check composer touchpoints before a mission start (AGP_MISSION_TOUCHPOINT_SELFTEST_V1)
+
 ## v0.1.1 - 2026-10-04
 
 App 0.1.1 · build `release-0.1.1` · agentic-project-kit 1.0.16 · made with the

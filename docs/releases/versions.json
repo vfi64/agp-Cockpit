@@ -19,6 +19,14 @@
       "date": "2026-10-04",
       "tag": "v0.1.1",
       "published": false
+    },
+    {
+      "app": "0.2.0",
+      "build_id": "release-0.2.0",
+      "kit": "1.0.18",
+      "date": "2026-10-05",
+      "tag": "v0.2.0",
+      "published": false
     }
   ]
 }
