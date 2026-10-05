@@ -339,7 +339,10 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    (P10b not built yet; the same steps as #194). Retest GF-E058: `workspace ci-update
    --execute` still replaces the Cockpit's customized CI with 1.0.17 (KIT-GF-042 stays open,
    `reproduced_in` 1.0.17, AGP_KIT_FINDING_REPRODUCED_V1), so AGP_CI_UPDATE_GUARD_V1 stays and
-   P10b keeps bumping both pins by hand.
+   P10b keeps bumping both pins by hand. Update 2026-10-05: Kit 1.0.18 adopted by hand (Kit
+   fixes #2395 for KIT-GF-042 and #2397 for KIT-GF-046, both patched by Claude and verified,
+   GF-E063/GF-E064); ci-update now blocks the customized CI itself, the guard stays as a
+   cheap second line. The Kit release itself ran through a local runner script (KIT-GF-047).
 11. P11 Release (always asks; verifier to be specified first; private only per
    `docs/planning/RELEASE_POLICY.md`). Kit gate lifted: KIT-GF-032 verified fixed
    with Kit 1.0.15 (2026-10-03; KIT-GF-029 with 1.0.14). Owner's decisions 2026-10-04:

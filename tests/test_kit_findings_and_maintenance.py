@@ -54,15 +54,15 @@ def test_a_cockpit_retest_that_reproduces_the_defect_overrides_the_kit_closure()
     assert finding(kit={"kit_state": "CLOSED", "fixed_in": ""}, reproduced_in="1.0.17").effective_status("1.0.17") == kf.OPEN
 
 
-def test_the_real_register_tracks_the_kit_1_0_17_adoption():
+def test_the_real_register_tracks_the_kit_1_0_18_adoption():
     by_id = {f.id: f for f in kf.load(ROOT)}
-    assert by_id["KIT-GF-042"].effective_status("1.0.17") == kf.OPEN          # GF-E058: ci-update still overwrites
+    for fid in ("KIT-GF-041", "KIT-GF-042", "KIT-GF-044", "KIT-GF-045", "KIT-GF-046"):
+        assert by_id[fid].effective_status("1.0.18") == kf.VERIFIED
+    assert by_id["KIT-GF-042"].reproduced_in == "1.0.17"                    # GF-E058 stays on record
     assert by_id["KIT-GF-042"].mitigations[-1]["marker"] == "AGP_CI_UPDATE_GUARD_V1"
-    for fid in ("KIT-GF-041", "KIT-GF-044", "KIT-GF-045"):
-        assert by_id[fid].effective_status("1.0.17") == kf.VERIFIED
     for fid in ("KIT-GF-030", "KIT-GF-031", "KIT-GF-039", "KIT-GF-040", "KIT-GF-043"):
-        assert by_id[fid].effective_status("1.0.17") == kf.FIXED_UNVERIFIED
-    assert by_id["KIT-GF-046"].effective_status("1.0.17") == kf.OPEN
+        assert by_id[fid].effective_status("1.0.18") == kf.FIXED_UNVERIFIED
+    assert by_id["KIT-GF-047"].effective_status("1.0.18") == kf.OPEN
 
 
 def test_window_filters_and_shows_details(tmp_path):

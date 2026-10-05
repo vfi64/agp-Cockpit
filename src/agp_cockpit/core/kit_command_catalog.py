@@ -70,6 +70,9 @@ OWNER_DECISION_EXECUTE_COMMANDS = frozenset({"docs lifecycle sweep"})
 # AGP_CI_UPDATE_GUARD_V1 (KIT-GF-042): the Kit's managed-CI template update would
 # replace the Cockpit's customized CI (pytest and Playwright jobs). Its execute is
 # rejected outright; the Kit pin in both workflow files is updated by hand (P10b).
+# Kept after Kit 1.0.18 (GF-E063), which now blocks a customized template itself:
+# here ci-update can only block, so the rejection saves a remote turn and still
+# guards against a Kit regression.
 FORBIDDEN_EXECUTE_COMMANDS = frozenset({"workspace ci-update"})
 EXECUTE_FLAG = "--execute"
 # AGP_RELEASE_DRY_RUN_FREE_V1 (plan P11): remote-effect orchestrators whose dry run

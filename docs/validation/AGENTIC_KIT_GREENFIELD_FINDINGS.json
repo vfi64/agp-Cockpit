@@ -468,6 +468,27 @@
       "historical_id": "Kit release 1.0.17 work, work finish --branch codex/release-summary-line --execute",
       "canonical_family": "KIT-GF-046",
       "summary": "handoff-commit blocked by snapshot_id_mismatch after handoff-refresh"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E063",
+      "historical_id": "Kit 1.0.18 retest, disposable clone of agp-Cockpit main 684a696 (workspace ci-update --execute)",
+      "canonical_family": "KIT-GF-042",
+      "summary": "ci-update blocks the customized CI template and workflow, nothing written"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E064",
+      "historical_id": "Kit release 1.0.18, work finish --execute --branch codex/release-1.0.18 (PR #2399)",
+      "canonical_family": "KIT-GF-046",
+      "summary": "work finish after a manifest change passes in one run"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E065",
+      "historical_id": "Kit releases 1.0.17 (manual) and 1.0.18 (local runner script)",
+      "canonical_family": "KIT-GF-047",
+      "summary": "no Kit orchestrator for the end-to-end release lifecycle"
     }
   ],
   "families": [
@@ -1573,11 +1594,11 @@
       "id": "KIT-GF-042",
       "title": "workspace ci-update replaces a customized managed workflow without notice",
       "first_observed": "2026-10-04",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.18",
       "reproduced_in": "1.0.17",
       "expected": "ci-update updates a managed CI template only when it still equals a Kit-written version, or shows the local changes it would discard and requires an explicit confirmation.",
       "observed": "Kit 1.0.16, `workspace ci-update --execute` in a clone of agp-Cockpit main 3ffa74a: the Cockpit's managed template (header kept, content customized under AGP_CI_GATE_V2: python job with pytest, browser job with Playwright tests, aggregate check agentic-gate) was replaced by the Kit template, which runs only `agentic-kit standard-gates-audit-suite` — the Cockpit's own test suites would no longer run in CI. The dry run reports only 'managed CI template update is available'.",
@@ -1588,14 +1609,15 @@
       "evidence": [
         "sandbox diff: .github/workflows/agentic-gate.yaml 32 insertions, 94 deletions (python/browser jobs removed)",
         "Retest 2026-10-05 (GF-E058), Kit 1.0.17 (PyPI), clone of agp-Cockpit main de477b4: `workspace ci-update --json` reports PASS 'managed CI template update is available' for both files without a blocker; `--execute` rewrites .agentic/ci/agentic-gate.yaml and .github/workflows/agentic-gate.yaml (32 insertions, 94 deletions, python and browser jobs removed) — the same result as with 1.0.16.",
-        "Cause (Kit v1.0.17 src/agentic_project_kit/workspace_ci_update.py): the source template .agentic/ci/agentic-gate.yaml is marked for replacement whenever it differs from the Kit template, without any check whether it was customized; the injected workflow counts as an intact old projection because it equals the projection of the customized source, so modified_managed_ci_workflow only fires when the two Cockpit files differ from each other. The Cockpit customizes both identically."
+        "Cause (Kit v1.0.17 src/agentic_project_kit/workspace_ci_update.py): the source template .agentic/ci/agentic-gate.yaml is marked for replacement whenever it differs from the Kit template, without any check whether it was customized; the injected workflow counts as an intact old projection because it equals the projection of the customized source, so modified_managed_ci_workflow only fires when the two Cockpit files differ from each other. The Cockpit customizes both identically.",
+        "Kit #2395 (a0eb51c0), patched by Claude: hash registry of every Kit-written source template; regression test test_workspace_ci_update_blocks_a_customized_source_template_and_its_projection (the agp-Cockpit case)."
       ],
       "kit_repo_status": {
         "date": "2026-10-05",
-        "fixed_in": "1.0.17",
+        "fixed_in": "1.0.18",
         "kit_state": "CLOSED",
-        "raw": "Kit closed it with #2381 (5ed54c80) in 1.0.17; the Cockpit retest (GF-E058) still reproduces the defect: the fix protects only a workflow that differs from its own source template, not a customized source template",
-        "report": "docs/reports/greenfield/KIT-GF-042-ci-update-managed-drift-2026-10-04.md"
+        "raw": "fixed in Kit 1.0.18 (#2395 a0eb51c0, after the incomplete #2381 in 1.0.17)",
+        "report": "docs/reports/greenfield/KIT-GF-042-ci-update-customized-source-2026-10-05.md"
       },
       "cockpit_mitigation": [
         {
@@ -1607,8 +1629,14 @@
           "date": "2026-10-05",
           "marker": "AGP_CI_UPDATE_GUARD_V1",
           "description": "Kept after the 1.0.17 retest (GF-E058): ci-update --execute would still drop the Cockpit's own CI jobs. CI pins bumped to 1.0.17 by hand."
+        },
+        {
+          "date": "2026-10-05",
+          "marker": "AGP_CI_UPDATE_GUARD_V1",
+          "description": "Kept deliberately after the 1.0.18 retest (GF-E063): the Cockpit customizes its CI on purpose, so ci-update can only block here; rejecting the execute saves a remote turn and still protects against a Kit regression. CI pins are bumped by hand (P10b)."
         }
-      ]
+      ],
+      "verified_by": "2026-10-05 GF-E063, Kit 1.0.18 (PyPI) in a disposable clone of agp-Cockpit main 684a696: `workspace ci-update --json` and `--execute --json` both return rc 2, BLOCKED with modified_managed_ci_template (.agentic/ci/agentic-gate.yaml) and modified_managed_ci_workflow (.github/workflows/agentic-gate.yaml), nothing written. Kit fix #2395 (a0eb51c0): only source templates whose hash is in KIT_WRITTEN_CI_TEMPLATE_SHA256 are refreshed."
     },
     {
       "id": "KIT-GF-043",
@@ -1698,11 +1726,11 @@
       "id": "KIT-GF-046",
       "title": "work finish blocks its own handoff commit after the handoff refresh changes rule sources",
       "first_observed": "2026-10-05",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.18",
       "expected": "work finish --execute completes in one run when the branch changes the command manifest: after handoff-refresh rewrites the handoff projections (which carry the manifest ACK and are rule sources), the rule acknowledgement is refreshed before the handoff commit.",
       "observed": "Kit main after 1.0.16, owner's run of `work finish --branch codex/release-summary-line --execute` (KIT-GF-045 branch, manifest sha changed): steps up to handoff-refresh passed (the work commit was made), then handoff-commit (`transfer commit` of docs/handoff/* and docs/reports/handoff-packages/latest/*) returned rc 2 with reasons dirty_worktree and snapshot_id_mismatch (rule_acknowledgement fail_closed). Kit v1.0.17 human_workflows.py runs rules acknowledge after the work commit (rules-acknowledge-post-work-commit) and after the closeout, but not between handoff-refresh and handoff-commit.",
       "impact": "A finished branch stops halfway (work commit made, handoff projections dirty, nothing pushed); the owner needs a second work finish run with the handoff paths.",
@@ -1711,7 +1739,36 @@
       "regression": "A work finish --execute on a branch that changes the command manifest passes in one run.",
       "evidence": [
         "owner's result files kit_gf045_finish_result.json (BLOCKED at handoff-commit) and kit_gf045_finish_result2.json (PASS), 2026-10-05",
-        "Kit v1.0.17 src/agentic_project_kit/cli_commands/human_workflows.py lines 694-722 (step order)"
+        "Kit v1.0.17 src/agentic_project_kit/cli_commands/human_workflows.py lines 694-722 (step order)",
+        "Kit #2397 (eec04ddf), patched by Claude: rules-acknowledge-post-handoff-refresh between handoff-projection-status and handoff-commit; tests in tests/test_human_workflows.py."
+      ],
+      "verified_by": "2026-10-05 GF-E064, Kit release 1.0.18 (owner's run, step B4): `release prepare --write` changed the command manifest, and `work finish --execute --branch codex/release-1.0.18` passed in one run: handoff-refresh, rules-acknowledge-post-handoff-refresh, handoff-commit, push-current and pr-create-complete all rc 0 (PR #2399). Kit fix #2397 (eec04ddf). Reproduced and checked before in a disposable Kit clone (report KIT-GF-046-work-finish-handoff-rule-ack-2026-10-05.md).",
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "1.0.18",
+        "kit_state": "CLOSED",
+        "raw": "fixed in Kit 1.0.18 (#2397 eec04ddf)",
+        "report": "docs/reports/greenfield/KIT-GF-046-work-finish-handoff-rule-ack-2026-10-05.md"
+      }
+    },
+    {
+      "id": "KIT-GF-047",
+      "title": "No orchestrator runs the release lifecycle end to end",
+      "first_observed": "2026-10-05",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "One Kit command (for example `agentic-kit release run --version X`) runs the whole lifecycle — readiness, prepare branch and PR, signed publish, package index publication, post-release check with waiting for Zenodo, DOI closeout PR, final release-status — through the existing orchestrators; it stops at each irreversible step for an approval in the Kit's signature style, records its state so a rerun resumes at the failed or unapproved step, and treats a step as passed only when the orchestrator's own result_status says so.",
+      "observed": "Kit 1.0.17 (2026-10-05): the owner pasted about 16 separate commands (release ready, release prepare dry and --write, work start, work finish dry and --execute, release-publish dry and signed execute, gh workflow run for PyPI, gh run watch, post-release-check, work start, post-release-doi-closeout, work finish dry and --execute, release-status), copying the approval signature and the changed paths by hand; two blockers (an unclassified PR, too few changelog categories) appeared only mid-run. Release 1.0.18 ran through a local, unversioned runner script (agp-Cockpit .local/agp-cockpit/tools/kit_release.py, 16 steps A1 to D5, four owner gates) without manual copying.",
+      "impact": "Many owner copy-and-paste steps, hand-carried signatures and path lists, no resume after a failure; the Cockpit's Release standard task cannot drive a Kit-style public release as one route.",
+      "workaround": "Local runner script kit_release.py (resumable state file, log, gates B4/C2/C3/D4).",
+      "repair": "Add `release run` as an orchestrator over release ready, release prepare, work start/finish, release-publish, the package-index workflow, post-release-check and post-release-doi-closeout, with signed phase approvals and resume state under .agentic/tmp.",
+      "regression": "A release from ready to current_verified needs one command per approval and resumes after an interrupted step without repeating a remote effect.",
+      "evidence": [
+        "owner's 1.0.17 result files kit_1017_*.json (2026-10-05)",
+        "kit_release_1.0.18.log and kit_release_1.0.18.state.json (2026-10-05): A1 to D5 PASS, DOI 10.5281/zenodo.23166532"
       ]
     }
   ],

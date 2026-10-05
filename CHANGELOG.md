@@ -21,6 +21,8 @@ repository may carry a GitHub Release entry made by the owner
 - Kit 1.0.17 adopted (CI pins, command manifest 9fedc20833c1). The Kit findings window
   keeps a finding open when the Cockpit's own retest still shows the defect in the Kit
   version that claims the fix (KIT-GF-042, `workspace ci-update` stays blocked).
+- Kit 1.0.18 adopted (CI pins, command manifest 5f78167f2644); KIT-GF-042 and KIT-GF-046
+  verified fixed, KIT-GF-047 recorded.
 
 ## v0.1.1 - 2026-10-04
 

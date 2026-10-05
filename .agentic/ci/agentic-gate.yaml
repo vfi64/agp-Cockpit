@@ -23,7 +23,7 @@ jobs:
           cache: "pip"
       - run: python -m pip install --upgrade pip
       # Pinned: CI checks with the same Kit version as the developer machine (KIT-GF-042: no ci-update here).
-      - run: python -m pip install "agentic-project-kit==1.0.17"
+      - run: python -m pip install "agentic-project-kit==1.0.18"
       - run: |
           python -m pip install -e . pytest
           python -m pytest -q
