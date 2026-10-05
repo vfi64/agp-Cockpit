@@ -101,6 +101,7 @@ class RepoFacts:
     post_merge: str | None = None           # PASS / NOT_PASS / None (not checked)
     post_merge_detail: str = ""
     task_running: bool = False
+    branch_published: bool | None = None    # refs/remotes/origin/<branch> exists (None: main/unknown)
 
 
 @dataclass(frozen=True)
@@ -179,6 +180,9 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
     gh = gh_binary(root)
     if gh:
         gh_ok = _run([gh, "auth", "status"], root, runner).returncode == 0
+    published = None
+    if branch and branch != "main":
+        published = bool(_git(root, runner, "rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}"))
     post_merge, detail = None, ""
     if kit is not None and branch == "main" and workspace:
         post_merge, detail = post_merge_check(root, kit, runner=runner)
@@ -186,7 +190,7 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
                      tracking_main=tracking, own_commits=own, changes=tuple(changes),
                      volatile_changes=tuple(volatile), kit_version=kit_version, workspace=workspace,
                      gh_ok=gh_ok, post_merge=post_merge, post_merge_detail=detail,
-                     task_running=task_running)
+                     task_running=task_running, branch_published=published)
 
 
 def _state(name: str, summary: str, recommended: str | None, reasons, facts: RepoFacts,
@@ -243,6 +247,13 @@ def classify(facts: RepoFacts) -> RepoState:
                           problems, facts)
         return _state(BEREIT, "main ist synchron und sauber; bereit für neue Arbeit.", ARBEIT_BEGINNEN,
                       (), facts)
+    if (facts.own_commits == 0 and facts.changes and facts.head == facts.origin_main
+            and facts.branch_published is False):
+        # AGP_UNCOMMITTED_WORK_STATE_V1 (live 2026-10-05, docs/lifecycle-headers): a new,
+        # never published branch whose work is still uncommitted (an Arbeiten task leaves it so)
+        # is work in progress, not a leftover; Abschließen commits and publishes it.
+        return _state(IN_ARBEIT, f"Arbeit auf {facts.branch}: {len(facts.changes)} Änderung(en), noch "
+                      "nicht committet; bereit zum Abschließen.", ABSCHLIESSEN, (), facts)
     if facts.own_commits == 0 and facts.changes and facts.head == facts.origin_main:
         return _state(STOERUNG, f"Branch {facts.branch} enthält keine eigene Arbeit, aber offene "
                       "Änderungen (vermutlich Rest eines Abschlusses).", WIEDERHERSTELLEN,

@@ -41,6 +41,12 @@ def facts(**kw):
     # live 2026-10-01: leftover admin-refresh branch at origin/main with a Kit status.md edit
     ({"branch": "docs/post-pr139-handoff-refresh", "own_commits": 0, "changes": (".agentic/state/status.md",)},
      rs.STOERUNG, rs.WIEDERHERSTELLEN),
+    ({"branch": "docs/post-pr139-handoff-refresh", "own_commits": 0, "changes": ("a.md",),
+      "branch_published": True}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
+    # AGP_UNCOMMITTED_WORK_STATE_V1 (live 2026-10-05): new unpublished branch, Arbeiten left the
+    # work uncommitted -> Abschließen, not Wiederherstellen
+    ({"branch": "docs/lifecycle-headers", "own_commits": 0, "changes": ("docs/planning/A.md",),
+      "branch_published": False}, rs.IN_ARBEIT, rs.ABSCHLIESSEN),
 ])
 def test_classify(kw, state, recommended):
     result = rs.classify(facts(**kw))
@@ -96,6 +102,9 @@ def test_observe_reads_a_real_repository(repo):
     assert result.facts.post_merge == "PASS"
     subprocess.run(["git", "-C", str(root), "switch", "-q", "-c", "feat/x"], check=True)
     (root / "a.py").write_text("x")
+    fresh = rs.classify(rs.observe(root, kit=kit))       # AGP_UNCOMMITTED_WORK_STATE_V1
+    assert fresh.facts.branch_published is False
+    assert (fresh.state, fresh.recommended) == (rs.IN_ARBEIT, rs.ABSCHLIESSEN)
     subprocess.run(["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t", "add", "a.py"], check=True)
     subprocess.run(["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t",
                     "commit", "-qm", "w"], check=True)
