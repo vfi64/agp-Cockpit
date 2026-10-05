@@ -21,6 +21,7 @@ class StandardTaskProgress:
     text: str
     terminal: bool
     outcome: str  # RUNNING | DONE | HUMAN_REQUIRED | STOPPED | UNKNOWN
+    detail: str = ""  # AGP_SHORT_RESULT_LINE_V1: the remote side's own report (tooltip)
 
 
 SUMMARY_LIMIT = 240
@@ -34,6 +35,30 @@ def clip(text: str, limit: int = SUMMARY_LIMIT) -> str:
         return text
     cut = text[:limit].rsplit(" ", 1)[0] if " " in text[:limit] else text[:limit]
     return cut.rstrip(" ,;:") + " …"
+
+
+# AGP_SHORT_RESULT_LINE_V1 (owner 2026-10-05): after a verified finish the result line
+# carried the remote side's English report („Step 1773 passed: agentic-kit transfer
+# pr-create-complete returned PASS …“) and was cut. The line now holds only the
+# Cockpit's own German verdicts; the remote report moves to the tooltip.
+COCKPIT_VERDICTS = ("CI grün geprüft", "Lokal geprüft")
+VERDICT_LIMIT = 140
+
+
+def split_verdict(summary: str) -> tuple[str, str]:
+    """(the Cockpit's own verdict segments, the remote side's report)."""
+    text = " ".join(str(summary or "").split())
+    for prefix in ("Fertig (Remote): ", "Fertig: "):
+        text = text.removeprefix(prefix)
+    own, remote = [], []
+    for segment in text.split(" · "):
+        (own if segment.startswith(COCKPIT_VERDICTS) else remote).append(segment)
+    return clip(" · ".join(own), VERDICT_LIMIT), " · ".join(remote)
+
+
+def counters_text(turns: int, steps: int) -> str:
+    return (f"{turns} Remote-Turn{'' if turns == 1 else 's'} · "
+            f"{steps} Schritt{'' if steps == 1 else 'e'}")
 
 
 def _reason(mission: dict) -> str:
@@ -71,7 +96,7 @@ def describe_standard_task_progress(
     mstate = str(mission.get("state") or "")
     turns = int(mission.get("turn_count") or 0)
     steps = int(mission.get("step_count") or 0)
-    counters = f"{turns} Remote-Turns · {steps} Schritte"
+    counters = counters_text(turns, steps)
     reason = _reason(mission)
     suffix = f" — {reason}" if reason else ""
 
@@ -83,9 +108,10 @@ def describe_standard_task_progress(
         # The summary of the final state, not a stale earlier error
         # (live 1519: "sleep is not defined" after a CI-verified DONE).
         summary = clip(mission.get("last_summary") or "")
-        if summary.startswith("CI grün geprüft"):
+        verdict, remote = split_verdict(mission.get("last_summary") or "")
+        if verdict.startswith("CI grün geprüft"):
             # AGP_CI_GREEN_COMPLETION_V1: verified by the Cockpit itself.
-            return StandardTaskProgress(f"Fertig ✓ — {summary} ({counters}). {local}", True, "DONE")
+            return StandardTaskProgress(f"Fertig ✓ — {verdict} · {counters}.", True, "DONE", remote)
         done_suffix = f" — {summary}" if summary else suffix
         return StandardTaskProgress(
             f"Fertig — von der Remote-Seite gemeldet ({counters}){done_suffix}. {local}",
@@ -94,15 +120,12 @@ def describe_standard_task_progress(
         if task_state == "VERIFIED_COMPLETE":
             # Live 2026-10-02 (Abschließen): show the Cockpit's own verdict
             # (CI gate or local verifier) instead of a generic sentence.
-            summary = clip(mission.get("last_summary") or "")
-            for prefix in ("Fertig (Remote): ", "Fertig: "):
-                summary = summary.removeprefix(prefix)
-            if summary.startswith(("CI grün geprüft", "Lokal geprüft")):
-                return StandardTaskProgress(f"Fertig ✓ — {summary} ({counters}). {local}", True, "DONE")
+            verdict, remote = split_verdict(mission.get("last_summary") or "")
+            if verdict:
+                return StandardTaskProgress(f"Fertig ✓ — {verdict} · {counters}.", True, "DONE", remote)
             return StandardTaskProgress(
-                f"Fertig ✓ — Ergebnis lokal verifiziert und übergeben ({counters}). "
-                f"Mission: DONE · {local}",
-                True, "DONE")
+                f"Fertig ✓ — Ergebnis lokal verifiziert und übergeben ({counters}).",
+                True, "DONE", remote)
         # Mission and durable task disagree: never report success silently.
         return StandardTaskProgress(
             f"Mensch muss prüfen — Mission meldet DONE, lokaler Task ist nicht verifiziert. {local}",

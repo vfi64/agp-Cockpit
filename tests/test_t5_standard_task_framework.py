@@ -229,6 +229,7 @@ def panel(monkeypatch, tmp_path, repo):
     from agp_cockpit.ui import standard_tasks_panel as m
     monkeypatch.setattr(m, "bridge_status", lambda: {"mission": None})
     monkeypatch.setattr(build_freshness, "start_block_reason", lambda _root, **_kw: None)
+    monkeypatch.setattr(build_freshness, "stale_block_reason", lambda _root, **_kw: "")
     monkeypatch.setattr(m, "require_allowed_active_chat", lambda: SimpleNamespace(url="https://chatgpt.com/c/x"))
     created = []
     monkeypatch.setattr(m, "create_live_full_auto", lambda **kw: created.append(kw) or {"mission": {"mission_id": "m-1"}})
@@ -623,3 +624,41 @@ def test_release_asks_its_version_then_approves_only_the_branch_lifecycle(panel)
     assert "agentic-kit release-publish" not in scope
     gate = json.loads((runtime / "ci-gate.json").read_text())
     assert gate[record["task_id"]]["merge_expected"]
+
+
+def test_ampel_follows_state_decision_and_outcome(panel, monkeypatch):
+    """AGP_AMPEL_V1: one light in the Lage frame, recomputed on every change."""
+    _root, widget, _created, _answers, _repo, _runtime = panel
+    from agp_cockpit.core import ampel as a
+    from agp_cockpit.core.standard_task_progress import StandardTaskProgress
+    from agp_cockpit.ui import standard_tasks_panel as m
+    ready = rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
+                         offered=rs.OFFERED[rs.BEREIT])
+    widget.apply_state(ready)
+    assert widget.ampel_state.color == a.GRUEN and widget.ampel_var.get().startswith("Grün")
+    assert str(widget.ampel_dot.cget("foreground")) == a.COLORS[a.GRUEN]
+    widget._show_decision("m", "Tag v1 setzen?")
+    assert widget.ampel_state.color == a.GELB
+    widget._hide_decision()
+    working = rs.RepoState(state=rs.IN_ARBEIT, summary="s", recommended=rs.ABSCHLIESSEN,
+                           offered=rs.OFFERED[rs.IN_ARBEIT], facts=rs.RepoFacts(root="", branch="feat/x"))
+    widget.apply_state(working)
+    widget._tracked_task = BY_KEY["finish"]
+    widget._tracked_task_id = "t"
+    widget._tracked_mission_id = "m"
+    monkeypatch.setattr(m, "describe_standard_task_progress",
+                        lambda **_kw: StandardTaskProgress("Mensch muss eingreifen", True, "HUMAN_REQUIRED", "x"))
+    monkeypatch.setattr(widget.api, "status", dict)
+    widget.refresh_progress()
+    assert widget.ampel_state.color == a.ROT and widget._status_detail == "x"
+
+
+def test_unklar_state_does_not_break_the_panel(panel):
+    """AGP_UNKLAR_HINT_V1: UNKLAR recommends the Lagebericht, which has no button."""
+    _root, widget, *_rest = panel
+    unclear = rs.classify(rs.RepoFacts(root="", is_git=True, branch="main", head="a", origin_main=None,
+                                       kit_version="1.0.18", workspace=True, gh_ok=True))
+    assert unclear.state == rs.UNKLAR and unclear.recommended == rs.LAGEBERICHT
+    widget.apply_state(unclear)
+    assert "Aktualisieren" in widget.detail_var.get()
+    assert widget.ampel_var.get().startswith("Rot")

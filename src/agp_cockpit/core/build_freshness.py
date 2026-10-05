@@ -95,10 +95,16 @@ def start_block_reason(repository_root: Path, *, release_version: str = "") -> s
     stale and refused the owner's approval of phase 2, which only publishes the tag (and the
     Kit's GitHub entry) and runs no new app code. ``release_version`` exempts exactly that
     source build id while the bundle on disk is still the running one."""
+    return stale_block_reason(repository_root, release_version=release_version) \
+        or kit_block_reason(repository_root)
+
+
+def stale_block_reason(repository_root: Path, *, release_version: str = "") -> str:
+    """The build part of ``start_block_reason`` (file reads only; AGP_AMPEL_V1 polls it)."""
     freshness = check(freshness_root(repository_root))
     if freshness.stale and not _own_release_build(freshness, release_version):
         return f"Blockiert — {freshness.message}"
-    return kit_block_reason(repository_root)
+    return ""
 
 
 def _own_release_build(freshness: BuildFreshness, release_version: str) -> bool:

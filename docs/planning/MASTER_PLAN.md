@@ -541,6 +541,23 @@ Assessment after P8 and the Kit 1.0.14 release; none is decided yet, each needs 
 6. **Rejected work orders into Download/ (Cockpit, owner 2026-10-04: yes).** A rejected work order keeps its browser copy in ~/Downloads (AGP_DOWNLOAD_HYGIENE_V1 removes only accepted ones); persist it in Download/ beside the rejection record and remove the browser copy.
 7. **Narrow scope when a release resumes (Cockpit, owner 2026-10-04: yes).** A resumed Release (phase 1 merged) still grants the release-branch and pull-request effects with its start click; grant only what the tag phase needs.
 
+## 2026-10-05 — Cockpit order after release 0.2.0 (owner: all proposals accepted)
+
+1. Ampel slice — done 2026-10-05 (AGP_AMPEL_V1, AGP_SHORT_RESULT_LINE_V1,
+   AGP_FRESHNESS_LINE_V1, AGP_UNKLAR_HINT_V1; build release-0.2.0-r2): one light in the
+   Lage (green: BEREIT; yellow: work open, task running, decision pending, Kit follow-up
+   open, no Kit layer; red: STÖRUNG, UNKLAR, stale app, interrupted finish, task needs
+   the owner), the result line keeps only the Cockpit's own verdicts, the stale warning
+   wraps in its own header line.
+2. Rebuild/restart button plus extension self-reload on build drift.
+3. P10b „Kit aktualisieren“.
+4. Proposal 6 (rejected work orders into Download/), proposal 7 (narrow release resume
+   scope); the P11c switch after KIT-GF-049.
+5. Systemcheck in the System tab.
+6. Proposal 3/9: Abschließen directly, without the ChatGPT round trip.
+7. Live proofs along the way: new-chat start, P4, P9, retests of KIT-GF-030/031/039/040/043.
+Codex (KIT-GF-049, then KIT-GF-048) is available again from 2026-10-10; nothing above waits for it.
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.
