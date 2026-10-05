@@ -515,6 +515,10 @@ Update 2026-10-05 (r6, COMMUNICATION_PROTOCOL 67): first live piece — the atta
 touchpoint is bound to the resolved composer (the ChatGPT start page renders three
 composer forms, two invisible) and the bounded send retry clears its own draft. The
 sanitized DOM probe of (2) was done by hand with the owner; automating it remains open.
+Update 2026-10-05 (Slice C, COMMUNICATION_PROTOCOL 68, build r9): (4) done — the
+touchpoint self-test runs before the composer is touched and stops a start with a clear
+reason; its page-shape snapshot on every start covers part of (2) for the start page.
+Open: (1), (3), (5), and snapshots for failures after the start.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

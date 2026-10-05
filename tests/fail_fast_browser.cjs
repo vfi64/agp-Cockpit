@@ -102,6 +102,7 @@ async function bootstrapAttachesKitDigest(attachOk) {
     digest:async () => "h", lastAssistantText:() => "", chatgptGenerationActive:() => false,
     captureAssistantBaseline:() => {}, expectedStepFileVisible:() => false, sleep:async () => {},
     missionBootstrapPrompt:() => "BOOT", scheduleTick:() => {},
+    agpMissionTouchpointCheck:() => ({ok:true, reason:"", snapshot:{}}),
     chrome:{runtime:{sendMessage:async (message) => {
       if (message.type === "AGP_K07_CLEAN_COMPOSER") { calls.push("CLEAN"); return {ok:true, stage:"COMPOSER_EMPTY"}; }
       calls.push("ATTACH " + message.type + " " + message.files.join(","));
@@ -125,7 +126,41 @@ async function bootstrapAttachesKitDigest(attachOk) {
   }
 }
 
+// AGP_MISSION_TOUCHPOINT_SELFTEST_V1: a failed self-test stops the start before
+// the composer is cleaned, a file is attached or anything is sent.
+async function touchpointFailureStopsBeforeTheComposer() {
+  const calls = [];
+  let now = 1000;
+  const context = Object.assign(baseContext(calls), {
+    refreshStatus:async () => ({state:"READY", bridge_build_id:"b", kit_command_digest_path:"/r/digest.json",
+      kit_manifest_sha:"ce455b7df8c5", mission:{mission_id:"m", state:"READY", mission_text:"x"}}),
+    sendPrompt:async () => { calls.push("SEND"); },
+    location:{href:"https://chatgpt.com/"},
+    digest:async () => "h", lastAssistantText:() => "", chatgptGenerationActive:() => false,
+    captureAssistantBaseline:() => {}, expectedStepFileVisible:() => false,
+    sleep:async ms => { now += Number(ms || 0); },
+    Date:{now:() => now},
+    missionBootstrapPrompt:() => "BOOT", scheduleTick:() => {},
+    agpMissionTouchpointCheck:() => { calls.push("CHECK"); return {ok:false, reason:"file_input_not_found", snapshot:{forms:3}}; },
+    agpMissionTouchpointMessage:reason => "AGP_TOUCHPOINT_" + reason.toUpperCase() + ": Selbsttest",
+    chrome:{runtime:{sendMessage:async (message) => { calls.push("MSG " + message.type); return {ok:true}; }}},
+  });
+  context.STATE.running = false;
+  context.globalThis = context;
+  context.AGP_EXTENSION_BUILD_ID = "b";
+  vm.createContext(context);
+  vm.runInContext(stopCode + section("  async function startAuto()", "  function btn(label, cls, handler)"), context);
+  await assert.rejects(context.startAuto(), /AGP_TOUCHPOINT_FILE_INPUT_NOT_FOUND/);
+  assert.ok(calls.filter(call => call === "CHECK").length > 1);          // retried while the page renders
+  assert.equal(calls.some(call => call.startsWith("MSG ")), false);       // no clean, no attach
+  assert.equal(calls.includes("SEND"), false);
+  assert.ok(calls.includes("event:MISSION_TOUCHPOINT_SELFTEST"));
+  assert.ok(calls.includes("event:MISSION_TOUCHPOINT_SELFTEST_FAILED"));
+  assert.ok(calls.some(call => call.startsWith("/v1/file-loop/control") && call.includes("AGP_TOUCHPOINT_FILE_INPUT_NOT_FOUND")));
+}
+
 (async () => {
+  await touchpointFailureStopsBeforeTheComposer();
   await bootstrapAttachesKitDigest(true);
   await bootstrapAttachesKitDigest(false);
   await rejectionStopsOnFirstError();

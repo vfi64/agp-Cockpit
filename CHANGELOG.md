@@ -21,6 +21,9 @@ repository may carry a GitHub Release entry made by the owner
 - Kit 1.0.17 adopted (CI pins, command manifest 9fedc20833c1). The Kit findings window
   keeps a finding open when the Cockpit's own retest still shows the defect in the Kit
   version that claims the fix (KIT-GF-042, `workspace ci-update` stays blocked).
+- Mission start checks the ChatGPT composer, its form and its file input before it
+  touches the page; a failure stops with a clear reason and nothing sent, and every
+  start logs the page shape; build `release-0.1.1-r9`.
 - Kit 1.0.18 adopted (CI pins, command manifest 5f78167f2644); KIT-GF-042 and KIT-GF-046
   verified fixed, KIT-GF-047 recorded.
 

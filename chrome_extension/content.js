@@ -3687,6 +3687,36 @@
     captureAssistantBaseline();
     resetCandidate();
 
+    // AGP_MISSION_TOUCHPOINT_SELFTEST_V1: every composer touchpoint must resolve
+    // before anything is inserted, attached or sent; the page may still be
+    // rendering, so retry briefly. The snapshot is logged on every start.
+    let touchpoints = null;
+    const touchpointDeadline = Date.now() + 8000;
+    while (true) {
+      touchpoints = typeof agpMissionTouchpointCheck === "function"
+        ? agpMissionTouchpointCheck(typeof agpResolveComposer === "function" ? agpResolveComposer : undefined)
+        : {ok:false, reason:"selftest_unavailable", snapshot:{}};
+      if (touchpoints.ok || Date.now() >= touchpointDeadline) break;
+      STATE.note = "Selbsttest: warte auf ChatGPT-Eingabefeld";
+      render();
+      await sleep(250);
+    }
+    if (!STATE.running || STATE.runGeneration !== runGeneration) {
+      return;
+    }
+    await clientEvent("MISSION_TOUCHPOINT_SELFTEST", {
+      ok:touchpoints.ok, failure:touchpoints.reason, snapshot:touchpoints.snapshot});
+    if (!touchpoints.ok) {
+      const message = typeof agpMissionTouchpointMessage === "function"
+        ? agpMissionTouchpointMessage(touchpoints.reason)
+        : "AGP_TOUCHPOINT_SELFTEST_UNAVAILABLE: Selbsttest vor dem Start nicht geladen; Erweiterung neu laden. Es wurde nichts gesendet.";
+      // Recorded by the bridge (browser_transport_event) without blocking the
+      // transport: nothing was inserted, attached or sent.
+      await stop(message, "MISSION_TOUCHPOINT_SELFTEST_FAILED");
+      // Like a failed bootstrap send: the explicit start request stays retryable.
+      throw new Error(message);
+    }
+
     // AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1: the expected step must be
     // unused in this conversation before it is issued, otherwise an older
     // card with that number (e.g. from a timed-out mission) would be taken

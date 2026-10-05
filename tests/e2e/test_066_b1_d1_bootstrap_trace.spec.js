@@ -65,8 +65,11 @@ test("066-B1-D1 trace actual content.js bootstrap path", async ({page}) => {
   await page.setContent(`
     <!doctype html><html><body><main>
       <div data-message-author-role="assistant">previous assistant response</div>
+      <form><!-- AGP_MISSION_TOUCHPOINT_SELFTEST_V1: composer, its form and a file input -->
       <textarea id="prompt-textarea"></textarea>
+      <input type="file" multiple>
       <button data-testid="send-button" type="button">Send</button>
+      </form>
     </main></body></html>
   `);
 
@@ -137,6 +140,7 @@ test("066-B1-D1 trace actual content.js bootstrap path", async ({page}) => {
     };
   });
 
+  await page.addScriptTag({path: path.join(ROOT, "chrome_extension", "native_message_evidence.js")});
   await page.addScriptTag({path: CONTENT_JS});
 
   const send = page.locator('button[data-testid="send-button"]');

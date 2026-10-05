@@ -212,6 +212,61 @@ function agpComposerSendButton(resolveComposer) {
   }) || null;
 }
 
+// AGP_MISSION_TOUCHPOINT_SELFTEST_V1 (Slice C, 2026-10-05): before a mission
+// start touches the composer, check every touchpoint the run will need: the
+// visible composer (agpResolveComposer), its form, and an enabled file input in
+// that form (digest and result evidence are attached there). r6 failed only
+// after the digest had gone to an invisible form, and its diagnosis needed DOM
+// probes in DevTools by the owner. The snapshot below records the page shape
+// (counts and ids only, no text) with every start, so the next UI change is
+// diagnosable from the bridge log. The send button is not checked: ChatGPT
+// renders it only after text was inserted (submit uses refocus + form button,
+// AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1). Self-contained like the helpers above.
+function agpMissionTouchpointCheck(resolveComposer) {
+  const visible = el => {
+    if (!el || typeof el.getBoundingClientRect !== "function") return false;
+    const rect = el.getBoundingClientRect();
+    if (!(rect.width > 0 && rect.height > 0)) return false;
+    const style = getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden";
+  };
+  const path = String((typeof location !== "undefined" && location.pathname) || "");
+  const forms = Array.from(document.querySelectorAll("form"));
+  const composer = typeof resolveComposer === "function" ? resolveComposer() : null;
+  const form = composer && typeof composer.closest === "function" ? composer.closest("form") : null;
+  const fileInputs = form ? Array.from(form.querySelectorAll('input[type="file"]')) : [];
+  const enabledFileInputs = fileInputs.filter(input => !input.disabled);
+  const snapshot = {
+    page: path === "/" ? "start" : (path.startsWith("/c/") ? "chat" : "other"),
+    forms: forms.length,
+    visible_forms: forms.filter(visible).length,
+    composer_found: Boolean(composer),
+    composer_tag: composer ? composer.tagName : "",
+    composer_id: composer ? String(composer.id || "") : "",
+    composer_focused: Boolean(composer) && document.activeElement === composer,
+    composer_form_index: form ? forms.indexOf(form) : -1,
+    file_inputs_in_form: fileInputs.length,
+    enabled_file_inputs_in_form: enabledFileInputs.length,
+    send_testid_in_form: Boolean(form && form.querySelector('button[data-testid="send-button"]'))
+  };
+  let reason = "";
+  if (!composer) reason = "composer_not_found";
+  else if (!form) reason = "composer_form_not_found";
+  else if (!enabledFileInputs.length) reason = "file_input_not_found";
+  return {ok:!reason, reason, snapshot};
+}
+
+function agpMissionTouchpointMessage(reason) {
+  const texts = {
+    composer_not_found: "kein sichtbares ChatGPT-Eingabefeld gefunden. Seite fertig laden lassen oder neu laden, angemeldet sein, dann die Aufgabe erneut starten.",
+    composer_form_not_found: "das ChatGPT-Eingabefeld liegt in keinem Formular (Oberfläche geändert?). Bitte Claude melden.",
+    selftest_unavailable: "der Selbsttest ist nicht geladen; Erweiterung neu laden.",
+    file_input_not_found: "im Formular des ChatGPT-Eingabefelds gibt es keinen aktiven Datei-Upload; Anhänge wären unmöglich. Seite neu laden; bleibt es so, Claude melden."
+  };
+  const code = "AGP_TOUCHPOINT_" + String(reason || "unknown").toUpperCase();
+  return `${code}: Selbsttest vor dem Start: ${texts[reason] || "unbekannter Fehler."} Es wurde nichts eingefügt, angehängt oder gesendet.`;
+}
+
 // AGP_PANEL_LIVE_STATUS_V1 (live 2026-10-05): the bridge panel showed
 // "0 / 40" and "Aktualisiert 10:25:46" for the whole run although the bridge
 // counted turn 1 at 10:27:17; a local step that waits for CI (8 min) showed no
