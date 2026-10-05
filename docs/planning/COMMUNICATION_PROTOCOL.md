@@ -687,7 +687,9 @@ This section is normative for the file loop after local execution.
    composer's form, and their evidence is read from that form (document-wide evidence is
    reported as the weaker `document`). No visible composer form means the attachment fails
    closed. A bounded send retry may clear only its own draft (exact prompt or this send's
-   AGP-SEND nonce); any other composer content still stops the send.
+   AGP-SEND nonce); any other composer content still stops the send. The trusted Enter is
+   sent only after the resolved composer is focused again; the DOM send fallback clicks
+   only the send button of that composer's form (`AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1`).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

@@ -60,3 +60,24 @@ def test_native_retry_clears_only_its_own_draft_before_attempt_two():
     retry = "if (attempt > 1) await clearOwnedDraftBeforeRetry(prompt, commitMarker, attempt);"
     assert retry in fn
     assert fn.index(retry) < fn.index("nativeTransport.submit(prompt, {attempt, commitMarker})")
+
+
+BACKGROUND = (EXT / "background.js").read_text(encoding="utf-8")
+
+
+def test_trusted_enter_refocuses_the_resolved_composer_first():
+    assert "function agpRefocusComposerForSubmit(resolveComposer)" in EVIDENCE
+    primary = BACKGROUND.index('event:"PRIMARY_ENTER_BEFORE"')
+    retry = BACKGROUND.index('event:"RETRY_ENTER_BEFORE"')
+    assert BACKGROUND.rindex("await refocusForSubmit()", 0, primary) < primary
+    assert BACKGROUND.rindex("await refocusForSubmit()", 0, retry) < retry
+    assert "focus_before_enter:focusBeforeEnter" in BACKGROUND
+    assert "focus_before_enter:focusBeforeRetry" in BACKGROUND
+
+
+def test_dom_send_fallback_uses_the_composer_form_button():
+    assert "function agpComposerSendButton(resolveComposer)" in EVIDENCE
+    start = BACKGROUND.index("AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1: the control is the send button")
+    block = BACKGROUND[start:BACKGROUND.index('event:"DOM_SEND_FALLBACK"', start)]
+    assert "(${agpComposerSendButton.toString()})(${agpResolveComposer.toString()})" in block
+    assert "document.querySelector('button[data-testid=\"send-button\"]')" not in block

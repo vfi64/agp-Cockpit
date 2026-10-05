@@ -161,3 +161,53 @@ function agpNativeMessageSnapshot(resolveComposer) {
     generation_active:Boolean(document.querySelector('[data-testid="stop-button"], [data-is-streaming="true"]'))
   };
 }
+
+// AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1 (live 2026-10-05, build r6, new chat):
+// after Input.insertText on the ChatGPT start page the focus moved from the
+// composer to <main> (inserted.active_tag MAIN; in every earlier successful
+// send it was the composer DIV), so the trusted Enter went nowhere; the DOM
+// fallback then looked only for button[data-testid="send-button"], which the
+// current UI no longer renders. Both helpers are self-contained: background.js
+// serializes them into the page with Function.prototype.toString().
+function agpRefocusComposerForSubmit(resolveComposer) {
+  const composer = typeof resolveComposer === "function" ? resolveComposer() : null;
+  if (!composer) return {ok:false, reason:"composer_not_found", active_tag:"", active_id:""};
+  const before = document.activeElement;
+  const refocused = before !== composer;
+  if (refocused) {
+    if (typeof window.focus === "function") window.focus();
+    if (typeof composer.focus === "function") composer.focus();
+    if (!("value" in composer) && typeof window.getSelection === "function") {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(composer);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+  const active = document.activeElement;
+  return {
+    ok:active === composer,
+    refocused,
+    before_tag:before ? before.tagName : "",
+    active_tag:active ? active.tagName : "",
+    active_id:active ? active.id : ""
+  };
+}
+
+function agpComposerSendButton(resolveComposer) {
+  const composer = typeof resolveComposer === "function" ? resolveComposer() : null;
+  const form = composer && typeof composer.closest === "function" ? composer.closest("form") : null;
+  if (!form) return null;
+  const buttons = Array.from(form.querySelectorAll('button[data-testid="send-button"], button[type="submit"]'));
+  return buttons.find(button => {
+    const label = String(button.getAttribute("aria-label") || "");
+    if (button.getAttribute("data-testid") !== "send-button" && !/^(send|senden)\b/i.test(label)) return false;
+    if (button.disabled || button.getAttribute("aria-disabled") === "true") return false;
+    const rect = button.getBoundingClientRect();
+    const style = getComputedStyle(button);
+    return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" &&
+      style.display !== "none" && style.pointerEvents !== "none";
+  }) || null;
+}

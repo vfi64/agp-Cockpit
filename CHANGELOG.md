@@ -12,7 +12,9 @@ repository may carry a GitHub Release entry made by the owner
   merged pull requests (corrected entry for 0.1.1 below).
 - Mission start from a new ChatGPT chat: digest and result files go into the visible
   composer's form instead of the first file input of the page, and a send retry clears
-  its own draft instead of stopping; build `release-0.1.1-r6`.
+  its own draft instead of stopping; build `release-0.1.1-r6`. The send refocuses the
+  composer before Enter and its fallback uses the composer form's send button (the
+  current UI has no `send-button` test id); build `release-0.1.1-r7`.
 
 ## v0.1.1 - 2026-10-04
 

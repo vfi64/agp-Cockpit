@@ -155,3 +155,46 @@ test("retry refuses a draft of another send (different nonce)", async ({page}) =
   const result = await page.evaluate(([p, m]) => window.retryClear(p, m), [PROMPT, MARKER]);
   expect(result).toContain("foreign composer content; refusing to overwrite");
 });
+
+// AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1 (live 2026-10-05, build r6): after the
+// prompt was inserted on the start page the focus sat on <main>, the trusted
+// Enter went nowhere and the DOM fallback found no data-testid send button.
+test("refocus puts the focus back on the resolved composer after the page moved it to main", async ({page}) => {
+  await startPage(page);
+  await page.evaluate(() => {
+    const main = document.querySelector("main");
+    main.tabIndex = -1;
+    document.getElementById("editor-2").textContent = "AGP-SEND-0123456789abcdef mission";
+    main.focus();
+  });
+  await page.addScriptTag({content:EVIDENCE});
+  const result = await page.evaluate(() => {
+    const focus = agpRefocusComposerForSubmit(agpResolveComposer);
+    return {...focus, active:document.activeElement.id};
+  });
+  expect(result).toMatchObject({ok:true, refocused:true, before_tag:"MAIN", active:"editor-2"});
+});
+
+test("the send fallback uses the labelled submit button of the composer form (no test id)", async ({page}) => {
+  await startPage(page);
+  await page.evaluate(() => {
+    window.submitted = [];
+    for (const form of document.querySelectorAll("form")) {
+      form.addEventListener("submit", event => { event.preventDefault(); window.submitted.push(form.id); });
+    }
+  });
+  await page.addScriptTag({content:EVIDENCE});
+  const result = await page.evaluate(() => {
+    const button = agpComposerSendButton(agpResolveComposer);
+    if (button) button.click();
+    return {found:Boolean(button), label:button && button.getAttribute("aria-label"), submitted:window.submitted};
+  });
+  expect(result).toEqual({found:true, label:"Senden", submitted:["form-2"]});
+});
+
+test("a disabled or foreign button is never used as the send fallback", async ({page}) => {
+  await startPage(page);
+  await page.evaluate(() => { document.querySelector("#form-2 button[type=submit]").disabled = true; });
+  await page.addScriptTag({content:EVIDENCE});
+  expect(await page.evaluate(() => agpComposerSendButton(agpResolveComposer))).toBeNull();
+});
