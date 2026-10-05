@@ -228,7 +228,7 @@ def panel(monkeypatch, tmp_path, repo):
     from agp_cockpit.core.task_contract import LocalTaskContract
     from agp_cockpit.ui import standard_tasks_panel as m
     monkeypatch.setattr(m, "bridge_status", lambda: {"mission": None})
-    monkeypatch.setattr(build_freshness, "start_block_reason", lambda _root: None)
+    monkeypatch.setattr(build_freshness, "start_block_reason", lambda _root, **_kw: None)
     monkeypatch.setattr(m, "require_allowed_active_chat", lambda: SimpleNamespace(url="https://chatgpt.com/c/x"))
     created = []
     monkeypatch.setattr(m, "create_live_full_auto", lambda **kw: created.append(kw) or {"mission": {"mission_id": "m-1"}})
@@ -359,6 +359,7 @@ def test_recover_offer_clears_once_main_is_ready(panel):
 
 def test_release_policy_allows_the_private_tag_push():
     policy = json.loads((ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"))
+    # P11c (2026-10-05) is prepared; the switch to github waits for KIT-GF-049.
     assert policy["publication"] == "none" and policy["tag_push"]["allowed"] is True
 
 

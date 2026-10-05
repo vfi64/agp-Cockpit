@@ -70,7 +70,36 @@ def verify_released(root: Path, *, version: str, runner=subprocess.run) -> tuple
         return False, f"pyproject.toml at {tag} does not name version {version}"
     if _out(_git(root, "status", "--porcelain", runner=runner)):
         return False, "the worktree is not clean"
-    return True, f"tag {tag} on origin at {local[:12]}, release commit in origin/main"
+    entry = ""
+    from agp_cockpit.core.release_policy import _workspace_publication
+    if _workspace_publication(root) == "github":
+        # AGP_KIT_GITHUB_RELEASE_V1 (P11c): the Kit's signed run also creates the GitHub entry.
+        ok, entry = _github_release_entry(root, tag, runner=runner)
+        if not ok:
+            return False, entry
+        entry = ", " + entry
+    return True, f"tag {tag} on origin at {local[:12]}, release commit in origin/main{entry}"
+
+
+def _github_release_entry(root: Path, tag: str, *, runner=subprocess.run) -> tuple[bool, str]:
+    from agp_cockpit.core.ci_gate import gh_binary, tool_env
+    gh = gh_binary(root)
+    if gh is None:
+        return False, f"gh is not available; the GitHub Release entry {tag} cannot be checked"
+    try:
+        done = runner([gh, "release", "view", tag, "--json", "tagName,isDraft,name"], cwd=str(root),
+                      text=True, capture_output=True, timeout=60, check=False, env=tool_env(root))
+    except (OSError, subprocess.TimeoutExpired):
+        done = None
+    if done is None or done.returncode != 0:
+        return False, f"no GitHub Release entry {tag}"
+    try:
+        data = json.loads(done.stdout or "{}")
+    except ValueError:
+        data = {}
+    if data.get("tagName") != tag or data.get("isDraft"):
+        return False, f"GitHub Release entry {tag} is missing or a draft"
+    return True, f"GitHub Release entry {data.get('name') or tag}"
 
 
 def verify_maintained(root: Path, *, branch: str, runner=subprocess.run) -> tuple[bool, str]:

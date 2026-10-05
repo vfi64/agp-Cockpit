@@ -370,6 +370,15 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    (RELEASE_POLICY.md, COMMUNICATION_PROTOCOL 62); proven live by the first real release.
    Release 0.1.1 made with the button on 2026-10-04 (#204/#205, resume #206, signed tag
    v0.1.1 on 20a61dd, VERIFIED_COMPLETE); the GitHub Release entry by the owner by hand.
+   Release 0.2.0 made with the button on 2026-10-05 (#234/#235, signed tag v0.2.0 on
+   cc63c1e, VERIFIED_COMPLETE); the entry again by the owner by hand.
+   P11c prepared 2026-10-05 (COMMUNICATION_PROTOCOL 69): title template, policy JSON
+   `kit_github_release`, precheck/signed-route/verifier accept `github`; pull requests carry
+   release-note categories (AGP_PR_RELEASE_CATEGORY_V1), the release pull request needs a
+   moved changelog (AGP_RELEASE_CHANGELOG_GATE_V1), phase 2 approval no longer blocked by
+   the release's own build id (AGP_RELEASE_PHASE2_APPROVAL_V1). The switch to
+   `publication: github` waits for KIT-GF-049 (the Kit's GitHub route runs Kit-repository
+   docs audit and command-reference check); first live proof then (KIT-GF-043 retest).
    P11c (unblocked 2026-10-05: Kit 1.0.17 carries KIT-GF-043, #2387; status FIXED, the Cockpit
    retests it with its own first GitHub-publication run): the owner wants the Kit to create the private GitHub
    Release entry in the same signed `release-publish` run (owner 2026-10-04). Then:

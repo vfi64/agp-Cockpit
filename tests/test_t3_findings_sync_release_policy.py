@@ -127,10 +127,11 @@ def test_policy_documents_exist_and_agree():
     text = (ROOT / "docs/planning/RELEASE_POLICY.md").read_text(encoding="utf-8")
     assert policy["publication"] == "none" and "zenodo.org" in policy["forbidden_hosts"]
     assert "No PyPI package, no Zenodo record" in text and "KIT-GF-029" in text
-    # Owner's decision 2026-10-02: a hand-made Release entry in the private repo;
-    # work orders still may not create one (the rejection test above).
+    # P11c (owner 2026-10-05): the Kit's signed run shall make the GitHub entry; prepared,
+    # the switch waits for KIT-GF-049. Work orders never run gh release themselves.
+    assert policy["kit_github_release"]["allowed"] is True and "KIT-GF-049" in policy["kit_github_release"]["status"]
     assert policy["owner_github_release"]["allowed"] is True
-    assert "release create" in policy["forbidden_gh"] and "owner_github_release" in text
+    assert "release create" in policy["forbidden_gh"] and "kit_github_release" in text
 
 
 # --- AGP_SCROLLABLE_TABS_V1 and the recommendation hint ----------------------------
@@ -199,11 +200,30 @@ def test_the_private_release_route_is_allowed_dry_run_free_live_only_signed():
     assert "marker file" in rp.violations(order(marker), ROOT)[0]
 
 
-def test_release_publish_needs_publication_none(tmp_path):
+@pytest.mark.parametrize("workspace", ["github", "github+pypi+zenodo"])
+def test_release_publish_needs_the_policys_publication(tmp_path, workspace):
     (tmp_path / "docs/planning").mkdir(parents=True)
     (tmp_path / "docs/planning/release_policy.json").write_text(
         (ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"), encoding="utf-8")
     (tmp_path / ".agentic").mkdir()
-    (tmp_path / ".agentic/config.yaml").write_text("publication: github\n", encoding="utf-8")
+    (tmp_path / ".agentic/config.yaml").write_text(f"publication: {workspace}\n", encoding="utf-8")
     dry = 'subprocess.run(["agentic-kit", "release-publish", "--dry-run"])'
     assert "publication: none" in rp.violations(order(dry), tmp_path)[0]
+    (tmp_path / ".agentic/config.yaml").write_text("publication: none\n", encoding="utf-8")
+    assert rp.violations(order(dry), tmp_path) == []
+
+
+def test_a_github_policy_allows_the_kits_github_route(tmp_path):
+    """P11c: after the switch the policy and the workspace both say github."""
+    import json
+    policy = json.loads((ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"))
+    policy["publication"] = "github"
+    (tmp_path / "docs/planning").mkdir(parents=True)
+    (tmp_path / "docs/planning/release_policy.json").write_text(json.dumps(policy), encoding="utf-8")
+    (tmp_path / ".agentic").mkdir()
+    (tmp_path / ".agentic/config.yaml").write_text("publication: github\n", encoding="utf-8")
+    signed = ('subprocess.run(["agentic-kit", "release-publish", "--version", "0.3.0", "--execute", '
+              '"--allow-execute", "--expected-signature", "abc", "--json"])')
+    assert rp.violations(order(signed), tmp_path) == []
+    found = rp.violations(order('subprocess.run(["gh", "release", "create", "v0.3.0"])'), tmp_path)
+    assert found and "only through the Kit's signed release run" in found[0]

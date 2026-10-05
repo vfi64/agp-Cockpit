@@ -87,9 +87,21 @@ def kit_block_reason(repository_root: Path) -> str:
     return ""
 
 
-def start_block_reason(repository_root: Path) -> str:
-    """Empty when tasks may start; otherwise the operator-facing reason."""
+def start_block_reason(repository_root: Path, *, release_version: str = "") -> str:
+    """Empty when tasks may start; otherwise the operator-facing reason.
+
+    AGP_RELEASE_PHASE2_APPROVAL_V1 (live 2026-10-05, release 0.2.0): phase 1 of a release
+    sets the build id to ``release-<version>`` and merges it, so the running app counted as
+    stale and refused the owner's approval of phase 2, which only publishes the tag (and the
+    Kit's GitHub entry) and runs no new app code. ``release_version`` exempts exactly that
+    source build id while the bundle on disk is still the running one."""
     freshness = check(freshness_root(repository_root))
-    if freshness.stale:
+    if freshness.stale and not _own_release_build(freshness, release_version):
         return f"Blockiert — {freshness.message}"
     return kit_block_reason(repository_root)
+
+
+def _own_release_build(freshness: BuildFreshness, release_version: str) -> bool:
+    if not release_version or freshness.source != f"release-{release_version}":
+        return False
+    return not freshness.bundle or freshness.bundle == freshness.running

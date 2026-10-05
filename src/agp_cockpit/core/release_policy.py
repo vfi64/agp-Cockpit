@@ -1,8 +1,11 @@
 """Repository release policy enforced on work orders (AGP_RELEASE_POLICY_V1).
 
-The owner decided on 2026-10-02 that agp-Cockpit is never published (no GitHub
-Release, PyPI or Zenodo). The policy lives in docs/planning/release_policy.json;
-work orders that would publish are rejected as correctable violations.
+The owner decided on 2026-10-02 that agp-Cockpit is never published to PyPI or
+Zenodo. Since 2026-10-05 (P11c, AGP_KIT_GITHUB_RELEASE_V1) the Kit's signed release
+run also creates the GitHub Release entry of the private repository
+(``publication: github``); a work order still never runs ``gh release`` itself. The
+policy lives in docs/planning/release_policy.json; work orders that would publish
+otherwise are rejected as correctable violations.
 """
 
 from __future__ import annotations
@@ -12,6 +15,8 @@ import json
 from pathlib import Path
 
 POLICY_PATH = Path("docs/planning/release_policy.json")
+# Policies this module enforces: private tag only, or tag plus the Kit-made GitHub entry.
+RESTRICTED_PUBLICATIONS = ("none", "github")
 
 
 def load(repository_root: Path | None) -> dict | None:
@@ -27,7 +32,7 @@ def load(repository_root: Path | None) -> dict | None:
 
 def violations(source: str, repository_root: Path | None, catalog=None) -> list[str]:
     policy = load(repository_root)
-    if not policy or policy.get("publication") != "none":
+    if not policy or policy.get("publication") not in RESTRICTED_PUBLICATIONS:
         return []
     from agp_cockpit.core.kit_command_catalog import (
         _invocations,
@@ -58,16 +63,19 @@ def violations(source: str, repository_root: Path | None, catalog=None) -> list[
             found.append(f"contacts {host}")
     if not found:
         return []
+    entry = ("the GitHub Release entry only through the Kit's signed release run"
+             if policy.get("publication") == "github" else "no GitHub Release")
     message = (f"release policy of this repository (AGP_RELEASE_POLICY_V1, {POLICY_PATH}): "
-               f"no publication — {'; '.join(sorted(set(found)))}. "
-               "A release here is private: version bump, changelog, annotated tag, local build.")
+               f"{'; '.join(sorted(set(found)))}. "
+               f"A release here: version bump, changelog, annotated tag, {entry}; no PyPI, no Zenodo.")
     return [message]
 
 
 def _signed_release_violations(source: str, repository_root: Path, policy: dict,
                                used: set[str], catalog) -> list[str]:
-    """AGP_SIGNED_PRIVATE_RELEASE_V1 (plan P11, owner 2026-10-04): the private tag
-    route of the Kit is allowed — dry run freely, live only signed."""
+    """AGP_SIGNED_PRIVATE_RELEASE_V1 (plan P11, owner 2026-10-04): the Kit's release
+    route is allowed — dry run freely, live only signed, and only with the publication
+    the policy names (P11c 2026-10-05: github = tag plus the Kit-made GitHub entry)."""
     signed = set((policy.get("signed_kit_commands") or {}).get("commands") or ())
     names = set(used)
     if catalog is None:   # without a catalog: a literal invocation still counts
@@ -76,9 +84,10 @@ def _signed_release_violations(source: str, repository_root: Path, policy: dict,
         return []
     from agp_cockpit.core.kit_command_catalog import _may_execute
     found = []
-    if _workspace_publication(repository_root) != "none":
-        found.append("agentic-kit release-publish runs here only for a private release "
-                     "(.agentic/config.yaml publication: none)")
+    wanted = str(policy.get("publication") or "none")
+    if _workspace_publication(repository_root) != wanted:
+        found.append("agentic-kit release-publish runs here only with the repository's release policy "
+                     f"(.agentic/config.yaml publication: {wanted}, {POLICY_PATH})")
     if "ENABLE_LIVE_PUBLISH" in source:
         found.append("a live release-publish uses its signed approval, never the marker file "
                      ".agentic/release/ENABLE_LIVE_PUBLISH")

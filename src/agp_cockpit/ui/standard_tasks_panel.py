@@ -309,8 +309,13 @@ class StandardTasksPanel(ttk.Frame):
         task, mission_id = self._tracked_task, self._decision_mission_id
         if task is None or not mission_id or not self._tracked_task_id:
             return False
-        blocked = start_block_reason(self.repository_root)
-        if blocked:   # AGP_STALE_APP_GUARD_V1
+        release_version = ""
+        if task.key == "release":
+            from agp_cockpit.core.standard_tasks import release_resume_version
+            release_version = (str((self._tracked_inputs or {}).get("version") or "")
+                               or release_resume_version(self.repository_root))
+        blocked = start_block_reason(self.repository_root, release_version=release_version)
+        if blocked:   # AGP_STALE_APP_GUARD_V1 (AGP_RELEASE_PHASE2_APPROVAL_V1 for a release)
             self.status_var.set(blocked)
             return False
         note = self.decision_note.get("1.0", "end-1c").strip()

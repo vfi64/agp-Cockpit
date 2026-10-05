@@ -216,7 +216,7 @@ Kit's gates and complete the Kit's post-merge lifecycle, so that local main equa
 The human approved exactly these effects by starting this standard task (publishing, pull
 request, merge, post-merge closeout, main synchronization): do not ask NEEDS_HUMAN for them.
 Any other remote effect still needs a decision. Never force-push; never merge red CI.
-{_COMMON}
+{_pr_category_rule(root)}{_COMMON}
 Completion is verified locally: DONE is accepted only after the Cockpit checked that the pull
 request is merged with green CI, the post-merge check passes and main is green. Name the pull
 request as "pr" in the DONE file. Run the lifecycle once; do not open another pull request for a
@@ -391,14 +391,30 @@ def _publication(root: Path) -> str:
     return _workspace_publication(root)
 
 
+# AGP_KIT_GITHUB_RELEASE_V1 (P11c, owner 2026-10-05): the Release button handles the private
+# tag (publication: none) and the tag plus the Kit-made GitHub Release entry (github); never
+# PyPI or Zenodo.
+RELEASE_PUBLICATIONS = ("none", "github")
+
+
+def _pr_category_rule(root: Path) -> str:
+    """AGP_PR_RELEASE_CATEGORY_V1: the remote side must give every new pull request a category."""
+    from agp_cockpit.core.release_hygiene import CATEGORY_HINT, github_releases_declared
+    if not github_releases_declared(root):
+        return ""
+    return ("Every pull request you create carries a line 'release-note-category: <one of "
+            f"{CATEGORY_HINT}>' in its body (the Kit's release notes read it): choose a Kit route that "
+            "sets the pull-request body; a route without a body option is rejected here (KIT-GF-048).\n")
+
+
 def _release_precheck(root: Path, inputs: dict) -> str | None:
     version = str(inputs.get("version") or "").strip()
     wanted = _version_tuple(version)
     if wanted is None:
         return "Version im Format X.Y.Z angeben (z. B. 0.1.1)."
-    if _publication(root) != "none":
-        return ("Der Release-Button macht nur private Releases: .agentic/config.yaml muss "
-                "publication: none deklarieren.")
+    if _publication(root) not in RELEASE_PUBLICATIONS:
+        return ("Der Release-Button macht nur Releases ohne PyPI und Zenodo: .agentic/config.yaml muss "
+                "publication: none oder publication: github deklarieren.")
     if _git_value(root, "branch", "--show-current") != "main":
         return "Release startet nur auf main (Zustand BEREIT)."
     if _git_value(root, "status", "--porcelain"):
@@ -434,8 +450,19 @@ def release_resume_version(root: Path) -> str:
     return current
 
 
+def _release_publication_text(root: Path) -> tuple[str, str]:
+    """(constraint, what the live run publishes) for the repository's publication."""
+    if _publication(root) == "github":
+        return ("publication: github — the Kit's signed run creates the annotated tag and the GitHub "
+                "Release entry; no PyPI or Zenodo; never gh release in a work order.",
+                "the annotated tag and the GitHub Release entry (title and notes from the Kit)")
+    return ("publication: none — no GitHub Release, PyPI or Zenodo.", "only the annotated tag")
+
+
 def _release_contract(root: Path, inputs: dict) -> dict:
     version = str(inputs.get("version") or "").strip()
+    constraint, _ = _release_publication_text(root)
+    github = _publication(root) == "github"
     return {
         "title": f"Standard Task: Release {version}",
         "goal": (f"Private release {version}: release branch with the Kit's release preparation, "
@@ -446,8 +473,8 @@ def _release_contract(root: Path, inputs: dict) -> dict:
         "acceptance_criteria": [
             f"Release pull request for {version} merged with green CI; main green.",
             f"Annotated tag v{version} on origin; its commit is in origin/main; pyproject names {version}.",
-        ],
-        "constraints": ["publication: none — no GitHub Release, PyPI or Zenodo.",
+        ] + ([f"GitHub Release entry v{version} exists and is not a draft."] if github else []),
+        "constraints": [constraint,
                         "The live tag publication only with the owner's approval of its signed plan.",
                         "No force push; no marker file."],
     }
@@ -466,17 +493,21 @@ the tag is missing. Skip to phase 2.""" if prepared else f"""Phase 1 — release
    anchors declared in .agentic/config.yaml and the changelog). Its changelog summary lines name
    the user-visible changes since the previous release tag: the entries of the CHANGELOG.md
    "Unreleased" section, completed from the merged pull requests since that tag — never a
-   one-line stub such as "Prepare release". Then empty the Unreleased section in the same branch.
+   one-line stub such as "Prepare release". Then move every entry of the Unreleased section into
+   the "## v{version}" section and leave Unreleased empty, in a work order before the pull request:
+   the Cockpit rejects the release pull request while Unreleased is not empty
+   (AGP_RELEASE_CHANGELOG_GATE_V1). The section is also the text of the GitHub Release entry.
 3. If the repository has docs/planning/RELEASE_POLICY.md, perform the release-branch steps it names
    in the same branch (agp-Cockpit: set the build identity in src/agp_cockpit/version.py and
    chrome_extension/build_identity.js to release-{version}); the repository's tests check them.
 4. Finish the branch through the Kit's pull-request lifecycle: green CI, merge, post-merge closeout,
    local main equal to origin/main.""")
+    constraint, published = _release_publication_text(root)
     return f"""STANDARD TASK — RELEASE {version} (private release)
 
 Repository: {root}
-Version: {version} · tag v{version} · publication: none (no GitHub Release, PyPI or Zenodo)
-
+Version: {version} · tag v{version} · {constraint}
+{_pr_category_rule(root)}
 {phase_one}
 
 Phase 2 — tag publication (always asks):
@@ -484,7 +515,7 @@ Phase 2 — tag publication (always asks):
    state the version, the tag, the target commit, the planned actions and the approval signature
    of the dry run, so the owner can approve exactly that plan.
 6. After the approval, run the live publication with that signature (the Kit's execute options
-   with the expected signature); it creates and pushes only the annotated tag. Never create the
+   with the expected signature); it publishes {published}. Never create the
    marker file .agentic/release/ENABLE_LIVE_PUBLISH. If HEAD changed since the dry run, start again
    at step 5.
 
@@ -495,8 +526,8 @@ Never force-push; never merge red CI.
 {_COMMON}
 Completion is verified locally: DONE is accepted only after the Cockpit checked that the release
 pull request is merged with green CI, main is green, the annotated tag v{version} is on origin, its
-commit is in origin/main and pyproject.toml at the tag names {version}. Name the release pull
-request as "pr" in the DONE file.
+commit is in origin/main and pyproject.toml at the tag names {version}{' and the GitHub Release entry exists' if _publication(root) == 'github' else ''}.
+Name the release pull request as "pr" in the DONE file.
 """
 
 
@@ -615,7 +646,8 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
     StandardTask(
         key="release",
         label="Release",
-        description="Privates Release: Release-Branch über das Kit, Merge, dann der signierte Tag-Push nach Freigabe.",
+        description=("Privates Release: Release-Branch über das Kit, Merge, dann nach Freigabe der signierte "
+                     "Tag-Push (bei publication: github mit GitHub-Release-Eintrag)."),
         contract_factory=_release_contract,
         prompt_factory=_release_prompt,
         effect="github",
@@ -626,9 +658,10 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
         confirm=("„Release“ erstellt ein privates Release:\n"
                  "Release-Branch · Release-Vorbereitung des Kits · Pull Request · grüne CI · Merge · "
                  "Post-Merge-Abschluss.\n\n"
-                 "Der Start gibt genau diese Wirkungen frei. Der Push des Tags fragt danach noch "
-                 "einmal: Du siehst Version, Tag, Ziel-Commit und die Signatur des Probelaufs und "
-                 "gibst genau diesen Plan frei. Kein GitHub Release, kein PyPI, kein Zenodo.\n\n"
+                 "Der Start gibt genau diese Wirkungen frei. Der Push des Tags (bei publication: github "
+                 "mit dem GitHub-Release-Eintrag des Kits) fragt danach noch einmal: Du siehst Version, "
+                 "Tag, Ziel-Commit, die geplanten Aktionen und die Signatur des Probelaufs und gibst "
+                 "genau diesen Plan frei. Kein PyPI, kein Zenodo.\n\n"
                  "Nennt main die Version schon (Release-Branch gemergt, Tag fehlt), entfällt der "
                  "Release-Branch: Es folgt nur der Tag.\n\n"
                  "Jetzt starten?"),
