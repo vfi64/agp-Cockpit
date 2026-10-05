@@ -1,6 +1,6 @@
 # AGP Cockpit Communication Protocol
 Status: active
-Status-date: 2026-10-04
+Status-date: 2026-10-05
 Decision status: accepted
 Review policy: on material change
 Note: canonical communication authority; complete cross-component lifecycle baseline.
@@ -680,6 +680,16 @@ This section is normative for the file loop after local execution.
    tab (one shared check). Twice a start there replaced the running „Arbeit
    beginnen“ mission; its work order then landed in the new task, which had no
    scope for it, and the decision could not be recorded (no task binding).
+67. Attachments belong to the resolved composer (`AGP_RESULT_ATTACHMENT_COMPOSER_BOUND_V1`,
+   `AGP_COMPOSER_VISIBLE_FORM_V1`, `AGP_NATIVE_RETRY_OWNED_DRAFT_V1`, live 2026-10-05):
+   the composer is resolved once by `agpResolveComposer`, which rejects composers inside
+   invisible (0x0) forms; result and digest files go only into a file input of that
+   composer's form, and their evidence is read from that form (document-wide evidence is
+   reported as the weaker `document`). No visible composer form means the attachment fails
+   closed. A bounded send retry may clear only its own draft (exact prompt or this send's
+   AGP-SEND nonce); any other composer content still stops the send. The trusted Enter is
+   sent only after the resolved composer is focused again; the DOM send fallback clicks
+   only the send button of that composer's form (`AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1`).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

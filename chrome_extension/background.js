@@ -851,7 +851,12 @@ async function agpNativeTransportV1(message, sender) {
     }
 
     const markerBaseline = (await observeMarker()) || {outside_composer:0, in_composer:0};
-    void agpK07NativeTrace1165(tabId, {event:"PRIMARY_ENTER_BEFORE",request_id:requestId,send_target:sendTarget,inserted:inserted});
+    // AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1: the trusted Enter goes to the
+    // focused element; make that the resolved composer again.
+    const refocusForSubmit = () => evaluate(
+      `(${agpRefocusComposerForSubmit.toString()})(${agpResolveComposer.toString()})`);
+    const focusBeforeEnter = await refocusForSubmit();
+    void agpK07NativeTrace1165(tabId, {event:"PRIMARY_ENTER_BEFORE",request_id:requestId,send_target:sendTarget,inserted:inserted,focus_before_enter:focusBeforeEnter});
     await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
       type:"keyDown",
       key:"Enter",
@@ -913,7 +918,8 @@ async function agpNativeTransportV1(message, sender) {
         lastObserved.composer_text === normalize(text) &&
         !lastObserved.generation_active;
       if (clearlyUnsent) {
-        void agpK07NativeTrace1165(tabId, {event:"RETRY_ENTER_BEFORE",request_id:requestId,last_observed:lastObserved});
+        const focusBeforeRetry = await refocusForSubmit();
+        void agpK07NativeTrace1165(tabId, {event:"RETRY_ENTER_BEFORE",request_id:requestId,last_observed:lastObserved,focus_before_enter:focusBeforeRetry});
         await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", {
           type:"keyDown", key:"Enter", code:"Enter", text:"\r", unmodifiedText:"\r",
           windowsVirtualKeyCode:13, nativeVirtualKeyCode:13
@@ -936,19 +942,15 @@ async function agpNativeTransportV1(message, sender) {
         // Some ChatGPT composer revisions ignore synthetic Enter while exposing
         // the canonical send control. Use that exact control as a bounded DOM
         // fallback, then require the same persistent-message evidence.
+        // AGP_SUBMIT_FOCUS_AND_FORM_BUTTON_V1: the control is the send button of
+        // the resolved composer's form (button[data-testid="send-button"] or a
+        // submit button labelled Send/Senden), never a page-wide match.
         const clickResult = await evaluate(`(() => {
-          const button = document.querySelector('button[data-testid="send-button"]');
-          if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") {
-            return {clicked:false, reason:"send_button_unavailable"};
-          }
-          const rect = button.getBoundingClientRect();
-          const style = getComputedStyle(button);
-          if (rect.width <= 0 || rect.height <= 0 || style.visibility === "hidden" ||
-              style.display === "none" || style.pointerEvents === "none") {
-            return {clicked:false, reason:"send_button_not_actionable"};
-          }
+          const button = (${agpComposerSendButton.toString()})(${agpResolveComposer.toString()});
+          if (!button) return {clicked:false, reason:"send_button_unavailable"};
           button.click();
-          return {clicked:true};
+          return {clicked:true, aria_label:String(button.getAttribute("aria-label") || ""),
+            testid:String(button.getAttribute("data-testid") || "")};
         })()`);
         void agpK07NativeTrace1165(tabId, {event:"DOM_SEND_FALLBACK",request_id:requestId,click_result:clickResult});
         if (clickResult && clickResult.clicked) {

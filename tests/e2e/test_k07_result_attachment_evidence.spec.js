@@ -14,10 +14,15 @@ const ROOT = path.resolve(__dirname, "../..");
 const SOURCE_FILE = process.env.AGP_RESULT_ATTACHMENT_SOURCE ||
   path.join(ROOT, "chrome_extension/result_file_attachment.js");
 
+const EVIDENCE_FILE = path.join(ROOT, "chrome_extension/native_message_evidence.js");
+
 function loadAttachment() {
   const context = {setTimeout, console};
   context.globalThis = context;
   vm.createContext(context);
+  // AGP_RESULT_ATTACHMENT_COMPOSER_BOUND_V1: the seam resolves the composer
+  // with the same agpResolveComposer the service worker imports.
+  vm.runInContext(fs.readFileSync(EVIDENCE_FILE, "utf8"), context);
   vm.runInContext(fs.readFileSync(SOURCE_FILE, "utf8"), context);
   return context.AGPResultFileAttachment;
 }
@@ -39,7 +44,7 @@ async function composerPage(page, mode) {
   await page.setContent(`<!doctype html><html><body><main>
     <form>
       <div id="chips"></div>
-      <div id="prompt-textarea" contenteditable="true"></div>
+      <div id="prompt-textarea" contenteditable="true" role="textbox" style="min-height:24px"></div>
       <input type="file" multiple>
     </form></main>
     <script>
