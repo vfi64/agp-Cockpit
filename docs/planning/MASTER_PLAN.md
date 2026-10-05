@@ -335,7 +335,11 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    (AGP_CI_UPDATE_GUARD_V1, KIT-GF-042). P10b: Kit update (new version → owner asks → `.venv`,
    both CI pins, `commands sync-entrypoints`; verifier: installed = pinned, check/doctor PASS);
    first real use: the Kit release after 1.0.16 that carries KIT-GF-039 to 042 (fixed on Kit
-   main #2379/#2381/#2383, not released yet).
+   main #2379/#2381/#2383, not released yet). Update 2026-10-05: Kit 1.0.17 adopted by hand
+   (P10b not built yet; the same steps as #194). Retest GF-E058: `workspace ci-update
+   --execute` still replaces the Cockpit's customized CI with 1.0.17 (KIT-GF-042 stays open,
+   `reproduced_in` 1.0.17, AGP_KIT_FINDING_REPRODUCED_V1), so AGP_CI_UPDATE_GUARD_V1 stays and
+   P10b keeps bumping both pins by hand.
 11. P11 Release (always asks; verifier to be specified first; private only per
    `docs/planning/RELEASE_POLICY.md`). Kit gate lifted: KIT-GF-032 verified fixed
    with Kit 1.0.15 (2026-10-03; KIT-GF-029 with 1.0.14). Owner's decisions 2026-10-04:
@@ -363,7 +367,8 @@ Lagebericht and Chat wechseln stay available except in LÄUFT.
    (RELEASE_POLICY.md, COMMUNICATION_PROTOCOL 62); proven live by the first real release.
    Release 0.1.1 made with the button on 2026-10-04 (#204/#205, resume #206, signed tag
    v0.1.1 on 20a61dd, VERIFIED_COMPLETE); the GitHub Release entry by the owner by hand.
-   P11c (waits for a Kit release with KIT-GF-043; fixed on Kit main #2387, 2026-10-05): the owner wants the Kit to create the private GitHub
+   P11c (unblocked 2026-10-05: Kit 1.0.17 carries KIT-GF-043, #2387; status FIXED, the Cockpit
+   retests it with its own first GitHub-publication run): the owner wants the Kit to create the private GitHub
    Release entry in the same signed `release-publish` run (owner 2026-10-04). Then:
    `publication: github` in `.agentic/config.yaml` (rule source, KIT-GF-039), release
    policy and its JSON (the Kit's own `gh release create` inside the signed run; Cockpit

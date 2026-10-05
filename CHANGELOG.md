@@ -18,6 +18,9 @@ repository may carry a GitHub Release entry made by the owner
 - The bridge panel refreshes turns, steps and its time every 5 s during a run and shows
   how long the current work order runs or how long it waits for ChatGPT; build
   `release-0.1.1-r8`.
+- Kit 1.0.17 adopted (CI pins, command manifest 9fedc20833c1). The Kit findings window
+  keeps a finding open when the Cockpit's own retest still shows the defect in the Kit
+  version that claims the fix (KIT-GF-042, `workspace ci-update` stays blocked).
 
 ## v0.1.1 - 2026-10-04
 

@@ -36,6 +36,35 @@ def test_effective_status_compares_fixed_in_with_the_installed_kit():
     assert finding(status="VERIFIED_FIXED", fixed_in="1.0.14").effective_status("1.0.13") == kf.VERIFIED
 
 
+def test_a_cockpit_retest_that_reproduces_the_defect_overrides_the_kit_closure():
+    """AGP_KIT_FINDING_REPRODUCED_V1 (KIT-GF-042, Kit 1.0.17, GF-E058)."""
+    closed = {"kit_state": "CLOSED", "fixed_in": "1.0.17"}
+
+    def finding(**kw):
+        base = {"id": "X", "title": "t", "severity": "high", "status": "OPEN", "first_observed": "2026-10-01"}
+        base.update(kw)
+        return kf.KitFinding(**base)
+    assert finding(kit=closed).effective_status("1.0.17") == kf.FIXED_UNVERIFIED
+    refuted = finding(kit=closed, reproduced_in="1.0.17")
+    assert refuted.effective_status("1.0.17") == kf.OPEN
+    assert "besteht mit Kit 1.0.17 weiter" in refuted.detail_text("1.0.17")
+    later_fix = finding(kit={"kit_state": "CLOSED", "fixed_in": "1.0.18"}, reproduced_in="1.0.17")
+    assert later_fix.effective_status("1.0.17") == kf.FIXED_NOT_INSTALLED
+    assert later_fix.effective_status("1.0.18") == kf.FIXED_UNVERIFIED
+    assert finding(kit={"kit_state": "CLOSED", "fixed_in": ""}, reproduced_in="1.0.17").effective_status("1.0.17") == kf.OPEN
+
+
+def test_the_real_register_tracks_the_kit_1_0_17_adoption():
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    assert by_id["KIT-GF-042"].effective_status("1.0.17") == kf.OPEN          # GF-E058: ci-update still overwrites
+    assert by_id["KIT-GF-042"].mitigations[-1]["marker"] == "AGP_CI_UPDATE_GUARD_V1"
+    for fid in ("KIT-GF-041", "KIT-GF-044", "KIT-GF-045"):
+        assert by_id[fid].effective_status("1.0.17") == kf.VERIFIED
+    for fid in ("KIT-GF-030", "KIT-GF-031", "KIT-GF-039", "KIT-GF-040", "KIT-GF-043"):
+        assert by_id[fid].effective_status("1.0.17") == kf.FIXED_UNVERIFIED
+    assert by_id["KIT-GF-046"].effective_status("1.0.17") == kf.OPEN
+
+
 def test_window_filters_and_shows_details(tmp_path):
     tk = pytest.importorskip("tkinter")
     try:

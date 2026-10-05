@@ -5,6 +5,12 @@ Source of truth: ``docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json``
 evidence (``fixed_in``, ``verified_by``). The effective status additionally
 compares ``fixed_in`` with the installed Kit version, so "fixed in the Kit but
 not installed here" is visible.
+
+AGP_KIT_FINDING_REPRODUCED_V1: ``reproduced_in`` names the Kit version in
+which the Cockpit's own retest still shows the defect. A Kit closure whose
+``fixed_in`` is not newer than that version does not count as a fix; the
+finding stays open until a later Kit release claims (and a retest confirms)
+the fix.
 """
 
 from __future__ import annotations
@@ -33,6 +39,7 @@ class KitFinding:
     first_observed: str
     fixed_in: str = ""
     verified_by: str = ""
+    reproduced_in: str = ""                     # AGP_KIT_FINDING_REPRODUCED_V1
     details: dict = field(default_factory=dict)
     mitigations: tuple = ()
     extensions: tuple = ()
@@ -43,7 +50,7 @@ class KitFinding:
             return VERIFIED
         fixed_in = self.fixed_in
         fixed = self.status == "FIXED" or bool(fixed_in)
-        if not fixed and self.kit.get("kit_state") == "CLOSED":
+        if not fixed and self.kit.get("kit_state") == "CLOSED" and not self._kit_closure_refuted():
             fixed, fixed_in = True, str(self.kit.get("fixed_in") or "")
         if fixed:
             if installed and fixed_in and _version(installed) >= _version(fixed_in):
@@ -53,6 +60,13 @@ class KitFinding:
             return IN_PROGRESS
         return OPEN
 
+    def _kit_closure_refuted(self) -> bool:
+        """The Cockpit reproduced the defect in a Kit at least as new as the Kit's claimed fix."""
+        if not self.reproduced_in:
+            return False
+        kit_fixed = str(self.kit.get("fixed_in") or "")
+        return not kit_fixed or _version(kit_fixed) <= _version(self.reproduced_in)
+
     def detail_text(self, installed: str | None) -> str:
         lines = [f"{self.id} — {self.title}", "",
                  f"Status: {self.effective_status(installed)} (Register: {self.status}"
@@ -60,6 +74,9 @@ class KitFinding:
                  f"Schwere: {self.severity} · zuerst gesehen: {self.first_observed or '?'}"]
         if self.verified_by:
             lines.append(f"Bestätigt durch: {self.verified_by}")
+        if self.reproduced_in:
+            lines.append(f"Im Cockpit nachgetestet: Fehler besteht mit Kit {self.reproduced_in} weiter"
+                         + (" — der Kit-Abschluss zählt nicht als Behebung." if self._kit_closure_refuted() else "."))
         if self.kit:
             lines.append(
                 f"Kit-Repo: {self.kit.get('kit_state')} — {self.kit.get('raw')} ({self.kit.get('report')}, "
@@ -112,6 +129,7 @@ def load(repository_root: Path) -> list[KitFinding]:
             first_observed=str(family.get("first_observed") or ""),
             fixed_in=str(family.get("fixed_in") or ""),
             verified_by=_text(family.get("verified_by") or ""),
+            reproduced_in=str(family.get("reproduced_in") or ""),
             details=family,
             mitigations=tuple(m for m in family.get("cockpit_mitigation") or () if isinstance(m, dict)),
             extensions=tuple(e for e in family.get("extensions") or () if isinstance(e, dict)),
