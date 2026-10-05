@@ -1,6 +1,6 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 9529749193c5
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 9fedc20833c1
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
@@ -1458,7 +1458,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.16` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.17` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1847,6 +1847,7 @@ Generate release summary evidence and run release-prep safely.
 | `to_ref` | `TyperOption` | --to-ref | `False` | `main` | Target ref. |
 | `date` | `TyperOption` | --date | `False` | `` | Release date. Defaults to today. |
 | `dry_run` | `TyperOption` | --dry-run, --write | `False` | `True` | Dry-run by default. Use --write to update release metadata. |
+| `summary_lines` | `TyperOption` | --summary-line | `False` |  | Additional release changelog summary line, combined with the generated release-notes lines (KIT-GF-045). Repeatable. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
 
 ### `agentic-kit release ready`
@@ -1866,6 +1867,7 @@ Run release readiness through the standard-error scan wrapper.
 | `from_tag` | `TyperOption` | --from-tag | `False` | `` | Previous release tag. Defaults to latest local v* git tag. |
 | `to_ref` | `TyperOption` | --to-ref | `False` | `main` | Target ref. |
 | `date` | `TyperOption` | --date | `False` | `` | Release date. Defaults to today. |
+| `summary_lines` | `TyperOption` | --summary-line | `False` |  | Additional release changelog summary line, combined with the generated release-notes lines (KIT-GF-045). Repeatable. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
 
 ### `agentic-kit release-check`
@@ -1989,7 +1991,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.0.16` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.17` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2293,7 +2295,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.16` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.17` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -3015,7 +3017,7 @@ Wait for CI, safely merge an existing PR, and synchronize main.
 | `poll_seconds` | `TyperOption` | --interval-seconds, --poll-seconds | `False` | `10` | CI polling interval. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print JSON instead of text. |
 | `skip_llm_context_gate` | `TyperOption` | --skip-llm-context-gate | `False` | `False` | Recovery-only: run PR completion without requiring fresh generated LLM context. |
-| `post_merge_complete` | `TyperOption` | --post-merge-complete | `False` | `False` | Invalid for pr-complete. Use pr-create-complete --post-merge-complete for new PRs, or run post-merge-complete separately after an existing PR is merged. |
+| `post_merge_complete` | `TyperOption` | --post-merge-complete | `False` | `False` | Accepted compatibility flag: pr-complete already runs post-merge-complete after a successful merge. |
 
 ### `agentic-kit transfer pr-create`
 
@@ -3411,6 +3413,7 @@ Run a bounded scan for known workflow standard errors before patch/transfer/rele
 | `from_tag` | `TyperOption` | --from-tag | `False` | `` | Previous release tag for release notes checks. Defaults to the latest local v* git tag. |
 | `to_ref` | `TyperOption` | --to-ref | `False` | `main` | Target ref for release notes checks. |
 | `date` | `TyperOption` | --date | `False` | `` | Release date for release-prep dry-run. Defaults to today. |
+| `summary_lines` | `TyperOption` | --summary-line | `False` |  | Additional release changelog summary line for the release-prep dry-run (KIT-GF-045). Repeatable. |
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Project root. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON only. |
 

@@ -433,6 +433,41 @@
       "historical_id": "agp-Cockpit docs lifecycle headers task (#216), ULTRA_REVIEW_REMEDIATION.md",
       "canonical_family": "KIT-GF-044",
       "summary": "lifecycle sweep accepts a Review policy line in the document body"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E058",
+      "historical_id": "Kit 1.0.17 retest, disposable clone of agp-Cockpit main de477b4 (workspace ci-update --execute)",
+      "canonical_family": "KIT-GF-042",
+      "summary": "1.0.17 still replaces the customized managed CI source and workflow"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E059",
+      "historical_id": "Kit 1.0.17 retest, disposable clone of agp-Cockpit main de477b4",
+      "canonical_family": "KIT-GF-041",
+      "summary": "work finish dry run reports PLANNED"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E060",
+      "historical_id": "Kit 1.0.17 retest, disposable clone of agp-Cockpit main de477b4",
+      "canonical_family": "KIT-GF-044",
+      "summary": "lifecycle audit flags a Review policy line below the head block"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E061",
+      "historical_id": "Kit 1.0.17 retest, disposable clone of agp-Cockpit main de477b4 (release ready --summary-line)",
+      "canonical_family": "KIT-GF-045",
+      "summary": "explicit summary line reaches release-prep"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E062",
+      "historical_id": "Kit release 1.0.17 work, work finish --branch codex/release-summary-line --execute",
+      "canonical_family": "KIT-GF-046",
+      "summary": "handoff-commit blocked by snapshot_id_mismatch after handoff-refresh"
     }
   ],
   "families": [
@@ -1243,11 +1278,11 @@
       "id": "KIT-GF-030",
       "title": "pr-create-complete opens a second pull request for an already squash-merged branch",
       "first_observed": "2026-10-02",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.17",
       "expected": "transfer pr-create(-complete) refuses (or reports DONE) when the head branch adds nothing to the base, in particular after its previous pull request was squash-merged; the post-merge lifecycle removes or marks the merged remote head branch.",
       "observed": "Kit 1.0.13, steps 1573/1574: PR #147 (squash) and refresh #148 were merged and post-merge passed; the remote head branch feat/t3-findings-sync-release-policy stayed on origin. Re-running pr-create-complete for the same head recreated the local branch from origin, opened PR #149 without content difference, ran CI (#516/#517) and, after pr-complete 149, merged an empty commit 44e0c69 into main (git diff 5c1544c 44e0c69 empty).",
       "impact": "A repeated or misread lifecycle run produces an empty pull request, an extra CI round, an empty merge commit on main and consumes a human approval.",
@@ -1266,17 +1301,24 @@
           "marker": "AGP_MERGED_BRANCH_GUARD_V1",
           "description": "Correctable rejection of pr-create work orders for a merged head branch; locally verified repository facts in every continuation; work-order rule to record the Kit verdict fields."
         }
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "1.0.17",
+        "kit_state": "CLOSED",
+        "raw": "fixed in Kit 1.0.17 (#2385 3ac0fd08); CHANGELOG v1.0.17 scope names KIT-GF-030, KIT-GF-031 and KIT-GF-039 to KIT-GF-045",
+        "report": "docs/reports/greenfield/KIT-GF-030-031-pr-lifecycle-2026-10-05.md"
+      }
     },
     {
       "id": "KIT-GF-031",
       "title": "pr-complete: no --post-merge-complete and a fresh-context blocker in the middle of the lifecycle",
       "first_observed": "2026-10-02",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.17",
       "expected": "The existing-PR orchestrator accepts the same lifecycle options as pr-create-complete (including --post-merge-complete) and refreshes the LLM context carriers it requires itself.",
       "observed": "Kit 1.0.13: step 1578 `transfer pr-complete 149 ... --post-merge-complete` was BLOCKED (invalid_argument_post_merge_complete: run pr-complete, then post-merge-complete --after-pr); step 1579 without it was BLOCKED by transfer require-fresh-llm-context (outbox_missing, latest_handoff_report_missing) right after the Kit's own post-merge run; step 1580 `transfer refresh-llm-context-carriers` was needed before 1581 passed.",
       "impact": "Two extra remote turns and work orders for an existing pull request; the asymmetry invites invalid calls.",
@@ -1287,7 +1329,14 @@
         "Download/1578_agp_pr149_complete_return_bundle.json",
         "Download/1579_agp_pr149_complete_return_bundle.json",
         "Download/1580_agp_refresh_llm_context_carriers_return_bundle.json"
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "1.0.17",
+        "kit_state": "CLOSED",
+        "raw": "fixed in Kit 1.0.17 (#2385 3ac0fd08); CHANGELOG v1.0.17 scope names KIT-GF-030, KIT-GF-031 and KIT-GF-039 to KIT-GF-045",
+        "report": "docs/reports/greenfield/KIT-GF-030-031-pr-lifecycle-2026-10-05.md"
+      }
     },
     {
       "id": "KIT-GF-032",
@@ -1442,11 +1491,11 @@
       "id": "KIT-GF-039",
       "title": "Communication refresh on a work branch blocks the lifecycle that would publish it",
       "first_observed": "2026-10-04",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.17",
       "expected": "A branch that changes a rule source (here .agentic/config.yaml) can be finished: the rule acknowledgement is refreshed locally and the communication-rule capsule travels with the branch's own pull request; nothing requires the capsule on main before that pull request can be created.",
       "observed": "Kit 1.0.14 in agp-Cockpit, branch chore/kit-1.0.15 adding `publication: none` to .agentic/config.yaml (a rule source): (1) pr-create-complete BLOCKED with snapshot_id_mismatch three times although `rules acknowledge` succeeded before each run — the workspace tracked .agentic/rule_ack/current.json and the pre-push volatile restore put the stale committed copy back (Cockpit-side cause, fixed by untracking); (2) the remote side then ran `rules communication-refresh --publish`, which wrote .agentic/rule_ack/communication_refresh_pending.json with blocks_normal_go=true and remote_ref=main ('Send d2 only after the rule capsule is committed and remote-readable'); pr-create-complete then BLOCKED with 'Commit and publish the rule capsule before sending d2' (reproduced in a sandbox) — a deadlock, because only that pull request could put the capsule on main; push-current was correctly refused by the Cockpit in a standard task.",
       "impact": "A finishing run cannot complete once the communication refresh was started; recovery needs a human to move the pending file away.",
@@ -1458,10 +1507,10 @@
         "sandbox: pr-create-complete BLOCK 'Commit and publish the rule capsule before sending d2' with the pending file present; PASSES the rule gate without it after untracking .agentic/rule_ack/current.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-04",
-        "fixed_in": "",
+        "date": "2026-10-05",
+        "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.16 (#2383 53c2d19f; local Kit checkout b00f6e61); not in a released Kit yet",
+        "raw": "fixed in Kit 1.0.17 (#2383 53c2d19f); CHANGELOG v1.0.17 scope names KIT-GF-030, KIT-GF-031 and KIT-GF-039 to KIT-GF-045",
         "report": "docs/reports/greenfield/KIT-GF-039-communication-refresh-branch-publish-2026-10-04.md"
       }
     },
@@ -1469,11 +1518,11 @@
       "id": "KIT-GF-040",
       "title": "No orchestrator publishes an already-committed branch to its existing pull request",
       "first_observed": "2026-10-04",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.17",
       "expected": "When a work branch already has an open pull request and local commits that the remote branch does not have yet (a fast-forward), pr-create-complete (or work finish) pushes them without force and completes the lifecycle of that pull request.",
       "observed": "Kit 1.0.15 and 1.0.16 in agp-Cockpit, branch fix/t5-finish-goal-wording with PR #192 at f8403ac and local HEAD 625e9c4: ensure_remote_head auto-pushes only when the remote branch is missing; for an existing remote branch behind local HEAD it refuses ('Remote branch ... does not match local HEAD ... Refusing PR create without force-push'). pr-create-complete then drops that failure because the existing-PR lookup finds #192, runs pr-complete with expected head 625e9c4 against the old red CI of f8403ac and ends BLOCKED with the misleading 'pr-complete_failed' (step 1676). work finish --execute stops at its commit step ('nothing to commit'). In a standard task push-current is not an orchestrator and is refused by the Cockpit.",
       "impact": "A repair committed locally on a branch with an open pull request cannot be finished by any orchestrator; the remote side looped through work finish dry runs and remote-next (steps 1676-1685).",
@@ -1486,10 +1535,10 @@
         "agentic_project_kit/transfer_repo_actions.py ensure_remote_head (1.0.16 unchanged)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-04",
-        "fixed_in": "",
+        "date": "2026-10-05",
+        "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.16 (#2379 5c8db40e; local Kit checkout b00f6e61); not in a released Kit yet",
+        "raw": "fixed in Kit 1.0.17 (#2379 5c8db40e); CHANGELOG v1.0.17 scope names KIT-GF-030, KIT-GF-031 and KIT-GF-039 to KIT-GF-045",
         "report": "docs/reports/greenfield/KIT-GF-040-041-work-finish-pr-flow-2026-10-04.md"
       }
     },
@@ -1497,11 +1546,11 @@
       "id": "KIT-GF-041",
       "title": "work finish without --execute reports a successful completed workflow",
       "first_observed": "2026-10-04",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.17",
       "expected": "A dry run of work finish says plainly that nothing was committed, pushed or merged (for example result_status PLANNED or next_action naming --execute).",
       "observed": "Kit 1.0.15 in agp-Cockpit: `work finish --branch ... --merge --json` (default --dry-run) returned rc 0, result_status PASS and next_action 'Workflow completed.' with dry_run true (steps 1678, 1681, 1684); the remote side read it as a finished publication and asked the owner three times for an approval that was not the problem.",
       "impact": "Misleading success signals cost remote turns and owner decisions; the Cockpit's DONE verification catches it only later.",
@@ -1512,12 +1561,13 @@
         "agp-Cockpit Download/1678, 1681, 1684 return bundles (dry_run true, result_status PASS, 'Workflow completed.')"
       ],
       "kit_repo_status": {
-        "date": "2026-10-04",
-        "fixed_in": "",
+        "date": "2026-10-05",
+        "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.16 (#2379 5c8db40e; local Kit checkout b00f6e61); not in a released Kit yet",
+        "raw": "fixed in Kit 1.0.17 (#2379 5c8db40e); CHANGELOG v1.0.17 scope names KIT-GF-030, KIT-GF-031 and KIT-GF-039 to KIT-GF-045",
         "report": "docs/reports/greenfield/KIT-GF-040-041-work-finish-pr-flow-2026-10-04.md"
-      }
+      },
+      "verified_by": "2026-10-05 GF-E059, Kit 1.0.17 (PyPI) in a disposable clone of agp-Cockpit main de477b4: `work finish --branch chore/rt41 --path docs/notes_rt41.md --json` without --execute (clone with a bare origin) returns rc 0, result_status PLANNED, dry_run true, next_action 'Dry run completed; rerun work finish with --execute to commit, push, create the PR, merge, and close out.'"
     },
     {
       "id": "KIT-GF-042",
@@ -1528,6 +1578,7 @@
       "classification": "agentic-kit",
       "aliases": [],
       "fixed_in": null,
+      "reproduced_in": "1.0.17",
       "expected": "ci-update updates a managed CI template only when it still equals a Kit-written version, or shows the local changes it would discard and requires an explicit confirmation.",
       "observed": "Kit 1.0.16, `workspace ci-update --execute` in a clone of agp-Cockpit main 3ffa74a: the Cockpit's managed template (header kept, content customized under AGP_CI_GATE_V2: python job with pytest, browser job with Playwright tests, aggregate check agentic-gate) was replaced by the Kit template, which runs only `agentic-kit standard-gates-audit-suite` — the Cockpit's own test suites would no longer run in CI. The dry run reports only 'managed CI template update is available'.",
       "impact": "Following the Kit's update path silently removes a workspace's own CI tests.",
@@ -1535,13 +1586,15 @@
       "repair": "Record a hash of the last Kit-written template and block (or show a diff) when the managed file differs; or support a workspace extension block that ci-update preserves.",
       "regression": "ci-update on a managed template with local changes blocks or reports the discarded changes; an unchanged one is updated.",
       "evidence": [
-        "sandbox diff: .github/workflows/agentic-gate.yaml 32 insertions, 94 deletions (python/browser jobs removed)"
+        "sandbox diff: .github/workflows/agentic-gate.yaml 32 insertions, 94 deletions (python/browser jobs removed)",
+        "Retest 2026-10-05 (GF-E058), Kit 1.0.17 (PyPI), clone of agp-Cockpit main de477b4: `workspace ci-update --json` reports PASS 'managed CI template update is available' for both files without a blocker; `--execute` rewrites .agentic/ci/agentic-gate.yaml and .github/workflows/agentic-gate.yaml (32 insertions, 94 deletions, python and browser jobs removed) — the same result as with 1.0.16.",
+        "Cause (Kit v1.0.17 src/agentic_project_kit/workspace_ci_update.py): the source template .agentic/ci/agentic-gate.yaml is marked for replacement whenever it differs from the Kit template, without any check whether it was customized; the injected workflow counts as an intact old projection because it equals the projection of the customized source, so modified_managed_ci_workflow only fires when the two Cockpit files differ from each other. The Cockpit customizes both identically."
       ],
       "kit_repo_status": {
-        "date": "2026-10-04",
-        "fixed_in": "",
+        "date": "2026-10-05",
+        "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.16 (#2381 5ed54c80; local Kit checkout b00f6e61); not in a released Kit yet",
+        "raw": "Kit closed it with #2381 (5ed54c80) in 1.0.17; the Cockpit retest (GF-E058) still reproduces the defect: the fix protects only a workflow that differs from its own source template, not a customized source template",
         "report": "docs/reports/greenfield/KIT-GF-042-ci-update-managed-drift-2026-10-04.md"
       },
       "cockpit_mitigation": [
@@ -1549,6 +1602,11 @@
           "date": "2026-10-04",
           "marker": "AGP_CI_UPDATE_GUARD_V1",
           "description": "Work orders with agentic-kit workspace ci-update --execute are rejected (correctable); its dry run stays allowed. Kept until the fix is released, installed and retested (it would then block, not overwrite)."
+        },
+        {
+          "date": "2026-10-05",
+          "marker": "AGP_CI_UPDATE_GUARD_V1",
+          "description": "Kept after the 1.0.17 retest (GF-E058): ci-update --execute would still drop the Cockpit's own CI jobs. CI pins bumped to 1.0.17 by hand."
         }
       ]
     },
@@ -1556,11 +1614,11 @@
       "id": "KIT-GF-043",
       "title": "release-publish creates a lightweight tag and a tag-titled GitHub Release when publication uses GitHub",
       "first_observed": "2026-10-04",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.17",
       "expected": "The live release-publish run creates the same annotated tag for every publication policy (as it does for publication: none) and lets the workspace set the GitHub Release title (for example from the workspace config or the changelog heading).",
       "observed": "Kit 1.0.16, release_publish_orchestration.py: with publication none the live run creates an annotated private tag; with github, github+pypi or github+pypi+zenodo it runs `git tag <tag>` (lightweight), pushes it and runs `gh release create <tag> --title <tag> --notes <changelog section>`. The Cockpit's release verifier requires an annotated tag (AGP_RELEASE_VERIFIER_V1), and the owner's release entries are titled 'AGP Cockpit <version> (privat)'.",
       "impact": "A workspace that wants the Kit to create its (private) GitHub Release entry gets a lightweight tag that its own verifier rejects and a title it cannot choose; the Cockpit therefore keeps publication: none and the owner creates the entry by hand (release 0.1.1).",
@@ -1569,13 +1627,14 @@
       "regression": "release-publish --execute with publication github creates an annotated tag (git cat-file -t <tag> = tag) and a release with the configured title.",
       "evidence": [
         "Kit 1.0.16 source: _append_live_release_publish_checks runs ('git','tag',tag); _append_private_tag_publish_checks creates the annotated tag",
-        "agp-Cockpit release 0.1.1 (2026-10-04): tag v0.1.1 annotated via publication none; GitHub Release entry created by the owner by hand"
+        "agp-Cockpit release 0.1.1 (2026-10-04): tag v0.1.1 annotated via publication none; GitHub Release entry created by the owner by hand",
+        "Kit's own live release-publish 1.0.17 (publication github+pypi+zenodo, 2026-10-05) created the annotated tag v1.0.17 (tagger vfi64, message 'Release v1.0.17'); release.github_release_title_template is read from .agentic/config.yaml. The Cockpit publishes with publication none, so it cannot retest this path itself."
       ],
       "kit_repo_status": {
         "date": "2026-10-05",
-        "fixed_in": "",
+        "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.16 (#2387 7e783920); not in a released Kit yet",
+        "raw": "fixed in Kit 1.0.17 (#2387 7e783920); CHANGELOG v1.0.17 scope names KIT-GF-030, KIT-GF-031 and KIT-GF-039 to KIT-GF-045",
         "report": "docs/reports/greenfield/KIT-GF-043-044-release-publish-doc-lifecycle-2026-10-05.md"
       }
     },
@@ -1583,11 +1642,11 @@
       "id": "KIT-GF-044",
       "title": "Documentation lifecycle sweep accepts lifecycle header labels anywhere in the file",
       "first_observed": "2026-10-05",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "low",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.17",
       "expected": "Status, Decision status, Status-date, Superseded-by and Review policy count only in the document's head block (before the first ## section); a label in later prose does not satisfy the lifecycle sweep.",
       "observed": "Kit 1.0.16, doc_lifecycle.py: _audit_document accepted Review policy through a full-file substring check, and _first_header_value scanned the whole document. An Arbeiten task put a Review policy line into the body of docs/planning/ULTRA_REVIEW_REMEDIATION.md; the docs lifecycle sweep then reported 0 findings.",
       "impact": "The sweep reports documents as complete whose lifecycle header is incomplete; a misplaced header line is not noticed.",
@@ -1600,11 +1659,60 @@
       ],
       "kit_repo_status": {
         "date": "2026-10-05",
-        "fixed_in": "",
+        "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.16 (#2387 7e783920); not in a released Kit yet",
+        "raw": "fixed in Kit 1.0.17 (#2387 7e783920); CHANGELOG v1.0.17 scope names KIT-GF-030, KIT-GF-031 and KIT-GF-039 to KIT-GF-045",
         "report": "docs/reports/greenfield/KIT-GF-043-044-release-publish-doc-lifecycle-2026-10-05.md"
+      },
+      "verified_by": "2026-10-05 GF-E060, Kit 1.0.17 (PyPI) in a disposable clone of agp-Cockpit main de477b4: `doc-lifecycle-audit --json` on main: ok, 0 findings; after moving the Review policy line of docs/planning/ULTRA_REVIEW_REMEDIATION.md below the first ## section: rc 1, missing-review-policy FAIL for that file."
+    },
+    {
+      "id": "KIT-GF-045",
+      "title": "Release orchestrators cannot pass explicit changelog summary lines",
+      "first_observed": "2026-10-05",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": "1.0.17",
+      "expected": "release ready and release prepare accept explicit changelog summary lines and pass them through standard-error-scan to release-prep, so a release whose generated notes miss a required changelog category can still be prepared through the orchestrators.",
+      "observed": "Kit main after 1.0.16 (owner's release run for 1.0.17, 2026-10-05): the generated summary lines covered fewer than three of the changelog quality categories (release-evidence, implementation-or-doc-change, safety-or-scope, continuity-or-governance); release-prep has --summary-line, but release ready / release prepare / standard-error-scan offered no way to pass it, so the orchestrated route stayed blocked.",
+      "impact": "A release could only proceed by leaving the orchestrators (raw release-prep) or by rewording merged commit subjects.",
+      "workaround": "None inside the orchestrators; fixed before the 1.0.17 release was prepared.",
+      "repair": "--summary-line on release ready, release prepare and standard-error-scan, passed to release-prep and recorded as explicit_summary_lines (Kit #2389 e3d7927a, patched by Claude while Codex was unavailable).",
+      "regression": "release ready --summary-line X reports explicit_summary_lines [X] and the release-prep step receives --summary-line X.",
+      "evidence": [
+        "Kit #2389 (e3d7927a), report docs/reports/greenfield/KIT-GF-045-release-summary-line-passthrough-2026-10-05.md",
+        "Kit 1.0.17 prepared and published through release ready / release prepare with --summary-line (2026-10-05)"
+      ],
+      "verified_by": "2026-10-05 GF-E061, Kit 1.0.17 (PyPI) in a disposable clone of agp-Cockpit main de477b4: `release ready --version 0.1.2 --summary-line 'Retest summary line for KIT-GF-045' --json` reports explicit_summary_lines with that line, and the standard-error-scan step (PASS) calls release-prep with --summary-line 'Retest summary line for KIT-GF-045'.",
+      "kit_repo_status": {
+        "date": "2026-10-05",
+        "fixed_in": "1.0.17",
+        "kit_state": "CLOSED",
+        "raw": "fixed in Kit 1.0.17 (#2389 e3d7927a)",
+        "report": "docs/reports/greenfield/KIT-GF-045-release-summary-line-passthrough-2026-10-05.md"
       }
+    },
+    {
+      "id": "KIT-GF-046",
+      "title": "work finish blocks its own handoff commit after the handoff refresh changes rule sources",
+      "first_observed": "2026-10-05",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "work finish --execute completes in one run when the branch changes the command manifest: after handoff-refresh rewrites the handoff projections (which carry the manifest ACK and are rule sources), the rule acknowledgement is refreshed before the handoff commit.",
+      "observed": "Kit main after 1.0.16, owner's run of `work finish --branch codex/release-summary-line --execute` (KIT-GF-045 branch, manifest sha changed): steps up to handoff-refresh passed (the work commit was made), then handoff-commit (`transfer commit` of docs/handoff/* and docs/reports/handoff-packages/latest/*) returned rc 2 with reasons dirty_worktree and snapshot_id_mismatch (rule_acknowledgement fail_closed). Kit v1.0.17 human_workflows.py runs rules acknowledge after the work commit (rules-acknowledge-post-work-commit) and after the closeout, but not between handoff-refresh and handoff-commit.",
+      "impact": "A finished branch stops halfway (work commit made, handoff projections dirty, nothing pushed); the owner needs a second work finish run with the handoff paths.",
+      "workaround": "Rerun work finish with --path for each dirty handoff projection file; the second run passed (2026-10-05).",
+      "repair": "Run rules acknowledge after handoff-refresh (before handoff-commit), or exclude the generated handoff projections from the rule snapshot.",
+      "regression": "A work finish --execute on a branch that changes the command manifest passes in one run.",
+      "evidence": [
+        "owner's result files kit_gf045_finish_result.json (BLOCKED at handoff-commit) and kit_gf045_finish_result2.json (PASS), 2026-10-05",
+        "Kit v1.0.17 src/agentic_project_kit/cli_commands/human_workflows.py lines 694-722 (step order)"
+      ]
     }
   ],
   "explicit_exclusions": [
@@ -1757,7 +1865,7 @@
     "FIXED": "fixed in the Kit release named in fixed_in; not yet re-verified in this workspace",
     "VERIFIED_FIXED": "fixed_in release installed here and a later run no longer shows the defect (evidence in verified_by)"
   },
-  "schema_notes": "Optional family fields since 2026-10-02: fixed_in (Kit version), verified_by (evidence), cockpit_mitigation (list of {date, marker, description}: what the Cockpit does meanwhile; a mitigation never changes the status).",
+  "schema_notes": "Optional family fields since 2026-10-02: fixed_in (Kit version), verified_by (evidence), cockpit_mitigation (list of {date, marker, description}: what the Cockpit does meanwhile; a mitigation never changes the status). Since 2026-10-05: reproduced_in (Kit version in which the Cockpit's own retest still shows the defect; a Kit closure with fixed_in not newer than it does not count as a fix, AGP_KIT_FINDING_REPRODUCED_V1).",
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
