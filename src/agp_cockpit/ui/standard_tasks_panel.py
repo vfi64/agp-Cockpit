@@ -7,12 +7,14 @@ from pathlib import Path
 from tkinter import font as tkfont
 from tkinter import ttk
 
+from agp_cockpit.core.ampel import ampel as derive_ampel
 from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.conversation_binding import ConversationBindingStore
 from agp_cockpit.core.mission_http_client import create_live_full_auto, record_decision
 from agp_cockpit.core.mission_http_client import status as bridge_status
 from agp_cockpit.core.repo_state import ARBEITEN, BEREIT, LAEUFT, WIEDERHERSTELLEN
 from agp_cockpit.core.standard_task_progress import (
+    clip,
     describe_standard_task_progress,
     late_completion_verdict,
     stopped_by_assistant_timeout,
@@ -80,11 +82,22 @@ class StandardTasksPanel(ttk.Frame):
         lage.grid(row=2, column=0, sticky="ew", pady=(0, 16))
         lage.columnconfigure(0, weight=1)
         self.lage_var = tk.StringVar(value="Lagebericht wird erstellt …")
+        # AGP_AMPEL_V1 (owner 2026-10-05): one light for the whole repository, with a word.
+        self._last_outcome = ""
+        self._status_detail = ""
+        self.ampel_state = None
+        light = ttk.Frame(lage)
+        light.grid(row=0, column=0, sticky="w", pady=(0, 6))
+        self.ampel_dot = ttk.Label(light, text="●", font=("TkDefaultFont", 22), foreground="#888888")
+        self.ampel_dot.grid(row=0, column=0, sticky="w")
+        self.ampel_var = tk.StringVar(value="Grau — Lage wird geprüft")
+        ttk.Label(light, textvariable=self.ampel_var, font=("TkDefaultFont", 13, "bold"),
+                  wraplength=620, justify="left").grid(row=0, column=1, sticky="w", padx=(8, 0))
         ttk.Label(lage, textvariable=self.lage_var, wraplength=700, justify="left").grid(
-            row=0, column=0, sticky="ew"
+            row=1, column=0, sticky="ew"
         )
         self.lage_button = ttk.Button(lage, text="Aktualisieren", command=self.refresh_lage)
-        self.lage_button.grid(row=0, column=1, sticky="ne", padx=(12, 0))
+        self.lage_button.grid(row=0, column=1, rowspan=2, sticky="ne", padx=(12, 0))
         self.repo_state = None
         self._lage_result: list = []
         self.after(300, self.refresh_lage)
@@ -135,9 +148,11 @@ class StandardTasksPanel(ttk.Frame):
         ttk.Label(self, textvariable=self.detail_var, wraplength=760, justify="left").grid(
             row=4, column=0, sticky="ew", pady=(16, 4)
         )
-        ttk.Label(self, textvariable=self.status_var, wraplength=760, justify="left").grid(
-            row=5, column=0, sticky="ew"
-        )
+        status_label = ttk.Label(self, textvariable=self.status_var, wraplength=760, justify="left")
+        status_label.grid(row=5, column=0, sticky="ew")
+        # AGP_SHORT_RESULT_LINE_V1: the remote side's own report is in the tooltip.
+        Tooltip(status_label, lambda: ("Meldung der Remote-Seite:\n" + clip(self._status_detail, 600))
+                if self._status_detail else "")
 
         # AGP_STANDARD_TASK_DECISION_V1 (P8 live test 2026-10-03): a standard
         # task that stops with NEEDS_HUMAN (e.g. Wiederherstellen before the
@@ -288,6 +303,29 @@ class StandardTasksPanel(ttk.Frame):
         self._show_decision(mission_id, str(mission.get("last_summary") or ""))
         self.status_var.set(f"{task.label} wartet auf deine Entscheidung (nach einem Neustart übernommen).")
 
+    def _release_version(self) -> str:
+        """AGP_RELEASE_PHASE2_APPROVAL_V1: the version of a tracked release task."""
+        task = self._tracked_task
+        if task is None or task.key != "release":
+            return ""
+        from agp_cockpit.core.standard_tasks import release_resume_version
+        return (str((self._tracked_inputs or {}).get("version") or "")
+                or release_resume_version(self.repository_root))
+
+    def update_ampel(self, *, lage_error: str = "") -> None:
+        """AGP_AMPEL_V1: recompute the light from what this panel knows."""
+        from agp_cockpit.core.build_freshness import stale_block_reason
+        try:
+            blocked = stale_block_reason(self.repository_root, release_version=self._release_version())
+        except Exception:  # noqa: BLE001 - the light never breaks the panel
+            blocked = ""
+        light = derive_ampel(self.repo_state, block_reason=blocked, task_outcome=self._last_outcome,
+                             decision_pending=bool(getattr(self, "_decision_mission_id", "")),
+                             recover_offered=self.recover_offered, lage_error=lage_error)
+        self.ampel_state = light
+        self.ampel_var.set(light.text)
+        self.ampel_dot.configure(foreground=light.hex)
+
     def _show_decision(self, mission_id: str, question: str) -> None:
         if self._decision_mission_id == mission_id:
             return
@@ -296,11 +334,13 @@ class StandardTasksPanel(ttk.Frame):
         self.decision_question_var.set(question or "Die Remote-Seite braucht eine Entscheidung.")
         self.decision_note.delete("1.0", "end")
         self.decision_frame.grid()
+        self.update_ampel()
 
     def _hide_decision(self) -> None:
         self._decision_mission_id = ""
         self._decision_question = ""
         self.decision_frame.grid_remove()
+        self.update_ampel()
 
     def decide(self, decision: str) -> bool:
         """Answer the NEEDS_HUMAN question; the task continues in the same chat."""
@@ -309,12 +349,7 @@ class StandardTasksPanel(ttk.Frame):
         task, mission_id = self._tracked_task, self._decision_mission_id
         if task is None or not mission_id or not self._tracked_task_id:
             return False
-        release_version = ""
-        if task.key == "release":
-            from agp_cockpit.core.standard_tasks import release_resume_version
-            release_version = (str((self._tracked_inputs or {}).get("version") or "")
-                               or release_resume_version(self.repository_root))
-        blocked = start_block_reason(self.repository_root, release_version=release_version)
+        blocked = start_block_reason(self.repository_root, release_version=self._release_version())
         if blocked:   # AGP_STALE_APP_GUARD_V1 (AGP_RELEASE_PHASE2_APPROVAL_V1 for a release)
             self.status_var.set(blocked)
             return False
@@ -465,6 +500,8 @@ class StandardTasksPanel(ttk.Frame):
             )
         self.detail_var.set(self._state_hint(state, recommended))
         self._effective_recommended = recommended
+        if hasattr(self, "ampel_var"):
+            self.update_ampel()
         if self._poll_job is None and getattr(state, "state", None) == LAEUFT:
             self.status_var.set("")   # a task started elsewhere; its progress is in "Arbeiten"
 
@@ -476,6 +513,11 @@ class StandardTasksPanel(ttk.Frame):
             return ("Ein Task läuft — neue Aufträge erst nach seinem Ende. "
                     "Den Fortschritt zeigt der Tab „Arbeiten“.")
         recommended = recommended or state.recommended
+        if recommended and recommended not in VERB_BY_KEY:
+            # AGP_UNKLAR_HINT_V1 (found 2026-10-05 while rendering the Ampel preview): UNKLAR
+            # recommends the Lagebericht, which is no button; the KeyError aborted apply_state
+            # and the Lage stayed at „Lagebericht wird erstellt …“.
+            return "Empfohlen: die Ursache in der Lage beheben, dann „Aktualisieren“."
         if recommended:
             verb = VERB_BY_KEY[recommended]
             enabled, _reason = availability(verb, state)
@@ -562,6 +604,7 @@ class StandardTasksPanel(ttk.Frame):
         self.lage_button.configure(state="normal")
         if isinstance(result, Exception):
             self.lage_var.set(f"Lagebericht fehlgeschlagen: {result}")
+            self.update_ampel(lage_error=str(result))
             return
         self.repo_state = result
         if self._late_check and self._tracked_task is not None:
@@ -585,6 +628,8 @@ class StandardTasksPanel(ttk.Frame):
             self.after_cancel(self._poll_job)
             self._poll_job = None
         self._tracked_mission_id = mission_id
+        self._last_outcome = ""
+        self._status_detail = ""
         self._poll_job = self.after(2000, self.refresh_progress)
 
     def refresh_progress(self) -> None:
@@ -636,6 +681,10 @@ class StandardTasksPanel(ttk.Frame):
                     # nothing to recover; the task can simply be started again.
                     text += f"\n{task.label} wurde vor jeder Wirkung unterbrochen — einfach erneut starten."
         self.status_var.set(text)
+        self._status_detail = progress.detail
+        if progress.terminal:
+            self._last_outcome = progress.outcome
+            self.update_ampel()
         if not progress.terminal:
             self._poll_job = self.after(2000, self.refresh_progress)
         else:

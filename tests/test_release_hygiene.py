@@ -239,5 +239,7 @@ def test_only_the_release_decision_passes_its_version():
     source = (ROOT / "src/agp_cockpit/ui/standard_tasks_panel.py").read_text(encoding="utf-8")
     block = source[source.index("def decide(self, decision: str) -> bool:"):]
     block = block[:block.index("note = self.decision_note")]
-    assert 'if task.key == "release":' in block and "release_resume_version" in block
-    assert "start_block_reason(self.repository_root, release_version=release_version)" in block
+    assert "start_block_reason(self.repository_root, release_version=self._release_version())" in block
+    helper = source[source.index("def _release_version(self) -> str:"):]
+    helper = helper[:helper.index("def update_ampel")]
+    assert 'task.key != "release"' in helper and "release_resume_version" in helper

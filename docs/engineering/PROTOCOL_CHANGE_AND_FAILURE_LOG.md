@@ -1332,3 +1332,10 @@ repeat once.
 
 - Kit main after 1.0.18 carries KIT-GF-028 (#2403), KIT-GF-047 (#2405) and KIT-GF-024/025 (#2407): kit_repo_status CLOSED without fixed_in until a Kit release carries them. KIT-GF-022 is in repair on a Kit branch (PARTIAL). KIT-GF-048 and KIT-GF-049 are not addressed in the Kit; Codex tasks are prepared. KIT-GF-049 is related to KIT-GF-035 (docs-audit) and KIT-GF-022 (command reference) but stays separate.
 - Lesson: a plain `git status` in the owner's Kit checkout from the Cowork VM leaves `.git/index.lock` behind, because the VM may not delete files there; read-only git in the owner's checkouts runs with `GIT_OPTIONAL_LOCKS=0`.
+
+## 2026-10-05 — Ampel slice
+
+- AGP_AMPEL_V1: one derived traffic light in the Lage frame (`core/ampel.py`, pure; colour plus word and reason); inputs: repository state, the build part of the start guard (`stale_block_reason`), a pending decision, an offered recovery and the last task outcome.
+- AGP_SHORT_RESULT_LINE_V1 (live PR #236, step 1773): the result line carried the remote side's English report and was cut („Step 1773 passed: agentic-kit transfer pr-create-complete returned PASS … current …“); it now keeps only the Cockpit's verdicts (CI grün geprüft, Lokal geprüft), the report is in the tooltip; counters in German singular/plural.
+- AGP_FRESHNESS_LINE_V1: the stale-app warning was appended to the one-line build label and cut at the window edge; it has its own wrapped line.
+- AGP_UNKLAR_HINT_V1 (found while rendering the preview): UNKLAR recommends the Lagebericht, which is no button; `_state_hint` raised KeyError, apply_state aborted and the Lage stayed at „Lagebericht wird erstellt …“. Build release-0.2.0-r2.

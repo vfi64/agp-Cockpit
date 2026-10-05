@@ -6,6 +6,10 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- Lage: a traffic light (Grün/Gelb/Rot with a word) for the whole repository; the
+  result line after a finished task is short and German, the remote side's report is
+  in its tooltip; the stale-app warning has its own line in the window header; the
+  Lage no longer hangs when the state is UNKLAR; build `release-0.2.0-r2`.
 - Release: every pull request carries a release-note category, the release pull
   request needs a moved changelog, and the approval of phase 2 is no longer blocked by
   the release's own build id; the GitHub entry by the Kit's signed run is prepared

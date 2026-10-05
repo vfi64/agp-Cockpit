@@ -92,6 +92,13 @@ class MainWindow(ttk.Frame):
             row=0, column=1, sticky="e", padx=8)
         self._build_label = ttk.Label(context, textvariable=self.build_var)
         self._build_label.grid(row=0, column=2, sticky="e")
+        # AGP_FRESHNESS_LINE_V1 (owner 2026-10-05): the stale-app warning was appended to
+        # the one-line build label and cut off at the window edge; it gets its own line.
+        self.freshness_var = tk.StringVar(value="")
+        self._freshness_label = ttk.Label(context, textvariable=self.freshness_var, foreground="#d03030",
+                                          wraplength=900, justify="left")
+        self._freshness_label.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self._freshness_label.grid_remove()
 
         ttk.Separator(
             self,
@@ -413,11 +420,15 @@ class MainWindow(ttk.Frame):
         except Exception:  # noqa: BLE001 - a status label must never break the UI
             freshness = None
         if freshness is not None and freshness.stale:
-            self.build_var.set(f"{base} · ⚠ {freshness.message}")
-            self._build_label.configure(foreground="#b00020")
+            self.build_var.set(f"{base} · ⚠ veraltet")
+            self._build_label.configure(foreground="#d03030")
+            self.freshness_var.set(f"⚠ {freshness.message}")
+            self._freshness_label.grid()
         else:
             self.build_var.set(base)
             self._build_label.configure(foreground="")
+            self.freshness_var.set("")
+            self._freshness_label.grid_remove()
         self.after(10_000, self.refresh_build_freshness)
 
     def refresh_bridge_identity(self) -> None:
