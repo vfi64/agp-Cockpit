@@ -503,6 +503,10 @@ finished reply, result file); (4) a touchpoint self-test at mission start;
 (5) a fingerprint of the composer UI to log a new ChatGPT variant early. A
 local LLM stays out of the send path; an official-API transport is a later
 owner decision. Then P10 and P9 as far as their Kit routes exist.
+Update 2026-10-05 (r6, COMMUNICATION_PROTOCOL 67): first live piece — the attachment
+touchpoint is bound to the resolved composer (the ChatGPT start page renders three
+composer forms, two invisible) and the bounded send retry clears its own draft. The
+sanitized DOM probe of (2) was done by hand with the owner; automating it remains open.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

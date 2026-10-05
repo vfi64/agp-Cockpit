@@ -1494,6 +1494,41 @@
     return Math.max(0, count(bodyText) - inBody);
   }
 
+  // AGP_NATIVE_RETRY_OWNED_DRAFT_V1
+  // Live 2026-10-05: attempt 1 inserted the prompt but the editor model was not
+  // verified; attempt 2 then refused because the composer was not empty, so the
+  // bounded retry could never succeed and the real cause was masked. Before a
+  // retry, clear exactly this send's own draft (fresh AGP-SEND nonce or the
+  // exact prompt). Any other content stays protected: fail closed.
+  async function clearOwnedDraftBeforeRetry(prompt, commitMarker, attempt) {
+    const staged = normalizeObservedMessageText(observedComposerText());
+    if (!staged) return;
+    const expected = normalizeObservedMessageText(prompt);
+    const marker = String(commitMarker || "");
+    const owned = staged === expected ||
+      (AGP_COMMIT_MARKER_PATTERN.test(marker) &&
+        (staged === marker || staged.startsWith(marker + " ")));
+    if (!owned) {
+      throw new Error(
+        "browser-native retry found foreign composer content; refusing to overwrite"
+      );
+    }
+    const el = composer();
+    if (!el) throw new Error("browser-native retry composer disappeared");
+    setComposerText(el, "");
+    const deadline = Date.now() + 2000;
+    while (normalizeObservedMessageText(observedComposerText()) && Date.now() < deadline) {
+      await sleep(50);
+    }
+    if (normalizeObservedMessageText(observedComposerText())) {
+      throw new Error("browser-native retry could not clear its own draft");
+    }
+    await clientEvent("NATIVE_RETRY_OWNED_DRAFT_CLEARED", {
+      attempt,
+      chars:staged.length
+    });
+  }
+
   async function sendPromptNative(prompt) {
     const commitMarker = agpCommitMarker();
     prompt = `${commitMarker}\n${String(prompt || "")}`;
@@ -1576,6 +1611,7 @@
 
     let nativeAck = null;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
+      if (attempt > 1) await clearOwnedDraftBeforeRetry(prompt, commitMarker, attempt);
       nativeAck = await nativeTransport.submit(prompt, {attempt, commitMarker});
       if (String(nativeAck.stage || "") !== "COMPOSER_MODEL_NOT_VERIFIED") break;
       await clientEvent("COMPOSER_MODEL_NOT_VERIFIED", {

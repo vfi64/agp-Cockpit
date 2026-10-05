@@ -29,5 +29,5 @@ def test_attachment_source_uses_cdp_file_input_without_composer_payload_fallback
 
 def test_attachment_source_fails_loudly_when_file_input_missing():
     text = SRC.read_text()
-    assert 'throw new Error("ChatGPT file input not found")' in text
+    assert 'throw new Error("ChatGPT file input not found in the active composer form")' in text
     assert 'throw new Error("absolute local file paths required")' in text

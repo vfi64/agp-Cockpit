@@ -9,14 +9,22 @@
  * page consumes the files and may clear the input. Confirmation is therefore
  * the appearance of every evidence file name (fresh, step-scoped names) in the
  * composer after the selection, not the transient state of the input element.
+ *
+ * AGP_RESULT_ATTACHMENT_COMPOSER_BOUND_V1
+ * Live 2026-10-05: the ChatGPT start page renders three composer forms (two of
+ * them 0x0), each with its own enabled file inputs. Selecting the first file
+ * input of the whole document put the evidence into an invisible composer and
+ * the mission start failed. The file input and the evidence are now bound to
+ * the form of the composer that agpResolveComposer (the same identity used for
+ * text insertion) resolves. There is no document-wide file-input fallback.
  */
 (() => {
   "use strict";
 
-  function presenceExpression(names) {
+  function presenceExpression(names, resolverSource) {
     return `(() => {
       const names = ${JSON.stringify(names)};
-      const composer = document.querySelector('#prompt-textarea');
+      const composer = (${resolverSource})();
       const root = composer && typeof composer.closest === "function" ? composer.closest('form') : null;
       const textsOf = el => [
         String(el.textContent || ""),
@@ -70,6 +78,11 @@
     }
     const confirmTimeoutMs = Number(options.confirmTimeoutMs || 10000);
     const settleMs = Number(options.settleMs === undefined ? 2000 : options.settleMs);
+    const resolveComposer = options.resolveComposer || globalThis.agpResolveComposer;
+    if (typeof resolveComposer !== "function") {
+      throw new Error("ChatGPT composer resolver unavailable");
+    }
+    const resolverSource = resolveComposer.toString();
 
     let attached = false;
     try {
@@ -81,7 +94,7 @@
         });
         return result && result.result ? result.result.value : null;
       };
-      const presence = () => evaluateValue(presenceExpression(expectedNames));
+      const presence = () => evaluateValue(presenceExpression(expectedNames, resolverSource));
 
       const before = await presence();
       // Re-delivery after a failed send: the evidence can still be attached in
@@ -93,16 +106,18 @@
 
       const evaluate = await chromeApi.debugger.sendCommand(target, "Runtime.evaluate", {
         expression: `(() => {
-          const inputs = Array.from(document.querySelectorAll('input[type="file"]'));
-          const usable = inputs.find((el) => !el.disabled) || null;
-          return usable;
+          const composer = (${resolverSource})();
+          const form = composer && typeof composer.closest === "function" ? composer.closest("form") : null;
+          if (!form) return null;
+          const inputs = Array.from(form.querySelectorAll('input[type="file"]'));
+          return inputs.find((el) => !el.disabled) || null;
         })()`,
         returnByValue: false,
         userGesture: true
       });
       const objectId = evaluate && evaluate.result && evaluate.result.objectId;
       if (!objectId) {
-        throw new Error("ChatGPT file input not found");
+        throw new Error("ChatGPT file input not found in the active composer form");
       }
 
       // DOM.setFileInputFiles dispatches the input/change events itself.
@@ -115,13 +130,17 @@
       const baseline = before || {composer_found: false, in_composer: expectedNames.map(() => 0), in_document: expectedNames.map(() => 0)};
       const deadline = Date.now() + confirmTimeoutMs;
       let observed = null;
+      let evidence = "";
+      const grew = scope => expectedNames.every((_, index) =>
+        Number((observed[scope] || [])[index] || 0) > Number((baseline[scope] || [])[index] || 0));
       while (true) {
         observed = await presence();
         if (observed) {
-          const scope = observed.composer_found ? "in_composer" : "in_document";
-          const confirmed = expectedNames.every((_, index) =>
-            Number(observed[scope][index] || 0) > Number((baseline[scope] || [])[index] || 0));
-          if (confirmed) break;
+          // Prefer evidence inside the active composer form; the chips may be
+          // rendered outside the form, so a document-wide increase still counts
+          // but is reported as the weaker "document" evidence.
+          if (observed.composer_found && grew("in_composer")) { evidence = "composer"; break; }
+          if (grew("in_document")) { evidence = "document"; break; }
         }
         if (Date.now() >= deadline) {
           throw new Error(
@@ -137,7 +156,7 @@
       if (settleMs > 0) await new Promise(resolve => setTimeout(resolve, settleMs));
 
       return {ok: true, stage: "RESULT_FILES_ATTACHED", file_paths: filePaths, file_names: expectedNames,
-        evidence: observed.composer_found ? "composer" : "document"};
+        evidence};
     } finally {
       if (attached) {
         try { await chromeApi.debugger.detach(target); } catch (_) {}

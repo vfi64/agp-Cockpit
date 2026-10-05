@@ -10,6 +10,9 @@ repository may carry a GitHub Release entry made by the owner
   stopping the task (AGP_K07_REMOTE_FILE_REGENERATE_V1); build `release-0.1.1-r1`.
 - The release work order fills the changelog from the Unreleased section and the
   merged pull requests (corrected entry for 0.1.1 below).
+- Mission start from a new ChatGPT chat: digest and result files go into the visible
+  composer's form instead of the first file input of the page, and a send retry clears
+  its own draft instead of stopping; build `release-0.1.1-r6`.
 
 ## v0.1.1 - 2026-10-04
 

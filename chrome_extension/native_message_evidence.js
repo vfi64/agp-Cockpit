@@ -41,7 +41,16 @@ function agpResolveComposer() {
     const rect = el.getBoundingClientRect();
     if (!(rect.width > 0 && rect.height > 0)) return false;
     const style = getComputedStyle(el);
-    return style.display !== "none" && style.visibility !== "hidden";
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    // AGP_COMPOSER_VISIBLE_FORM_V1: the ChatGPT start page (live 2026-10-05)
+    // renders three composer forms, two of them 0x0. A composer inside an
+    // invisible form is never the owner's composer.
+    const form = typeof el.closest === "function" ? el.closest("form") : null;
+    if (form) {
+      const formRect = form.getBoundingClientRect();
+      if (!(formRect.width > 0 && formRect.height > 0)) return false;
+    }
+    return true;
   };
   const candidates = Array.from(document.querySelectorAll(
     '#prompt-textarea, textarea[data-id="root"], [contenteditable="true"][role="textbox"], form [contenteditable="true"]'
