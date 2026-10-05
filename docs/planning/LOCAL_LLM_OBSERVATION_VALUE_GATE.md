@@ -1,6 +1,10 @@
 # Phase 20 / S10 — Optional Local Observation Assistant Value Gate
 
-Status: normative evaluation contract
+Status: active
+Status-date: 2026-10-04
+Decision status: accepted
+Review policy: on material change
+Note: normative evaluation contract
 
 Hermes or another local LLM is optional and remains outside the critical
 correctness path. It may be admitted only as an observation assistant after a

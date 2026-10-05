@@ -1,6 +1,10 @@
 # K06 / F10 First-use and Accessibility Acceptance
 
-Status: IMPLEMENTATION / LIVE MACOS ACCEPTANCE PENDING
+Status: active
+Status-date: 2026-10-04
+Decision status: accepted
+Review policy: on material change
+Note: IMPLEMENTATION / LIVE MACOS ACCEPTANCE PENDING
 
 The K06 product entry surface is the durable Task Operator, not the legacy Mission runtime.
 It accepts an ordinary target repository as repository context while durable runtime state remains outside that repository.

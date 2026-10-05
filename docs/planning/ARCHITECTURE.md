@@ -3,6 +3,7 @@
 Status: active
 Status-date: 2026-09-09
 Decision status: accepted
+Review policy: on material change
 ADR: `docs/architecture/ADR-0003-persistent-remote-llm-task-runtime.md`
 
 ## 1. Architectural decision

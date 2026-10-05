@@ -1,6 +1,10 @@
 # Temporary ChatGPT File Workflow
 
-Status: **ACTIVE until Cockpit is both usable and explicitly chosen for the current work.**
+Status: active
+Status-date: 2026-10-04
+Decision status: accepted
+Review policy: on material change
+Note: **ACTIVE until Cockpit is both usable and explicitly chosen for the current work.**
 
 This is the canonical human↔ChatGPT development transport while Cockpit is not being used.
 
