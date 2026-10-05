@@ -97,8 +97,16 @@ class MainWindow(ttk.Frame):
         self.freshness_var = tk.StringVar(value="")
         self._freshness_label = ttk.Label(context, textvariable=self.freshness_var, foreground="#d03030",
                                           wraplength=900, justify="left")
-        self._freshness_label.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self._freshness_label.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
         self._freshness_label.grid_remove()
+        # AGP_REBUILD_BUTTON_V1: the guard's warning offers the step it asks for.
+        self._rebuild = None
+        self._rebuild_kind = ""
+        self._rebuild_note = ""   # a failed build stays visible until the next attempt
+        self._rebuild_button = ttk.Button(context, text="Neu bauen und neu starten",
+                                          command=self.start_rebuild)
+        self._rebuild_button.grid(row=1, column=2, sticky="ne", pady=(4, 0))
+        self._rebuild_button.grid_remove()
 
         ttk.Separator(
             self,
@@ -419,17 +427,108 @@ class MainWindow(ttk.Frame):
             freshness = check(freshness_root(self.repository_root))
         except Exception:  # noqa: BLE001 - a status label must never break the UI
             freshness = None
-        if freshness is not None and freshness.stale:
+        if self._rebuild is not None:
+            pass   # the rebuild owns the line until it ends (see _watch_rebuild)
+        elif freshness is not None and freshness.stale:
             self.build_var.set(f"{base} · ⚠ veraltet")
             self._build_label.configure(foreground="#d03030")
-            self.freshness_var.set(f"⚠ {freshness.message}")
+            self.freshness_var.set(self._rebuild_note or f"⚠ {freshness.message}")
             self._freshness_label.grid()
+            self._show_rebuild(freshness)
         else:
             self.build_var.set(base)
             self._build_label.configure(foreground="")
             self.freshness_var.set("")
+            self._rebuild_note = ""
             self._freshness_label.grid_remove()
+            self._rebuild_button.grid_remove()
         self.after(10_000, self.refresh_build_freshness)
+
+    def _show_rebuild(self, freshness) -> None:
+        import sys
+
+        from agp_cockpit.core import app_rebuild
+        kind = app_rebuild.offer(freshness) if getattr(sys, "frozen", False) else ""
+        self._rebuild_kind = kind
+        if kind:
+            self._rebuild_button.configure(text=app_rebuild.label(kind), state="normal")
+            self._rebuild_button.grid()
+        else:
+            self._rebuild_button.grid_remove()
+
+    def start_rebuild(self) -> bool:
+        """AGP_REBUILD_BUTTON_V1: build (if needed), then close and reopen the app."""
+        from agp_cockpit.core import app_rebuild
+        from agp_cockpit.core.build_freshness import cockpit_home
+        from agp_cockpit.core.mission_http_client import task_running
+        kind = self._rebuild_kind or app_rebuild.BUILD
+        home = cockpit_home()
+        blocked = app_rebuild.block_reason(home, task_running=task_running(), kind=kind)
+        if blocked:
+            messagebox.showwarning(app_rebuild.label(kind), blocked, parent=self)
+            return False
+        what = ("Die App wird aus dem aktuellen Stand des Cockpit-Checkouts neu gebaut (1–2 Minuten), "
+                "danach geschlossen und neu geöffnet. Schlägt der Bau fehl, läuft sie weiter."
+                if kind == app_rebuild.BUILD else "Die App wird geschlossen und der neuere Build geöffnet.")
+        if not messagebox.askyesno(app_rebuild.label(kind),
+                                   f"{what}\n\nDie Chrome-Erweiterung lädt sich danach selbst neu.\n\n"
+                                   "Fortfahren?", parent=self):
+            return False
+        self._rebuild_button.configure(state="disabled")
+        self._rebuild_note = ""
+        if kind == app_rebuild.RESTART:
+            return self._relaunch(home)
+        try:
+            self._rebuild = app_rebuild.start(home)
+        except Exception as exc:  # noqa: BLE001 - shown to the operator
+            self._rebuild_button.configure(state="normal")
+            messagebox.showerror(app_rebuild.label(kind), f"Start fehlgeschlagen: {exc}", parent=self)
+            return False
+        self.freshness_var.set(f"Neubau läuft … Protokoll: {self._rebuild.log}")
+        self._freshness_label.grid()
+        self.after(2000, self._watch_rebuild)
+        return True
+
+    def _watch_rebuild(self) -> None:
+        from agp_cockpit.core.build_freshness import cockpit_home
+        rebuild = self._rebuild
+        if rebuild is None:
+            return
+        code = rebuild.returncode()
+        if code is None:
+            self.after(2000, self._watch_rebuild)
+            return
+        self._rebuild = None
+        if code != 0:
+            self._rebuild_note = (f"⚠ Neubau fehlgeschlagen (Code {code}), die App läuft weiter. "
+                                  f"Protokoll: {rebuild.log}\n{rebuild.tail()}")
+            self.freshness_var.set(self._rebuild_note)
+            self._rebuild_button.configure(state="normal")
+            return
+        self._relaunch(cockpit_home())
+
+    def _relaunch(self, home) -> bool:
+        import os
+
+        from agp_cockpit.core import app_rebuild
+        from agp_cockpit.core.mission_http_client import task_running
+        if task_running():   # a task started while the build ran: never cut it off
+            self._rebuild_note = ("Neuer Build ist fertig, aber ein Task läuft — nach seinem Ende "
+                                  "„Neu starten“ klicken.")
+            self.freshness_var.set(self._rebuild_note)
+            self._rebuild_kind = app_rebuild.RESTART
+            self._rebuild_button.configure(text=app_rebuild.label(app_rebuild.RESTART), state="normal")
+            return False
+        try:
+            app_rebuild.relaunch(home, os.getpid())
+        except Exception as exc:  # noqa: BLE001 - shown to the operator
+            self._rebuild_note = f"⚠ Neustart nicht möglich: {exc}"
+            self.freshness_var.set(self._rebuild_note)
+            self._rebuild_button.configure(state="normal")
+            return False
+        self.freshness_var.set("Die App wird neu gestartet …")
+        self.after(300, self.winfo_toplevel().destroy)   # mainloop ends, the bridge stops cleanly
+        return True
 
     def refresh_bridge_identity(self) -> None:
         try:

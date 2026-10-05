@@ -549,7 +549,12 @@ Assessment after P8 and the Kit 1.0.14 release; none is decided yet, each needs 
    open, no Kit layer; red: STÖRUNG, UNKLAR, stale app, interrupted finish, task needs
    the owner), the result line keeps only the Cockpit's own verdicts, the stale warning
    wraps in its own header line.
-2. Rebuild/restart button plus extension self-reload on build drift.
+2. Rebuild/restart button — done 2026-10-05 (AGP_REBUILD_BUTTON_V1, build release-0.2.0-r3):
+   the stale-app warning offers „Neu bauen und neu starten“ (source newer) or „Neu starten“
+   (bundle newer); the app runs the build script, then a detached relauncher reopens the
+   bundle after the app closed itself. The extension self-reload already existed
+   (AGP_EXTENSION_AUTO_REFRESH_V2) and was proven live on 2026-10-05: r1 → r2 two seconds
+   after the restart, so the owner's manual extension reload is not needed.
 3. P10b „Kit aktualisieren“.
 4. Proposal 6 (rejected work orders into Download/), proposal 7 (narrow release resume
    scope); the P11c switch after KIT-GF-049.
