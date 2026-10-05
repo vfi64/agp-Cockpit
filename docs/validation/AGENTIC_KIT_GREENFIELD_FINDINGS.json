@@ -489,6 +489,20 @@
       "historical_id": "Kit releases 1.0.17 (manual) and 1.0.18 (local runner script)",
       "canonical_family": "KIT-GF-047",
       "summary": "no Kit orchestrator for the end-to-end release lifecycle"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E066",
+      "historical_id": "agp-Cockpit release slice rehearsal (publication github), 2026-10-05",
+      "canonical_family": "KIT-GF-048",
+      "summary": "no way to set a pull-request category through work finish"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E067",
+      "historical_id": "agp-Cockpit release slice rehearsal 2 (publication github, classified notes), 2026-10-05",
+      "canonical_family": "KIT-GF-049",
+      "summary": "release-publish github route blocks on the Kit repository's docs-audit and command-reference-check"
     }
   ],
   "families": [
@@ -1769,6 +1783,48 @@
       "evidence": [
         "owner's 1.0.17 result files kit_1017_*.json (2026-10-05)",
         "kit_release_1.0.18.log and kit_release_1.0.18.state.json (2026-10-05): A1 to D5 PASS, DOI 10.5281/zenodo.23166532"
+      ]
+    },
+    {
+      "id": "KIT-GF-048",
+      "title": "work finish cannot give its pull request a release-note category",
+      "first_observed": "2026-10-05",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "work finish (the most comprehensive finish orchestrator) accepts the pull-request body or labels (for example --body/--body-file and --label, or --release-note-category) and passes them to the pull request it creates, so that a workspace with publication github can classify every pull request through its normal finish route.",
+      "observed": "Kit 1.0.18: `work finish` has --title and --message but no body or label option; `transfer pr-create-complete` has --body. With publication github, release-notes-generate blocks a release while merged pull requests are unclassified (agp-Cockpit rehearsal 2026-10-05: 5 of 13 pull requests between v0.1.1 and v0.2.0, titles written by the remote LLM). The classifier reads `release-note-category:` from the body and release-note labels before the title, so only routes that set a body can classify a pull request deliberately.",
+      "impact": "The Cockpit has to reject `work finish --execute` in work orders (AGP_PR_RELEASE_CATEGORY_V1) and steer the remote side to the lower-level pull-request route; the Kit's own preference for the most comprehensive orchestrator and the category requirement conflict. Owners finishing branches with work finish cannot classify without editing the pull request afterwards.",
+      "workaround": "Commit with the Kit, then `agentic-kit transfer pr-create-complete --body` with a `release-note-category:` line; or add a release-note:<category> label to the merged pull request before the release.",
+      "repair": "Add --body/--body-file and --label (or --release-note-category) to work finish and pass them through to pr-create-complete; optionally warn in the dry run when publication uses github and the title would be Unclassified.",
+      "regression": "work finish --execute --release-note-category Fixed (or a body with the line) creates a pull request that release-notes-generate classifies as Fixed.",
+      "evidence": [
+        "agentic-kit 1.0.18 `work finish --help` (no body/label option) vs `transfer pr-create-complete --help` (--body)",
+        "agentic_project_kit/release_notes.py _classify_with_metadata: body line, then labels, then subject",
+        "agp-Cockpit rehearsal 2026-10-05: release ready with publication github BLOCKs on unclassified/missing-evidence items"
+      ]
+    },
+    {
+      "id": "KIT-GF-049",
+      "title": "release-publish GitHub route requires Kit-repository checks in external workspaces",
+      "first_observed": "2026-10-05",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "For publication github the signed release-publish run of an external workspace blocks only on checks that apply to that workspace; checks of the Kit's own documentation system (docs-audit, command-reference-check) run where the workspace declares that system and are otherwise reported as SKIP with a reason.",
+      "observed": "Kit 1.0.18: release_publish_orchestration runs `docs-audit` and `transfer command-reference-check` as blocking checks for every non-private publication. In an agp-Cockpit clone (publication github, title template set, version 0.2.0) the dry run fails with blocker_count 2: docs-audit requires docs/TEST_GATES.md, docs/DOCUMENTATION_COVERAGE.yaml, sentinel.yaml, .agentic/compiled_agent_context.yaml, CURRENT_HANDOFF.md and docs/governance contracts; command-reference-check expects the Kit's command reference. All other checks (release prep, metadata authority, title template) pass.",
+      "impact": "The Kit's GitHub publication route is unusable for Kit-adopting workspaces; agp-Cockpit keeps publication none and the owner creates the GitHub Release entry by hand (P11c prepared, not switched).",
+      "workaround": "publication: none (signed private tag) and `gh release create <tag> --verify-tag` by the owner.",
+      "repair": "Run the two checks only where the workspace declares the Kit documentation system (or an explicit release.publish_checks config), report them as SKIP with a reason otherwise; Codex task .local/agp-cockpit/tmp/codex_task_KIT-GF-049.md.",
+      "regression": "External workspace without the Kit documentation files, publication github: release-publish dry run has no docs-audit/command-reference blockers and lists both as SKIP; with the registry present a failing docs audit still blocks.",
+      "evidence": [
+        "agentic_project_kit/release_publish_orchestration.py (1.0.18): docs audit and command reference check in the non-private branch",
+        "agp-Cockpit rehearsal 2026-10-05: release-publish --version 0.2.0 --json → FAIL, blockers docs audit (Overall: FAIL) and command reference check, rc 1",
+        "agentic-kit docs-audit in the clone: missing required documentation files (docs/TEST_GATES.md, docs/DOCUMENTATION_COVERAGE.yaml, sentinel.yaml, …)"
       ]
     }
   ],

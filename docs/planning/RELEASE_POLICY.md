@@ -1,23 +1,42 @@
 # Release policy — agp-Cockpit
 
 Status: active
-Status-date: 2026-10-04
+Status-date: 2026-10-05
 Decision status: accepted
 Review policy: on material change
 Note: active · Decided by the owner on 2026-10-02 · Machine-readable form:
 `docs/planning/release_policy.json` (marker `AGP_RELEASE_POLICY_V1`).
 
-agp-Cockpit is the owner's private tool. It is not published anywhere.
+agp-Cockpit is the owner's private tool. It is not published to any package
+index or archive; its GitHub Release entries stay in the private repository.
 
 - A release is private: version bump, changelog entry, annotated git tag and a
   local app build. Pushing the tag to the private repository is allowed
   (owner's decision 2026-10-02, `tag_push` in the JSON); it is a remote effect
   and needs the owner's approval of the release run.
-- A GitHub Release entry in the private repository is allowed when the owner
-  creates it by hand (owner's decision 2026-10-02, `owner_github_release` in
-  the JSON): `gh release create <tag> --verify-tag`, visible only to the owner
-  while the repository stays private. Cockpit work orders still never create,
-  edit or delete GitHub Releases.
+- The GitHub Release entry in the private repository is still created by the
+  owner by hand (owner's decision 2026-10-02, `owner_github_release` in the JSON):
+  `gh release create <tag> --verify-tag`. The owner decided on 2026-10-05 that the
+  Kit's signed release run takes this over (P11c, `kit_github_release` in the JSON,
+  `AGP_KIT_GITHUB_RELEASE_V1`). It is prepared, not yet switched on:
+  `.agentic/config.yaml` carries `release.github_release_title_template: "AGP
+  Cockpit {version} (privat)"` but stays at `publication: none`, because the Kit's
+  GitHub route (1.0.18) also runs the Kit repository's own docs audit and
+  command-reference check, which fail in this repository (KIT-GF-049). The switch
+  is `publication: github` once a Kit release fixes KIT-GF-049; the Kit then
+  creates the annotated tag, pushes it and creates the entry with the version's
+  `CHANGELOG.md` section as its text. Cockpit work orders never run `gh release`
+  themselves.
+- With `publication: github` the Kit blocks a release while a merged pull request
+  has no release-note category. Every pull request a work order creates
+  therefore already carries a body line `release-note-category: <category>`
+  (`AGP_PR_RELEASE_CATEGORY_V1`, enforced on work orders as soon as the workspace
+  declares the GitHub route or its title template, i.e. now); `agentic-kit work
+  finish --execute` cannot set a body and is rejected (KIT-GF-048).
+- The release pull request is created only after every entry of the
+  `CHANGELOG.md` "Unreleased" section was moved into the version section
+  (`AGP_RELEASE_CHANGELOG_GATE_V1`, enforced on work orders on `release/<v>`); the
+  section is the text of the GitHub entry.
 - No PyPI package, no Zenodo record. There is no Zenodo
   record for this repository; none may be created, updated or queried, and a
   release must not attempt a Zenodo or DOI step.
@@ -25,11 +44,13 @@ agp-Cockpit is the owner's private tool. It is not published anywhere.
   `agentic-kit post-release-doi-closeout`, `gh release create|upload|edit|delete`
   or contact Zenodo or PyPI upload hosts (correctable rejection, the remote side
   gets the reason). Since 2026-10-04 (P11, AGP_SIGNED_PRIVATE_RELEASE_V1)
-  `agentic-kit release-publish` is allowed as the Kit's private tag route only:
+  `agentic-kit release-publish` is allowed as the Kit's release route only:
   its dry run freely; its live run only with `--execute --allow-execute
-  --expected-signature <signature of the dry run>`, `publication: none` in
-  `.agentic/config.yaml`, never the marker file, and only after the owner's
-  approval (the tag push is never part of a start-click scope).
+  --expected-signature <signature of the dry run>`, the policy's publication
+  (`none`; `github` after the P11c switch) in `.agentic/config.yaml`, never the marker file,
+  and only after the owner's approval (the tag push is never part of a
+  start-click scope). The approval of that phase is not blocked by the release's
+  own new build id (`AGP_RELEASE_PHASE2_APPROVAL_V1`).
 - The Kit's release lifecycle currently assumes public publication (GitHub
   Release, Zenodo DOI, PyPI); recorded as Greenfield finding KIT-GF-029.
 
@@ -67,14 +88,17 @@ present) and runs two phases in one task:
    mode, the build-id step of the version map above, then the Kit's pull-request
    lifecycle (green CI, merge, post-merge closeout). The start click approves
    exactly this.
-2. Tag: the Kit's private release publication as a dry run; the remote side stops
-   with NEEDS_HUMAN naming version, tag, target commit and the approval
-   signature; after the owner's approval the signed live run creates and pushes
-   only the annotated tag.
+2. Tag: the Kit's release publication as a dry run; the remote side stops
+   with NEEDS_HUMAN naming version, tag, target commit, planned actions and the
+   approval signature; after the owner's approval the signed live run creates and
+   pushes the annotated tag and (after the P11c switch, `publication: github`)
+   creates the GitHub Release entry.
 
 DONE is accepted only after the Cockpit verified the merged, green release pull
 request and, locally, the annotated tag on origin whose commit is in origin/main
-and whose `pyproject.toml` names the version (AGP_RELEASE_VERIFIER_V1). If the
+and whose `pyproject.toml` names the version (AGP_RELEASE_VERIFIER_V1); with
+`publication: github` also the GitHub Release entry (`gh release view`, not a
+draft). If the
 version was already prepared on main and only the tag is missing, the task
 skips phase 1: the dialog then suggests that version, and the precheck ignores
 the squash-merged release branch that may still exist on origin

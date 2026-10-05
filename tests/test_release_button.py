@@ -60,8 +60,8 @@ def test_precheck_blocks_dirty_unsynced_other_branches_and_public_workspaces(rep
     git(repo, "switch", "-q", "-c", "feat/a")
     assert "nur auf main" in TASK.check(repo, {"version": "0.1.1"})
     git(repo, "switch", "-q", "main")
-    (repo / ".agentic/config.yaml").write_text("publication: github\n")
-    assert "publication: none" in TASK.check(repo, {"version": "0.1.1"})   # checked first
+    (repo / ".agentic/config.yaml").write_text("publication: github+pypi\n")
+    assert "publication: none oder publication: github" in TASK.check(repo, {"version": "0.1.1"})   # first
 
 
 def test_prompt_has_both_phases_and_skips_phase_one_when_prepared(repo):

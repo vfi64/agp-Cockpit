@@ -182,6 +182,8 @@ def validate_command_content(
             violations = violations + force_violations(source)
             from agp_cockpit.core.kit_command_catalog import forbidden_execute_violations
             violations = violations + forbidden_execute_violations(source)
+            from agp_cockpit.core.release_hygiene import violations as release_hygiene_violations
+            violations = violations + release_hygiene_violations(source, repository_root)
     except SyntaxError as exc:
         raise ValueError(
             f"command file is not executable Python: {type(exc).__name__}: {exc}"

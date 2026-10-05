@@ -702,6 +702,21 @@ This section is normative for the file loop after local execution.
    snapshot (counts, ids, tags; no chat text). The send button is not part of the check:
    ChatGPT renders it only after text is inserted (rule 67 covers the submit).
 
+69. Release with the Kit's GitHub entry (`AGP_KIT_GITHUB_RELEASE_V1`,
+   `AGP_PR_RELEASE_CATEGORY_V1`, `AGP_RELEASE_CHANGELOG_GATE_V1`,
+   `AGP_RELEASE_PHASE2_APPROVAL_V1`, owner 2026-10-05): the Kit's signed release run is to
+   create the annotated tag and the GitHub Release entry (title from
+   `release.github_release_title_template`, text from the version's changelog section);
+   prepared, switched on with `publication: github` once KIT-GF-049 is fixed, until then
+   `publication: none` and the owner creates the entry by hand. With `publication: github`
+   the release verifier also checks the entry. Work orders never run `gh release`. Where
+   the workspace declares the GitHub route or its title template (now), a work order that
+   creates a pull request must give it a body line `release-note-category: <category>`
+   (`transfer pr-create(-complete) --body`); `work finish --execute` is rejected because it
+   cannot set a body (KIT-GF-048). On `release/<v>` the pull-request step is rejected while
+   the CHANGELOG "Unreleased" section is not empty or `## v<v>` is missing. The owner's
+   approval of phase 2 is not blocked by the release's own build id `release-<v>`.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

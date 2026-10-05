@@ -1,10 +1,21 @@
 # Changelog — AGP Cockpit
 
 Private tool; releases are not published (no PyPI or Zenodo); the private
-repository may carry a GitHub Release entry made by the owner
-(`docs/planning/RELEASE_POLICY.md`). Version map: `docs/releases/versions.json`.
+repository carries a GitHub Release entry per release, made by the owner until the
+Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Version map: `docs/releases/versions.json`.
 
 ## Unreleased
+
+- Release: every pull request carries a release-note category, the release pull
+  request needs a moved changelog, and the approval of phase 2 is no longer blocked by
+  the release's own build id; the GitHub entry by the Kit's signed run is prepared
+  (title „AGP Cockpit <version> (privat)“) and switched on after KIT-GF-049; build
+  `release-0.2.0-r1`.
+
+## v0.2.0 - 2026-10-05
+
+App 0.2.0 · build `release-0.2.0` · agentic-project-kit 1.0.18 · made with the
+Release button (corrected entry; the tag carries the pull-request titles).
 
 - An unloadable remote file is requested once more under the next step instead of
   stopping the task (AGP_K07_REMOTE_FILE_REGENERATE_V1); build `release-0.1.1-r1`.
@@ -26,22 +37,6 @@ repository may carry a GitHub Release entry made by the owner
   start logs the page shape; build `release-0.1.1-r9`.
 - Kit 1.0.18 adopted (CI pins, command manifest 5f78167f2644); KIT-GF-042 and KIT-GF-046
   verified fixed, KIT-GF-047 recorded.
-
-## v0.2.0 - 2026-10-05
-
-- Fix remote file regeneration
-- P10a: Pflege standard task; sweep execute asks; ci-update guard
-- Pflege DONE file within the terminal schema; correct malformed terminal replies
-- R5 in every tab: the Arbeiten tab refuses to start while a task runs
-- Docs lifecycle headers for the planning documents
-- Lagebericht: uncommitted work on a new branch is IN_ARBEIT, not STÖRUNG
-- Fix new chat composer attachment
-- Claude chat switch from repository facts (AGP_CLAUDE_HANDOFF_FACTS_V1)
-- Bridge panel: live counters and phase during a run (AGP_PANEL_LIVE_STATUS_V1)
-- Record KIT-GF-044; KIT-GF-043/044 fixed on Kit main (#2387)
-- Adopt Kit 1.0.17; KIT-GF-042 retest still fails, record KIT-GF-045/046
-- Adopt Kit 1.0.18; KIT-GF-042 and KIT-GF-046 verified fixed, record KIT-GF-047
-- Check composer touchpoints before a mission start (AGP_MISSION_TOUCHPOINT_SELFTEST_V1)
 
 ## v0.1.1 - 2026-10-04
 
