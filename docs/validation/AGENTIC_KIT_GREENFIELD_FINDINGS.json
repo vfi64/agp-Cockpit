@@ -524,6 +524,41 @@
       "historical_id": "agp-Cockpit release 0.2.1, steps 1800-1804",
       "canonical_family": "KIT-GF-052",
       "summary": "release-publish dry run blocked by 'release-prep dry-run would change CHANGELOG.md'; cause: wrapped bullets dropped by the consistency check"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E071",
+      "historical_id": "agp-Cockpit P4 live run in agentic-project-kit, release 1.0.19",
+      "canonical_family": "KIT-GF-053",
+      "summary": "work recover deleted .agentic/rule_ack/current.json; transfer commit BLOCKED three times (Kit repository, GF-050 A)"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E072",
+      "historical_id": "agp-Cockpit P4 live run in agentic-project-kit, release 1.0.19",
+      "canonical_family": "KIT-GF-054",
+      "summary": "release ready audits walked the ignored Cockpit runtime folder; 6199 blockers, one audit killed by memory"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E073",
+      "historical_id": "agp-Cockpit P4 live run in agentic-project-kit, release 1.0.19",
+      "canonical_family": "KIT-GF-055",
+      "summary": "release run C3 gate without the PyPI input; fixed locally through release.package_index_workflow"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E074",
+      "historical_id": "agp-Cockpit P4 live run in agentic-project-kit, release 1.0.19",
+      "canonical_family": "KIT-GF-056",
+      "summary": "release run C4 failed: post-release-check has no --json option"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E075",
+      "historical_id": "agp-Cockpit P4 live run in agentic-project-kit, release 1.0.19",
+      "canonical_family": "KIT-GF-050",
+      "summary": "parts A and B fixed through the Cockpit in the Kit repository (#2409, #2411), released in 1.0.19"
     }
   ],
   "families": [
@@ -1196,18 +1231,19 @@
       "regression": "Post-merge verification works with Kit commands only.",
       "evidence": [
         "K07_STATE_AND_NEXT_STEPS_2026-10-01.md §3.2",
-        "src/agp_cockpit/core/ci_gate.py::main_ci"
+        "src/agp_cockpit/core/ci_gate.py::main_ci",
+        "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2407 (agentic-kit ci status, manifest remote_effects)"
       ],
       "first_observed": "2026-10-01",
-      "status": "OPEN",
+      "status": "FIXED",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.19",
       "kit_repo_status": {
-        "date": "2026-10-05",
-        "fixed_in": "",
+        "date": "2026-10-06",
+        "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.18 (#2407 58364a96: `agentic-kit ci status --commit/--branch --json`); not in a released Kit yet",
+        "raw": "Kit #2407 (agentic-kit ci status, manifest remote_effects)",
         "report": "docs/reports/greenfield/KIT-GF-024-025-ci-status-manifest-effects-2026-10-05.md"
       }
     },
@@ -1223,18 +1259,19 @@
       "regression": "Cockpit approval gating derives entirely from the manifest.",
       "evidence": [
         "K07_STATE_AND_NEXT_STEPS_2026-10-01.md §3.3",
-        "src/agp_cockpit/core/kit_command_catalog.py"
+        "src/agp_cockpit/core/kit_command_catalog.py",
+        "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2407 (remote_effects for every manifest command)"
       ],
       "first_observed": "2026-10-01",
-      "status": "OPEN",
+      "status": "FIXED",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.19",
       "kit_repo_status": {
-        "date": "2026-10-05",
-        "fixed_in": "",
+        "date": "2026-10-06",
+        "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.18 (#2407 58364a96: command manifest classifies remote effects, ci status as network_read); not in a released Kit yet",
+        "raw": "Kit #2407 (remote_effects for every manifest command)",
         "report": "docs/reports/greenfield/KIT-GF-024-025-ci-status-manifest-effects-2026-10-05.md"
       }
     },
@@ -1313,18 +1350,19 @@
       "regression": "With TMPDIR set, no Kit file appears under /tmp.",
       "evidence": [
         "agentic_project_kit/communication_artifact_gc.py",
-        "agentic_project_kit/cli_commands/transfer_repo_pre_pr.py"
+        "agentic_project_kit/cli_commands/transfer_repo_pre_pr.py",
+        "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2403 (TMPDIR-aware temp artifacts)"
       ],
       "first_observed": "2026-10-01",
-      "status": "OPEN",
+      "status": "FIXED",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.19",
       "kit_repo_status": {
-        "date": "2026-10-05",
-        "fixed_in": "",
+        "date": "2026-10-06",
+        "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.18 (#2403 b8396354: tempfile.gettempdir() unless --local-tmp; artifact-gc covers protected diffs); not in a released Kit yet",
+        "raw": "Kit #2403 (TMPDIR-aware temp artifacts)",
         "report": "docs/reports/greenfield/KIT-GF-028-tempdir-artifacts-2026-10-05.md"
       }
     },
@@ -1818,11 +1856,11 @@
       "id": "KIT-GF-047",
       "title": "No orchestrator runs the release lifecycle end to end",
       "first_observed": "2026-10-05",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.19",
       "expected": "One Kit command (for example `agentic-kit release run --version X`) runs the whole lifecycle — readiness, prepare branch and PR, signed publish, package index publication, post-release check with waiting for Zenodo, DOI closeout PR, final release-status — through the existing orchestrators; it stops at each irreversible step for an approval in the Kit's signature style, records its state so a rerun resumes at the failed or unapproved step, and treats a step as passed only when the orchestrator's own result_status says so.",
       "observed": "Kit 1.0.17 (2026-10-05): the owner pasted about 16 separate commands (release ready, release prepare dry and --write, work start, work finish dry and --execute, release-publish dry and signed execute, gh workflow run for PyPI, gh run watch, post-release-check, work start, post-release-doi-closeout, work finish dry and --execute, release-status), copying the approval signature and the changed paths by hand; two blockers (an unclassified PR, too few changelog categories) appeared only mid-run. Release 1.0.18 ran through a local, unversioned runner script (agp-Cockpit .local/agp-cockpit/tools/kit_release.py, 16 steps A1 to D5, four owner gates) without manual copying.",
       "impact": "Many owner copy-and-paste steps, hand-carried signatures and path lists, no resume after a failure; the Cockpit's Release standard task cannot drive a Kit-style public release as one route.",
@@ -1831,13 +1869,14 @@
       "regression": "A release from ready to current_verified needs one command per approval and resumes after an interrupted step without repeating a remote effect.",
       "evidence": [
         "owner's 1.0.17 result files kit_1017_*.json (2026-10-05)",
-        "kit_release_1.0.18.log and kit_release_1.0.18.state.json (2026-10-05): A1 to D5 PASS, DOI 10.5281/zenodo.23166532"
+        "kit_release_1.0.18.log and kit_release_1.0.18.state.json (2026-10-05): A1 to D5 PASS, DOI 10.5281/zenodo.23166532",
+        "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2405 (agentic-kit release run); first live use for Kit 1.0.19 found KIT-GF-055 and KIT-GF-056"
       ],
       "kit_repo_status": {
-        "date": "2026-10-05",
-        "fixed_in": "",
+        "date": "2026-10-06",
+        "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "fixed on Kit main after 1.0.18 (#2405 1f0b069d: resumable `agentic-kit release run --version X` with signed gates B4/C2/C3/D4; publication none skips index/Zenodo/DOI); not in a released Kit yet",
+        "raw": "Kit #2405 (agentic-kit release run); first live use for Kit 1.0.19 found KIT-GF-055 and KIT-GF-056",
         "report": "docs/reports/greenfield/KIT-GF-047-release-run-orchestrator-2026-10-05.md"
       }
     },
@@ -1906,11 +1945,11 @@
       "id": "KIT-GF-050",
       "title": "post-merge-complete: fixed 300 s follow-up CI wait and a fallback that crashes in external workspaces",
       "first_observed": "2026-10-05",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.19",
       "expected": "transfer pr-complete --post-merge-complete waits for the successor-refresh pull request's CI as long as the caller allows (it passed --timeout-seconds 1800) or reports PENDING without side effects; a fallback never leaves the worktree on a new branch with uncommitted changes, and it finds the handoff state where the workspace keeps it.",
       "observed": "Kit 1.0.18, agp-Cockpit step 1781 (pr-complete 242 --timeout-seconds 1800 --post-merge-complete): the inner post-merge-complete waited only 300 s for PR #243 (GitHub gave a job no runner that evening), reported SUCCESSOR_PACKAGE_REFRESH_CI_BLOCKED, then ran admin-refresh-pr, which raised FileNotFoundError: handoff state file not found: .agentic/handoff_state.yaml (handoff_state.py DEFAULT_HANDOFF_STATE_PATH; the workspace keeps it at .agentic/state/handoff/handoff_state.yaml) and left the repository on docs/post-pr242-handoff-refresh with three modified handoff files and an untracked docs/reports/.",
       "impact": "A transient GitHub delay turns a successful merge into BLOCKED plus a leftover branch; recovery needed a signed discard, a manual switch to main and a second Abschließen (owner, 2026-10-06).",
@@ -1921,13 +1960,14 @@
         "agp-Cockpit Download/1781_rebuild_button_pr_complete_retry_return_bundle.json (post-merge-complete BLOCKED, admin-refresh-pr FileNotFoundError)",
         ".agentic/state/handoff/transfer_handoff_reports/20261005T192004Z-77db4a87-post-merge-complete-after-pr242.json: PR readiness outcome TIMEOUT after 300s",
         "agentic_project_kit/handoff_state.py:11 DEFAULT_HANDOFF_STATE_PATH = .agentic/handoff_state.yaml; post_merge_handoff_refresh.py:12 likewise",
-        "GitHub run #705: browser job 'not acquired by Runner of type hosted even after multiple attempts', Internal server error; re-run green"
+        "GitHub run #705: browser job 'not acquired by Runner of type hosted even after multiple attempts', Internal server error; re-run green",
+        "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2409 (part A: CI budget, PENDING) and #2411 (part B: workspace handoff path, SKIP without state, fallback cleanup), both driven through the Cockpit in the Kit repository (P4)"
       ],
       "kit_repo_status": {
         "date": "2026-10-06",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "not addressed on Kit main eebe6fbe; Codex task prepared",
+        "fixed_in": "1.0.19",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2409 (part A: CI budget, PENDING) and #2411 (part B: workspace handoff path, SKIP without state, fallback cleanup), both driven through the Cockpit in the Kit repository (P4)",
         "report": ""
       },
       "cockpit_mitigation": [
@@ -1991,6 +2031,113 @@
         "fixed_in": "",
         "kit_state": "OPEN",
         "raw": "not addressed on Kit main eebe6fbe",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-053",
+      "title": "work recover deletes the rule acknowledgement that transfer commit requires",
+      "first_observed": "2026-10-06",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "agentic-kit work recover leaves .agentic/rule_ack/current.json in place (or re-acknowledges), and transfer commit names the missing acknowledgement and the route `agentic-kit rules acknowledge` as its next action.",
+      "observed": "Kit 1.0.18 in the Kit repository (Cockpit task GF-050 A, steps 20-22): work recover runs normalize-session --repair-known-volatile, whose _restore_known_volatile_paths removes the untracked known-volatile path .agentic/rule_ack/current.json. transfer commit then returned BLOCKED (reasons dirty_worktree, missing_rule_acknowledgement) with next_action 'Review or clean the worktree before running another transfer action'; the remote side retried the same commit three times until the loop guard stopped the run.",
+      "impact": "A routine recovery step silently disables committing; the misleading next action costs a whole run.",
+      "workaround": "Run agentic-kit rules acknowledge immediately before transfer commit; avoid work recover inside work orders.",
+      "repair": "Keep the rule acknowledgement out of the volatile repair set (or acknowledge again after the repair) and put the missing acknowledgement first in the commit's next_action.",
+      "regression": "work recover followed by transfer commit on a dirty work branch commits without an extra rules acknowledge.",
+      "evidence": [
+        "agentic-project-kit Download/019-022 (Cockpit run, Kit repository): rejected raw git commit, three transfer commit BLOCKED missing_rule_acknowledgement",
+        "transfer_context_helpers.py _restore_known_volatile_paths removes untracked known-volatile paths"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 28428d8f",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-054",
+      "title": "Release audits walk git-ignored folders; one exhausts memory",
+      "first_observed": "2026-10-06",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The audits run by release ready (audit-ns-legacy-references, audit-absolute-path-portability) skip paths that git ignores (.gitignore and .git/info/exclude) and run in bounded memory.",
+      "observed": "Kit 1.0.19 release run A2 (2026-10-06): with the Cockpit's runtime folder .local/agp-cockpit (incl. a nested Kit clone) and Download/ inside the Kit checkout, both ignored through .git/info/exclude, audit-ns-legacy-references reported 6199 blockers (35 MB output) and audit-absolute-path-portability ended with signal 9; the owner's machine swapped heavily (about 26 GB freed after closing the terminals). After moving both folders out the audits passed.",
+      "impact": "Local, ignored files block a release and can exhaust the machine.",
+      "workaround": "Move local runtime folders out of the checkout before release ready.",
+      "repair": "Enumerate files with git ls-files (tracked plus untracked not ignored) in these audits; stream results instead of collecting them.",
+      "regression": "A checkout with an ignored folder containing ./ns references and absolute paths passes both audits.",
+      "evidence": [
+        "agentic-project-kit tmp/release-run-1.0.19-steps/A2.json (108 MB, blockers standard-error-scan)",
+        "agp-Cockpit .local/agp-cockpit/archive/kit-repo-runtime-20261006 and kit-repo-download-20261006"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 28428d8f",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-055",
+      "title": "release run C3 dispatches the package-index workflow without its publish input",
+      "first_observed": "2026-10-06",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "release run publishes to the package index the repository declares: C3 passes the workflow input that selects PyPI (derived from the publication policy or a documented default) and watches the run it dispatched, not the latest run of the workflow.",
+      "observed": "Kit 1.0.19 release run: C3 read release.package_index_workflow from .agentic/config.yaml; the Kit repository has no such section, so the gate showed inputs [] and `gh workflow run release.yml` would have used publish_target=none (build only, PyPI skipped). Adding release.package_index_workflow.inputs [publish_target=pypi] locally produced a new signature and PyPI 1.0.19. _latest_workflow_run_id takes `gh run list --limit 1` right after the dispatch and may pick the previous run (the tag-push run) and report success without publication.",
+      "impact": "A public release can end without the package-index publication while the gate reports success.",
+      "workaround": "Declare release.package_index_workflow with the publish input before C3; verify PyPI by hand after C3.",
+      "repair": "Derive the publish input from publication (github+pypi -> pypi), fail the gate when the workflow has a required publish input that is not set, and identify the dispatched run (created after the dispatch, event workflow_dispatch).",
+      "regression": "A publication github+pypi workspace without the config section dispatches with the PyPI input; a stale latest run is never watched.",
+      "evidence": [
+        "agentic-project-kit tmp/release-run-1.0.19.json gates.C3 (inputs [] -> [publish_target=pypi], signatures c21078324e9d9ac145bb297c -> 063e7af393ba10cf7448eac7)",
+        "GitHub Actions release.yml runs 37516889279 (tag push, publish-pypi skipped) and 37517546824 (dispatch, PyPI 1.0.19)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 28428d8f",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-056",
+      "title": "release run C4 calls post-release-check with an option it does not have",
+      "first_observed": "2026-10-06",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "release run C4 invokes post-release-check with options that command accepts and parses its result.",
+      "observed": "Kit 1.0.19 release run C4: `agentic-kit post-release-check --version 1.0.19 --json` fails with 'No such option --json' (post-release-check has only --root and --version), three times; the run stops BLOCKED at C4 and the DOI phase D1-D5 is unreachable through the orchestrator.",
+      "impact": "Every public release run ends at C4; the DOI closeout needs hand work.",
+      "workaround": "Park the run at C4 (the state is kept) until the Kit is fixed; record the DOI later.",
+      "repair": "Add --json to post-release-check or call it without --json; add a test that runs every orchestrator step argv against the real CLI.",
+      "regression": "release run with a released tag passes C4 when GitHub release and Zenodo version exist.",
+      "evidence": [
+        "agentic-project-kit tmp/release-run-1.0.19-steps/C4.json (returncode 2, No such option '--json')"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 28428d8f",
         "report": ""
       }
     }
@@ -2149,9 +2296,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "eebe6fbec4cb6465d90245ab5c1f0897cec8a161",
-    "latest_release": "1.0.18",
-    "synced": "2026-10-05",
+    "kit_commit": "28428d8f9a0633508c6a89c88583d5ca4287a4bb",
+    "latest_release": "1.0.19",
+    "synced": "2026-10-06",
     "note": "Snapshot of the Kit's own adjudication (docs/reports/*.json of the Kit repository). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
   }
 }
