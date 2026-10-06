@@ -6,6 +6,8 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+## v0.2.1 - 2026-10-06
+
 - A rejected work order is kept beside its rejection record in Download/ and its copy
   in ~/Downloads is removed; resuming a release grants only the main synchronization
   with the start click; build `release-0.2.0-r5`.
@@ -28,6 +30,13 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
   the release's own build id; the GitHub entry by the Kit's signed run is prepared
   (title „AGP Cockpit <version> (privat)“) and switched on after KIT-GF-049; build
   `release-0.2.0-r1`.
+
+- Add release hygiene gates and prepare the Kit's GitHub release entry (P11c)
+- Sync Kit findings with Kit main after 1.0.18
+- Add the Lage traffic light and a short German result line
+- Add a rebuild and restart button to the stale-app warning
+- Add guided recovery
+- Keep rejected work orders and narrow the release resume scope
 
 ## v0.2.0 - 2026-10-05
 
