@@ -517,6 +517,13 @@
       "historical_id": "agp-Cockpit P10b design, owner decision 2026-10-06 (architecture principle kept)",
       "canonical_family": "KIT-GF-051",
       "summary": "no Kit route updates the Kit in a workspace; adoption of a Kit release is manual"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E070",
+      "historical_id": "agp-Cockpit release 0.2.1, steps 1800-1804",
+      "canonical_family": "KIT-GF-052",
+      "summary": "release-publish dry run blocked by 'release-prep dry-run would change CHANGELOG.md'; cause: wrapped bullets dropped by the consistency check"
     }
   ],
   "families": [
@@ -1956,6 +1963,34 @@
         "fixed_in": "",
         "kit_state": "OPEN",
         "raw": "not addressed on Kit main eebe6fbe; Codex task prepared",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-052",
+      "title": "release-publish rejects a changelog section with wrapped bullets without naming the cause",
+      "first_observed": "2026-10-06",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The release-prep consistency check of release-publish either reproduces a version section whose bullets wrap over several lines (Markdown list items with indented continuation lines) or reports the exact cause: which lines of the section release-prep cannot reproduce (continuation lines, paragraphs, a second list) and that the section must be one list of one-line bullets.",
+      "observed": "Kit 1.0.18, agp-Cockpit release 0.2.1 (steps 1800 and 1802): `release-publish --version 0.2.1 --dry-run` failed with the single detail 'release-prep dry-run would change paths: CHANGELOG.md'. _current_changelog_release_metadata keeps only the lines that start with '- ' as summary lines, so the continuation lines of five wrapped bullets and the blank line between two lists were dropped and the regenerated section differed. Reproduced in a clone: with the same six bullets on one line each the check passes. The remote side first repaired an unrelated defect (#250) and found the cause only with an extra diagnosis step (1803); #252 replaced the section by one-line bullets.",
+      "impact": "A release with a normal Markdown changelog stops after the merged release pull request; the repair costs two more pull requests and the detailed entries are lost from the section.",
+      "workaround": "Keep the version section one list of one-line bullets; write it only through release-prep with --summary-line/--summary-lines-from.",
+      "repair": "Name the unreproducible lines in the check's detail (and reject them already in release-prep write mode), or accept indented continuation lines as part of a summary line.",
+      "regression": "A workspace whose version section has one wrapped bullet: the dry run's blocker detail names that bullet's continuation line; with the bullet on one line the check passes.",
+      "evidence": [
+        "agp-Cockpit Download/1800 and 1802 return bundles (release-publish dry run, blocker release-prep dry-run)",
+        "agp-Cockpit #250 (build identity), #252 (changelog section as one-line bullets)",
+        "agentic_project_kit/release_publish_orchestration.py _current_changelog_release_metadata (Kit 1.0.18)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main eebe6fbe",
         "report": ""
       }
     }
