@@ -503,6 +503,13 @@
       "historical_id": "agp-Cockpit release slice rehearsal 2 (publication github, classified notes), 2026-10-05",
       "canonical_family": "KIT-GF-049",
       "summary": "release-publish github route blocks on the Kit repository's docs-audit and command-reference-check"
+    },
+    {
+      "date": "2026-10-05",
+      "event_id": "GF-E068",
+      "historical_id": "agp-Cockpit PR #242 finish, post-merge-complete after PR242 (step 1781), 2026-10-05",
+      "canonical_family": "KIT-GF-050",
+      "summary": "post-merge-complete times out on slow follow-up CI after 300s; admin-refresh-pr fallback crashes on .agentic/handoff_state.yaml and leaves a dirty branch"
     }
   ],
   "families": [
@@ -1879,6 +1886,42 @@
       "related": [
         "KIT-GF-035",
         "KIT-GF-022"
+      ]
+    },
+    {
+      "id": "KIT-GF-050",
+      "title": "post-merge-complete: fixed 300 s follow-up CI wait and a fallback that crashes in external workspaces",
+      "first_observed": "2026-10-05",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "transfer pr-complete --post-merge-complete waits for the successor-refresh pull request's CI as long as the caller allows (it passed --timeout-seconds 1800) or reports PENDING without side effects; a fallback never leaves the worktree on a new branch with uncommitted changes, and it finds the handoff state where the workspace keeps it.",
+      "observed": "Kit 1.0.18, agp-Cockpit step 1781 (pr-complete 242 --timeout-seconds 1800 --post-merge-complete): the inner post-merge-complete waited only 300 s for PR #243 (GitHub gave a job no runner that evening), reported SUCCESSOR_PACKAGE_REFRESH_CI_BLOCKED, then ran admin-refresh-pr, which raised FileNotFoundError: handoff state file not found: .agentic/handoff_state.yaml (handoff_state.py DEFAULT_HANDOFF_STATE_PATH; the workspace keeps it at .agentic/state/handoff/handoff_state.yaml) and left the repository on docs/post-pr242-handoff-refresh with three modified handoff files and an untracked docs/reports/.",
+      "impact": "A transient GitHub delay turns a successful merge into BLOCKED plus a leftover branch; recovery needed a signed discard, a manual switch to main and a second Abschließen (owner, 2026-10-06).",
+      "workaround": "Re-run the follow-up CI on GitHub; Cockpit Wiederherstellen (Kit work discard-changes, signed); git switch main; Abschließen completes the follow-up PR (AGP_GUIDED_RECOVERY_V1 now guides these steps).",
+      "repair": "Pass the caller's CI timeout through to post-merge-complete's follow-up wait (or report PENDING and stop cleanly); resolve the handoff state path from the workspace configuration in admin-refresh-pr; never leave a new branch with changes behind on a crash (restore main or report the exact cleanup). Codex task .local/agp-cockpit/tmp/codex_task_KIT-GF-050.md.",
+      "regression": "With a follow-up CI that stays pending beyond 300 s and --timeout-seconds 1800, post-merge-complete keeps waiting; with a failing follow-up CI in an external workspace whose handoff state lives under .agentic/state/handoff/, admin-refresh-pr does not raise and the worktree ends clean on main.",
+      "evidence": [
+        "agp-Cockpit Download/1781_rebuild_button_pr_complete_retry_return_bundle.json (post-merge-complete BLOCKED, admin-refresh-pr FileNotFoundError)",
+        ".agentic/state/handoff/transfer_handoff_reports/20261005T192004Z-77db4a87-post-merge-complete-after-pr242.json: PR readiness outcome TIMEOUT after 300s",
+        "agentic_project_kit/handoff_state.py:11 DEFAULT_HANDOFF_STATE_PATH = .agentic/handoff_state.yaml; post_merge_handoff_refresh.py:12 likewise",
+        "GitHub run #705: browser job 'not acquired by Runner of type hosted even after multiple attempts', Internal server error; re-run green"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main eebe6fbe; Codex task prepared",
+        "report": ""
+      },
+      "cockpit_mitigation": [
+        {
+          "date": "2026-10-06",
+          "marker": "AGP_GUIDED_RECOVERY_V1",
+          "description": "The Lage reads the follow-up PR's CI and shows the numbered way out (re-run on GitHub, Wiederherstellen, back to main, Abschließen); Wiederherstellen no longer counts an empty leftover branch as recovered."
+        }
       ]
     }
   ],

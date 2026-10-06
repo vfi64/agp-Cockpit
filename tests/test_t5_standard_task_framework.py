@@ -163,11 +163,19 @@ def test_work_started_verifier(repo):
 
 
 def test_recovered_verifier_reads_the_lagebericht():
-    def fake(state):
-        return lambda _root: SimpleNamespace(state=state, summary="s")
+    def fake(state, recommended=None, **facts):
+        return lambda _root: SimpleNamespace(state=state, summary="s", recommended=recommended,
+                                             facts=rs.RepoFacts(root="", branch="feat/x", **facts))
     assert sv.verify(Path("."), {"verifier": "recovered"}, lagebericht=fake(rs.BEREIT))[0]
-    assert sv.verify(Path("."), {"verifier": "recovered"}, lagebericht=fake(rs.IN_ARBEIT))[0]
+    assert sv.verify(Path("."), {"verifier": "recovered"}, lagebericht=fake(rs.IN_ARBEIT, own_commits=1))[0]
+    assert sv.verify(Path("."), {"verifier": "recovered"}, lagebericht=fake(rs.IN_ARBEIT, changes=("a",)))[0]
     assert not sv.verify(Path("."), {"verifier": "recovered"}, lagebericht=fake(rs.STOERUNG))[0]
+    # AGP_GUIDED_RECOVERY_V1 (live 2026-10-06): an empty leftover branch is not recovered;
+    # main with only the Kit's follow-up open is.
+    leftover = sv.verify(Path("."), {"verifier": "recovered"}, lagebericht=fake(rs.IN_ARBEIT, own_commits=0))
+    assert not leftover[0] and "holds no work" in leftover[1]
+    assert sv.verify(Path("."), {"verifier": "recovered"},
+                     lagebericht=fake(rs.STOERUNG, recommended=rs.ABSCHLIESSEN))[0]
     assert "unknown" in sv.verify(Path("."), {"verifier": "nope"})[1]
 
 
@@ -662,3 +670,22 @@ def test_unklar_state_does_not_break_the_panel(panel):
     widget.apply_state(unclear)
     assert "Aktualisieren" in widget.detail_var.get()
     assert widget.ampel_var.get().startswith("Rot")
+
+
+def test_guidance_and_details_in_the_panel(panel):
+    """AGP_GUIDED_RECOVERY_V1 / AGP_COMPACT_LAGE_V1."""
+    _root, widget, *_rest = panel
+    s = rs.RepoState(state=rs.STOERUNG, summary="s", recommended=rs.ABSCHLIESSEN,
+                     offered=rs.OFFERED[rs.STOERUNG] + (rs.ABSCHLIESSEN,),
+                     facts=rs.RepoFacts(root="", is_git=True, branch="main", head="a", origin_main="a",
+                                        post_merge="NOT_PASS", followup_pr=243, followup_ci="RUNNER"))
+    widget.apply_state(s)
+    assert widget.guidance_var.get().startswith("Lösungsweg:\n1. Auf GitHub PR #243")
+    assert widget.guidance_label.winfo_manager() == "grid"
+    assert "Folge-PR #243" in widget.facts_var.get()
+    assert widget.lage_label.winfo_manager() == ""
+    widget.toggle_details()
+    assert widget.lage_label.winfo_manager() == "grid" and widget.details_button.cget("text") == "Details ▾"
+    widget.apply_state(rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
+                                    offered=rs.OFFERED[rs.BEREIT]))
+    assert widget.guidance_var.get() == "" and widget.guidance_label.winfo_manager() == ""

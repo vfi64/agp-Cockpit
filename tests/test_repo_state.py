@@ -148,6 +148,11 @@ def test_standard_tasks_tab_shows_the_lagebericht(monkeypatch, tmp_path):
         assert panel.lage_var.get().startswith("Zustand: BEREIT")
     finally:
         root.destroy()
+        panel = root = None
+        # Collect the panel's reference cycles in the main thread (Tcl_AsyncDelete otherwise,
+        # seen 2026-10-06 when a later test's server thread ran the collection).
+        import gc
+        gc.collect()
 
 
 def test_first_porcelain_line_keeps_its_path():

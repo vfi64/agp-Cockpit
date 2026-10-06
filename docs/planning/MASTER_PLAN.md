@@ -555,6 +555,9 @@ Assessment after P8 and the Kit 1.0.14 release; none is decided yet, each needs 
    bundle after the app closed itself. The extension self-reload already existed
    (AGP_EXTENSION_AUTO_REFRESH_V2) and was proven live on 2026-10-05: r1 → r2 two seconds
    after the restart, so the owner's manual extension reload is not needed.
+2a. Guided recovery — done 2026-10-06 (AGP_GUIDED_RECOVERY_V1, AGP_FOLLOWUP_PR_CI_V1,
+   AGP_FULL_HEAD_SHA_V1, AGP_COMPACT_LAGE_V1; build release-0.2.0-r4; owner: „der Nutzer
+   sollte besser auf dem Lösungsweg geführt werden“, „der Bildschirmplatz ist endlich“).
 3. P10b „Kit aktualisieren“.
 4. Proposal 6 (rejected work orders into Download/), proposal 7 (narrow release resume
    scope); the P11c switch after KIT-GF-049.
