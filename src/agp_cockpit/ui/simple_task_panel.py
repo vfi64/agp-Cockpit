@@ -21,8 +21,10 @@ from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 class SimpleTaskPanel(ttk.Frame):
     """Default task-first surface. Expert controls stay elsewhere."""
 
-    def __init__(self, master: tk.Misc, *, repository_root: Path, local_contract=None) -> None:
+    def __init__(self, master: tk.Misc, *, repository_root: Path, local_contract=None,
+                 on_task_event=None) -> None:
         super().__init__(master, padding=16)
+        self.on_task_event = on_task_event   # AGP_WORK_TAB_HANDOFF_V1
         self.repository_root = repository_root.expanduser().resolve()
         self.api = TaskOperatorAPI(self.repository_root, local_contract=local_contract)
         self.contract: dict | None = None
@@ -347,6 +349,7 @@ class SimpleTaskPanel(ttk.Frame):
             self.state_var.set(f"Blockiert — Start fehlgeschlagen: {exc}")
             return
         self.workflow_phase = "STARTED"
+        self._emit("started")
         self._hide_decision()
         self.start_button.configure(state="disabled")
         self.editor.configure(state="disabled")
@@ -370,6 +373,17 @@ class SimpleTaskPanel(ttk.Frame):
         if state == "SUSPENDED":
             return f"Auftrag angehalten — {reason or 'Grund unbekannt'}."
         return "Cockpit bereit."
+
+    def task_active(self) -> bool:
+        """AGP_LAGE_ALL_TABS_V1: a task started here runs until its progress is terminal."""
+        return self.workflow_phase == "STARTED"
+
+    def _emit(self, event: str, text: str = "") -> None:
+        if self.on_task_event is not None:
+            try:
+                self.on_task_event(event, text)
+            except Exception:  # noqa: BLE001 - the other tab never breaks this one
+                pass
 
     def refresh_status(self) -> None:
         try:
@@ -415,6 +429,8 @@ class SimpleTaskPanel(ttk.Frame):
                     # The finished task stays in the editor and can be
                     # changed and started again.
                     self.workflow_phase = "LOADED"
+                    self._emit("finished_done" if progress.outcome == "DONE" else "finished",
+                               progress.text)
                     self.editor.configure(state="normal")
                     self._update_start_button()
             if mission is None:

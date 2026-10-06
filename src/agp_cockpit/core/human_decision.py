@@ -203,7 +203,10 @@ class HumanDecisionStore:
         grant["consumed_by"] = command_sha256
         grant["consumed"] = [*grant.get("consumed", []), command_sha256]
         entry = {"at": time.time() if now is None else now, "step": step,
-                 "commands": sorted(set(used)), "command_sha256": command_sha256}
+                 "commands": sorted(set(used)), "command_sha256": command_sha256,
+                 # AGP_EFFECTS_BY_APPROVAL_V1: start click or decision box
+                 "source": "start" if str(record.get("mission_id", "")).startswith("pre-approval:")
+                 else "decision"}
         record["effects"] = [*_effects_of(record), entry]
         grant["log"] = [*grant.get("log", []), entry]
         record["grant"] = grant

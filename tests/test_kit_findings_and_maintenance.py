@@ -63,7 +63,7 @@ def test_the_real_register_tracks_the_kit_1_0_18_adoption():
     assert by_id["KIT-GF-042"].mitigations[-1]["marker"] == "AGP_CI_UPDATE_GUARD_V1"
     for fid in ("KIT-GF-030", "KIT-GF-031", "KIT-GF-039", "KIT-GF-040", "KIT-GF-043"):
         assert by_id[fid].effective_status("1.0.18") == kf.FIXED_UNVERIFIED
-    for fid in ("KIT-GF-024", "KIT-GF-025", "KIT-GF-028", "KIT-GF-047", "KIT-GF-050"):
+    for fid in ("KIT-GF-025", "KIT-GF-028", "KIT-GF-047", "KIT-GF-050"):
         assert by_id[fid].effective_status("1.0.18") == kf.FIXED_NOT_INSTALLED   # fixed in 1.0.19
     assert by_id["KIT-GF-022"].effective_status("1.0.18") == kf.IN_PROGRESS
     for fid in ("KIT-GF-048", "KIT-GF-049"):
@@ -73,7 +73,8 @@ def test_the_real_register_tracks_the_kit_1_0_18_adoption():
 def test_the_real_register_tracks_the_kit_1_0_19_adoption():
     """Kit 1.0.19 (2026-10-06): five fixes released, four findings from its first public run."""
     by_id = {f.id: f for f in kf.load(ROOT)}
-    for fid in ("KIT-GF-024", "KIT-GF-025", "KIT-GF-028", "KIT-GF-047", "KIT-GF-050"):
+    assert by_id["KIT-GF-024"].effective_status("1.0.19") == kf.VERIFIED       # GF-E076
+    for fid in ("KIT-GF-025", "KIT-GF-028", "KIT-GF-047", "KIT-GF-050"):
         assert by_id[fid].effective_status("1.0.19") == kf.FIXED_UNVERIFIED
         assert by_id[fid].kit["fixed_in"] == "1.0.19"
     for fid in ("KIT-GF-048", "KIT-GF-049", "KIT-GF-051", "KIT-GF-052", "KIT-GF-053", "KIT-GF-054",

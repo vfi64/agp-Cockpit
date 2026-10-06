@@ -47,9 +47,13 @@ def steps(state, *, block_reason: str = "", decision_pending: bool = False, reco
         return ["Das Repo zuerst unter Kit-Kontrolle bringen („Repo übernehmen“, folgt mit P9)."]
     if name == rs.IN_ARBEIT:
         if not f.own_commits and not f.changes and f.head and f.head == f.origin_main:
+            # AGP_FRESH_BRANCH_V1 (live 2026-10-06): right after „Arbeit beginnen“ an empty work
+            # branch is expected; only a Kit follow-up branch (docs/post-pr<N>-…) is a leftover.
+            if not rs.FOLLOWUP_BRANCH.match(f.branch or ""):
+                return [f"Branch {f.branch} ist bereit — „Arbeiten“ für den Auftrag, danach „Abschließen“."]
             where = f"cd {repository} && " if repository else ""
-            return [f"Der Branch {f.branch} enthält keine Arbeit (Rest eines Ablaufs?).",
-                    f"Für neue Arbeit „Arbeiten“; sonst zurück auf main: {where}git switch main",
+            return [f"Der Branch {f.branch} enthält keine Arbeit (Rest eines Ablaufs).",
+                    f"Zurück auf main: {where}git switch main",
                     "Danach „Aktualisieren“ klicken."]
         if f.own_commits and not f.changes:
             return ["„Abschließen“ klicken: Commit ist da; veröffentlicht, prüft die CI und mergt."]

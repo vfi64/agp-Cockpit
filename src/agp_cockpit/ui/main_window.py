@@ -99,6 +99,9 @@ class MainWindow(ttk.Frame):
                                           wraplength=900, justify="left")
         self._freshness_label.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
         self._freshness_label.grid_remove()
+        # AGP_FRESHNESS_WRAP_V1 (live 2026-10-06): the line was cut at a fixed 900 px.
+        context.bind("<Configure>", lambda event: self._freshness_label.configure(
+            wraplength=max(240, event.width - 300)), add="+")
         # AGP_REBUILD_BUTTON_V1: the guard's warning offers the step it asks for.
         self._rebuild = None
         self._rebuild_kind = ""
@@ -139,7 +142,10 @@ class MainWindow(ttk.Frame):
             work_tab.inner,
             repository_root=self.repository_root,
             local_contract=self.local_contract,
+            on_task_event=lambda event, text="": self._work_task_event(event, standard_tab, text),
         )
+        # AGP_LAGE_ALL_TABS_V1: a task of the „Arbeiten“ tab counts as running in the Lage.
+        self.standard_tasks_panel.external_task_active = self.simple_task_panel.task_active
         self.simple_task_panel.grid(row=0, column=0, sticky="nsew")
         self.tabs.add(work_tab, text="Arbeiten")
 
@@ -151,6 +157,15 @@ class MainWindow(ttk.Frame):
         self.after(80, self.refresh_runtime_status)
         self.after(120, self.refresh_bridge_identity)
         self.after(500, self.refresh_build_freshness)
+
+    def _work_task_event(self, event: str, standard_tab, text: str = "") -> None:
+        """AGP_WORK_TAB_HANDOFF_V1 (owner 2026-10-06): the Lage follows a task of the „Arbeiten“
+        tab, and a finished one leads back to the guided path; a decision or a failure stays."""
+        panel = self.standard_tasks_panel
+        if event == "finished_done":
+            panel.note_external_result(text)
+            self.tabs.select(standard_tab)
+        panel.refresh_lage()
 
     def open_repo_switch(self) -> None:
         """Repo wechseln (P4): idle only (R5); check, provision, persist, restart."""
@@ -379,10 +394,17 @@ class MainWindow(ttk.Frame):
             return None
 
     def open_kit_findings(self) -> None:
+        """AGP_FINDINGS_FROM_COCKPIT_V1 (live 2026-10-06, P4 in the Kit repository): the register
+        belongs to the Cockpit's own checkout, never to the steered repository."""
+        from agp_cockpit.core.build_freshness import freshness_root
+        from agp_cockpit.core.kit_installation import discover
         from agp_cockpit.ui.kit_findings_window import KitFindingsWindow
-        kit = self._installed_kit()
-        KitFindingsWindow(self, repository_root=self.repository_root,
-                          installed_version=getattr(kit, "version", None))
+        home = freshness_root(self.repository_root)
+        try:
+            kit = discover(home)
+        except Exception:  # noqa: BLE001 - shown as "not found"
+            kit = None
+        KitFindingsWindow(self, repository_root=home, installed_version=getattr(kit, "version", None))
 
     def open_cleanup(self) -> None:
         """AGP_MAINTENANCE_CLEANUP_V1: preview first, delete only after OK, never while a task runs."""

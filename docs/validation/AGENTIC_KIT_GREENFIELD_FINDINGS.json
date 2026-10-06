@@ -559,6 +559,13 @@
       "historical_id": "agp-Cockpit P4 live run in agentic-project-kit, release 1.0.19",
       "canonical_family": "KIT-GF-050",
       "summary": "parts A and B fixed through the Cockpit in the Kit repository (#2409, #2411), released in 1.0.19"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E076",
+      "historical_id": "agp-Cockpit Kit 1.0.19 adoption",
+      "canonical_family": "KIT-GF-024",
+      "summary": "agentic-kit ci status read the CI verdict of main without a pull request (PASS)"
     }
   ],
   "families": [
@@ -1235,7 +1242,7 @@
         "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2407 (agentic-kit ci status, manifest remote_effects)"
       ],
       "first_observed": "2026-10-01",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "classification": "agentic-kit",
       "aliases": [],
       "fixed_in": "1.0.19",
@@ -1245,7 +1252,8 @@
         "kit_state": "CLOSED",
         "raw": "Kit #2407 (agentic-kit ci status, manifest remote_effects)",
         "report": "docs/reports/greenfield/KIT-GF-024-025-ci-status-manifest-effects-2026-10-05.md"
-      }
+      },
+      "verified_by": "2026-10-06 GF-E076, agp-Cockpit with Kit 1.0.19 installed (adoption runner kit_adopt_1019.py): `agentic-kit ci status --commit ab03e8056d09 --branch main --json` returned result_status PASS with the Agentic Gate run (conclusion SUCCESS) for a commit without a pull request; no raw gh call."
     },
     {
       "id": "KIT-GF-025",

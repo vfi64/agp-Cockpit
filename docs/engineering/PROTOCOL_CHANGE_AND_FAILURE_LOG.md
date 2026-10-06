@@ -1377,3 +1377,12 @@ repeat once.
 - Kit 1.0.19 released by the owner through `agentic-kit release run` from the terminal (runner `.local/agp-cockpit/tmp/kit_release_1019.py`): the Cockpit's runtime folder and Download/ had to be moved out of the Kit checkout (KIT-GF-054), the changelog needed explicit summary lines, C3 needed `release.package_index_workflow` for PyPI (KIT-GF-055), and C4 fails on `post-release-check --json` (KIT-GF-056); tag v1.0.19, GitHub release and PyPI 1.0.19 are out, the DOI closeout waits at C4.
 - Adoption: CI pins 1.0.19, `commands sync-entrypoints --execute` (manifest fb315aa30770); the test suite passes unchanged against 1.0.19. KIT-GF-024/025/028/047/050 FIXED in 1.0.19 (re-verification in this workspace pending).
 
+## 2026-10-06 — Slice A1: Lage and guidance across tabs
+
+- AGP_LAGE_ALL_TABS_V1: a task of the „Arbeiten“ tab counts as running in the Lage (it showed the state after „Arbeit beginnen“ and suggested `git switch main` during a run); the tab reports start and end to the main window, which rebuilds the Lage.
+- AGP_WORK_TAB_HANDOFF_V1 (owner): a task of the „Arbeiten“ tab that ends DONE switches to Standard Tasks with its result („Arbeiten · Fertig ✓ …“); a decision or a failure stays in its tab. AGP_RESULT_NAMES_TASK_V1: the result line names its task.
+- AGP_FRESH_BRANCH_V1: an empty work branch right after „Arbeit beginnen“ is „bereit“; only a Kit follow-up branch (docs/post-pr<N>-…) is called a leftover.
+- AGP_EFFECTS_BY_APPROVAL_V1: every consumed approval records its source; the effects line separates „Start-Klick“ and „Freigabe“ (release 0.2.1 listed the tag push under the start click).
+- AGP_FINDINGS_FROM_COCKPIT_V1: the Kit findings window reads the register, the installed Kit and the Kit cache of the Cockpit's own checkout (it was empty while the Kit repository was steered). AGP_CHAT_BINDING_HINT_V1: the chat-binding block says what to do. AGP_FRESHNESS_WRAP_V1: the stale-app line wraps with the window.
+- KIT-GF-024 VERIFIED_FIXED (GF-E076, `ci status` in the adoption run). Build release-0.2.1-r3.
+
