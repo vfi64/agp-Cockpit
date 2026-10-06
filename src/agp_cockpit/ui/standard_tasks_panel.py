@@ -65,6 +65,14 @@ class StandardTasksPanel(ttk.Frame):
         # mission and durable task instead of the one-shot start message.
         self._tracked_mission_id = ""
         self._poll_job: str | None = None
+        # AGP_AMPEL_TASK_ACTIVE_V1 (live 2026-10-06, release 0.2.1): the Lage is built once right
+        # after the start or the approval, when the bridge may still report the previous mission
+        # at rest (here the answered NEEDS_HUMAN); it said „Grün — bereit für neue Arbeit“ and
+        # recommended „Arbeit beginnen“ for the whole phase 2. The task this panel tracks counts
+        # as running until its progress is terminal.
+        self._task_active = False
+        # AGP_MANUAL_GITHUB_RELEASE_HINT_V1: the owner's own command after a release.
+        self._followup_command = ""
 
         self.columnconfigure(0, weight=1)
         # AGP_COMPACT_LAGE_V1 (owner 2026-10-06: „der Bildschirmplatz ist endlich“, Chrome
@@ -167,6 +175,10 @@ class StandardTasksPanel(ttk.Frame):
         # AGP_SHORT_RESULT_LINE_V1: the remote side's own report is in the tooltip.
         Tooltip(status_label, lambda: ("Meldung der Remote-Seite:\n" + clip(self._status_detail, 600))
                 if self._status_detail else "")
+        self.copy_command_button = ttk.Button(self, text="GitHub-Befehl kopieren",
+                                              command=self.copy_followup_command)
+        self.copy_command_button.grid(row=4, column=0, sticky="w", pady=(6, 0))
+        self.copy_command_button.grid_remove()
 
         # AGP_STANDARD_TASK_DECISION_V1 (P8 live test 2026-10-03): a standard
         # task that stops with NEEDS_HUMAN (e.g. Wiederherstellen before the
@@ -622,6 +634,8 @@ class StandardTasksPanel(ttk.Frame):
 
     def _task_running(self) -> bool:
         from agp_cockpit.core.mission_http_client import mission_running   # AGP_ONE_TASK_ALL_TABS_V1
+        if getattr(self, "_task_active", False):   # AGP_AMPEL_TASK_ACTIVE_V1
+            return True
         try:
             mission = (bridge_status() or {}).get("mission") or {}
         except Exception:  # noqa: BLE001 - an unreachable bridge runs no task
@@ -692,6 +706,31 @@ class StandardTasksPanel(ttk.Frame):
                                 f"Empfohlen: {rs_labels()[effective]} (nach dem letzten Task)")
         self.lage_var.set(text)
 
+    def _manual_release_hint(self) -> str:
+        """AGP_MANUAL_GITHUB_RELEASE_HINT_V1: name the owner's GitHub step after the tag."""
+        from agp_cockpit.core.release_hygiene import manual_github_release_command
+        version = str((self._tracked_inputs or {}).get("version") or "").strip()
+        command = manual_github_release_command(self.repository_root, version) if version else ""
+        self.show_followup_command(command)
+        if not command:
+            return ""
+        return (f"\nNoch offen: der GitHub-Eintrag „v{version}“ (publication: none, bis KIT-GF-049 "
+                "behoben ist) — „GitHub-Befehl kopieren“ und im Terminal ausführen.")
+
+    def show_followup_command(self, command: str) -> None:
+        self._followup_command = command
+        if command:
+            self.copy_command_button.grid()
+        else:
+            self.copy_command_button.grid_remove()
+
+    def copy_followup_command(self) -> None:
+        if not self._followup_command:
+            return
+        self.clipboard_clear()
+        self.clipboard_append(self._followup_command)
+        self.status_var.set(self.status_var.get() + "\nBefehl kopiert.")
+
     def _track(self, mission_id: str) -> None:
         if self._poll_job is not None:
             self.after_cancel(self._poll_job)
@@ -699,6 +738,8 @@ class StandardTasksPanel(ttk.Frame):
         self._tracked_mission_id = mission_id
         self._last_outcome = ""
         self._status_detail = ""
+        self._task_active = True   # AGP_AMPEL_TASK_ACTIVE_V1
+        self.show_followup_command("")
         self._poll_job = self.after(2000, self.refresh_progress)
 
     def refresh_progress(self) -> None:
@@ -730,6 +771,8 @@ class StandardTasksPanel(ttk.Frame):
             self._bind_active_chat()
             self.recover_offered = False   # AGP_RECOVER_OFFER_CLEARS_V1
         if progress.terminal and task is not None:
+            if progress.outcome == "DONE" and task.key == "release":
+                text += self._manual_release_hint()
             if progress.outcome == "DONE" and task.follow_up:
                 text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."
                 self.follow_up_key = next((v.key for v in VERBS if v.label == task.follow_up), None)
@@ -752,6 +795,7 @@ class StandardTasksPanel(ttk.Frame):
         self.status_var.set(text)
         self._status_detail = progress.detail
         if progress.terminal:
+            self._task_active = False   # AGP_AMPEL_TASK_ACTIVE_V1
             self._last_outcome = progress.outcome
             self.update_ampel()
         if not progress.terminal:

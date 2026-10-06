@@ -218,7 +218,11 @@ def test_the_verifier_also_needs_the_github_entry(released, monkeypatch):
     (released / ".agentic/config.yaml").write_text("publication: none\n")
     git(released, "commit", "-qam", "private")
     git(released, "push", "-q", "origin", "main")
-    assert sv.verify_released(released, version="0.3.0")[0]           # private tag: no gh needed
+    ok, finding = sv.verify_released(released, version="0.3.0")       # private tag: no gh needed
+    assert ok
+    commit = git(released, "rev-parse", "v0.3.0^{commit}")
+    assert f"on commit {commit[:12]}" in finding                       # AGP_RELEASE_TAG_COMMIT_V1
+    assert git(released, "rev-parse", "v0.3.0")[:12] not in finding     # not the tag object
 
 
 # --- AGP_RELEASE_PHASE2_APPROVAL_V1 -----------------------------------------------------

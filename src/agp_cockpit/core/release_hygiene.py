@@ -148,3 +148,26 @@ def changelog_violations(source: str, repository_root: Path, *, runner=subproces
 
 def violations(source: str, repository_root: Path) -> list[str]:
     return category_violations(source, repository_root) + changelog_violations(source, repository_root)
+
+
+def manual_github_release_command(root: Path, version: str) -> str:
+    """AGP_MANUAL_GITHUB_RELEASE_HINT_V1 (owner 2026-10-06, release 0.2.1: „Release erscheint
+    nicht auf GitHub — warum?“): with ``publication: none`` the signed run pushes only the tag;
+    while KIT-GF-049 blocks the Kit's GitHub route the owner creates the entry himself. The
+    Cockpit never runs it (no Cockpit-local workaround for a missing Kit route); it names the
+    command with the title template and the changelog section as notes."""
+    if not version or _publication(root) != "none" or not github_releases_declared(root):
+        return ""
+    import shlex
+    try:
+        import yaml
+        data = yaml.safe_load((Path(root) / ".agentic/config.yaml").read_text(encoding="utf-8")) or {}
+        template = str(((data.get("release") or {}).get("github_release_title_template")) or "")
+        title = template.format(version=version)
+    except (OSError, ValueError, ImportError, KeyError, IndexError, AttributeError):
+        return ""
+    notes = f".local/agp-cockpit/tmp/notes-{version}.md"
+    section = re.escape(f"v{version}").replace("/", r"\/")
+    extract = f"awk '/^## {section}( |$)/{{f=1;next}} /^## /{{f=0}} f' CHANGELOG.md > {notes}"
+    return (f"cd {shlex.quote(str(root))} && mkdir -p .local/agp-cockpit/tmp && {extract} && "
+            f"gh release create v{version} --verify-tag --title {shlex.quote(title)} --notes-file {notes}")

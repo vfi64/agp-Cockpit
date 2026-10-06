@@ -91,7 +91,9 @@ def verify_released(root: Path, *, version: str, runner=subprocess.run) -> tuple
         if not ok:
             return False, entry
         entry = ", " + entry
-    return True, f"tag {tag} on origin at {local[:12]}, release commit in origin/main{entry}"
+    # AGP_RELEASE_TAG_COMMIT_V1 (live 2026-10-06): the tag object's id read like a commit.
+    commit = _out(_git(root, "rev-parse", f"{tag}^{{commit}}", runner=runner))
+    return True, f"tag {tag} on origin on commit {commit[:12]}, in origin/main{entry}"
 
 
 def _github_release_entry(root: Path, tag: str, *, runner=subprocess.run) -> tuple[bool, str]:
