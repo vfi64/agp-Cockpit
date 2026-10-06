@@ -35,13 +35,13 @@
       "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
     ],
     "repo": {
-      "branch": "docs/post-pr246-successor-package-refresh",
+      "branch": "docs/post-pr248-successor-package-refresh",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "e5ad78cc991ce525fdf3dae4f371dc67ec81494e",
+      "head": "f79a678070d7ebf7da2c74f8c0ba8012c11bd594",
       "head_matches_origin_main": true,
       "local_path": "cd /path/to/",
-      "origin_main": "e5ad78cc991ce525fdf3dae4f371dc67ec81494e",
+      "origin_main": "f79a678070d7ebf7da2c74f8c0ba8012c11bd594",
       "worktree_clean": true
     },
     "scope": "current-continuation-state"
@@ -220,13 +220,13 @@
   },
   "kind": "successor_execution_contract",
   "repo": {
-    "branch": "docs/post-pr246-successor-package-refresh",
+    "branch": "docs/post-pr248-successor-package-refresh",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "e5ad78cc991ce525fdf3dae4f371dc67ec81494e",
+    "head": "f79a678070d7ebf7da2c74f8c0ba8012c11bd594",
     "head_matches_origin_main": true,
     "local_path": "cd /path/to/",
-    "origin_main": "e5ad78cc991ce525fdf3dae4f371dc67ec81494e",
+    "origin_main": "f79a678070d7ebf7da2c74f8c0ba8012c11bd594",
     "worktree_clean": true
   },
   "rules": [
