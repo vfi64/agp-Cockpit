@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 5f78167f2644
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: fb315aa30770
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
 - Schema version: `2`
 - Source: `generated_from_typer_click_registry`
-- Command count: `256`
+- Command count: `258`
 
 ## Commands
 
@@ -44,8 +44,8 @@ Dry-run by default garbage collector for transient communication artifacts.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `tmp_logs` | `TyperOption` | --tmp-logs | `False` | `False` | Collect expired local tmp logs. |
-| `local_tmp` | `TyperOption` | --local-tmp | `False` | `False` | Use repository-local tmp/ instead of /tmp for --tmp-logs. |
+| `tmp_logs` | `TyperOption` | --tmp-logs | `False` | `False` | Collect expired local temp logs and protected-diff artifacts. |
+| `local_tmp` | `TyperOption` | --local-tmp | `False` | `False` | Use repository-local tmp/ instead of the OS temp directory for --tmp-logs. |
 | `local_tmp_contents` | `TyperOption` | --local-tmp-contents | `False` | `False` | Collect expired untracked files and empty directories under repository-local tmp/. |
 | `transfer_runs` | `TyperOption` | --transfer-runs | `False` | `False` | Collect expired docs/reports/transfer_runs files. |
 | `report_retention` | `TyperOption` | --report-retention | `False` | `False` | Collect expired report-like files and generated successor-handoff Markdown under selected docs/report surfaces. |
@@ -367,6 +367,23 @@ Render the session-start refresher and full inline command list.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
+
+### `agentic-kit ci status`
+
+- Safety: `READ_ONLY`
+- Surface: `diagnostic`
+- When to use: Report the CI verdict for a commit or branch without requiring a pull request.
+- Dry-run available: `False`
+- Remote effects: `network_read`
+
+Report the CI verdict for a commit or branch without requiring a pull request.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `commit` | `TyperOption` | --commit | `False` | `` | Commit SHA to inspect. |
+| `branch` | `TyperOption` | --branch | `False` | `` | Branch name to inspect. |
+| `limit` | `TyperOption` | --limit | `False` | `20` | Maximum workflow runs to read. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print JSON instead of the text report. |
 
 ### `agentic-kit cockpit actions`
 
@@ -1458,7 +1475,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.18` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.19` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1870,6 +1887,25 @@ Run release readiness through the standard-error scan wrapper.
 | `summary_lines` | `TyperOption` | --summary-line | `False` |  | Additional release changelog summary line, combined with the generated release-notes lines (KIT-GF-045). Repeatable. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
 
+### `agentic-kit release run`
+
+- Safety: `BOUNDED`
+- Surface: `orchestrator`
+- When to use: Run the governed end-to-end release orchestrator with resumable approval gates.
+- Dry-run available: `True`
+- Remote effects: `merge`, `pull_request`, `push`, `release_publish`
+- Replaces raw: `release lifecycle`, `publish release`, `package index publish`
+
+Run the governed end-to-end release orchestrator with resumable approval gates.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `version` | `TyperOption` | --version | `True` |  | Target release version. |
+| `summary_lines` | `TyperOption` | --summary-line | `False` |  | Release changelog summary line. Repeatable. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Execute the next approved release-run gate. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature for the next release-run gate. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
+
 ### `agentic-kit release-check`
 
 - Safety: `BOUNDED`
@@ -1991,7 +2027,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.0.18` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.19` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2295,7 +2331,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.18` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.19` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -3150,11 +3186,11 @@ Deprecated compatibility alias for transfer chat-switch-complete.
 
 - Safety: `READ_ONLY`
 - Surface: `diagnostic`
-- When to use: Write the current diff to /tmp and run the Python protected change planner on it.
+- When to use: Write the current diff to the OS temp directory and run the Python protected change planner on it.
 - Dry-run available: `False`
 - Remote effects: `none`
 
-Write the current diff to /tmp and run the Python protected change planner on it.
+Write the current diff to the OS temp directory and run the Python protected change planner on it.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
