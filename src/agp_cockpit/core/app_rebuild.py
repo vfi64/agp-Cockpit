@@ -31,7 +31,12 @@ SCRIPT = Path("scripts/build_macos_app.py")
 # Variables a frozen (PyInstaller) app passes to its children; the project's own
 # interpreter must not inherit them.
 _FROZEN_ENV_PREFIXES = ("_PYI", "_MEI", "PYINSTALLER")
-_FROZEN_ENV_KEYS = ("PYTHONHOME", "PYTHONPATH", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH")
+_FROZEN_ENV_KEYS = ("PYTHONHOME", "PYTHONPATH", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH",
+                    # Live 2026-10-06 (first button run): the frozen app's tkinter runtime hook
+                    # points TCL_LIBRARY/TK_LIBRARY into its own bundle; PyInstaller then took
+                    # the Tcl data from the bundle it was about to delete („Resource …/dist/AGP
+                    # Cockpit.app/Contents/Frameworks/_tcl_data/auto.tcl is not a valid file“).
+                    "TCL_LIBRARY", "TK_LIBRARY", "TCLLIBPATH", "TIX_LIBRARY")
 
 
 def offer(freshness: BuildFreshness | None) -> str:
@@ -114,6 +119,21 @@ class Rebuild:
         except OSError:
             return ""
         return "\n".join(text.strip().splitlines()[-lines:])
+
+    def cause(self, limit: int = 160) -> str:
+        """The first exception line of the log (the root cause, not the wrapper)."""
+        try:
+            text = self.log.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+        for line in text.splitlines():
+            if _CAUSE.match(line.strip()):
+                line = line.strip()
+                return line if len(line) <= limit else line[:limit].rsplit(" ", 1)[0] + " …"
+        return ""
+
+
+_CAUSE = __import__("re").compile(r"^[A-Za-z_.]*(Error|Exception)\b.*:")
 
 
 def start(home: Path, kind: str = BUILD, *, popen=subprocess.Popen, now=time.strftime) -> Rebuild:

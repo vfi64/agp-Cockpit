@@ -62,6 +62,11 @@ def panel(monkeypatch, tmp_path):
     widget.grid()
     yield root, widget, opened
     root.destroy()
+    del widget, root
+    # Collect the panel's reference cycles in the main thread (Tcl_AsyncDelete otherwise,
+    # seen 2026-10-06 when a later test's server thread ran the collection).
+    import gc
+    gc.collect()
 
 
 def test_panel_enables_only_valid_verbs_and_marks_the_recommendation(panel):

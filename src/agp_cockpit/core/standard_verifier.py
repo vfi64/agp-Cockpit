@@ -46,9 +46,22 @@ def verify_recovered(root: Path, *, lagebericht=None) -> tuple[bool, str]:
     from agp_cockpit.core import repo_state as rs
     observe = lagebericht or rs.lagebericht
     state = observe(root)
-    if state.state in (rs.BEREIT, rs.IN_ARBEIT):
-        return True, f"Lagebericht {state.state}: {state.summary}"
-    return False, f"Lagebericht {state.state}: {state.summary}"
+    lage = f"Lagebericht {state.state}: {state.summary}"
+    if state.state == rs.BEREIT:
+        return True, lage
+    if state.state == rs.STOERUNG and getattr(state, "recommended", None) == rs.ABSCHLIESSEN:
+        # Only the Kit's post-merge follow-up is open; „Abschließen“ completes it.
+        return True, lage
+    if state.state == rs.IN_ARBEIT:
+        # AGP_GUIDED_RECOVERY_V1 (live 2026-10-06, step 1786): a work branch without own
+        # commits and without changes at origin/main is a leftover, not recovered work;
+        # „Fertig ✓“ there left the owner on it without a way back.
+        facts = getattr(state, "facts", None)
+        if facts is not None and not facts.own_commits and not facts.changes:
+            return False, (f"{lage} The branch {facts.branch} holds no work (no own commits, no "
+                           "changes); return to main through the Kit's main synchronization route.")
+        return True, lage
+    return False, lage
 
 
 def verify_released(root: Path, *, version: str, runner=subprocess.run) -> tuple[bool, str]:

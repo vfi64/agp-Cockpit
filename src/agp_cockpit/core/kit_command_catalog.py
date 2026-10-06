@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
@@ -333,6 +334,29 @@ def forbidden_execute_violations(source: str) -> list[str]:
             if words[:len(parts)] == parts and (EXECUTE_FLAG in argv[1:] or hidden):
                 found.append(f"agentic-kit {name} --execute would replace the customized CI workflow "
                              "(KIT-GF-042); its dry run is allowed, the Kit pin is updated by hand")
+    return found
+
+
+FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
+SHA_FLAGS = ("--expected-head-sha",)
+
+
+def short_head_sha_violations(source: str) -> list[str]:
+    """AGP_FULL_HEAD_SHA_V1 (live 2026-10-05, step 1780): the Kit refuses a short head SHA
+    for guarded pull-request actions only after the run; reject it before (correctable)."""
+    found = []
+    for argv in _invocations(ast.parse(source)):
+        if _program(argv[0]) != "agentic-kit":
+            continue
+        for index, token in enumerate(argv):
+            flag, _, inline = token.partition("=")
+            if flag not in SHA_FLAGS:
+                continue
+            value = inline if inline else (argv[index + 1] if index + 1 < len(argv) else "")
+            if value and value != "<expr>" and not FULL_SHA.match(value):
+                found.append(f"{flag} {value} is not a full 40-character commit SHA; the Kit refuses short "
+                             "SHAs for guarded pull-request actions (AGP_FULL_HEAD_SHA_V1) — pass the full "
+                             "head SHA from the Cockpit-verified repository facts")
     return found
 
 

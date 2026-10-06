@@ -6,6 +6,13 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- Lage: a numbered „Lösungsweg“ under the traffic light for every yellow or red state;
+  the Kit's open follow-up pull request and its CI (green, running, cancelled by GitHub,
+  red) are read and named with the step (re-run on GitHub, Abschließen, Wiederherstellen);
+  Wiederherstellen no longer reports an empty leftover branch as done; a short commit
+  SHA in a work order is rejected before it runs; the tab is compact (one-line facts with
+  „Details“, the decision right under the Lage, texts wrap to the window, minimum width
+  720 px); KIT-GF-050 recorded; build `release-0.2.0-r4`.
 - „Neu bauen und neu starten“ (or „Neu starten“) in the stale-app warning: the app
   builds itself, closes and reopens after a successful build; a failed build leaves it
   running with the log; the extension reloads itself; build `release-0.2.0-r3`.

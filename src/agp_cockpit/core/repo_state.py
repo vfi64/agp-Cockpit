@@ -102,6 +102,11 @@ class RepoFacts:
     post_merge_detail: str = ""
     task_running: bool = False
     branch_published: bool | None = None    # refs/remotes/origin/<branch> exists (None: main/unknown)
+    # AGP_FOLLOWUP_PR_CI_V1: the Kit's open follow-up pull request after a merge (post-merge
+    # check not PASS on clean main) and the CI verdict of its checks (read-only gh query).
+    followup_pr: int | None = None
+    followup_ci: str = ""                   # GREEN | PENDING | RUNNER | FAILED | "" (unknown)
+    followup_url: str = ""
 
 
 @dataclass(frozen=True)
@@ -145,6 +150,51 @@ def post_merge_check(root: Path, kit, *, runner=subprocess.run) -> tuple[str, st
     return ("PASS" if passed else "NOT_PASS"), output.strip()[-600:]
 
 
+FOLLOWUP_BRANCH = __import__("re").compile(r"^docs/post-pr\d+-")
+FOLLOWUP_GREEN, FOLLOWUP_PENDING, FOLLOWUP_RUNNER, FOLLOWUP_FAILED = "GREEN", "PENDING", "RUNNER", "FAILED"
+_RUNNER_CONCLUSIONS = {"CANCELLED", "STARTUP_FAILURE", "TIMED_OUT", "STALE"}
+_FAILED_CONCLUSIONS = {"FAILURE", "ACTION_REQUIRED"}
+_PENDING_STATUS = {"QUEUED", "IN_PROGRESS", "PENDING", "WAITING", "REQUESTED", "EXPECTED"}
+
+
+def classify_checks(rollup) -> str:
+    """AGP_FOLLOWUP_PR_CI_V1 (live 2026-10-05, PR #243): GitHub gave the browser job no
+    runner („not acquired by Runner … Internal server error“), cancelled it, and the
+    aggregate job failed. A cancelled or never-started job means „re-run“, not „repair";
+    it wins over a failure because the aggregate job fails with it."""
+    checks = [c for c in (rollup or []) if isinstance(c, dict)]
+    conclusions = {str(c.get("conclusion") or "").upper() for c in checks}
+    states = {str(c.get("state") or "").upper() for c in checks}
+    statuses = {str(c.get("status") or "").upper() for c in checks}
+    if conclusions & _RUNNER_CONCLUSIONS:
+        return FOLLOWUP_RUNNER
+    if conclusions & _FAILED_CONCLUSIONS or states & {"FAILURE", "ERROR"}:
+        return FOLLOWUP_FAILED
+    if not checks or statuses & _PENDING_STATUS or "PENDING" in states:
+        return FOLLOWUP_PENDING
+    return FOLLOWUP_GREEN
+
+
+def followup_pull_request(root: Path, *, runner=subprocess.run) -> tuple[int | None, str, str]:
+    """(number, CI verdict, url) of the Kit's open follow-up pull request, read-only."""
+    gh = gh_binary(root)
+    if not gh:
+        return None, "", ""
+    done = _run([gh, "pr", "list", "--state", "open", "--limit", "20",
+                 "--json", "number,headRefName,url,statusCheckRollup"], Path(root), runner)
+    if done.returncode != 0:
+        return None, "", ""
+    try:
+        prs = json.loads(done.stdout or "[]")
+    except ValueError:
+        return None, "", ""
+    found = [p for p in prs if isinstance(p, dict) and FOLLOWUP_BRANCH.match(str(p.get("headRefName") or ""))]
+    if not found:
+        return None, "", ""
+    pr = max(found, key=lambda p: int(p.get("number") or 0))
+    return int(pr.get("number") or 0), classify_checks(pr.get("statusCheckRollup")), str(pr.get("url") or "")
+
+
 def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
             kit=None, network: bool = True) -> RepoFacts:
     """Read-only facts about the repository (E0)."""
@@ -186,11 +236,15 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
     post_merge, detail = None, ""
     if kit is not None and branch == "main" and workspace:
         post_merge, detail = post_merge_check(root, kit, runner=runner)
+    followup: tuple[int | None, str, str] = (None, "", "")
+    if network and post_merge == "NOT_PASS" and gh_ok:
+        followup = followup_pull_request(root, runner=runner)
     return RepoFacts(root=str(root), is_git=True, branch=branch, head=head, origin_main=origin_main,
                      tracking_main=tracking, own_commits=own, changes=tuple(changes),
                      volatile_changes=tuple(volatile), kit_version=kit_version, workspace=workspace,
                      gh_ok=gh_ok, post_merge=post_merge, post_merge_detail=detail,
-                     task_running=task_running, branch_published=published)
+                     task_running=task_running, branch_published=published,
+                     followup_pr=followup[0], followup_ci=followup[1], followup_url=followup[2])
 
 
 def _state(name: str, summary: str, recommended: str | None, reasons, facts: RepoFacts,
@@ -292,7 +346,29 @@ def describe(state: RepoState) -> str:
                  f"{'ja' if f.workspace else 'nein'} · gh: "
                  f"{'angemeldet' if f.gh_ok else 'nicht angemeldet' if f.gh_ok is False else 'nicht gefunden'}"
                  + (f" · post-merge-check: {f.post_merge}" if f.post_merge else ""))
+    if f.followup_pr:
+        lines.append(f"Folge-PR #{f.followup_pr}: CI {FOLLOWUP_WORDS.get(f.followup_ci, 'unbekannt')}")
     return "\n".join(lines)
+
+
+FOLLOWUP_WORDS = {"GREEN": "grün", "PENDING": "läuft noch", "RUNNER": "von GitHub abgebrochen (kein Runner)",
+                  "FAILED": "rot"}
+
+
+def summary_line(state: RepoState) -> str:
+    """AGP_COMPACT_LAGE_V1: one line of facts; the full Lagebericht is behind „Details“."""
+    f = state.facts
+    parts = [f"Zustand {state.state}"]
+    if f.is_git:
+        parts.append(f"{f.branch or '(detached)'} @ {f.head[:8]}"
+                     + (" · synchron" if f.branch == "main" and f.head == f.origin_main else ""))
+        parts.append(f"{len(f.changes)} Änderung(en)")
+    parts.append(f"Kit {f.kit_version or 'fehlt'}")
+    if f.post_merge:
+        parts.append(f"post-merge {f.post_merge}")
+    if f.followup_pr:
+        parts.append(f"Folge-PR #{f.followup_pr} {FOLLOWUP_WORDS.get(f.followup_ci, '?')}")
+    return " · ".join(parts)
 
 
 def write_report(root: Path, state: RepoState) -> Path:

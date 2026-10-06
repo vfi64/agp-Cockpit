@@ -321,7 +321,8 @@ def _recover_contract(root: Path) -> dict:
                  "repository state; destructive steps only after a human decision."),
         "repository_root": str(root),
         "completion_contract": _verifier("recovered"),
-        "acceptance_criteria": ["The Cockpit's Lagebericht reports BEREIT or IN_ARBEIT."],
+        "acceptance_criteria": ["The Cockpit's Lagebericht reports BEREIT, a work branch with own "
+                                "work, or main with only the Kit's post-merge follow-up open."],
         "constraints": [
             "Diagnose first.",
             "Destructive steps only through Kit routes, dry run first, the signed execute only after "
@@ -354,8 +355,10 @@ Remote effects ask as usual. If an interrupted lifecycle only needs to be comple
 an open, green pull request), say so in NEEDS_HUMAN instead of starting it. After a rescue, name
 the rescue branch in DONE so the human can continue the saved work on it.
 {_COMMON}
+A work branch without own commits and without changes is a leftover, not work: after removing
+its changes, return to main through the Kit's main synchronization route.
 Completion is verified locally: DONE is accepted only when the Cockpit's own Lagebericht reports
-BEREIT or IN_ARBEIT.
+BEREIT, a work branch with own work, or main with only the Kit's post-merge follow-up open.
 """
 
 

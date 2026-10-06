@@ -41,7 +41,7 @@ class StandardTasksPanel(ttk.Frame):
 
     def __init__(self, master: tk.Misc, *, repository_root: Path, local_contract=None,
                  on_open_work=None, ask_inputs=None, confirm=None, runtime_root: Path | None = None) -> None:
-        super().__init__(master, padding=16)
+        super().__init__(master, padding=10)
         self.on_open_work = on_open_work
         # AGP_STANDARD_TASK_FRAMEWORK_V1: dialogs are injectable for tests.
         self.ask_inputs = ask_inputs or self._ask_inputs
@@ -67,19 +67,15 @@ class StandardTasksPanel(ttk.Frame):
         self._poll_job: str | None = None
 
         self.columnconfigure(0, weight=1)
-        ttk.Label(self, text="Standard Tasks", font=("TkDefaultFont", 18, "bold")).grid(
-            row=0, column=0, sticky="w"
-        )
-        ttk.Label(
-            self,
-            text="Wiederkehrende, geprüfte Arbeitsaufträge mit derselben Task-/File-Loop-Autorität.",
-            wraplength=760,
-            justify="left",
-        ).grid(row=1, column=0, sticky="ew", pady=(4, 16))
+        # AGP_COMPACT_LAGE_V1 (owner 2026-10-06: „der Bildschirmplatz ist endlich“, Chrome
+        # must stay visible beside the Cockpit): no tab title (the tab names itself), the
+        # Lagebericht collapses to one line, a pending decision sits right under the Lage,
+        # and the texts wrap to the window width instead of fixed pixels.
+        self._wrapping: list[ttk.Label] = []
 
         # AGP_REPO_STATE_V1 (plan P2): Lagebericht of the active repository.
-        lage = ttk.LabelFrame(self, text="Lage", padding=10)
-        lage.grid(row=2, column=0, sticky="ew", pady=(0, 16))
+        lage = ttk.LabelFrame(self, text="Lage", padding=8)
+        lage.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         lage.columnconfigure(0, weight=1)
         self.lage_var = tk.StringVar(value="Lagebericht wird erstellt …")
         # AGP_AMPEL_V1 (owner 2026-10-05): one light for the whole repository, with a word.
@@ -87,17 +83,31 @@ class StandardTasksPanel(ttk.Frame):
         self._status_detail = ""
         self.ampel_state = None
         light = ttk.Frame(lage)
-        light.grid(row=0, column=0, sticky="w", pady=(0, 6))
+        light.grid(row=0, column=0, sticky="w", pady=(0, 4))
         self.ampel_dot = ttk.Label(light, text="●", font=("TkDefaultFont", 22), foreground="#888888")
         self.ampel_dot.grid(row=0, column=0, sticky="w")
         self.ampel_var = tk.StringVar(value="Grau — Lage wird geprüft")
-        ttk.Label(light, textvariable=self.ampel_var, font=("TkDefaultFont", 13, "bold"),
-                  wraplength=620, justify="left").grid(row=0, column=1, sticky="w", padx=(8, 0))
-        ttk.Label(lage, textvariable=self.lage_var, wraplength=700, justify="left").grid(
-            row=1, column=0, sticky="ew"
-        )
+        self._wrap(ttk.Label(light, textvariable=self.ampel_var, font=("TkDefaultFont", 13, "bold"),
+                             justify="left"), 180).grid(row=0, column=1, sticky="w", padx=(8, 0))
+        # AGP_GUIDED_RECOVERY_V1: the numbered way out, derived by core/guidance.py.
+        self.guidance_var = tk.StringVar(value="")
+        self.guidance_label = self._wrap(ttk.Label(lage, textvariable=self.guidance_var, justify="left"), 60)
+        self.guidance_label.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 4))
+        self.guidance_label.grid_remove()
+        facts = ttk.Frame(lage)
+        facts.grid(row=2, column=0, columnspan=2, sticky="ew")
+        facts.columnconfigure(0, weight=1)
+        self.facts_var = tk.StringVar(value="")
+        self._wrap(ttk.Label(facts, textvariable=self.facts_var, foreground="#888888", justify="left"),
+                   170).grid(row=0, column=0, sticky="w")
+        self.details_open = False
+        self.details_button = ttk.Button(facts, text="Details ▸", command=self.toggle_details)
+        self.details_button.grid(row=0, column=1, sticky="e", padx=(8, 0))
+        self.lage_label = self._wrap(ttk.Label(lage, textvariable=self.lage_var, justify="left"), 60)
+        self.lage_label.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self.lage_label.grid_remove()
         self.lage_button = ttk.Button(lage, text="Aktualisieren", command=self.refresh_lage)
-        self.lage_button.grid(row=0, column=1, rowspan=2, sticky="ne", padx=(12, 0))
+        self.lage_button.grid(row=0, column=1, sticky="ne", padx=(12, 0))
         self.repo_state = None
         self._lage_result: list = []
         self.after(300, self.refresh_lage)
@@ -121,11 +131,11 @@ class StandardTasksPanel(ttk.Frame):
         self._recommended_font = bold
         style.configure("Recommended.TButton", font=bold)
         sections = ttk.Frame(self)
-        sections.grid(row=3, column=0, sticky="ew")
+        sections.grid(row=2, column=0, sticky="ew")
         heading = ("TkDefaultFont", 12, "bold")
         ttk.Label(sections, text="Arbeitsweg", font=heading).grid(row=0, column=0, sticky="w")
         path = ttk.Frame(sections)
-        path.grid(row=1, column=0, sticky="w", pady=(4, 12))
+        path.grid(row=1, column=0, sticky="w", pady=(2, 6))
         column = 0
         for verb in sorted((v for v in VERBS if v.group == "weg"), key=lambda v: v.step or 0):
             if column:
@@ -133,23 +143,27 @@ class StandardTasksPanel(ttk.Frame):
                 column += 1
             self._verb_button(path, verb, column)
             column += 1
-        ttk.Label(sections, text="Bei Problemen", font=heading).grid(row=2, column=0, sticky="w")
+        # „Bei Problemen“ and „Weitere“ share one row (AGP_COMPACT_LAGE_V1).
         problems = ttk.Frame(sections)
-        problems.grid(row=3, column=0, sticky="w", pady=(4, 12))
-        for index, verb in enumerate(v for v in VERBS if v.group == "probleme"):
+        problems.grid(row=3, column=0, sticky="w", pady=(0, 4))
+        ttk.Label(problems, text="Bei Problemen", font=heading).grid(row=0, column=0, sticky="nw",
+                                                                     padx=(0, 10), pady=(2, 0))
+        index = 1
+        for verb in (v for v in VERBS if v.group == "probleme"):
             self._verb_button(problems, verb, index)
-        self.more_button = ttk.Button(sections, text="Weitere anzeigen", command=self.toggle_more)
-        self.more_button.grid(row=4, column=0, sticky="w")
+            index += 1
+        self.more_button = ttk.Button(problems, text="Weitere anzeigen", command=self.toggle_more)
+        self.more_button.grid(row=0, column=index, sticky="nw", padx=(16, 0))
         self.more_frame = ttk.Frame(sections)
         for index, verb in enumerate(v for v in VERBS if v.group == "weitere"):
             self._verb_button(self.more_frame, verb, index)
         self.apply_state(None)
 
-        ttk.Label(self, textvariable=self.detail_var, wraplength=760, justify="left").grid(
-            row=4, column=0, sticky="ew", pady=(16, 4)
-        )
-        status_label = ttk.Label(self, textvariable=self.status_var, wraplength=760, justify="left")
-        status_label.grid(row=5, column=0, sticky="ew")
+        # detail_var (the recommendation sentence) is kept for the tooltip and tests; the
+        # Lösungsweg in the Lage replaces it on screen (AGP_COMPACT_LAGE_V1).
+        status_label = self._wrap(ttk.Label(self, textvariable=self.status_var, justify="left"), 30)
+        status_label.grid(row=3, column=0, sticky="ew", pady=(6, 0))
+        self.bind("<Configure>", self._rewrap, add="+")
         # AGP_SHORT_RESULT_LINE_V1: the remote side's own report is in the tooltip.
         Tooltip(status_label, lambda: ("Meldung der Remote-Seite:\n" + clip(self._status_detail, 600))
                 if self._status_detail else "")
@@ -162,8 +176,8 @@ class StandardTasksPanel(ttk.Frame):
         self.decision_frame = ttk.LabelFrame(self, text="Deine Entscheidung ist gefragt", padding=8)
         self.decision_frame.columnconfigure(0, weight=1)
         self.decision_question_var = tk.StringVar(value="")
-        ttk.Label(self.decision_frame, textvariable=self.decision_question_var, wraplength=720,
-                  justify="left").grid(row=0, column=0, columnspan=3, sticky="ew")
+        self._wrap(ttk.Label(self.decision_frame, textvariable=self.decision_question_var, justify="left"),
+                   60).grid(row=0, column=0, columnspan=3, sticky="ew")
         ttk.Label(self.decision_frame, text="Antwort / Hinweis (optional):").grid(
             row=1, column=0, columnspan=3, sticky="w", pady=(8, 2))
         self.decision_note = tk.Text(self.decision_frame, height=2, width=40, wrap="word", undo=True)
@@ -174,9 +188,50 @@ class StandardTasksPanel(ttk.Frame):
         self.reject_decision_button = ttk.Button(
             self.decision_frame, text="Ablehnen", command=lambda: self.decide("REJECT"))
         self.reject_decision_button.grid(row=3, column=2, sticky="e", pady=(8, 0))
-        self.decision_frame.grid(row=6, column=0, sticky="ew", pady=(10, 0))
+        self.decision_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         self.decision_frame.grid_remove()
         self.after(600, self.adopt_pending_decision)
+
+    def _wrap(self, label: ttk.Label, margin: int) -> ttk.Label:
+        """AGP_COMPACT_LAGE_V1: wrap at the panel width minus ``margin`` pixels."""
+        label._agp_margin = margin
+        label.configure(wraplength=max(240, 760 - margin))
+        self._wrapping.append(label)
+        return label
+
+    def _rewrap(self, event=None) -> None:
+        width = getattr(event, "width", 0) or self.winfo_width()
+        if width <= 1:
+            return
+        for label in self._wrapping:
+            label.configure(wraplength=max(240, width - 40 - label._agp_margin))
+
+    def toggle_details(self) -> None:
+        self.details_open = not self.details_open
+        if self.details_open:
+            self.lage_label.grid()
+            self.details_button.configure(text="Details ▾")
+        else:
+            self.lage_label.grid_remove()
+            self.details_button.configure(text="Details ▸")
+
+    def update_guidance(self) -> None:
+        """AGP_GUIDED_RECOVERY_V1: the Lösungsweg follows every change of the light."""
+        from agp_cockpit.core import guidance
+        from agp_cockpit.core.build_freshness import stale_block_reason
+        try:
+            blocked = stale_block_reason(self.repository_root, release_version=self._release_version())
+        except Exception:  # noqa: BLE001 - guidance never breaks the panel
+            blocked = ""
+        items = guidance.steps(self.repo_state, block_reason=blocked,
+                               decision_pending=bool(getattr(self, "_decision_mission_id", "")),
+                               recover_offered=self.recover_offered, task_outcome=self._last_outcome,
+                               repository=str(self.repository_root))
+        self.guidance_var.set(("Lösungsweg:\n" + guidance.text(items)) if items else "")
+        if items:
+            self.guidance_label.grid()
+        else:
+            self.guidance_label.grid_remove()
 
     def runtime_root(self) -> Path:
         if self._runtime_root is None:
@@ -325,6 +380,10 @@ class StandardTasksPanel(ttk.Frame):
         self.ampel_state = light
         self.ampel_var.set(light.text)
         self.ampel_dot.configure(foreground=light.hex)
+        if self.repo_state is not None:
+            from agp_cockpit.core.repo_state import summary_line
+            self.facts_var.set(summary_line(self.repo_state))
+        self.update_guidance()
 
     def _show_decision(self, mission_id: str, question: str) -> None:
         if self._decision_mission_id == mission_id:
@@ -335,6 +394,15 @@ class StandardTasksPanel(ttk.Frame):
         self.decision_note.delete("1.0", "end")
         self.decision_frame.grid()
         self.update_ampel()
+        self._scroll_to_top()   # AGP_COMPACT_LAGE_V1: the decision sits right under the Lage
+
+    def _scroll_to_top(self) -> None:
+        widget = self.master
+        while widget is not None:
+            if isinstance(widget, tk.Canvas):
+                widget.yview_moveto(0)
+                return
+            widget = getattr(widget, "master", None)
 
     def _hide_decision(self) -> None:
         self._decision_mission_id = ""
@@ -465,7 +533,7 @@ class StandardTasksPanel(ttk.Frame):
     def toggle_more(self) -> None:
         self.more_open = not getattr(self, "more_open", False)
         if self.more_open:
-            self.more_frame.grid(row=5, column=0, sticky="w", pady=(4, 0))
+            self.more_frame.grid(row=4, column=0, sticky="w", pady=(0, 4))
             self.more_button.configure(text="Weitere ausblenden")
         else:
             self.more_frame.grid_remove()
