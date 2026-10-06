@@ -136,6 +136,10 @@ def describe_standard_task_progress(
     if mstate == "STOPPED" or task_state == "CANCELLED":
         return StandardTaskProgress(
             f"Gestoppt — Mission: {mstate}{suffix} · {local}", True, "STOPPED")
+    if mstate == "RUNNING" and mission.get("browser_transport_event") == ATTACHMENT_LIMIT_HOLD:
+        # AGP_ATTACHMENT_LIMIT_HOLD_V1: waiting is not an error; the result is kept.
+        note = clip(mission.get("browser_transport_note") or "") or "ChatGPT-Anhangslimit erreicht."
+        return StandardTaskProgress(f"Wartet — {note} {counters}. · {local}", False, "RUNNING")
     if turns == 0 and steps == 0:
         return StandardTaskProgress(
             f"Gestartet — wartet auf die erste Remote-Antwort. Mission: {mstate} · {local}",
@@ -145,6 +149,7 @@ def describe_standard_task_progress(
 
 
 ASSISTANT_TIMEOUT = "K07_ASSISTANT_RESPONSE_TIMEOUT"
+ATTACHMENT_LIMIT_HOLD = "K07_ATTACHMENT_LIMIT_HOLD"
 
 
 def stopped_by_assistant_timeout(mission: dict | None) -> bool:

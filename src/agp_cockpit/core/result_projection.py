@@ -11,8 +11,8 @@ pure function of the file bytes:
 
 * ``previous_*`` keys (copies of earlier results) are replaced by a marker;
 * raw ``stdout``/``stdout_tail`` next to a parsed ``json`` value is dropped;
-* an execution diagnostic drops its ``stdout`` (the run_next log is attached
-  separately) and carries the projections of its candidate return bundles,
+* an execution diagnostic drops its ``stdout`` (the run_next log is embedded
+  under ``run_next_log``) and carries the projections of its candidate return bundles,
   so the remote side does not need an extra step only to read them;
 * long strings keep head and tail; failure context (non-zero return code,
   failed status, ``stderr``, ``error``, ``log_excerpt`` ...) keeps much more
@@ -21,6 +21,11 @@ pure function of the file bytes:
 Every cut names the omitted size and the SHA-256 of the omitted text; the
 header names the local file. A detail is obtained with a work order that
 prints exactly that part of the local file.
+
+AGP_ONE_UPLOAD_PER_STEP_V1 (live 2026-10-06, Kit slice GF-050 B, step 63):
+every step uploaded two files (result + run_next log) and ChatGPT's limit for
+file attachments stopped the task. The projected run_next log now travels
+inside the delivered result file under ``run_next_log``; one upload per step.
 """
 
 from __future__ import annotations
@@ -121,7 +126,7 @@ def project_bundle(path: Path) -> dict | None:
     if data.get("kind") == "agp_cockpit_file_loop_execution_diagnostic":
         data = dict(data)
         if isinstance(data.get("stdout"), str) and data.get("run_next_output"):
-            data["stdout"] = _marker("same text as the attached run_next log", data["stdout"])
+            data["stdout"] = _marker("same text as \"run_next_log\" (embedded)", data["stdout"])
         candidates = {}
         for name in list(data.get("candidate_return_bundles") or [])[:MAX_CANDIDATES]:
             candidate = Path(str(name))
@@ -145,14 +150,16 @@ def project_log(path: Path) -> str:
 
 
 def delivery_files(repository_root: Path, result_file: Path, output_file: Path | None) -> dict:
-    """Files to attach: projections where they are smaller, the originals otherwise.
+    """The one file to attach: the projected result with the run_next log embedded.
 
-    Projections keep the original file names (the remote side refers to them)
-    and live under ``.local/agp-cockpit/delivery/``.
+    The delivered file keeps the original result name (the remote side refers to
+    it) and lives under ``.local/agp-cockpit/delivery/``. Without a log, an
+    unprojectable or already small result is delivered unchanged.
+    ``output_file`` of the returned stats is always None (one upload per step).
     """
     target_dir = Path(repository_root) / ".local" / "agp-cockpit" / "delivery"
-    stats = {"result_file": str(result_file), "output_file": str(output_file) if output_file else None,
-             "bytes_before": 0, "bytes_after": 0, "projected": []}
+    stats = {"result_file": str(result_file), "output_file": None,
+             "bytes_before": 0, "bytes_after": 0, "projected": [], "embedded_log": None}
 
     def write(name: str, payload: str) -> Path:
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -164,25 +171,34 @@ def delivery_files(repository_root: Path, result_file: Path, output_file: Path |
         return target
 
     result_file = Path(result_file)
-    original = result_file.stat().st_size
-    stats["bytes_before"] += original
+    raw = result_file.read_bytes()
+    stats["bytes_before"] += len(raw)
+    log = Path(output_file) if output_file is not None and Path(output_file).is_file() else None
     projected = project_bundle(result_file)
-    payload = json.dumps(projected, ensure_ascii=False, indent=1) + "\n" if projected is not None else None
-    if payload is not None and len(payload.encode("utf-8")) < original:
-        stats["result_file"] = str(write(result_file.name, payload))
-        stats["projected"].append(result_file.name)
-        stats["bytes_after"] += len(payload.encode("utf-8"))
-    else:
-        stats["bytes_after"] += original
-    if output_file is not None and Path(output_file).is_file():
-        output_file = Path(output_file)
-        original = output_file.stat().st_size
-        stats["bytes_before"] += original
-        text = project_log(output_file)
-        if len(text.encode("utf-8")) < original:
-            stats["output_file"] = str(write(output_file.name, text))
-            stats["projected"].append(output_file.name)
-            stats["bytes_after"] += len(text.encode("utf-8"))
+    if log is None:
+        payload = json.dumps(projected, ensure_ascii=False, indent=1) + "\n" if projected is not None else None
+        if payload is not None and len(payload.encode("utf-8")) < len(raw):
+            stats["result_file"] = str(write(result_file.name, payload))
+            stats["projected"].append(result_file.name)
+            stats["bytes_after"] += len(payload.encode("utf-8"))
         else:
-            stats["bytes_after"] += original
+            stats["bytes_after"] += len(raw)
+        return stats
+    log_raw = log.read_bytes()
+    stats["bytes_before"] += len(log_raw)
+    if projected is None:
+        # Not a JSON object: deliver its (shortened) text inside the envelope.
+        projected = {"agp_projection": _header(result_file, raw),
+                     "result_text": _cut(raw.decode("utf-8", errors="replace"), FAILURE_TEXT)}
+    projected["run_next_log"] = {
+        "source": log.name,
+        "source_sha256": hashlib.sha256(log_raw).hexdigest(),
+        "source_bytes": len(log_raw),
+        "text": project_log(log),
+    }
+    payload = json.dumps(projected, ensure_ascii=False, indent=1) + "\n"
+    stats["result_file"] = str(write(result_file.name, payload))
+    stats["projected"].append(result_file.name)
+    stats["embedded_log"] = log.name
+    stats["bytes_after"] += len(payload.encode("utf-8"))
     return stats

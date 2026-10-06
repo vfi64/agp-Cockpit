@@ -27,7 +27,7 @@ CONTINUATION_TEXT="Attached is the result file. Evaluate it and continue the cur
 REPLAY_CONTINUATION_TEXT="This command file was already executed and is being replayed idempotently. Read the attached existing result file; do not return the same command again. Continue the current task or finish."
 RECOVERY_CONTINUATION_PREFIX="""The attached local execution evidence reports a FAILED command-file step.
 Recovery is required. Do not claim that the requested Kit operation ran successfully.
-Read both attached files completely: the canonical return bundle and the immutable step-scoped run_next log.
+Read the attached result file completely: the canonical return bundle; the immutable step-scoped run_next log is embedded in it under "run_next_log".
 If the failure is a syntax/compile failure, the real run was never reached and no Kit command was executed.
 Return exactly one newly numbered Python command file that corrects the diagnosed failure.
 The replacement file must execute the intended local work during its real run and create exactly one canonical return bundle.

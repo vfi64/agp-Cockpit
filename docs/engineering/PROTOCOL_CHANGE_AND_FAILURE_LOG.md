@@ -1386,3 +1386,8 @@ repeat once.
 - AGP_FINDINGS_FROM_COCKPIT_V1: the Kit findings window reads the register, the installed Kit and the Kit cache of the Cockpit's own checkout (it was empty while the Kit repository was steered). AGP_CHAT_BINDING_HINT_V1: the chat-binding block says what to do. AGP_FRESHNESS_WRAP_V1: the stale-app line wraps with the window.
 - KIT-GF-024 VERIFIED_FIXED (GF-E076, `ci status` in the adoption run). Build release-0.2.1-r3.
 
+## 2026-10-06 — Transport slice: one upload per step, attachment-limit hold
+
+- Observed (Kit slice GF-050 B, step 63): ChatGPT refused the result upload („Du hast das Limit für Dateianhänge erreicht · Erneut versuchen 19:49“); three immediate retries ended the FULL_AUTO task STOPPED and it was restarted with a hand-written resume text. Every step had uploaded two files.
+- AGP_ONE_UPLOAD_PER_STEP_V1: the projected run_next log is embedded in the delivered result file (`run_next_log`, with source name, SHA-256 and size); `output_file` is no longer attached. The recovery prompt names the embedded log; the mission start asks for few combined work orders.
+- AGP_ATTACHMENT_LIMIT_HOLD_V1: an attachment-limit failure is not counted as an error; the loop holds until one minute after the named time (15 minutes if none is named), records K07_ATTACHMENT_LIMIT_HOLD/RETRY (never a transport block), and then replays the visible command file, which re-delivers the kept PENDING result without running it again. The Lage says „Wartet — ChatGPT-Anhangslimit …“. A reload of the ChatGPT tab during the hold still loses the hold (unchanged). Build release-0.2.1-r4.

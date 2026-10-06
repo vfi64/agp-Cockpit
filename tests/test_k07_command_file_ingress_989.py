@@ -109,7 +109,9 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         assert data["replayed"] is False
         assert data["result_file"].endswith("_return_bundle.json")
         assert Path(data["result_file"]).exists()
-        assert Path(data["output_file"]).exists()
+        # AGP_ONE_UPLOAD_PER_STEP_V1: the run_next log travels inside the result file.
+        assert data["output_file"] is None
+        assert "run_next_log" in json.loads(Path(data["result_file"]).read_text(encoding="utf-8"))
         assert data["output_sha256"]
         assert data["result_validation"]["valid"] is True
         assert "Return exactly one Python command file" in data["prompt"]
@@ -117,7 +119,8 @@ def test_command_file_http_executes_only_through_run_next(tmp_path):
         assert len(commands) == 1
         assert commands[0].read_text(encoding="utf-8") == valid_command_file("check")
         assert json.loads((download / "runner_invoked.json").read_text(encoding="utf-8"))["argv"] == ["1"]
-        assert Path(data["result_file"]).parent == download
+        assert Path(data["result_file"]).parent == tmp_path / ".local/agp-cockpit/delivery"
+        assert len(list(download.glob("*_return_bundle.json"))) == 1   # the local evidence stays in Download
     finally:
         runtime.stop()
 
