@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- „Repo wechseln“ restarts the app again (the rebuild button's restart had replaced it); no class may define a name twice; build `release-0.2.1-r2`.
 - The Lage shows a running task as „ein Task läuft“ from its start to its end, and after a private release the Cockpit names the owner's GitHub entry command (KIT-GF-052 recorded); build `release-0.2.1-r1`.
 
 ## v0.2.1 - 2026-10-06

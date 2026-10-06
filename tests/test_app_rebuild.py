@@ -109,7 +109,7 @@ def test_failed_build_keeps_the_app_and_its_note():
                                  cause=lambda: ""),
         _rebuild_note="", freshness_var=SimpleNamespace(set=calls.append),
         _rebuild_button=SimpleNamespace(configure=lambda **kw: calls.append(kw)),
-        _relaunch=lambda _home: calls.append("relaunch"), after=lambda *a: calls.append("after"))
+        _relaunch_new_build=lambda _home: calls.append("relaunch"), after=lambda *a: calls.append("after"))
     MainWindow._watch_rebuild(window)
     assert window._rebuild is None and "fehlgeschlagen" in window._rebuild_note and "Code 2" in window._rebuild_note
     assert window._rebuild_note.count("\n") == 1 and "rebuild.log" in window._rebuild_note

@@ -1367,3 +1367,7 @@ repeat once.
 - AGP_AMPEL_TASK_ACTIVE_V1: the Lage was built once after „Freigeben“ while the bridge still reported the answered NEEDS_HUMAN mission, and showed „Grün — bereit für neue Arbeit“ with „Arbeit beginnen“ recommended for the whole phase 2. The task the panel tracks now counts as running until its progress is terminal.
 - AGP_MANUAL_GITHUB_RELEASE_HINT_V1: after a private release with a title template the status names the missing GitHub entry and offers „GitHub-Befehl kopieren“ (gh release create with the title template and the changelog section); the Cockpit never runs it. AGP_RELEASE_TAG_COMMIT_V1: the release verdict names the tag's commit, not the tag object. Build release-0.2.1-r1.
 
+## 2026-10-06 — P4 live check: repository switch failed (duplicate method)
+
+- First live P4 check (switch to agentic-project-kit): the candidate check passed (main, origin, Kit 1.0.18, Kit control layer, gh logged in); „Wechseln und neu starten“ failed with „MainWindow._relaunch() missing 1 required positional argument: 'home'“. AGP_REBUILD_BUTTON_V1 (r3) had added a second `_relaunch(self, home)` to MainWindow, which replaced the switch's `_relaunch()`; no test exercised the real wiring. Renamed to `_relaunch_new_build`; AGP_UNIQUE_METHODS_V1 (tests/test_unique_methods.py) rejects any name defined twice in a class or module of src/. Build release-0.2.1-r2.
+
