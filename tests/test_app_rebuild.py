@@ -105,12 +105,14 @@ def test_failed_build_keeps_the_app_and_its_note():
     from agp_cockpit.ui.main_window import MainWindow
     calls = []
     window = SimpleNamespace(
-        _rebuild=SimpleNamespace(returncode=lambda: 2, log=Path("/x/rebuild.log"), tail=lambda: "boom"),
+        _rebuild=SimpleNamespace(returncode=lambda: 2, log=Path("/x/rebuild.log"), tail=lambda: "boom",
+                                 cause=lambda: ""),
         _rebuild_note="", freshness_var=SimpleNamespace(set=calls.append),
         _rebuild_button=SimpleNamespace(configure=lambda **kw: calls.append(kw)),
         _relaunch=lambda _home: calls.append("relaunch"), after=lambda *a: calls.append("after"))
     MainWindow._watch_rebuild(window)
-    assert window._rebuild is None and "fehlgeschlagen (Code 2)" in window._rebuild_note and "boom" in window._rebuild_note
+    assert window._rebuild is None and "fehlgeschlagen" in window._rebuild_note and "Code 2" in window._rebuild_note
+    assert window._rebuild_note.count("\n") == 1 and "rebuild.log" in window._rebuild_note
     assert {"state": "normal"} in calls and "relaunch" not in calls
 
 
@@ -119,3 +121,19 @@ def test_window_wiring():
     assert "AGP_REBUILD_BUTTON_V1" in window and "self.winfo_toplevel().destroy" in window
     assert "osascript" not in window and "task_running()" in window
     assert 'getattr(sys, "frozen", False)' in window   # a source run never rebuilds the bundle
+
+
+def test_child_env_drops_the_frozen_tcl_paths_live_2026_10_06(tmp_path):
+    bundle = "/u/agp/.local/agp-cockpit/dist/AGP Cockpit.app/Contents/Frameworks"
+    env = ar.child_env(tmp_path, {"PATH": "/usr/bin", "TCL_LIBRARY": f"{bundle}/_tcl_data",
+                                  "TK_LIBRARY": f"{bundle}/_tk_data", "TCLLIBPATH": "x"})
+    assert not {"TCL_LIBRARY", "TK_LIBRARY", "TCLLIBPATH"} & set(env)
+
+
+def test_cause_names_the_root_exception(tmp_path):
+    log = tmp_path / "rebuild.log"
+    log.write_text("4103 INFO: x\nTraceback (most recent call last):\n  File x\nValueError: Resource '/a/_tcl_data/auto.tcl' "
+                   "is not a valid file!\nTraceback (most recent call last):\nsubprocess.CalledProcessError: Command "
+                   "'[...]' returned non-zero exit status 1.\n")
+    rebuild = ar.Rebuild(ar.BUILD, log, None)
+    assert rebuild.cause().startswith("ValueError: Resource")

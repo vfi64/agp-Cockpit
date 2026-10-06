@@ -500,8 +500,10 @@ class MainWindow(ttk.Frame):
             return
         self._rebuild = None
         if code != 0:
-            self._rebuild_note = (f"⚠ Neubau fehlgeschlagen (Code {code}), die App läuft weiter. "
-                                  f"Protokoll: {rebuild.log}\n{rebuild.tail()}")
+            # One or two lines only (the window is shared with Chrome); the log has the rest.
+            cause = rebuild.cause() or f"Code {code}"
+            self._rebuild_note = (f"⚠ Neubau fehlgeschlagen, die App läuft weiter: {cause}\n"
+                                  f"Protokoll: .local/agp-cockpit/logs/{rebuild.log.name}")
             self.freshness_var.set(self._rebuild_note)
             self._rebuild_button.configure(state="normal")
             return
