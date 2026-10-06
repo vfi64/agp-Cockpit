@@ -141,6 +141,13 @@ def test_resume_after_phase_one_despite_the_merged_release_branch(repo):
     assert release_resume_version(repo) == ""
     assert "existiert schon" in TASK.check(repo, {"version": "0.1.0"})   # tag present: nothing to resume
     assert "entfällt der Release-Branch" in TASK.confirm
+    # AGP_RELEASE_RESUME_SCOPE_V1 (proposal 7): the resume start click grants only main sync.
+    git(repo, "tag", "-d", "v0.1.0")
+    assert TASK.scope(repo, {"version": "0.1.0"}) == {"agentic-kit transfer sync-main",
+                                                      "agentic-kit transfer pull-current"}
+    assert "agentic-kit transfer pr-create-complete" in TASK.scope(repo, {"version": "0.1.1"})
+    assert "no branch, push or pull request is needed or approved" in TASK.prompt(repo, {"version": "0.1.0"})
+    assert "do not\nask NEEDS_HUMAN for them" in TASK.prompt(repo, {"version": "0.1.1"})
 
 
 def test_release_dialog_preview_names_the_resume():

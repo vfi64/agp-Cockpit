@@ -6,6 +6,9 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- A rejected work order is kept beside its rejection record in Download/ and its copy
+  in ~/Downloads is removed; resuming a release grants only the main synchronization
+  with the start click; build `release-0.2.0-r5`.
 - Lage: a numbered „Lösungsweg“ under the traffic light for every yellow or red state;
   the Kit's open follow-up pull request and its CI (green, running, cancelled by GitHub,
   red) are read and named with the step (re-run on GitHub, Abschließen, Wiederherstellen);

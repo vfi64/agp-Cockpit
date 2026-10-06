@@ -298,10 +298,11 @@ class StandardTasksPanel(ttk.Frame):
             task_id = str(prepared["task_id"])
             # AGP_START_CLICK_APPROVAL_V1 (R4): the start click approves exactly
             # the declared effects; AGP_CI_GREEN_COMPLETION_V1 from the start.
-            if task.approved_scope:
+            scope = task.scope(self.repository_root, inputs)   # AGP_RELEASE_RESUME_SCOPE_V1
+            if scope:
                 from agp_cockpit.core.human_decision import HumanDecisionStore
                 HumanDecisionStore(self.runtime_root()).pre_approve(
-                    task_id=task_id, label=task.label, scope=task.approved_scope)
+                    task_id=task_id, label=task.label, scope=scope)
             if task.ci_gate_merge:
                 from agp_cockpit.core.ci_gate import CiGateStore
                 CiGateStore(self.runtime_root()).activate(

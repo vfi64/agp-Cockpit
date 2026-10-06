@@ -102,9 +102,24 @@ def _correctable(error: Exception) -> bool:
     return ("semantic contract rejected" in text) or ("is not executable Python" in text)
 
 
+REJECTED_COPY_LIMIT = 256 * 1024
+
+
+def _keep_rejected_copy(download: Path, step: int, filename: str, content) -> str:
+    """AGP_REJECTED_ORDER_KEPT_V1 (proposal 6, owner 2026-10-04: yes): the rejected work order
+    is kept beside its rejection record (as .txt, never executable here) so the browser copy
+    in ~/Downloads can go like the accepted ones (AGP_DOWNLOAD_HYGIENE_V1)."""
+    if not isinstance(content, str) or not content:
+        return ""
+    safe = "".join(c if c.isalnum() or c in "._-" else "_" for c in Path(str(filename)).name)[:120] or "order"
+    target = download / f"{step}_agp_rejected_{safe}.txt"
+    target.write_text(content[:REJECTED_COPY_LIMIT], encoding="utf-8")
+    return target.name
+
+
 def _policy_rejection_response(runtime_root: Path, repo_root: Path, engine, diag, *,
                                filename: str, reason: str, cycle_id: str,
-                               terminal: bool = False) -> dict:
+                               terminal: bool = False, content=None) -> dict:
     """AGP_CORRECTABLE_REJECTION_V1: record the rejected work order under the
     expected step (the step is used up) and ask the remote side for a new one;
     after MAX_POLICY_REJECTIONS in one mission the human decides."""
@@ -120,8 +135,9 @@ def _policy_rejection_response(runtime_root: Path, repo_root: Path, engine, diag
     download = repo_root / "Download"
     step = next_step_number(download)
     download.mkdir(parents=True, exist_ok=True)
+    kept = _keep_rejected_copy(download, step, filename, content)
     (download / f"{step}_agp_rejected.json").write_text(json.dumps(
-        {"rejected_filename": filename, "reason": reason, "count": count}, indent=1) + "\n",
+        {"rejected_filename": filename, "reason": reason, "count": count, "kept_copy": kept}, indent=1) + "\n",
         encoding="utf-8")
     diag.event("K07_WORK_ORDER_REJECTED", component="file-loop",
                details={"filename": filename, "step": step, "count": count,
@@ -564,6 +580,7 @@ class CockpitBridgeServer:
                             self._json(200, _policy_rejection_response(
                                 runtime_root, repo_root, engine, diag,
                                 filename=filename, reason=str(rejection), cycle_id=cycle_id,
+                                content=content,
                             ))
                             return
                         if not remote_effects_allowed and wanted:
@@ -934,7 +951,7 @@ class CockpitBridgeServer:
                             self._json(200, _policy_rejection_response(
                                 runtime_root, repo_root, engine, diag, filename=filename,
                                 reason=str(rejection), cycle_id=str(data.get("cycle_id") or ""),
-                                terminal=True,
+                                terminal=True, content=content,
                             ))
                             return
                         download_sha256 = str(data.get("download_sha256") or "").strip()

@@ -651,8 +651,9 @@
   }
 
   // AGP_DOWNLOAD_HYGIENE_V1: after the bridge has persisted an accepted file in
-  // the repository, the browser copy in ~/Downloads is removed. Rejected work
-  // orders keep their browser copy (the bridge records only the reason).
+  // the repository, the browser copy in ~/Downloads is removed. Since
+  // AGP_REJECTED_ORDER_KEPT_V1 the bridge also keeps a rejected work order beside
+  // its rejection record, so its browser copy is removed as well.
   async function forgetBrowserDownload(fetched) {
     if (!fetched || !Number.isInteger(fetched.download_id)) return;
     try {
@@ -907,6 +908,7 @@
         filename:fetched.filename,
         next_step:Number(result.next_step || 0)
       });
+      void forgetBrowserDownload(fetched);   // AGP_REJECTED_ORDER_KEPT_V1
       return result;
     }
     if (

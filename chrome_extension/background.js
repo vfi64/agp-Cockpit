@@ -135,7 +135,8 @@ async function agpWaitForCommandFileDownload(message, sender) {
 
 // AGP_DOWNLOAD_HYGIENE_V1: Chrome saves every remote file in ~/Downloads; the
 // bridge persists accepted work orders and terminal replies in the repository's
-// Download/. After that the browser copy is removed: only the exact download
+// Download/ (rejected ones beside their rejection record, AGP_REJECTED_ORDER_KEPT_V1).
+// After that the browser copy is removed: only the exact download
 // item this extension armed and waited for, matched by id and file name.
 async function agpForgetCommandFileDownload(message) {
   const id = Number(message && message.download_id);
