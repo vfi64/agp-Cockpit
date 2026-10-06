@@ -70,9 +70,14 @@ def test_the_way_out_of_the_live_2026_10_05_case_step_by_step():
     # The decision: what to check before approving.
     assert "Freigeben" in guidance.steps(None, decision_pending=True)[1]
     # The empty leftover branch afterwards: the owner's own way back to main.
-    left = guidance.steps(state(rs.IN_ARBEIT, rs.ARBEITEN, branch="docs/x", head="a", origin_main="a",
-                                own_commits=0), repository="/r")
+    left = guidance.steps(state(rs.IN_ARBEIT, rs.ARBEITEN, branch="docs/post-pr242-handoff-refresh", head="a",
+                                origin_main="a", own_commits=0), repository="/r")
     assert "keine Arbeit" in left[0] and "cd /r && git switch main" in left[1]
+    # AGP_FRESH_BRANCH_V1 (live 2026-10-06): right after „Arbeit beginnen“ the empty branch is expected.
+    fresh = guidance.steps(state(rs.IN_ARBEIT, rs.ARBEITEN, branch="fix/gf050b-x", head="a", origin_main="a",
+                                 own_commits=0), repository="/r")
+    assert fresh == ["Branch fix/gf050b-x ist bereit — „Arbeiten“ für den Auftrag, danach „Abschließen“."]
+    assert not any("git switch main" in line for line in fresh)
     assert guidance.steps(state(rs.BEREIT, rs.ARBEIT_BEGINNEN, branch="main")) == []
 
 

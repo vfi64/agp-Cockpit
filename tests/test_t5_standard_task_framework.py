@@ -132,7 +132,8 @@ def test_pre_approval_is_claimed_by_the_first_mission_and_limited_to_its_scope(t
     store.consume("t1", "sha-a", ["agentic-kit transfer pr-create-complete"], step=1586, now=5.0)
     assert store.permits("t1", ["agentic-kit transfer pr-closeout-complete"], ci_gate_active=True)
     assert store.effects_log("t1") == [{"at": 5.0, "step": 1586, "command_sha256": "sha-a",
-                                        "commands": ["agentic-kit transfer pr-create-complete"]}]
+                                        "commands": ["agentic-kit transfer pr-create-complete"],
+                                        "source": "start"}]
     assert store.effects_log("other") == []
     with pytest.raises(ValueError):
         store.pre_approve(task_id="t2", label="x", scope=())

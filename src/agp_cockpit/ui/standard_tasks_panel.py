@@ -71,6 +71,7 @@ class StandardTasksPanel(ttk.Frame):
         # recommended „Arbeit beginnen“ for the whole phase 2. The task this panel tracks counts
         # as running until its progress is terminal.
         self._task_active = False
+        self.external_task_active = None   # AGP_LAGE_ALL_TABS_V1: set by the main window
         # AGP_MANUAL_GITHUB_RELEASE_HINT_V1: the owner's own command after a release.
         self._followup_command = ""
 
@@ -301,7 +302,9 @@ class StandardTasksPanel(ttk.Frame):
         bindings = ConversationBindingStore(self.runtime_root())
         bound_elsewhere = bindings.block_reason(conversation_url, self.repository_root)
         if bound_elsewhere:
-            self.status_var.set(f"BLOCKED — {bound_elsewhere}")
+            # AGP_CHAT_BINDING_HINT_V1 (live 2026-10-06): say what to do, not only what is wrong.
+            self.status_var.set(f"BLOCKED — {bound_elsewhere}\nIn Chrome links „Neuer Chat“ (oder den Chat "
+                                f"dieses Repos) öffnen, den Tab vorn lassen, dann „{task.label}“ erneut klicken.")
             return False
         contract = task.contract(self.repository_root, inputs)
         try:
@@ -517,11 +520,16 @@ class StandardTasksPanel(ttk.Frame):
         log = HumanDecisionStore(self.runtime_root()).effects_log(self._tracked_task_id)
         if not log:
             return "Freigegebene Wirkungen (Start-Klick): noch keine ausgeführt."
-        items = "; ".join(
-            f"Schritt {entry.get('step') or '?'}: "
-            + ", ".join(c.replace("agentic-kit ", "") for c in entry.get("commands") or ())
-            for entry in log)
-        return f"Freigegebene Wirkungen (Start-Klick): {items}."
+        # AGP_EFFECTS_BY_APPROVAL_V1 (live 2026-10-06, release 0.2.1): the tag push approved in the
+        # decision box was listed under „Start-Klick“.
+        groups: dict[str, list[str]] = {}
+        for entry in log:
+            label = "Freigabe" if entry.get("source") == "decision" else "Start-Klick"
+            groups.setdefault(label, []).append(
+                f"Schritt {entry.get('step') or '?'}: "
+                + ", ".join(c.replace("agentic-kit ", "") for c in entry.get("commands") or ()))
+        return "Freigegebene Wirkungen " + "; ".join(
+            f"({label}): {'; '.join(items)}" for label, items in groups.items()) + "."
 
     def _verb_button(self, parent: ttk.Frame, verb: Verb, column: int) -> None:
         cell = ttk.Frame(parent)
@@ -636,6 +644,9 @@ class StandardTasksPanel(ttk.Frame):
         from agp_cockpit.core.mission_http_client import mission_running   # AGP_ONE_TASK_ALL_TABS_V1
         if getattr(self, "_task_active", False):   # AGP_AMPEL_TASK_ACTIVE_V1
             return True
+        external = getattr(self, "external_task_active", None)
+        if external is not None and external():          # AGP_LAGE_ALL_TABS_V1
+            return True
         try:
             mission = (bridge_status() or {}).get("mission") or {}
         except Exception:  # noqa: BLE001 - an unreachable bridge runs no task
@@ -706,6 +717,13 @@ class StandardTasksPanel(ttk.Frame):
                                 f"Empfohlen: {rs_labels()[effective]} (nach dem letzten Task)")
         self.lage_var.set(text)
 
+    def note_external_result(self, text: str) -> None:
+        """AGP_WORK_TAB_HANDOFF_V1: the result of the „Arbeiten“ tab, named as such."""
+        self._tracked_task = None
+        self._last_outcome = "DONE"
+        self.status_var.set(f"Arbeiten · {text}" if text else "Arbeiten · Fertig ✓")
+        self._status_detail = ""
+
     def _manual_release_hint(self) -> str:
         """AGP_MANUAL_GITHUB_RELEASE_HINT_V1: name the owner's GitHub step after the tag."""
         from agp_cockpit.core.release_hygiene import manual_github_release_command
@@ -759,6 +777,8 @@ class StandardTasksPanel(ttk.Frame):
             self._poll_job = self.after(3000, self.refresh_progress)
             return
         text = progress.text
+        if self._tracked_task is not None:   # AGP_RESULT_NAMES_TASK_V1
+            text = f"{self._tracked_task.label} · {text}"
         current = (bridge or {}).get("mission") or {}
         if (progress.outcome == "HUMAN_REQUIRED" and current.get("state") == "NEEDS_HUMAN"
                 and current.get("mission_id") == mission_id and self._tracked_task is not None):
