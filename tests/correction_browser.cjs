@@ -17,6 +17,8 @@ const code = section("  async function submitAssistantCommandFile(", "  function
     assistantPythonAttachmentCandidates:() => [{name:"1540_x.py"}],
     fetchSingleAssistantPythonAttachment:async () => ({filename:"1540_x.py", content:"print(1)", chars:8}),
     lastAssistantMessageId:() => "m1",
+    // AGP_REJECTED_ORDER_KEPT_V1: the bridge kept the rejected order; the browser copy goes.
+    forgetBrowserDownload:async (fetched) => { calls.push("forget:" + fetched.filename); },
     api:async (path) => {
       calls.push(path);
       return {state:"CONTINUE", terminal:false, step:1540, next_step:1541, result_file:null,
@@ -37,4 +39,5 @@ const code = section("  async function submitAssistantCommandFile(", "  function
   assert.equal(context.STATE.lastEvent, "K07_WORK_ORDER_REJECTED_FOR_CORRECTION");
   assert.ok(calls.includes("/v1/file-loop/command"));
   assert.ok(calls.includes("event:K07_WORK_ORDER_REJECTED_FOR_CORRECTION"));
+  assert.ok(calls.includes("forget:1540_x.py"));
 })().catch(error => { console.error(error); process.exitCode = 1; });

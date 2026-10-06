@@ -510,6 +510,13 @@
       "historical_id": "agp-Cockpit PR #242 finish, post-merge-complete after PR242 (step 1781), 2026-10-05",
       "canonical_family": "KIT-GF-050",
       "summary": "post-merge-complete times out on slow follow-up CI after 300s; admin-refresh-pr fallback crashes on .agentic/handoff_state.yaml and leaves a dirty branch"
+    },
+    {
+      "date": "2026-10-06",
+      "event_id": "GF-E069",
+      "historical_id": "agp-Cockpit P10b design, owner decision 2026-10-06 (architecture principle kept)",
+      "canonical_family": "KIT-GF-051",
+      "summary": "no Kit route updates the Kit in a workspace; adoption of a Kit release is manual"
     }
   ],
   "families": [
@@ -1923,6 +1930,34 @@
           "description": "The Lage reads the follow-up PR's CI and shows the numbered way out (re-run on GitHub, Wiederherstellen, back to main, Abschließen); Wiederherstellen no longer counts an empty leftover branch as recovered."
         }
       ]
+    },
+    {
+      "id": "KIT-GF-051",
+      "title": "No Kit route updates the Kit in an external workspace",
+      "first_observed": "2026-10-06",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "One Kit command (for example `agentic-kit kit update --version X`) adopts a Kit release in a workspace: dry run with a signature listing the planned changes, then install the version into the workspace interpreter, raise the managed CI pins (template and workflow) and synchronize the command entrypoints, report the new manifest ACK, and run check/doctor; on a work branch through the Kit's work route so the change is finished like any other.",
+      "observed": "Kit 1.0.18 has no such route (agp-Cockpit P10a survey 2026-10-04: no Kit route for updating the Kit itself). The Cockpit adopted 1.0.16, 1.0.17 and 1.0.18 by hand (#194, #228, #230): pip install into .venv, both CI pins edited, `commands sync-entrypoints --execute`, check/doctor. A Cockpit-side updater would emulate an unsupported Kit capability (SCOPE_BOUNDARY §4/§6); the owner decided on 2026-10-06 to keep the architecture principle, so the Cockpit's „Kit aktualisieren“ waits for this route.",
+      "impact": "Every Kit release needs a manual, multi-step adoption in each workspace; the Cockpit cannot offer the step as a standard task.",
+      "workaround": "Owner adopts by hand in the terminal (pip install agentic-project-kit==X into .venv, raise both CI pins, agentic-kit commands sync-entrypoints --execute, check/doctor, Abschließen).",
+      "repair": "Add the route described in expected; Codex task .local/agp-cockpit/tmp/codex_task_KIT-GF-051.md.",
+      "regression": "In an external workspace pinned to 1.0.18, the dry run lists install, two pin changes and the entrypoint sync with a signature; the signed execute leaves installed version = both pins = X and check/doctor PASS.",
+      "evidence": [
+        "agp-Cockpit MASTER_PLAN P10a (2026-10-04): no Kit route for updating the Kit itself",
+        "agp-Cockpit #194, #228, #230: manual adoptions",
+        "docs/planning/SCOPE_BOUNDARY.md §4, §6"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main eebe6fbe; Codex task prepared",
+        "report": ""
+      }
     }
   ],
   "explicit_exclusions": [

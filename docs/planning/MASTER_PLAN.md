@@ -558,11 +558,17 @@ Assessment after P8 and the Kit 1.0.14 release; none is decided yet, each needs 
 2a. Guided recovery — done 2026-10-06 (AGP_GUIDED_RECOVERY_V1, AGP_FOLLOWUP_PR_CI_V1,
    AGP_FULL_HEAD_SHA_V1, AGP_COMPACT_LAGE_V1; build release-0.2.0-r4; owner: „der Nutzer
    sollte besser auf dem Lösungsweg geführt werden“, „der Bildschirmplatz ist endlich“).
-3. P10b „Kit aktualisieren“.
+3. P10b „Kit aktualisieren“ — deferred 2026-10-06 (owner: „Ich möchte unser
+   Architekturprinzip erst einmal nicht brechen“): a Cockpit-side updater would emulate a
+   missing Kit capability (SCOPE_BOUNDARY §4/§6). It waits for a Kit route (KIT-GF-051);
+   until then the owner adopts Kit releases in the terminal.
 4. Proposal 6 (rejected work orders into Download/), proposal 7 (narrow release resume
-   scope); the P11c switch after KIT-GF-049.
+   scope) — done 2026-10-06 (AGP_REJECTED_ORDER_KEPT_V1, AGP_RELEASE_RESUME_SCOPE_V1, build
+   release-0.2.0-r5); the P11c switch after KIT-GF-049.
 5. Systemcheck in the System tab.
-6. Proposal 3/9: Abschließen directly, without the ChatGPT round trip.
+6. Proposal 3/9: Abschließen directly, without the ChatGPT round trip — on hold: it would let
+   the Cockpit choose a Kit workflow instead of the remote LLM (SCOPE_BOUNDARY §4); only after
+   an explicit owner decision that changes the boundary (owner 2026-10-06: principle kept).
 7. Live proofs along the way: new-chat start, P4, P9, retests of KIT-GF-030/031/039/040/043.
 Codex (KIT-GF-049, then KIT-GF-048) is available again from 2026-10-10; nothing above waits for it.
 

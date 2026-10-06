@@ -39,6 +39,8 @@ class StandardTask:
     offers_recover_on_interrupt: bool = False     # R6
     follow_up: str = ""                           # verb offered after DONE
     notes: tuple[str, ...] = field(default=())
+    # AGP_RELEASE_RESUME_SCOPE_V1: a task may narrow its start-click scope by its inputs.
+    scope_factory: Callable[[Path, dict], frozenset[str] | None] | None = None
 
     def contract(self, repository_root: Path, inputs: dict | None = None) -> dict:
         root = repository_root.expanduser().resolve()
@@ -49,6 +51,12 @@ class StandardTask:
         root = repository_root.expanduser().resolve()
         return self.prompt_factory(root, dict(inputs or {})) if self.inputs \
             else self.prompt_factory(root)
+
+    def scope(self, repository_root: Path, inputs: dict | None = None) -> frozenset[str] | None:
+        """The remote effects the start click approves for these inputs."""
+        if self.scope_factory is None:
+            return self.approved_scope
+        return self.scope_factory(repository_root.expanduser().resolve(), dict(inputs or {}))
 
     def check(self, repository_root: Path, inputs: dict | None = None) -> str | None:
         """Block reason, or None when the task may start."""
@@ -374,6 +382,20 @@ def _release_scope() -> frozenset[str]:
     return frozenset(_finish_scope() | WORK_START_SCOPE)
 
 
+# AGP_RELEASE_RESUME_SCOPE_V1 (proposal 7, owner 2026-10-04: yes): when main already names the
+# version (phase 1 merged, only the tag missing), the start click approves only bringing main
+# up to date; branch, push and pull-request effects are not needed and not granted. The tag
+# push asks as always (signed dry run, NEEDS_HUMAN).
+RELEASE_RESUME_SCOPE = frozenset({"agentic-kit transfer sync-main", "agentic-kit transfer pull-current"})
+
+
+def _release_scope_for(root: Path, inputs: dict) -> frozenset[str]:
+    version = str(inputs.get("version") or "").strip()
+    if version and version == _current_version(root):
+        return RELEASE_RESUME_SCOPE
+    return _release_scope()
+
+
 def _version_tuple(text: str) -> tuple[int, ...] | None:
     match = _VERSION.match(str(text or "").strip())
     return tuple(int(part) for part in match.groups()) if match else None
@@ -483,6 +505,16 @@ def _release_contract(root: Path, inputs: dict) -> dict:
     }
 
 
+def _release_approval_text(prepared: bool) -> str:
+    if prepared:   # AGP_RELEASE_RESUME_SCOPE_V1
+        return ("The human approved by starting this task only bringing main up to date (main "
+                "synchronization); no branch, push or pull request is needed or approved. The live tag "
+                "publication is not approved yet and always asks.")
+    return ("The human approved by starting this task the release branch and its pull-request lifecycle\n"
+            "(starting the branch, publishing, pull request, merge, post-merge closeout, main synchronization): "
+            "do not\nask NEEDS_HUMAN for them. The live tag publication is not approved yet and always asks.")
+
+
 # AGP_RELEASE_CHANGELOG_SUMMARY_V1 (live 2026-10-04, release 0.1.1): the changelog entry was a
 # one-line stub and the Unreleased section stayed; step 2 names the summary source.
 def _release_prompt(root: Path, inputs: dict) -> str:
@@ -522,9 +554,7 @@ Phase 2 — tag publication (always asks):
    marker file .agentic/release/ENABLE_LIVE_PUBLISH. If HEAD changed since the dry run, start again
    at step 5.
 
-The human approved by starting this task the release branch and its pull-request lifecycle
-(starting the branch, publishing, pull request, merge, post-merge closeout, main synchronization): do not
-ask NEEDS_HUMAN for them. The live tag publication is not approved yet and always asks.
+{_release_approval_text(prepared)}
 Never force-push; never merge red CI.
 {_COMMON}
 Completion is verified locally: DONE is accepted only after the Cockpit checked that the release
@@ -657,6 +687,7 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
         inputs=("version",),
         precheck=_release_precheck,
         approved_scope=_release_scope(),
+        scope_factory=_release_scope_for,
         ci_gate_merge=True,
         confirm=("„Release“ erstellt ein privates Release:\n"
                  "Release-Branch · Release-Vorbereitung des Kits · Pull Request · grüne CI · Merge · "
@@ -666,7 +697,8 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
                  "Tag, Ziel-Commit, die geplanten Aktionen und die Signatur des Probelaufs und gibst "
                  "genau diesen Plan frei. Kein PyPI, kein Zenodo.\n\n"
                  "Nennt main die Version schon (Release-Branch gemergt, Tag fehlt), entfällt der "
-                 "Release-Branch: Es folgt nur der Tag.\n\n"
+                 "Release-Branch: Es folgt nur der Tag, und der Start gibt dann nur das "
+                 "Aktualisieren von main frei.\n\n"
                  "Jetzt starten?"),
         offers_recover_on_interrupt=True,
     ),

@@ -211,6 +211,10 @@ def test_invalid_remote_effect_work_order_is_still_rejected(bridge):
     assert rejected["state"] == "CONTINUE" and rejected["terminal"] is False
     assert "git push is not permitted" in rejected["prompt"]
     assert (root / "Download" / "1480_agp_rejected.json").is_file()
+    # AGP_REJECTED_ORDER_KEPT_V1: the rejected order is kept as text beside its record.
+    kept = root / "Download" / "1480_agp_rejected_1480_push.py.txt"
+    assert kept.read_text() == bad
+    assert json.loads((root / "Download" / "1480_agp_rejected.json").read_text())["kept_copy"] == kept.name
     assert not list((root / "Download").glob("1480_*return_bundle.json"))
     assert rejected["next_step"] == 1481 and "1481_...py" in rejected["prompt"]
 
