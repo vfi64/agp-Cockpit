@@ -477,7 +477,7 @@ class MainWindow(ttk.Frame):
         self._rebuild_button.configure(state="disabled")
         self._rebuild_note = ""
         if kind == app_rebuild.RESTART:
-            return self._relaunch(home)
+            return self._relaunch_new_build(home)
         try:
             self._rebuild = app_rebuild.start(home)
         except Exception as exc:  # noqa: BLE001 - shown to the operator
@@ -507,9 +507,12 @@ class MainWindow(ttk.Frame):
             self.freshness_var.set(self._rebuild_note)
             self._rebuild_button.configure(state="normal")
             return
-        self._relaunch(cockpit_home())
+        self._relaunch_new_build(cockpit_home())
 
-    def _relaunch(self, home) -> bool:
+    def _relaunch_new_build(self, home) -> bool:
+        # AGP_UNIQUE_METHODS_V1 (live 2026-10-06): this was also named _relaunch and silently
+        # replaced the repository switch's _relaunch() („missing 1 required positional
+        # argument: 'home'“); tests/test_unique_methods.py now rejects any duplicate.
         import os
 
         from agp_cockpit.core import app_rebuild
