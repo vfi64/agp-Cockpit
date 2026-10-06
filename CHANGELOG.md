@@ -8,35 +8,14 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## v0.2.1 - 2026-10-06
 
-- A rejected work order is kept beside its rejection record in Download/ and its copy
-  in ~/Downloads is removed; resuming a release grants only the main synchronization
-  with the start click; build `release-0.2.0-r5`.
-- Lage: a numbered „Lösungsweg“ under the traffic light for every yellow or red state;
-  the Kit's open follow-up pull request and its CI (green, running, cancelled by GitHub,
-  red) are read and named with the step (re-run on GitHub, Abschließen, Wiederherstellen);
-  Wiederherstellen no longer reports an empty leftover branch as done; a short commit
-  SHA in a work order is rejected before it runs; the tab is compact (one-line facts with
-  „Details“, the decision right under the Lage, texts wrap to the window, minimum width
-  720 px); KIT-GF-050 recorded; build `release-0.2.0-r4`.
-- „Neu bauen und neu starten“ (or „Neu starten“) in the stale-app warning: the app
-  builds itself, closes and reopens after a successful build; a failed build leaves it
-  running with the log; the extension reloads itself; build `release-0.2.0-r3`.
-- Lage: a traffic light (Grün/Gelb/Rot with a word) for the whole repository; the
-  result line after a finished task is short and German, the remote side's report is
-  in its tooltip; the stale-app warning has its own line in the window header; the
-  Lage no longer hangs when the state is UNKLAR; build `release-0.2.0-r2`.
-- Release: every pull request carries a release-note category, the release pull
-  request needs a moved changelog, and the approval of phase 2 is no longer blocked by
-  the release's own build id; the GitHub entry by the Kit's signed run is prepared
-  (title „AGP Cockpit <version> (privat)“) and switched on after KIT-GF-049; build
-  `release-0.2.0-r1`.
-
 - Add release hygiene gates and prepare the Kit's GitHub release entry (P11c)
 - Sync Kit findings with Kit main after 1.0.18
 - Add the Lage traffic light and a short German result line
 - Add a rebuild and restart button to the stale-app warning
 - Add guided recovery
 - Keep rejected work orders and narrow the release resume scope
+- Prepare release 0.2.1
+- Fix release 0.2.1 build identity
 
 ## v0.2.0 - 2026-10-05
 
