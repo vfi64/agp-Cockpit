@@ -13,6 +13,7 @@ const CONTENT = fs.readFileSync(path.join(ROOT, "chrome_extension/content.js"), 
 const start = CONTENT.indexOf("  function pythonAttachmentRow(anchor)");
 const end = CONTENT.indexOf("  function expectedStepFileVisible", start);
 const CARD_FUNCTIONS = CONTENT.slice(start, end);
+const DOM_ADAPTER = path.join(ROOT, "chrome_extension/chatgpt_dom.js");   // AGP_DOM_ADAPTER_V1
 
 const NEW_CHAT = `<!doctype html><html><body>
   <div id="old-thread" style="display:none">
@@ -55,6 +56,7 @@ test("serialized resolver works inside the snapshot as background.js evaluates i
 
 test("cards inside a hidden previous conversation are not candidates", async ({page}) => {
   await page.setContent(NEW_CHAT);
+  await page.addScriptTag({path:DOM_ADAPTER});
   await page.addScriptTag({content:CARD_FUNCTIONS});
   expect(await page.evaluate(() => expectedStepAttachmentCandidates(1480, "terminal").length)).toBe(0);
 });

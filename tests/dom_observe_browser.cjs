@@ -8,12 +8,16 @@ function el(tag, attrs = {}, children = [], text = "") {
   const node = {
     tagName: tag.toUpperCase(), children, hidden: false, textContent: text, innerText: text,
     getAttribute: name => (name in attrs ? attrs[name] : null),
+    attributes: Object.keys(attrs).map(name => ({name, value: attrs[name]})),
+    parentElement: null,
   };
+  for (const child of children) child.parentElement = node;
   const all = () => children.flatMap(child => [child, ...child._all()]);
   node._all = all;
   node.querySelectorAll = selector => all().filter(child => {
     if (selector === "[data-testid]") return child.getAttribute("data-testid") !== null;
     if (selector === 'input[type="file"]') return child.tagName === "INPUT" && child.getAttribute("type") === "file";
+    if (selector === "button") return child.tagName === "BUTTON";
     return false;
   });
   return node;
@@ -24,9 +28,10 @@ vm.runInContext(fs.readFileSync("chrome_extension/native_message_evidence.js", "
 const fingerprint = vm.runInContext("agpUiFingerprint", context);
 const shape = vm.runInContext("agpDomShape", context);
 
-const composer = el("div", {contenteditable: "true"}, [], "SECRET PROMPT TEXT");
+const composer = el("div", {contenteditable: "true", class: "x1 y2", "data-virtualkeyboard": "true"}, [],
+                   "SECRET PROMPT TEXT");
 const form = el("form", {}, [
-  composer,
+  el("div", {}, [composer]),
   el("button", {"data-testid": "composer-plus-btn", "aria-label": "Dateien hinzufügen"}),
   el("input", {type: "file"}), el("input", {type: "file"}),
   el("div", {"data-testid": "model-switcher-42"}),
@@ -36,11 +41,12 @@ const form = el("form", {}, [
 const a = fingerprint(composer, form);
 assert.match(a.fingerprint, /^[0-9a-f]{8}$/);
 const plain = value => JSON.parse(JSON.stringify(value));   // the vm realm has its own Array
-assert.deepEqual(plain(a.signature), ["composer:div:editable", "file_inputs:2", "testid:composer-plus-btn",
-                                      "testid:model-switcher-#"]);
+assert.deepEqual(plain(a.signature), [
+  "attr:contenteditable", "attr:data-virtualkeyboard", "button:Dateien hinzufügen", "chain:div>form",
+  "composer:div:editable", "file_inputs:2", "testid:composer-plus-btn", "testid:model-switcher-#"]);
 assert.equal(fingerprint(composer, form).fingerprint, a.fingerprint);
 assert.ok(!JSON.stringify(a).includes("SECRET"));
-// 2. A new control in the form is a new variant.
+// 2. A new control in the form is a new variant; the class attribute (hashed names) is not part of it.
 form.children.push(el("button", {"data-testid": "send-button"}));
 assert.notEqual(fingerprint(composer, form).fingerprint, a.fingerprint);
 assert.deepEqual(plain(fingerprint(null, null)), {fingerprint: "", signature: []});
@@ -53,7 +59,7 @@ const turn = el("article", {"data-message-author-role": "assistant", role: "arti
 ]);
 const s = shape({composer_form: form, last_assistant: turn, missing: null});
 assert.equal(s.composer_form.t, "form");
-assert.equal(s.composer_form.c[0].ce, 1);
+assert.equal(s.composer_form.c[0].c[0].ce, 1);
 assert.equal(s.composer_form.c[1].id, "composer-plus-btn");
 assert.equal(s.last_assistant.r, "article");
 assert.equal(s.last_assistant.c[1].l, "Vorschau von 1862_agp_terminal.json öffnen");
