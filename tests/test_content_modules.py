@@ -10,6 +10,7 @@ renders. The size of content.js may only fall (ratchet). Real-Chromium checks:
 tests/e2e/test_066_actual_contentjs_send_ack.spec.js and test_066_b1_d1_bootstrap_trace.spec.js
 load the real stack, panel included."""
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,4 +72,17 @@ def test_content_js_creates_the_ingress_once_and_keeps_no_card_logic():
     for moved in ("function readAssistantButtonAttachment(", "function submitAssistantCommandFile(",
                   "function materializeDownloadedAttachment(", "AGP_DOM.fileCardRow(", "AGP_DOM.previewTextbox("):
         assert moved not in CONTENT, moved
+
+
+def test_every_ingress_function_content_js_calls_is_bound():
+    # Live r11 (2026-10-07, step 1888): the wait observation still called
+    # expectedStepAttachmentCandidates() after the move; the ReferenceError appeared only
+    # after 20 s of waiting and stopped the run. Every exported name content.js calls must
+    # be destructured from INGRESS (or called as INGRESS.<name>).
+    exported = re.findall(r"^      (\w+),$", INGRESS[INGRESS.index("Object.assign(self, {"):], re.MULTILINE)
+    assert exported
+    bound = CONTENT[CONTENT.index("} = INGRESS;") - 400:CONTENT.index("} = INGRESS;")]
+    for name in exported:
+        bare = re.findall(r"(?<![\w.])" + name + r"\(", CONTENT)
+        assert not bare or name in bound, f"content.js calls {name}() but does not bind it from INGRESS"
 

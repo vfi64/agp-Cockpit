@@ -291,8 +291,8 @@
     applyAssistantBaseline:(...args) => applyAssistantBaseline(...args),
   });
   const {
-    expectedStepFileVisible, expectedStepTerminalCandidates, assistantPythonAttachmentCandidates,
-    submitAssistantTerminalReply, submitAssistantCommandFile,
+    expectedStepAttachmentCandidates, expectedStepFileVisible, expectedStepTerminalCandidates,
+    assistantPythonAttachmentCandidates, submitAssistantTerminalReply, submitAssistantCommandFile,
   } = INGRESS;
 
   // AGP_K07_ASSISTANT_WAIT_OBSERVATION_V1: bounded DOM evidence while the
