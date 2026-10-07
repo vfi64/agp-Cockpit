@@ -2,8 +2,11 @@ from pathlib import Path
 
 CONTENT = Path("chrome_extension/content.js")
 
+PANEL = Path("chrome_extension/cockpit_panel.js")   # AGP_PANEL_MODULE_V1: the overlay lives there
+
+
 def _source():
-    return CONTENT.read_text(encoding="utf-8")
+    return CONTENT.read_text(encoding="utf-8") + PANEL.read_text(encoding="utf-8")
 
 def test_busy_indicator_contract_present():
     s = _source()

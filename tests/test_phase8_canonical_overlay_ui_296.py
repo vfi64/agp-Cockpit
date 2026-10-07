@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 C=(ROOT/"chrome_extension/content.js").read_text()
+C+=(ROOT/"chrome_extension/cockpit_panel.js").read_text()   # AGP_PANEL_MODULE_V1: the overlay lives there
 
 def test_phase8_controls_are_absent_from_normal_overlay():
     for x in (

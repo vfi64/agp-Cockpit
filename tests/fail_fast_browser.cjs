@@ -83,7 +83,7 @@ async function buildMismatchRefusesStart() {
   context.globalThis = context;
   context.AGP_EXTENSION_BUILD_ID = "new-build";
   vm.createContext(context);
-  const startCode = section("  async function startAuto()", "  function btn(label, cls, handler)");
+  const startCode = section("  async function startAuto()", "  // AGP_START_AUTO_CLICK_PATH_077");
   vm.runInContext(stopCode + startCode, context);
   await assert.rejects(context.startAuto(), /Build passt nicht: Cockpit-App old-build, Extension new-build/);
   assert.equal(calls.includes("SEND"), false);
@@ -113,7 +113,7 @@ async function bootstrapAttachesKitDigest(attachOk) {
   context.globalThis = context;
   context.AGP_EXTENSION_BUILD_ID = "b";
   vm.createContext(context);
-  vm.runInContext(stopCode + section("  async function startAuto()", "  function btn(label, cls, handler)"), context);
+  vm.runInContext(stopCode + section("  async function startAuto()", "  // AGP_START_AUTO_CLICK_PATH_077"), context);
   if (attachOk) {
     await context.startAuto();
     const attach = calls.findIndex(call => call.startsWith("ATTACH AGP_K07_ATTACH_FILES /r/.local/agp-cockpit/kit/agentic-kit-command-digest.json"));
@@ -149,7 +149,7 @@ async function touchpointFailureStopsBeforeTheComposer() {
   context.globalThis = context;
   context.AGP_EXTENSION_BUILD_ID = "b";
   vm.createContext(context);
-  vm.runInContext(stopCode + section("  async function startAuto()", "  function btn(label, cls, handler)"), context);
+  vm.runInContext(stopCode + section("  async function startAuto()", "  // AGP_START_AUTO_CLICK_PATH_077"), context);
   await assert.rejects(context.startAuto(), /AGP_TOUCHPOINT_FILE_INPUT_NOT_FOUND/);
   assert.ok(calls.filter(call => call === "CHECK").length > 1);          // retried while the page renders
   assert.equal(calls.some(call => call.startsWith("MSG ")), false);       // no clean, no attach

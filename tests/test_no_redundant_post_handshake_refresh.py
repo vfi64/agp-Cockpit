@@ -33,4 +33,4 @@ def test_execution_core_and_overlay_are_untouched():
     assert "/v1/turn" in bridge
     assert "LIVE_PROBE" in content
     assert "SINGLE_STEP" in content
-    assert "agp-head" in content
+    assert "agp-head" in Path("chrome_extension/cockpit_panel.js").read_text(encoding="utf-8")   # AGP_PANEL_MODULE_V1: the overlay lives in cockpit_panel.js

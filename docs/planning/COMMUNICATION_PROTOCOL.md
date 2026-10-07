@@ -761,6 +761,16 @@ This section is normative for the file loop after local execution.
    also knows the `stop-generating-button` test id without a button tag. When ChatGPT changes
    its page, the fix belongs in this one file.
 
+73. content.js modules (`AGP_PANEL_MODULE_V1`, build release-0.2.2-r9, 2026-10-07): content.js
+   stays the controller (STATE, mission loop, actions); split-off modules are classic content
+   scripts with one frozen namespace, loaded before content.js. Module 1, `cockpit_panel.js`
+   (`AGP_PANEL.create(host)`): style, buttons, pills, drag/minimize state and render of the
+   overlay. It reads `host.state`/`host.limits` and calls back through `host.actions`
+   (start, stop, next, refresh, toggleTrace), `host.clientEvent`, `host.retired` and
+   `host.diagnosticsOpen`; it never fetches, never messages the service worker and never reads
+   the ChatGPT page. content.js creates it once and keeps `render()` as a one-line delegate.
+   The line count of content.js may only fall (test ratchet).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

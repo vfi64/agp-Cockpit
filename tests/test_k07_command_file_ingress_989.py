@@ -58,7 +58,7 @@ def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     assert "K07_ATTACHMENT_DOWNLOAD_USED" in content
     assert '[role="dialog"] .cm-content[role="textbox"]' in adapter   # slice 3c
     assert 'startsWith("request-placeholder")' in content
-    assert "root.appendChild(actions)" in content
+    assert "root.appendChild(actions)" in (ROOT / "chrome_extension/cockpit_panel.js").read_text()   # AGP_PANEL_MODULE_V1: the overlay lives in cockpit_panel.js
     assert "COMMAND_FILE_ATTACHMENT_PENDING" in content
     assert "attachmentWaitMs < 15000" in content
     assert "Date.now() + 45000" in content

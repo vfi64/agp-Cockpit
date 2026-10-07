@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- The overlay on the ChatGPT page (buttons, status, drag and minimize) is its own module (`cockpit_panel.js`), the first step of splitting `content.js`, which shrinks from 4246 to 3789 lines; behavior unchanged; build `release-0.2.2-r9`.
 - Every ChatGPT selector of the browser extension lives in one table (`chatgpt_selectors.js`), also for the helpers the extension runs inside the ChatGPT page and for the native send path; a test keeps ChatGPT selectors out of every other extension file; build `release-0.2.2-r8`.
 - The System tab offers „Systemcheck …“: app build, bridge, Chrome extension, ChatGPT UI variant, Agentic Kit against the CI pin, repository, GitHub CLI login and disk space, each with the step that fixes a problem; build `release-0.2.2-r7`.
 - A task started right after „Neu bauen und neu starten“ waits until the Chrome extension reports the new build and then starts by itself, and a refused start stops the mission it had just created instead of leaving it blocking every new start; build `release-0.2.2-r6`.
