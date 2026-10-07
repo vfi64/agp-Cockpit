@@ -2,15 +2,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
+ADAPTER = (ROOT / "chrome_extension" / "chatgpt_dom.js").read_text(encoding="utf-8")   # AGP_DOM_ADAPTER_V1
 
 def test_066_d4_scopes_send_control_to_active_composer_form():
     assert "function sendButton(anchor=null)" in SRC
-    assert 'const form = anchor && anchor.closest ? anchor.closest("form") : null;' in SRC
-    assert "if (isUsableSendControl(candidate)) return candidate;" in SRC
     assert "const button = sendButton(composerEl);" in SRC
     assert "function isUsableSendControl(el)" in SRC
-    assert "!el.isConnected" in SRC
-    assert "r.width > 0 && r.height > 0" in SRC
+    assert 'const form = anchor && anchor.closest ? anchor.closest("form") : null;' in ADAPTER
+    assert "if (isUsableSendControl(candidate)) return candidate;" in ADAPTER
+    assert "!el.isConnected" in ADAPTER
+    assert "r.width > 0 && r.height > 0" in ADAPTER
 
 def test_066_d4_composer_mutation_is_provisional_not_decisive():
     assert 'provisionalComposerEvidence = !composerNow' in SRC

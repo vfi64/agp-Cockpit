@@ -537,6 +537,9 @@ each, no bundler; DOM adapter first). Open: (2) replay, (3).
 Update 2026-10-07 (slice 3a, COMMUNICATION_PROTOCOL 71, build release-0.2.2-r3): `chatgpt_dom.js` carries
 the file-card, assistant-turn and alert touchpoints; content.js selector calls ratcheted to 23. Next
 slices: composer and send controls, generation/stop signals, attachment preview; then (2) replay.
+Update 2026-10-07 (slice 3b, build release-0.2.2-r4): composer fallback, send control, generation and stop
+signals moved; content.js selector calls 16. Next: attachment preview and evidence lookups, then the
+adapters of browser_native_transport.js and conversation_contract.js, then (2) replay.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

@@ -967,11 +967,7 @@
   function composer() {
     const resolved = typeof agpResolveComposer === "function" ? agpResolveComposer() : null;
     if (resolved) return resolved;
-    return (
-      document.querySelector('#prompt-textarea') ||
-      document.querySelector('textarea') ||
-      document.querySelector('[contenteditable="true"]')
-    );
+    return AGP_DOM.composerFallback();   // AGP_DOM_ADAPTER_V1
   }
 
   async function waitForComposer({timeoutMs = 20000, intervalMs = 100} = {}) {
@@ -993,35 +989,13 @@
   }
 
 
+  // AGP_DOM_ADAPTER_V1 (slice 3b): send controls are named by the page adapter.
   function isUsableSendControl(el) {
-    if (!el || !el.isConnected || el.disabled) return false;
-    const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
+    return AGP_DOM.isUsableSendControl(el);
   }
 
   function sendButton(anchor=null) {
-    const selectors = [
-      'button[data-testid="send-button"]',
-      'button[aria-label*="Send"]',
-      'button[aria-label*="Senden"]',
-      'button[type="submit"]'
-    ];
-
-    const form = anchor && anchor.closest ? anchor.closest("form") : null;
-    if (form) {
-      for (const selector of selectors) {
-        const candidate = form.querySelector(selector);
-        if (isUsableSendControl(candidate)) return candidate;
-      }
-    }
-
-    for (const selector of selectors) {
-      const candidates = Array.from(document.querySelectorAll(selector));
-      const candidate = candidates.find(isUsableSendControl);
-      if (candidate) return candidate;
-    }
-
-    return null;
+    return AGP_DOM.sendButton(anchor);
   }
 
   async function settings() {
@@ -1285,19 +1259,7 @@
   }
 
   function chatgptGenerationActive() {
-    const selectors = [
-      'button[data-testid="stop-button"]',
-      'button[aria-label*="Stop generating"]',
-      'button[aria-label*="Stop response"]',
-      'button[aria-label*="Generierung stoppen"]',
-      'button[aria-label*="Antwort stoppen"]',
-      '[data-is-streaming="true"]',
-      '[data-testid="stop-generating-button"]'
-    ];
-    return selectors.some(selector => {
-      const el = document.querySelector(selector);
-      return Boolean(el && !el.disabled);
-    });
+    return AGP_DOM.generationActive();   // AGP_DOM_ADAPTER_V1
   }
 
   async function waitForSentUserMessage(
@@ -3237,10 +3199,7 @@
 
   function stopLikeComposerButtonVisible() {
     if (typeof document === "undefined") return false;
-    return Array.from(document.querySelectorAll("form button, [data-testid*='composer'] button"))
-      .some(button => !button.disabled && (
-        /^(stop|stoppen)\b/i.test(String(button.getAttribute("aria-label") || "").trim()) ||
-        /stop/i.test(String(button.getAttribute("data-testid") || ""))));
+    return AGP_DOM.stopLikeButtonVisible();   // AGP_DOM_ADAPTER_V1
   }
 
   function assistantWaitExpiry(now) {

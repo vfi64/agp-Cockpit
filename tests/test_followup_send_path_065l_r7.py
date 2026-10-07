@@ -37,12 +37,14 @@ def extract_function(text, name):
     raise AssertionError(f"{name} unterminated")
 
 def test_send_button_keeps_existing_contract_and_adds_submit_fallback():
-    block = extract_function(src(), "sendButton")
-    assert 'button[data-testid="send-button"]' in block
-    assert 'button[aria-label*="Send"]' in block
-    assert 'button[aria-label*="Senden"]' in block
-    assert 'button[type="submit"]' in block
-    assert "function sendButton(anchor=null)" in block
+    # AGP_DOM_ADAPTER_V1 (slice 3b): content.js delegates; the contract lives in the adapter.
+    assert "return AGP_DOM.sendButton(anchor);" in extract_function(src(), "sendButton")
+    adapter = (ROOT / "chrome_extension" / "chatgpt_dom.js").read_text(encoding="utf-8")
+    for selector in ('button[data-testid="send-button"]', 'button[aria-label*="Send"]',
+                     'button[aria-label*="Senden"]', 'button[type="submit"]'):
+        assert selector in adapter
+    block = extract_function(adapter, "sendButton")
+    assert "function sendButton(anchor = null)" in block
     assert 'const form = anchor && anchor.closest ? anchor.closest("form") : null;' in block
     assert "isUsableSendControl" in block
 
