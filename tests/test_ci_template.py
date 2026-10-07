@@ -38,3 +38,15 @@ def test_required_check_keeps_its_name_and_needs_both_jobs():
     python_steps = " ".join(str(s.get("run", "")) for s in jobs["python"]["steps"])
     assert "pytest" in python_steps and "agentic-kit check" in python_steps and "agentic-kit doctor" in python_steps
     assert any("playwright test" in str(s.get("run", "")) for s in jobs["browser"]["steps"])
+
+
+def test_no_job_or_install_step_can_hang_for_hours():
+    # AGP_CI_TIMEOUTS_V1 (live 2026-10-07: apt hung 23 min in install-deps on main).
+    jobs = yaml.safe_load(SOURCE.read_text(encoding="utf-8"))["jobs"]
+    assert jobs["python"]["timeout-minutes"] <= 30 and jobs["browser"]["timeout-minutes"] <= 30
+    steps = jobs["browser"]["steps"]
+    installs = [step for step in steps if "playwright install" in str(step.get("run", ""))]
+    assert len(installs) == 2 and all(step.get("timeout-minutes", 999) <= 10 for step in installs)
+    apt = next(i for i, step in enumerate(steps) if "Acquire::Retries" in str(step.get("run", "")))
+    assert apt < steps.index(installs[0])
+
