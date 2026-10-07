@@ -22,7 +22,7 @@ def test_existing_execution_and_task_authorities_remain():
     assert 'file-loop reached a terminal blocked state' in BRIDGE
 
 def test_browser_result_transport_preserves_existing_cycle_correlation():
-    content = Path('chrome_extension/content.js').read_text()
+    content = Path('chrome_extension/content.js').read_text() + Path('chrome_extension/cockpit_ingress.js').read_text()   # AGP_INGRESS_MODULE_V1: content.js + its ingress module
     background = Path('chrome_extension/background.js').read_text()
     assert 'cycle_id:result.cycle_id || null' in content
     assert 'result_sha256:result.result_sha256 || null' in content
@@ -34,7 +34,7 @@ def test_browser_result_transport_preserves_existing_cycle_correlation():
     assert 'cycle_id:cycleId || null' in background
 
 def test_failed_command_turn_is_visible_without_claiming_completion():
-    content = Path('chrome_extension/content.js').read_text()
+    content = Path('chrome_extension/content.js').read_text() + Path('chrome_extension/cockpit_ingress.js').read_text()   # AGP_INGRESS_MODULE_V1: content.js + its ingress module
     assert 'K07_COMMAND_FILE_TURN_FAILED' in content
     assert 'String(commandResult.result_status || "").toLowerCase() === "failed"' in content
     assert 'local command execution failed; recovery requested' in content

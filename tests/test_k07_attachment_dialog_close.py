@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTENT = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
+CONTENT = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8") + (ROOT / "chrome_extension" / "cockpit_ingress.js").read_text(encoding="utf-8")   # AGP_INGRESS_MODULE_V1: content.js + its ingress module
 
 
 def test_attachment_preview_closes_generic_ok_dialog_before_continuation():

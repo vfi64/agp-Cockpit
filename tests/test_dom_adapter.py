@@ -12,6 +12,7 @@ EXT = ROOT / "chrome_extension"
 CONTENT = (EXT / "content.js").read_text(encoding="utf-8")
 ADAPTER = (EXT / "chatgpt_dom.js").read_text(encoding="utf-8")
 TABLE = (EXT / "chatgpt_selectors.js").read_text(encoding="utf-8")   # AGP_SELECTOR_TABLE_V1
+INGRESS = (EXT / "cockpit_ingress.js").read_text(encoding="utf-8")   # AGP_INGRESS_MODULE_V1
 
 # Ratchet: lower it whenever a slice moves selectors out of content.js; never raise it.
 CONTENT_SELECTOR_CALLS = 10
@@ -48,14 +49,16 @@ def test_content_js_delegates_the_moved_touchpoints():
                           ("function attachmentPreviewContainer(preview)", "AGP_DOM.previewContainer(preview)"),
                           ("function attachmentPreviewDownloadButton(preview)",
                            "AGP_DOM.previewDownloadButton(preview)")):
-        body = CONTENT[CONTENT.index(wrapper):]
-        body = body[:body.index("\n  }\n")]
+        # AGP_INGRESS_MODULE_V1: the file-card and preview wrappers moved on into cockpit_ingress.js.
+        source = CONTENT if wrapper in CONTENT else INGRESS
+        body = source[source.index(wrapper):]
+        body = body[:body.index("\n  }\n" if source is CONTENT else "\n    }\n")]
         assert call in body and "querySelector" not in body, wrapper
     for moved in ('button[aria-label="Datei herunterladen"]', 'a[href], button, [role="button"]',
                   'button[data-testid="send-button"]', 'button[aria-label*="Generierung stoppen"]',
                   "'#prompt-textarea'", "form button, [data-testid*='composer'] button",
                   "Vollbildmodus beenden", ".cm-content[role=\"textbox\"]"):
-        assert moved not in CONTENT and moved not in ADAPTER and moved in TABLE, moved
+        assert moved not in CONTENT + INGRESS and moved not in ADAPTER and moved in TABLE, moved
 
 
 def test_content_js_selector_count_only_falls():

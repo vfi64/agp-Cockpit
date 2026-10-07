@@ -4,8 +4,10 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const start = source.indexOf("  function assistantAttachmentKey");
-const end = source.indexOf("  async function fetchSingleAssistantPythonAttachment", start);
+const end = source.indexOf("\n  }\n", start) + 5;
 const code = source.slice(start, end);
+// AGP_INGRESS_MODULE_V1: the preview and button-download path lives in cockpit_ingress.js.
+const {bindIngress} = require("./ingress_harness.cjs");
 // AGP_SELECTOR_TABLE_V1: the selector table loads first, as in the manifest.
 const ADAPTER = fs.readFileSync("chrome_extension/chatgpt_selectors.js", "utf8") + "\n" +
   fs.readFileSync("chrome_extension/chatgpt_dom.js", "utf8");
@@ -38,6 +40,7 @@ for (const step of [1469, 1470, 1523]) {
   vm.createContext(context);
   vm.runInContext(ADAPTER, context);   // AGP_DOM_ADAPTER_V1
   vm.runInContext(code, context);
+  bindIngress(context);
 
   assert.equal(context.readableAttachmentPreview(filename), preview);
   const key = context.assistantAttachmentKey([{name:filename, href:""}]);
@@ -59,6 +62,7 @@ const context = {
 vm.createContext(context);
 vm.runInContext(ADAPTER, context);   // AGP_DOM_ADAPTER_V1
   vm.runInContext(code, context);
+  bindIngress(context);
 assert.equal(context.attachmentPreviewContainer(preview), shell);
 
 (async () => {
@@ -106,6 +110,7 @@ assert.equal(context.attachmentPreviewContainer(preview), shell);
   vm.createContext(context);
   vm.runInContext(ADAPTER, context);   // AGP_DOM_ADAPTER_V1
   vm.runInContext(code, context);
+  bindIngress(context);
   const result = await context.readAssistantButtonAttachment({
     node:fileButton,
     name:filename,

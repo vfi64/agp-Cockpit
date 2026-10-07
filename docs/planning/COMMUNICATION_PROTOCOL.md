@@ -785,6 +785,17 @@ This section is normative for the file loop after local execution.
    as a regression fixture in `tests/browser_fixtures/dom_snapshots/` (`source`, `snapshot`,
    `expect`).
 
+75. content.js module 2 (`AGP_INGRESS_MODULE_V1`, build release-0.2.2-r11, 2026-10-07):
+   `cockpit_ingress.js` (`AGP_INGRESS.create(host)`, manifest: before chatgpt_dom.js and
+   content.js) takes the file card of the expected step to the bridge — candidates (command
+   work order, terminal reply), materialization (link, button download, preview), submission to
+   the command-file and terminal routes, and forgetting the browser copy afterwards. Host
+   services: state, api, clientEvent, composer, assistant baseline ids/node, last message id,
+   reserveRemoteStep and the baseline snapshot pair. It never sends a prompt and never renders;
+   remote-file regeneration (which sends a prompt) stays in content.js. Calls between its
+   functions go through a sealed `self`, so a test replaces exactly one step
+   (`tests/ingress_harness.cjs`).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

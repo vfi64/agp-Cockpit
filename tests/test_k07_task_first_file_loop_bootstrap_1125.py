@@ -1,6 +1,6 @@
 from pathlib import Path
 
-C=(Path(__file__).resolve().parents[1]/"chrome_extension/content.js").read_text()
+C=(Path(__file__).resolve().parents[1]/"chrome_extension/content.js").read_text() +(Path(__file__).resolve().parents[1]/"chrome_extension/cockpit_ingress.js").read_text()   # AGP_INGRESS_MODULE_V1: content.js + its ingress module
 def test_bootstrap():
  a=C.index("function missionBootstrapPrompt"); b=C.index("async function maybeAutoStartTaskFirstMission",a); x=C[a:b]
  assert "exactly ONE executable Python command file as a .py attachment" in x

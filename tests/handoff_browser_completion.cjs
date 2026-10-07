@@ -1,10 +1,10 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
+const {bindIngress} = require("./ingress_harness.cjs");   // AGP_INGRESS_MODULE_V1
 const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
-const code = section("  async function submitAssistantCommandFile(", "  function composer()")
-  + section("  async function stop(", "  function scheduleTick()")
+const code = section("  async function stop(", "  function scheduleTick()")
   + section("  async function processCompletedAssistant(", "  function newAssistantTextAfterBaseline");
 
 async function scenario({pending=true, delivered=true}={}) {
@@ -36,6 +36,7 @@ async function scenario({pending=true, delivered=true}={}) {
   };
   vm.createContext(context);
   vm.runInContext(code, context);
+  bindIngress(context);
   if (!delivered) {
     await assert.rejects(context.processCompletedAssistant("", 1), /transport failed/);
     // AGP_K07_ADVANCE_STEP_AFTER_DELIVERY_V1: a failed delivery keeps the

@@ -2,7 +2,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 def test_normal_k07_requires_attachment_before_legacy_json():
- s=(ROOT/'chrome_extension/content.js').read_text()
+ s=(ROOT/'chrome_extension/content.js').read_text() +(ROOT/'chrome_extension/cockpit_ingress.js').read_text()   # AGP_INGRESS_MODULE_V1: content.js + its ingress module
  a=s.index('K07_FILE_TRANSFER_ATTACHMENT_REQUIRED')
  b=s.index('const pureStructured = parsePureJsonObject(completed);',a)
  assert a < b
