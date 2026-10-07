@@ -91,7 +91,8 @@ def test_editor_widget_flow(monkeypatch, tmp_path):
         # AGP_HUMAN_DECISION_V1: the question is shown and answered in the app
         root.update()
         assert panel.decision_frame.winfo_ismapped()
-        assert panel.decision_question_var.get() == "Push freigeben?"
+        assert panel.decision_question.get("1.0", "end-1c") == "Push freigeben?"
+        assert panel.decision_facts_var.get().startswith("Vom Cockpit geprüft:")   # AGP_DECISION_FACTS_V1
         panel.decision_note.insert("1.0", "ja, nach origin")
         panel.decide("APPROVE")
         assert decisions == [{"mission_id": "M1", "decision": "APPROVE", "note": "ja, nach origin"}]

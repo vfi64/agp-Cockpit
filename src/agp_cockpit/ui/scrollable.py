@@ -20,6 +20,9 @@ class ScrollableTab(ttk.Frame):
     def __init__(self, master: tk.Misc, *, min_width: int = 0) -> None:
         super().__init__(master)
         self.min_width = min_width
+        # AGP_VIEWPORT_WRAP_V1: panels wrap to the visible width, not to their own width.
+        self.width_listeners: list = []
+        self._viewport_width = 0
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
@@ -52,6 +55,16 @@ class ScrollableTab(ttk.Frame):
         self.after(REQUEST_POLL_MS, self._watch_request)
 
     def _layout(self) -> None:
+        visible = self.canvas.winfo_width()
+        if visible > 1 and visible != self._viewport_width:
+            # Live 2026-10-07 (r5): narrowing the window left the content at its old
+            # width; wrapped labels and the button row follow the visible width now.
+            self._viewport_width = visible
+            for listener in list(self.width_listeners):
+                try:
+                    listener(visible)
+                except Exception:  # noqa: BLE001 - one panel never breaks the tab
+                    continue
         # AGP_SCROLL_WIDTH_FROM_CONTENT_V1 (P8 live test 2): the content's own
         # width decides, not a fixed 900 px — with the vertical bar shown the
         # canvas got narrower than 900 px and a needless horizontal bar appeared.
@@ -96,3 +109,18 @@ def initial_geometry(screen_width: int, screen_height: int) -> str:
     width = min(INITIAL_WIDTH, int(screen_width * 0.95))
     height = min(INITIAL_HEIGHT, int(screen_height * 0.9))
     return f"{width}x{height}"
+
+
+def follow_viewport(widget: tk.Misc, callback) -> bool:
+    """AGP_VIEWPORT_WRAP_V1: call ``callback(width)`` with the visible width of the tab.
+
+    A panel's own width never drops below what it requests, so wrapping to it can
+    only grow (live 2026-10-07: a horizontal scroll bar instead of wrapped buttons).
+    """
+    tab = widget
+    while tab is not None and not isinstance(tab, ScrollableTab):
+        tab = getattr(tab, "master", None)
+    if tab is None:
+        return False
+    tab.width_listeners.append(callback)
+    return True

@@ -5,6 +5,8 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+from agp_cockpit.core import work_facts
+from agp_cockpit.core.ampel import work_ampel
 from agp_cockpit.core.chrome_automation import require_allowed_active_chat
 from agp_cockpit.core.human_decision import decision_mission_text
 from agp_cockpit.core.mission_http_client import create_live_full_auto, record_decision
@@ -16,13 +18,18 @@ from agp_cockpit.core.task_contract_text import (
     editor_text_from_file,
 )
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
+from agp_cockpit.ui.flow_row import FlowRow
+from agp_cockpit.ui.scrollable import follow_viewport
+
+EDITOR_LINES = 8      # AGP_FIXED_EDITOR_V1
+QUESTION_LINES = 5    # AGP_DECISION_BOX_V2
 
 
 class SimpleTaskPanel(ttk.Frame):
     """Default task-first surface. Expert controls stay elsewhere."""
 
     def __init__(self, master: tk.Misc, *, repository_root: Path, local_contract=None,
-                 on_task_event=None) -> None:
+                 on_task_event=None, repo_light=None) -> None:
         super().__init__(master, padding=16)
         self.on_task_event = on_task_event   # AGP_WORK_TAB_HANDOFF_V1
         self.repository_root = repository_root.expanduser().resolve()
@@ -32,113 +39,171 @@ class SimpleTaskPanel(ttk.Frame):
         self.workflow_phase = "EMPTY"
 
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(3, weight=1)
+        self.rowconfigure(7, weight=1)        # spare space stays below the boxes
+        self._wrapping: list[ttk.Label] = []
+        self._repo_light = repo_light         # AGP_WORK_AMPEL_V1: Lage light at rest
+        self._last_outcome = ""
+        self._waiting_note = ""
+        self.ampel_state = None
 
-        ttk.Label(self, text="AGP Cockpit", font=("TkDefaultFont", 18, "bold")).grid(
-            row=0, column=0, sticky="w"
-        )
-        ttk.Label(
+        # AGP_WORK_AMPEL_V1 (owner 2026-10-06): one light, as in „Standard Tasks“.
+        light = ttk.Frame(self)
+        light.grid(row=0, column=0, sticky="ew")
+        light.columnconfigure(1, weight=1)
+        self.ampel_dot = ttk.Label(light, text="●", font=("TkDefaultFont", 22), foreground="#888888")
+        self.ampel_dot.grid(row=0, column=0, sticky="w")
+        self.ampel_var = tk.StringVar(value="Grau — Lage wird geprüft")
+        self._wrap(ttk.Label(light, textvariable=self.ampel_var, font=("TkDefaultFont", 13, "bold"),
+                             justify="left"), 80).grid(row=0, column=1, sticky="w", padx=(8, 0))
+        self._wrap(ttk.Label(
             self,
             text=(
-                "Ein komplexer Auftrag hinein. Das Cockpit prüft und überwacht ihn. "
-                "Technische Fehler und Recovery sollen automatisch behandelt werden; "
-                "du wirst nur bei strategischen oder ausdrücklich menschlichen "
-                "Entscheidungen wieder gefragt."
+                "Ein Auftrag hinein; das Cockpit prüft und überwacht ihn und behandelt technische "
+                "Fehler selbst. Gefragt wirst du nur bei "
+                "strategischen oder ausdrücklich menschlichen Entscheidungen."
             ),
-            wraplength=760,
+            foreground="#888888",
             justify="left",
-        ).grid(row=1, column=0, sticky="ew", pady=(4, 12))
+        ), 20).grid(row=1, column=0, sticky="ew", pady=(2, 8))
 
-        actions = ttk.Frame(self)
-        actions.grid(row=2, column=0, sticky="w", pady=(0, 10))
+        # AGP_FLOW_ROW_V1: the buttons wrap with the window instead of being cut off.
+        actions = FlowRow(self)
+        actions.grid(row=2, column=0, sticky="ew", pady=(0, 6))
+        self.actions = actions
 
-        self.load_button = ttk.Button(actions, text="Auftrag laden", command=self.load_contract)
-        self.load_button.grid(row=0, column=0, padx=(0, 8))
-
-        self.new_button = ttk.Button(actions, text="Neuer Auftrag", command=self.new_task)
-        self.new_button.grid(row=0, column=1, padx=(0, 8))
-        self.start_button = ttk.Button(
+        self.load_button = actions.add(ttk.Button(actions, text="Auftrag laden", command=self.load_contract))
+        self.new_button = actions.add(ttk.Button(actions, text="Neuer Auftrag", command=self.new_task))
+        self.start_button = actions.add(ttk.Button(
             actions, text="Task starten", command=self.start_task, state="disabled"
-        )
-        self.start_button.grid(row=0, column=2)
-        self.pause_button = ttk.Button(actions, text="Pause", command=self.pause_file_loop)
-        self.pause_button.grid(row=0, column=3, padx=(8, 0))
-        self.resume_button = ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop)
-        self.resume_button.grid(row=0, column=4, padx=(8, 0))
-        self.stop_button = ttk.Button(actions, text="Stop", command=self.stop_file_loop)
-        self.stop_button.grid(row=0, column=5, padx=(8, 0))
-        self.reset_button = ttk.Button(actions, text="Reset", command=self.reset_file_loop)
-        self.reset_button.grid(row=0, column=6, padx=(8, 0))
-        self.approve_button = ttk.Button(
+        ))
+        self.pause_button = actions.add(ttk.Button(actions, text="Pause", command=self.pause_file_loop))
+        self.resume_button = actions.add(ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop))
+        self.stop_button = actions.add(ttk.Button(actions, text="Stop", command=self.stop_file_loop))
+        self.reset_button = actions.add(ttk.Button(actions, text="Reset", command=self.reset_file_loop))
+        self.approve_button = actions.add(ttk.Button(
             actions,
             text="Entscheidung freigeben",
             command=self.approve_checkpoint,
             state="disabled",
-        )
-        self.approve_button.grid(row=0, column=7, padx=(8, 0))
+        ))
 
         # AGP_TASK_EDITOR_V1: the task is typed, pasted (Cmd+V) or loaded into
         # this editor and can be changed until it is started.
+        # AGP_FIXED_EDITOR_V1 (owner 2026-10-06): a fixed height with its own scroll
+        # bar; the window's spare room stays for the decision box and its buttons.
         editor_frame = ttk.LabelFrame(
             self,
-            text="Auftrag — eintippen, einfügen oder mit „Auftrag laden“ übernehmen (Text oder JSON-Task-Contract)",
+            text="Auftrag (Text oder JSON-Task-Contract)",
             padding=4,
         )
-        editor_frame.grid(row=3, column=0, sticky="nsew")
+        editor_frame.grid(row=3, column=0, sticky="ew")
         editor_frame.columnconfigure(0, weight=1)
-        editor_frame.rowconfigure(0, weight=1)
-        self.editor = tk.Text(editor_frame, height=14, wrap="word", undo=True, font="TkFixedFont")
-        self.editor.grid(row=0, column=0, sticky="nsew")
+        self.editor = tk.Text(editor_frame, height=EDITOR_LINES, width=40, wrap="word", undo=True,
+                              font="TkFixedFont")
+        self.editor.grid(row=0, column=0, sticky="ew")
         scrollbar = ttk.Scrollbar(editor_frame, orient="vertical", command=self.editor.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.editor.configure(yscrollcommand=scrollbar.set)
         self.editor.bind("<<Modified>>", self._on_editor_modified)
 
+        # AGP_HUMAN_DECISION_V1: answer a NEEDS_HUMAN question and continue the
+        # same task; "Freigeben" is a one-shot approval of remote effects.
+        # AGP_DECISION_BOX_V2 (owner 2026-10-06): right under the editor; the question
+        # scrolls in a box of fixed height, the buttons sit beside it and stay visible,
+        # and the Cockpit's own facts (branch, commit, files) stand next to the claims.
+        self._decision_mission_id = ""
+        self._decision_question = ""
+        self._decision_facts = None
+        self.decision_frame = ttk.LabelFrame(self, text="Deine Entscheidung ist gefragt", padding=8)
+        self.decision_frame.columnconfigure(0, weight=1)
+        self.decision_question = tk.Text(self.decision_frame, height=QUESTION_LINES, width=30,
+                                         wrap="word", relief="flat", takefocus=0)
+        self.decision_question.grid(row=0, column=0, sticky="ew")
+        question_bar = ttk.Scrollbar(self.decision_frame, orient="vertical",
+                                     command=self.decision_question.yview)
+        question_bar.grid(row=0, column=1, sticky="ns")
+        self.decision_question.configure(yscrollcommand=question_bar.set, state="disabled")
+        buttons = ttk.Frame(self.decision_frame)
+        buttons.grid(row=0, column=2, rowspan=3, sticky="ne", padx=(8, 0))
+        self.approve_decision_button = ttk.Button(
+            buttons, text="Freigeben", command=lambda: self.decide("APPROVE")
+        )
+        self.approve_decision_button.grid(row=0, column=0, sticky="ew")
+        self.reject_decision_button = ttk.Button(
+            buttons, text="Ablehnen", command=lambda: self.decide("REJECT")
+        )
+        self.reject_decision_button.grid(row=1, column=0, sticky="ew", pady=(4, 0))
+        self.diff_button = ttk.Button(buttons, text="Änderungen ansehen", command=self.show_changes)
+        self.diff_button.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        self.decision_facts_var = tk.StringVar(value="")
+        self._wrap(ttk.Label(self.decision_frame, textvariable=self.decision_facts_var,
+                             foreground="#888888", justify="left"), 200).grid(
+            row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        note_row = ttk.Frame(self.decision_frame)
+        note_row.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        note_row.columnconfigure(1, weight=1)
+        ttk.Label(note_row, text="Hinweis (optional):").grid(row=0, column=0, sticky="nw", padx=(0, 6))
+        self.decision_note = tk.Text(note_row, height=2, width=20, wrap="word", undo=True)
+        self.decision_note.grid(row=0, column=1, sticky="ew")
+        self.decision_frame.grid(row=4, column=0, sticky="ew", pady=(8, 0))
+        self.decision_frame.grid_remove()
+
         self.state_var = tk.StringVar(value="Bereit — Auftrag eingeben, einfügen oder laden.")
-        ttk.Label(
+        self._wrap(ttk.Label(
             self,
             textvariable=self.state_var,
-            wraplength=760,
             justify="left",
-        ).grid(row=4, column=0, sticky="ew", pady=(10, 0))
+        ), 20).grid(row=5, column=0, sticky="ew", pady=(8, 0))
 
         self.activity_var = tk.StringVar(
             value="Aktivität: noch kein automatischer Arbeitsschritt gestartet."
         )
-        ttk.Label(
+        self._wrap(ttk.Label(
             self,
             textvariable=self.activity_var,
-            wraplength=760,
             justify="left",
-        ).grid(row=5, column=0, sticky="ew", pady=(4, 0))
-
-        # AGP_HUMAN_DECISION_V1: answer a NEEDS_HUMAN question and continue the
-        # same task; "Freigeben" is a one-shot approval of remote effects.
-        self._decision_mission_id = ""
-        self._decision_question = ""
-        self.decision_frame = ttk.LabelFrame(self, text="Deine Entscheidung ist gefragt", padding=8)
-        self.decision_frame.columnconfigure(0, weight=1)
-        self.decision_question_var = tk.StringVar(value="")
-        ttk.Label(
-            self.decision_frame, textvariable=self.decision_question_var, wraplength=760, justify="left"
-        ).grid(row=0, column=0, columnspan=3, sticky="ew")
-        ttk.Label(self.decision_frame, text="Antwort / Hinweis (optional):").grid(
-            row=1, column=0, columnspan=3, sticky="w", pady=(8, 2)
-        )
-        self.decision_note = tk.Text(self.decision_frame, height=3, wrap="word", undo=True)
-        self.decision_note.grid(row=2, column=0, columnspan=3, sticky="ew")
-        self.approve_decision_button = ttk.Button(
-            self.decision_frame, text="Freigeben", command=lambda: self.decide("APPROVE")
-        )
-        self.approve_decision_button.grid(row=3, column=1, sticky="e", pady=(8, 0), padx=(0, 8))
-        self.reject_decision_button = ttk.Button(
-            self.decision_frame, text="Ablehnen", command=lambda: self.decide("REJECT")
-        )
-        self.reject_decision_button.grid(row=3, column=2, sticky="e", pady=(8, 0))
-        self.decision_frame.grid(row=6, column=0, sticky="ew", pady=(10, 0))
-        self.decision_frame.grid_remove()
+        ), 20).grid(row=6, column=0, sticky="ew", pady=(4, 0))
+        self.bind("<Configure>", self._rewrap, add="+")
+        self._viewport_width = 0
+        follow_viewport(self, self._follow_viewport)
 
         self.after(750, self.refresh_status)
+
+    def _follow_viewport(self, width: int) -> None:
+        self._viewport_width = width
+        self._rewrap()
+
+    def _wrap(self, label: ttk.Label, margin: int) -> ttk.Label:
+        """Wrap at the panel width minus ``margin`` pixels (as in „Standard Tasks“)."""
+        label._agp_margin = margin
+        label.configure(wraplength=max(240, 760 - margin))
+        self._wrapping.append(label)
+        return label
+
+    def _rewrap(self, event=None) -> None:
+        width = getattr(event, "width", 0) or self.winfo_width()
+        if self._viewport_width > 1:
+            width = self._viewport_width   # AGP_VIEWPORT_WRAP_V1: the visible width decides
+        if width <= 1:
+            return
+        for label in self._wrapping:
+            label.configure(wraplength=max(240, width - 40 - label._agp_margin))
+
+    def update_ampel(self) -> None:
+        """AGP_WORK_AMPEL_V1: recompute the light of this tab."""
+        repo_light = None
+        if self._repo_light is not None:
+            try:
+                repo_light = self._repo_light()
+            except Exception:  # noqa: BLE001 - the light never breaks the panel
+                repo_light = None
+        light = work_ampel(self.workflow_phase, outcome=self._last_outcome,
+                           decision_pending=bool(self._decision_mission_id),
+                           waiting=self._waiting_note, repo_light=repo_light)
+        if light != self.ampel_state:
+            self.ampel_state = light
+            self.ampel_var.set(light.text)
+            self.ampel_dot.configure(foreground=light.hex)
 
     def _show_file_loop_state(self, snapshot: dict) -> None:
         self.activity_var.set(f"File-Loop: {snapshot['state']} · Generation {snapshot['generation']}")
@@ -199,15 +264,65 @@ class SimpleTaskPanel(ttk.Frame):
             return
         self._decision_mission_id = mission_id
         self._decision_question = question
-        self.decision_question_var.set(question or "Die Remote-Seite braucht eine Entscheidung.")
+        self.decision_question.configure(state="normal")
+        self.decision_question.delete("1.0", "end")
+        self.decision_question.insert("1.0", question or "Die Remote-Seite braucht eine Entscheidung.")
+        self.decision_question.configure(state="disabled")
+        self.refresh_decision_facts()
         self.decision_note.delete("1.0", "end")
         self.decision_frame.grid()
         self.approve_decision_button.focus_set()
+        self.update_ampel()
+        self.after_idle(self._scroll_to_decision)
+
+    def _scroll_to_decision(self) -> None:
+        """AGP_DECISION_BOX_V2: in a small window the tab scrolls so that the box is in view."""
+        tab = self.master
+        while tab is not None and not (hasattr(tab, "canvas") and hasattr(tab, "inner")):
+            tab = getattr(tab, "master", None)
+        if tab is None or not self.decision_frame.winfo_ismapped():
+            return
+        self.update_idletasks()
+        total = max(1, tab.inner.winfo_height())
+        top = self.decision_frame.winfo_rooty() - tab.inner.winfo_rooty()
+        tab.canvas.yview_moveto(max(0.0, (top - 8) / total))
+
+    def refresh_decision_facts(self) -> None:
+        """AGP_DECISION_FACTS_V1: the Cockpit's own read-only view of the repository."""
+        try:
+            self._decision_facts = work_facts.observe(self.repository_root)
+            self.decision_facts_var.set(work_facts.facts_line(self._decision_facts))
+        except Exception as exc:  # noqa: BLE001 - facts never block the decision
+            self._decision_facts = None
+            self.decision_facts_var.set(f"Vom Cockpit geprüft: nicht lesbar ({exc}).")
+
+    def show_changes(self) -> None:
+        """„Änderungen ansehen“: the diff against origin/main in a read-only window."""
+        self.refresh_decision_facts()
+        facts = self._decision_facts or work_facts.observe(self.repository_root)
+        window = tk.Toplevel(self)
+        window.title(f"Änderungen — {facts.branch or self.repository_root.name}")
+        window.geometry("900x600")
+        window.columnconfigure(0, weight=1)
+        window.rowconfigure(0, weight=1)
+        text = tk.Text(window, wrap="none", font="TkFixedFont")
+        text.grid(row=0, column=0, sticky="nsew")
+        vbar = ttk.Scrollbar(window, orient="vertical", command=text.yview)
+        vbar.grid(row=0, column=1, sticky="ns")
+        hbar = ttk.Scrollbar(window, orient="horizontal", command=text.xview)
+        hbar.grid(row=1, column=0, sticky="ew")
+        text.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
+        text.insert("1.0", work_facts.diff_text(self.repository_root, facts))
+        text.configure(state="disabled")
+        ttk.Button(window, text="Schließen", command=window.destroy).grid(row=2, column=0, sticky="e",
+                                                                          padx=8, pady=6)
+        self.changes_window = window
 
     def _hide_decision(self) -> None:
         self._decision_mission_id = ""
         self._decision_question = ""
         self.decision_frame.grid_remove()
+        self.update_ampel()
 
     def decide(self, decision: str) -> None:
         mission_id = self._decision_mission_id
@@ -246,6 +361,8 @@ class SimpleTaskPanel(ttk.Frame):
         self._mission_id = str(mission["mission_id"])
         self._hide_decision()
         self.workflow_phase = "STARTED"
+        self._last_outcome = ""
+        self.update_ampel()
         self.editor.configure(state="disabled")
         self.start_button.configure(state="disabled")
         self.state_var.set(
@@ -259,8 +376,9 @@ class SimpleTaskPanel(ttk.Frame):
             return
         self.contract = None
         self._mission_id = ""
-        self._hide_decision()
+        self._last_outcome = ""
         self.workflow_phase = "EMPTY"
+        self._hide_decision()
         self._set_editor("")
         self.editor.focus_set()
         self.state_var.set("Bereit — Auftrag eingeben, einfügen oder laden.")
@@ -349,6 +467,7 @@ class SimpleTaskPanel(ttk.Frame):
             self.state_var.set(f"Blockiert — Start fehlgeschlagen: {exc}")
             return
         self.workflow_phase = "STARTED"
+        self._last_outcome = ""
         self._emit("started")
         self._hide_decision()
         self.start_button.configure(state="disabled")
@@ -386,6 +505,7 @@ class SimpleTaskPanel(ttk.Frame):
                 pass
 
     def refresh_status(self) -> None:
+        self.update_ampel()
         try:
             # Vor dem tatsächlichen Start gehört die Statuszeile dem lokalen
             # Laden/Prüfen-Ablauf. Ein alter persistenter Task darf das
@@ -429,6 +549,9 @@ class SimpleTaskPanel(ttk.Frame):
                     # The finished task stays in the editor and can be
                     # changed and started again.
                     self.workflow_phase = "LOADED"
+                    self._last_outcome = progress.outcome
+                    self._waiting_note = ""
+                    self.update_ampel()
                     self._emit("finished_done" if progress.outcome == "DONE" else "finished",
                                progress.text)
                     self.editor.configure(state="normal")
@@ -439,6 +562,8 @@ class SimpleTaskPanel(ttk.Frame):
                 )
             else:
                 transport_event = mission.get("browser_transport_event", "")
+                self._waiting_note = ("wartet auf das ChatGPT-Anhangslimit"
+                                      if transport_event == "K07_ATTACHMENT_LIMIT_HOLD" else "")
                 if transport_event in {"NATIVE_TRANSPORT_FAILED", "MISSION_BOOTSTRAP_SEND_FAILED"}:
                     self.state_var.set("Browser-Übertragung fehlgeschlagen — der Auftrag wartet auf Wiederaufnahme.")
                     self.activity_var.set("Aktivität: " + str(mission.get("browser_transport_note") or transport_event))

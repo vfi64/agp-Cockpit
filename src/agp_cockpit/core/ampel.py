@@ -73,3 +73,27 @@ def _first_sentence(text: str, limit: int = 90) -> str:
     text = " ".join(str(text or "").split()).rstrip(".")
     head = text.split(". ")[0]
     return head if len(head) <= limit else head[:limit].rsplit(" ", 1)[0] + " …"
+
+
+def work_ampel(phase: str, *, outcome: str = "", decision_pending: bool = False,
+               waiting: str = "", repo_light: Ampel | None = None) -> Ampel:
+    """AGP_WORK_AMPEL_V1 (owner 2026-10-06): the light of the „Arbeiten“ tab.
+
+    The task of this tab decides while it runs, waits for a decision or has just
+    ended; at rest the tab shows the repository's light of the Lage.
+    """
+    if decision_pending:
+        return Ampel(GELB, "deine Entscheidung ist gefragt")
+    if phase == "STARTED":
+        return Ampel(GELB, "der Auftrag läuft" + (f" — {waiting}" if waiting else ""))
+    if outcome == "HUMAN_REQUIRED":
+        return Ampel(ROT, "der letzte Auftrag braucht dich")
+    if outcome == "STOPPED":
+        return Ampel(ROT, "der letzte Auftrag wurde angehalten")
+    if outcome == "UNKNOWN":
+        return Ampel(ROT, "Ausgang des letzten Auftrags unklar")
+    if outcome == "DONE":
+        return Ampel(GRUEN, "der letzte Auftrag ist fertig")
+    if repo_light is not None:
+        return repo_light
+    return Ampel(GRAU, "Lage wird geprüft")
