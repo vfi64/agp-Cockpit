@@ -50,3 +50,12 @@ def test_no_job_or_install_step_can_hang_for_hours():
     apt = next(i for i, step in enumerate(steps) if "Acquire::Retries" in str(step.get("run", "")))
     assert apt < steps.index(installs[0])
 
+
+def test_runner_image_is_pinned_and_actions_run_on_node_24():
+    # AGP_CI_RUNNER_PINNED_V1: checked against each action's action.yml ("using: node24").
+    text = SOURCE.read_text(encoding="utf-8")
+    assert "runs-on: ubuntu-latest" not in text and text.count("runs-on: ubuntu-24.04") == 3
+    for action in ("actions/checkout@v5", "actions/setup-python@v6", "actions/setup-node@v5", "actions/cache@v5"):
+        assert action in text, action
+    assert not re.search(r"actions/(checkout|setup-node|cache)@v4|actions/setup-python@v5", text)
+

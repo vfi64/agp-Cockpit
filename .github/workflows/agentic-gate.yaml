@@ -13,13 +13,15 @@ concurrency:
   group: agentic-gate-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# AGP_CI_RUNNER_PINNED_V1 (2026-10-07): the image is pinned (ubuntu-latest moves to Ubuntu 26 on
+# 2026-10-19) and the actions run on Node 24 (Node 20 is deprecated on GitHub's runners).
 jobs:
   python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -33,15 +35,15 @@ jobs:
           agentic-kit doctor --root .
 
   browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # AGP_CI_TIMEOUTS_V1 (live 2026-10-07, main run of #299): apt hung 23 min on the
     # azure.archive.ubuntu.com mirror inside "playwright install-deps" (GitHub's default job
     # timeout is 6 h). apt now gives up per request and retries; each install step and the job
     # have a hard limit, so a hanging mirror ends red within minutes instead of blocking main.
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -49,7 +51,7 @@ jobs:
       - id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
       - id: browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -70,7 +72,7 @@ jobs:
   agentic-gate:
     needs: [python, browser]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - run: |
           test "${{ needs.python.result }}" = "success"
