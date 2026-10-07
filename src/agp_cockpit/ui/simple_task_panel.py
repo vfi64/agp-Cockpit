@@ -19,6 +19,7 @@ from agp_cockpit.core.task_contract_text import (
 )
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 from agp_cockpit.ui.flow_row import FlowRow
+from agp_cockpit.ui.scrollable import follow_viewport
 
 EDITOR_LINES = 8      # AGP_FIXED_EDITOR_V1
 QUESTION_LINES = 5    # AGP_DECISION_BOX_V2
@@ -92,12 +93,12 @@ class SimpleTaskPanel(ttk.Frame):
         # bar; the window's spare room stays for the decision box and its buttons.
         editor_frame = ttk.LabelFrame(
             self,
-            text="Auftrag — eintippen, einfügen oder laden (Text oder JSON-Task-Contract)",
+            text="Auftrag (Text oder JSON-Task-Contract)",
             padding=4,
         )
         editor_frame.grid(row=3, column=0, sticky="ew")
         editor_frame.columnconfigure(0, weight=1)
-        self.editor = tk.Text(editor_frame, height=EDITOR_LINES, width=60, wrap="word", undo=True,
+        self.editor = tk.Text(editor_frame, height=EDITOR_LINES, width=40, wrap="word", undo=True,
                               font="TkFixedFont")
         self.editor.grid(row=0, column=0, sticky="ew")
         scrollbar = ttk.Scrollbar(editor_frame, orient="vertical", command=self.editor.yview)
@@ -115,7 +116,7 @@ class SimpleTaskPanel(ttk.Frame):
         self._decision_facts = None
         self.decision_frame = ttk.LabelFrame(self, text="Deine Entscheidung ist gefragt", padding=8)
         self.decision_frame.columnconfigure(0, weight=1)
-        self.decision_question = tk.Text(self.decision_frame, height=QUESTION_LINES, width=50,
+        self.decision_question = tk.Text(self.decision_frame, height=QUESTION_LINES, width=30,
                                          wrap="word", relief="flat", takefocus=0)
         self.decision_question.grid(row=0, column=0, sticky="ew")
         question_bar = ttk.Scrollbar(self.decision_frame, orient="vertical",
@@ -142,7 +143,7 @@ class SimpleTaskPanel(ttk.Frame):
         note_row.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         note_row.columnconfigure(1, weight=1)
         ttk.Label(note_row, text="Hinweis (optional):").grid(row=0, column=0, sticky="nw", padx=(0, 6))
-        self.decision_note = tk.Text(note_row, height=2, width=30, wrap="word", undo=True)
+        self.decision_note = tk.Text(note_row, height=2, width=20, wrap="word", undo=True)
         self.decision_note.grid(row=0, column=1, sticky="ew")
         self.decision_frame.grid(row=4, column=0, sticky="ew", pady=(8, 0))
         self.decision_frame.grid_remove()
@@ -163,8 +164,14 @@ class SimpleTaskPanel(ttk.Frame):
             justify="left",
         ), 20).grid(row=6, column=0, sticky="ew", pady=(4, 0))
         self.bind("<Configure>", self._rewrap, add="+")
+        self._viewport_width = 0
+        follow_viewport(self, self._follow_viewport)
 
         self.after(750, self.refresh_status)
+
+    def _follow_viewport(self, width: int) -> None:
+        self._viewport_width = width
+        self._rewrap()
 
     def _wrap(self, label: ttk.Label, margin: int) -> ttk.Label:
         """Wrap at the panel width minus ``margin`` pixels (as in „Standard Tasks“)."""
@@ -175,6 +182,8 @@ class SimpleTaskPanel(ttk.Frame):
 
     def _rewrap(self, event=None) -> None:
         width = getattr(event, "width", 0) or self.winfo_width()
+        if self._viewport_width > 1:
+            width = self._viewport_width   # AGP_VIEWPORT_WRAP_V1: the visible width decides
         if width <= 1:
             return
         for label in self._wrapping:

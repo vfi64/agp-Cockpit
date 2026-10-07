@@ -17,12 +17,30 @@ class FlowRow(ttk.Frame):
         self.items: list[tk.Widget] = []
         self._width = 0
         self._rows: list[ttk.Frame] = []
+        self._pending = False
+        self._layout_key: tuple = ()
+        # AGP_VIEWPORT_WRAP_V1: the row never requests the width of all buttons in
+        # one line (that kept the tab wide and showed a horizontal scroll bar); its
+        # height follows the wrapped rows, its width comes from the parent's grid.
+        self.grid_propagate(False)
+        self.configure(width=1, height=1)
         self.bind("<Configure>", self._on_configure, add="+")
 
     def add(self, widget: tk.Widget) -> tk.Widget:
         self.items.append(widget)
+        # An item that changes its size (a badge becomes „★ empfohlen …“) re-flows the row.
+        widget.bind("<Configure>", lambda _e: self._schedule(), add="+")
         self.relayout()
         return widget
+
+    def _schedule(self) -> None:
+        if not self._pending:
+            self._pending = True
+            self.after_idle(self._run_scheduled)
+
+    def _run_scheduled(self) -> None:
+        self._pending = False
+        self.relayout()
 
     def _on_configure(self, event) -> None:
         if event.width != self._width:
@@ -37,7 +55,7 @@ class FlowRow(ttk.Frame):
         """
         width = width or self._width or self.winfo_width()
         if width <= 1:
-            width = 10_000            # not yet mapped: one row until the real width is known
+            width = 600               # not yet mapped: a narrow guess until the real width is known
         lines: list[list[tk.Widget]] = [[]]
         used = 0
         for widget in self.items:
@@ -48,6 +66,12 @@ class FlowRow(ttk.Frame):
                 need = widget.winfo_reqwidth()
             lines[-1].append(widget)
             used += need
+        key = tuple(tuple(str(w) for w in line) for line in lines)
+        height = sum(max(w.winfo_reqheight() for w in line) + 4 for line in lines if line)
+        if key == self._layout_key:
+            self.configure(height=max(1, height))
+            return
+        self._layout_key = key
         while len(self._rows) < len(lines):
             frame = ttk.Frame(self)
             self._rows.append(frame)
@@ -61,6 +85,7 @@ class FlowRow(ttk.Frame):
                 widget.pack_forget()
                 widget.pack(in_=self._rows[index], side="left", padx=(self.gap if position else 0, 0))
                 widget.lift(self._rows[index])
+        self.configure(height=max(1, height))
 
     def rows(self) -> int:
         return sum(1 for frame in self._rows if frame.winfo_manager())

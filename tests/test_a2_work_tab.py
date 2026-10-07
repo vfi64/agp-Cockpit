@@ -72,11 +72,13 @@ def test_the_buttons_wrap_with_the_window_width(tk_root):
     row = FlowRow(tk_root)
     row.pack(fill="x")
     buttons = [row.add(ttk.Button(row, text=f"Knopf Nummer {i}")) for i in range(8)]
-    tk_root.update()
-    row.relayout(10_000)
+    tk_root.geometry("2000x200")
+    for _ in range(4):
+        tk_root.update()
     assert row.rows() == 1
-    row.relayout(320)
-    tk_root.update()
+    tk_root.geometry("320x400")
+    for _ in range(4):
+        tk_root.update()
     assert row.rows() > 2
     assert all(b.winfo_ismapped() for b in buttons)
     assert all(frame.winfo_reqwidth() <= 320 for frame in row._rows if frame.winfo_manager())
@@ -141,3 +143,73 @@ def test_the_light_mirrors_the_lage_at_rest_and_the_changes_window_opens(tk_root
     assert panel.changes_window.winfo_exists()
     panel._hide_decision()
     assert panel.ampel_var.get() == "Grün — alles in Ordnung"
+
+
+def test_narrowing_the_window_wraps_instead_of_scrolling_sideways(tk_root, monkeypatch, tmp_path):
+    """AGP_VIEWPORT_WRAP_V1 (live 2026-10-07, r5): narrowing the window cut off the buttons
+    and showed a horizontal scroll bar, because the panel wrapped to its own (old) width."""
+    from tkinter import ttk
+
+    import agp_cockpit.ui.simple_task_panel as m
+    from agp_cockpit.ui.scrollable import ScrollableTab
+
+    class FakeAPI:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setattr(m, "TaskOperatorAPI", FakeAPI)
+    tk_root.geometry("1000x700")
+    tabs = ttk.Notebook(tk_root)
+    tabs.pack(fill="both", expand=True)
+    tab = ScrollableTab(tabs)
+    tabs.add(tab, text="Arbeiten")
+    panel = m.SimpleTaskPanel(tab.inner, repository_root=tmp_path)
+    panel.grid(row=0, column=0, sticky="nsew")
+    panel._show_decision("M1", "Frage " * 200)
+
+    def settle(width):
+        tk_root.geometry(f"{width}x700")
+        for _ in range(6):
+            tk_root.update()
+
+    settle(1000)
+    assert panel.actions.rows() == 1
+    for width in (760, 620):
+        settle(width)
+        right = tab.canvas.winfo_rootx() + tab.canvas.winfo_width()
+        assert not tab.hbar.winfo_ismapped(), width
+        assert panel.actions.rows() >= 2, width
+        for widget in (*panel.actions.items, panel.approve_decision_button, panel.diff_button):
+            assert widget.winfo_rootx() + widget.winfo_width() <= right, (width, widget)
+    settle(1000)
+    assert panel.actions.rows() == 1 and not tab.hbar.winfo_ismapped()
+
+
+def test_the_standard_tasks_rows_wrap_and_the_repo_path_has_its_own_line(tk_root, monkeypatch, tmp_path):
+    """AGP_VIEWPORT_WRAP_V1 + AGP_REPO_LINE_V1 (live 2026-10-07): „Arbeitsweg“ and „Bei Problemen“
+    were cut at the right edge, the System tab and the repository path as well."""
+    from tkinter import ttk
+
+    from agp_cockpit.ui import standard_tasks_panel as m
+    from agp_cockpit.ui.scrollable import ScrollableTab
+    monkeypatch.setattr(m, "bridge_status", lambda: {"mission": None})
+    tk_root.geometry("1000x700")
+    tabs = ttk.Notebook(tk_root)
+    tabs.pack(fill="both", expand=True)
+    tab = ScrollableTab(tabs)
+    tabs.add(tab, text="Standard Tasks")
+    panel = m.StandardTasksPanel(tab.inner, repository_root=tmp_path, on_open_work=lambda: None)
+    panel.grid(row=0, column=0, sticky="nsew")
+    for width in (1000, 560):
+        tk_root.geometry(f"{width}x700")
+        for _ in range(8):
+            tk_root.update()
+    right = tab.canvas.winfo_rootx() + tab.canvas.winfo_width()
+    assert not tab.hbar.winfo_ismapped()
+    assert panel.path_row.rows() >= 2
+    for button in panel.verb_buttons.values():
+        if button.winfo_ismapped():
+            assert button.winfo_rootx() + button.winfo_width() <= right, button.cget("text")
+    main = MAIN
+    assert 'self._context_label.grid(row=0, column=0, columnspan=3, sticky="w")' in main
+    assert "follow_viewport(parent, wrap_system)" in main

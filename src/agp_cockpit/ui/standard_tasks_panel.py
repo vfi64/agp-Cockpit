@@ -24,6 +24,8 @@ from agp_cockpit.core.start_request_client import request_task_start
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 from agp_cockpit.core.verbs import BY_KEY as VERB_BY_KEY
 from agp_cockpit.core.verbs import VERBS, Verb, availability
+from agp_cockpit.ui.flow_row import FlowRow
+from agp_cockpit.ui.scrollable import follow_viewport
 from agp_cockpit.ui.tooltip import Tooltip
 
 LAGE_POLL_MS = 4000  # AGP_LAGE_AUTO_REFRESH_V1
@@ -139,31 +141,30 @@ class StandardTasksPanel(ttk.Frame):
         bold.configure(weight="bold")
         self._recommended_font = bold
         style.configure("Recommended.TButton", font=bold)
+        # AGP_VIEWPORT_WRAP_V1 (live 2026-10-07): the verb rows wrap with the window.
         sections = ttk.Frame(self)
         sections.grid(row=2, column=0, sticky="ew")
+        sections.columnconfigure(0, weight=1)
         heading = ("TkDefaultFont", 12, "bold")
         ttk.Label(sections, text="Arbeitsweg", font=heading).grid(row=0, column=0, sticky="w")
-        path = ttk.Frame(sections)
-        path.grid(row=1, column=0, sticky="w", pady=(2, 6))
-        column = 0
+        path = FlowRow(sections)
+        path.grid(row=1, column=0, sticky="ew", pady=(2, 6))
+        self.path_row = path
+        first = True
         for verb in sorted((v for v in VERBS if v.group == "weg"), key=lambda v: v.step or 0):
-            if column:
-                ttk.Label(path, text="→").grid(row=0, column=column, padx=6)
-                column += 1
-            self._verb_button(path, verb, column)
-            column += 1
+            if not first:
+                path.add(ttk.Label(path, text="→"))
+            self._verb_button(path, verb, 0)
+            first = False
         # „Bei Problemen“ and „Weitere“ share one row (AGP_COMPACT_LAGE_V1).
-        problems = ttk.Frame(sections)
-        problems.grid(row=3, column=0, sticky="w", pady=(0, 4))
-        ttk.Label(problems, text="Bei Problemen", font=heading).grid(row=0, column=0, sticky="nw",
-                                                                     padx=(0, 10), pady=(2, 0))
-        index = 1
+        problems = FlowRow(sections)
+        problems.grid(row=3, column=0, sticky="ew", pady=(0, 4))
+        self.problems_row = problems
+        problems.add(ttk.Label(problems, text="Bei Problemen", font=heading))
         for verb in (v for v in VERBS if v.group == "probleme"):
-            self._verb_button(problems, verb, index)
-            index += 1
-        self.more_button = ttk.Button(problems, text="Weitere anzeigen", command=self.toggle_more)
-        self.more_button.grid(row=0, column=index, sticky="nw", padx=(16, 0))
-        self.more_frame = ttk.Frame(sections)
+            self._verb_button(problems, verb, 0)
+        self.more_button = problems.add(ttk.Button(problems, text="Weitere anzeigen", command=self.toggle_more))
+        self.more_frame = FlowRow(sections)
         for index, verb in enumerate(v for v in VERBS if v.group == "weitere"):
             self._verb_button(self.more_frame, verb, index)
         self.apply_state(None)
@@ -173,6 +174,8 @@ class StandardTasksPanel(ttk.Frame):
         status_label = self._wrap(ttk.Label(self, textvariable=self.status_var, justify="left"), 30)
         status_label.grid(row=3, column=0, sticky="ew", pady=(6, 0))
         self.bind("<Configure>", self._rewrap, add="+")
+        self._viewport_width = 0
+        follow_viewport(self, self._follow_viewport)
         # AGP_SHORT_RESULT_LINE_V1: the remote side's own report is in the tooltip.
         Tooltip(status_label, lambda: ("Meldung der Remote-Seite:\n" + clip(self._status_detail, 600))
                 if self._status_detail else "")
@@ -205,6 +208,10 @@ class StandardTasksPanel(ttk.Frame):
         self.decision_frame.grid_remove()
         self.after(600, self.adopt_pending_decision)
 
+    def _follow_viewport(self, width: int) -> None:
+        self._viewport_width = width
+        self._rewrap()
+
     def _wrap(self, label: ttk.Label, margin: int) -> ttk.Label:
         """AGP_COMPACT_LAGE_V1: wrap at the panel width minus ``margin`` pixels."""
         label._agp_margin = margin
@@ -214,6 +221,8 @@ class StandardTasksPanel(ttk.Frame):
 
     def _rewrap(self, event=None) -> None:
         width = getattr(event, "width", 0) or self.winfo_width()
+        if self._viewport_width > 1:
+            width = self._viewport_width   # AGP_VIEWPORT_WRAP_V1: the visible width decides
         if width <= 1:
             return
         for label in self._wrapping:
@@ -533,7 +542,10 @@ class StandardTasksPanel(ttk.Frame):
 
     def _verb_button(self, parent: ttk.Frame, verb: Verb, column: int) -> None:
         cell = ttk.Frame(parent)
-        cell.grid(row=0, column=column, padx=(0, 8), sticky="n")
+        if isinstance(parent, FlowRow):
+            parent.add(cell)
+        else:
+            cell.grid(row=0, column=column, padx=(0, 8), sticky="n")
         button = ttk.Button(cell, text=self._verb_text(verb, False),
                             command=lambda selected=verb: self.run_verb(selected))
         button.grid(row=0, column=0, sticky="ew")
@@ -554,7 +566,7 @@ class StandardTasksPanel(ttk.Frame):
     def toggle_more(self) -> None:
         self.more_open = not getattr(self, "more_open", False)
         if self.more_open:
-            self.more_frame.grid(row=4, column=0, sticky="w", pady=(0, 4))
+            self.more_frame.grid(row=4, column=0, sticky="ew", pady=(0, 4))
             self.more_button.configure(text="Weitere ausblenden")
         else:
             self.more_frame.grid_remove()

@@ -15,7 +15,7 @@ from agp_cockpit.core.startup import StartupAction, decide_startup
 from agp_cockpit.core.startup_probe import observe_live_read_only
 from agp_cockpit.ui.bridge_identity_status import format_bridge_identity_status
 from agp_cockpit.ui.hermes_status import format_hermes_status
-from agp_cockpit.ui.scrollable import ScrollableTab
+from agp_cockpit.ui.scrollable import ScrollableTab, follow_viewport
 from agp_cockpit.ui.simple_task_panel import SimpleTaskPanel
 from agp_cockpit.ui.standard_tasks_panel import StandardTasksPanel
 from agp_cockpit.version import BRIDGE_BUILD_ID, BRIDGE_PROTOCOL_VERSION
@@ -83,32 +83,37 @@ class MainWindow(ttk.Frame):
         context = ttk.Frame(self)
         context.grid(row=1, column=0, sticky="ew", pady=(2, 8))
         context.columnconfigure(0, weight=1)
-        ttk.Label(context, textvariable=self.context_var).grid(row=0, column=0, sticky="w")
+        # AGP_REPO_LINE_V1 (owner 2026-10-07): the repository path has a line of its own
+        # and wraps; build and „Repo wechseln …“ follow in the next line (the path was cut).
+        self._context_label = ttk.Label(context, textvariable=self.context_var, justify="left",
+                                        wraplength=900)
+        self._context_label.grid(row=0, column=0, columnspan=3, sticky="w")
         self.build_var = tk.StringVar(
             value=f"Bridge protocol v{BRIDGE_PROTOCOL_VERSION} · build {BRIDGE_BUILD_ID}"
         )
+        self._build_label = ttk.Label(context, textvariable=self.build_var, foreground="#888888")
+        self._build_label.grid(row=1, column=0, sticky="w", pady=(2, 0))
         # AGP_REPOSITORY_SWITCH_V1 (P4): switch only while idle (R5).
         ttk.Button(context, text="Repo wechseln …", command=self.open_repo_switch).grid(
-            row=0, column=1, sticky="e", padx=8)
-        self._build_label = ttk.Label(context, textvariable=self.build_var)
-        self._build_label.grid(row=0, column=2, sticky="e")
+            row=1, column=2, sticky="e", pady=(2, 0))
         # AGP_FRESHNESS_LINE_V1 (owner 2026-10-05): the stale-app warning was appended to
         # the one-line build label and cut off at the window edge; it gets its own line.
         self.freshness_var = tk.StringVar(value="")
         self._freshness_label = ttk.Label(context, textvariable=self.freshness_var, foreground="#d03030",
                                           wraplength=900, justify="left")
-        self._freshness_label.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        self._freshness_label.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 0))
         self._freshness_label.grid_remove()
         # AGP_FRESHNESS_WRAP_V1 (live 2026-10-06): the line was cut at a fixed 900 px.
-        context.bind("<Configure>", lambda event: self._freshness_label.configure(
-            wraplength=max(240, event.width - 300)), add="+")
+        context.bind("<Configure>", lambda event: (
+            self._freshness_label.configure(wraplength=max(240, event.width - 300)),
+            self._context_label.configure(wraplength=max(240, event.width - 8))), add="+")
         # AGP_REBUILD_BUTTON_V1: the guard's warning offers the step it asks for.
         self._rebuild = None
         self._rebuild_kind = ""
         self._rebuild_note = ""   # a failed build stays visible until the next attempt
         self._rebuild_button = ttk.Button(context, text="Neu bauen und neu starten",
                                           command=self.start_rebuild)
-        self._rebuild_button.grid(row=1, column=2, sticky="ne", pady=(4, 0))
+        self._rebuild_button.grid(row=2, column=2, sticky="ne", pady=(4, 0))
         self._rebuild_button.grid_remove()
 
         ttk.Separator(
@@ -316,12 +321,13 @@ class MainWindow(ttk.Frame):
         )
         hermes.columnconfigure(0, weight=1)
 
-        ttk.Label(
+        hermes_label = ttk.Label(
             hermes,
             textvariable=self.hermes_var,
             justify="left",
             wraplength=360,
-        ).grid(
+        )
+        hermes_label.grid(
             row=0,
             column=0,
             sticky="w",
@@ -352,7 +358,7 @@ class MainWindow(ttk.Frame):
             sticky="ew",
             pady=(8, 0),
         )
-        ttk.Label(
+        purpose_label = ttk.Label(
             info,
             text=(
                 "Das Cockpit transportiert lokale Aufträge und Ergebnisse. "
@@ -360,7 +366,8 @@ class MainWindow(ttk.Frame):
             ),
             wraplength=760,
             justify="left",
-        ).grid(
+        )
+        purpose_label.grid(
             row=0,
             column=0,
             sticky="w",
@@ -371,12 +378,21 @@ class MainWindow(ttk.Frame):
         # One tool per row; the description wraps instead of being cut off.
         tools.columnconfigure(1, weight=1)
         ttk.Button(tools, text="Kit-Befunde …", command=self.open_kit_findings).grid(row=0, column=0, sticky="ew")
-        ttk.Label(tools, text="Fehler des Kits aus der Arbeit an diesem Projekt, mit Status",
-                  foreground="#888888", wraplength=520, justify="left").grid(row=0, column=1, sticky="w", padx=(8, 0))
+        findings_label = ttk.Label(tools, text="Fehler des Kits aus der Arbeit an diesem Projekt, mit Status",
+                                   foreground="#888888", wraplength=520, justify="left")
+        findings_label.grid(row=0, column=1, sticky="w", padx=(8, 0))
         ttk.Button(tools, text="Aufräumen …", command=self.open_cleanup).grid(row=1, column=0, sticky="ew", pady=(4, 0))
-        ttk.Label(tools, text="alte Arbeitsdateien und Kit-Logs, mit Vorschau",
-                  foreground="#888888", wraplength=520, justify="left").grid(row=1, column=1, sticky="w",
-                                                                              padx=(8, 0), pady=(4, 0))
+        cleanup_label = ttk.Label(tools, text="alte Arbeitsdateien und Kit-Logs, mit Vorschau",
+                                  foreground="#888888", wraplength=520, justify="left")
+        cleanup_label.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(4, 0))
+
+        def wrap_system(width: int) -> None:
+            """AGP_VIEWPORT_WRAP_V1 (live 2026-10-07): the System tab wraps to the visible width."""
+            purpose_label.configure(wraplength=max(200, width - 60))
+            hermes_label.configure(wraplength=max(160, width // 2 - 60))
+            for label in (findings_label, cleanup_label):
+                label.configure(wraplength=max(160, width - 220))
+        follow_viewport(parent, wrap_system)
         ttk.Label(parent,textvariable=self.system_focus_var).grid(row=4,column=0,columnspan=2,sticky="w",pady=(8,0))
         system_focus_names={
             self.model_box:"Modell",
