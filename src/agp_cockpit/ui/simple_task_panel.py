@@ -507,6 +507,25 @@ class SimpleTaskPanel(ttk.Frame):
             parent=self.winfo_toplevel(),
         ):
             return
+        self._launch(auto_finish)
+
+    def _launch(self, auto_finish: bool, attempt: int = 0) -> None:
+        """The confirmed start. AGP_START_WAITS_FOR_EXTENSION_V1: after a rebuild it waits
+        (once a second, up to SETTLE_ATTEMPTS) until the extension reports the current build."""
+        from agp_cockpit.core.start_request_client import (
+            SETTLE_ATTEMPTS,
+            extension_settling,
+        )
+        settling = extension_settling(self.repository_root)
+        if settling:
+            if attempt >= SETTLE_ATTEMPTS:
+                self.state_var.set(f"Blockiert — die Chrome-Erweiterung meldet den aktuellen Build nicht "
+                                   f"({settling}). Den ChatGPT-Tab neu laden, dann erneut starten.")
+                return
+            self.state_var.set(f"Die Chrome-Erweiterung lädt nach dem Neustart neu ({settling}) — der Task "
+                               f"startet von selbst, sobald sie bereit ist ({attempt + 1}/{SETTLE_ATTEMPTS}) …")
+            self.after(1000, lambda: self._launch(auto_finish, attempt + 1))
+            return
         try:
             status = self.api.start_task_from_contract(self.contract)
             conversation_url = require_allowed_active_chat().url

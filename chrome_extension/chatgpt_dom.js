@@ -20,6 +20,16 @@
 //   AGP_SEND_OUTCOME_FIRST_V1).
 // - generationActive(): a visible stop control or a streaming marker.
 // - stopLikeButtonVisible(): an enabled stop-like button in a composer form (activity signal).
+//
+// Slice 3c (attachment preview of a file card without href):
+// - previewTextbox(filename): the readable preview of that file — a code textbox inside a
+//   dialog, or a textbox labelled with the file name (side panel).
+// - previewContainer(preview): the nearest ancestor holding both a close and a download
+//   control, else the enclosing dialog.
+// - previewDownloadButton(preview): the preview's download control.
+// - openDialog(): the first dialog on the page.
+// - dialogCloseControl(dialog, active): the control that closes it (OK, close, Schließen,
+//   exit full screen; the focused button inside the dialog first), or null.
 (function () {
   const SELECTORS = Object.freeze({
     assistantTurn: '[data-message-author-role="assistant"]',
@@ -45,7 +55,19 @@
       '[data-testid="stop-generating-button"]',
     ]),
     stopLikeButton: "form button, [data-testid*='composer'] button",
+    dialog: '[role="dialog"], [aria-modal="true"]',
+    previewTextbox: '[role="dialog"] .cm-content[role="textbox"], [role="dialog"] .cm-content, ' +
+      '.cm-content[role="textbox"], [role="textbox"][aria-label]',
+    dialogClose: '[data-testid="close-button"], button[aria-label="Vollbildmodus beenden"], ' +
+      'button[aria-label="Exit full screen"], button[aria-label="Schließen"], ' +
+      'button[aria-label="Close"], button',
   });
+
+  const CLOSE_LABELS = Object.freeze(["ok", "close", "schließen", "exit full screen", "vollbildmodus beenden"]);
+  const DOWNLOAD_LABELS = Object.freeze(["download", "herunterladen", "datei herunterladen"]);
+  const labelOf = button => String(
+    button.getAttribute("aria-label") || button.textContent || button.title || ""
+  ).replace(/\s+/g, " ").trim().toLowerCase();
 
   function assistantTurns() {
     return Array.from(document.querySelectorAll(SELECTORS.assistantTurn));
@@ -140,8 +162,49 @@
         /stop/i.test(String(button.getAttribute("data-testid") || ""))));
   }
 
+  function previewTextbox(filename) {
+    const expectedName = String(filename || "").trim().toLowerCase();
+    return Array.from(document.querySelectorAll(SELECTORS.previewTextbox)).find(candidate => {
+      const content = String(candidate.innerText || candidate.textContent || "").trim();
+      if (!content) return false;
+      if (candidate.closest(SELECTORS.dialog)) return true;
+      const label = String(candidate.getAttribute("aria-label") || "").trim().toLowerCase();
+      return Boolean(expectedName) && (label === expectedName || label.endsWith(`/${expectedName}`));
+    }) || null;
+  }
+
+  function previewContainer(preview) {
+    let current = preview;
+    for (let depth = 0; current && depth < 12; depth += 1, current = current.parentElement) {
+      const labels = Array.from(current.querySelectorAll("button")).map(labelOf);
+      const hasClose = labels.some(label => label === "close" || label === "schließen");
+      const hasDownload = labels.some(label => label === "download" || label === "herunterladen");
+      if (hasClose && hasDownload) return current;
+    }
+    return preview ? preview.closest(SELECTORS.dialog) : null;
+  }
+
+  function previewDownloadButton(preview) {
+    const root = previewContainer(preview) || preview;
+    if (!root) return null;
+    return Array.from(root.querySelectorAll("button")).find(button => DOWNLOAD_LABELS.includes(labelOf(button))) || null;
+  }
+
+  function openDialog() {
+    return document.querySelector(SELECTORS.dialog);
+  }
+
+  function dialogCloseControl(dialog, active = null) {
+    if (!dialog) return null;
+    const candidates = Array.from(dialog.querySelectorAll(SELECTORS.dialogClose));
+    if (active && active.tagName === "BUTTON" && dialog.contains(active)) candidates.unshift(active);
+    return candidates.find(button => CLOSE_LABELS.includes(labelOf(button)) ||
+      button.getAttribute("data-testid") === "close-button") || null;
+  }
+
   globalThis.AGP_DOM = Object.freeze({
     SELECTORS, assistantTurns, fileCardRow, stepFileCards, alertNotices,
     composerFallback, isUsableSendControl, sendButton, generationActive, stopLikeButtonVisible,
+    previewTextbox, previewContainer, previewDownloadButton, openDialog, dialogCloseControl,
   });
 })();

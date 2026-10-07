@@ -19,11 +19,13 @@ def test_attachment_preview_supports_chatgpt_artifact_side_panel():
     preview_start = CONTENT.index("function readableAttachmentPreview")
     preview_end = CONTENT.index("async function readAssistantButtonAttachment", preview_start)
     helpers = CONTENT[preview_start:preview_end]
-
-    assert "[role=\"textbox\"][aria-label]" in helpers
-    assert "label === expectedName" in helpers
     assert "function attachmentPreviewContainer" in helpers
-    assert 'label === "herunterladen"' in helpers
+    assert "AGP_DOM.previewTextbox(filename)" in helpers
+    # AGP_DOM_ADAPTER_V1 (slice 3c): the preview contract lives in the page adapter.
+    adapter = (ROOT / "chrome_extension" / "chatgpt_dom.js").read_text(encoding="utf-8")
+    assert "[role=\"textbox\"][aria-label]" in adapter
+    assert "label === expectedName" in adapter
+    assert 'label === "herunterladen"' in adapter
 
 
 def test_attachment_is_committed_only_after_successful_processing():

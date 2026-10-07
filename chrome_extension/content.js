@@ -504,47 +504,20 @@
     return [missionId, STATE.runGeneration, messageId, attachment.name, attachment.href, responseText].join("\n");
   }
 
+  // AGP_DOM_ADAPTER_V1 (slice 3c): the attachment preview is named by the page adapter.
+  // Contract kept: a textbox inside a dialog, or one labelled with the file name
+  // ([role="textbox"][aria-label], label === expectedName); its container holds close and
+  // download (label === "herunterladen").
   function readableAttachmentPreview(filename) {
-    const expectedName = String(filename || "").trim().toLowerCase();
-    const candidates = Array.from(document.querySelectorAll(
-      '[role="dialog"] .cm-content[role="textbox"], ' +
-      '[role="dialog"] .cm-content, .cm-content[role="textbox"], ' +
-      '[role="textbox"][aria-label]'
-    ));
-    return candidates.find(candidate => {
-      const content = String(candidate.innerText || candidate.textContent || "").trim();
-      if (!content) return false;
-      if (candidate.closest('[role="dialog"], [aria-modal="true"]')) return true;
-      const label = String(candidate.getAttribute("aria-label") || "").trim().toLowerCase();
-      return Boolean(expectedName) && (label === expectedName || label.endsWith(`/${expectedName}`));
-    }) || null;
+    return AGP_DOM.previewTextbox(filename);
   }
 
   function attachmentPreviewContainer(preview) {
-    let current = preview;
-    for (let depth = 0; current && depth < 12; depth += 1, current = current.parentElement) {
-      const buttons = Array.from(current.querySelectorAll("button"));
-      const labels = buttons.map(button => String(
-        button.getAttribute("aria-label") || button.textContent || button.title || ""
-      ).trim().toLowerCase());
-      const hasClose = labels.some(label => label === "close" || label === "schließen");
-      const hasDownload = labels.some(label => label === "download" || label === "herunterladen");
-      if (hasClose && hasDownload) return current;
-    }
-    return preview ? preview.closest('[role="dialog"], [aria-modal="true"]') : null;
+    return AGP_DOM.previewContainer(preview);
   }
 
   function attachmentPreviewDownloadButton(preview) {
-    const dialog = attachmentPreviewContainer(preview);
-    const root = dialog || preview;
-    if (!root) return null;
-    return Array.from(root.querySelectorAll("button")).find(button => {
-      const label = String(
-        button.getAttribute("aria-label") || button.textContent || button.title || ""
-      ).trim().toLowerCase();
-      return label === "download" || label === "herunterladen" ||
-        label === "datei herunterladen";
-    }) || null;
+    return AGP_DOM.previewDownloadButton(preview);
   }
 
   async function materializeDownloadedAttachment(attachment, downloadNode) {
@@ -651,11 +624,8 @@
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     if (!preview) {
-      const unavailableDialog = document.querySelector('[role="dialog"], [aria-modal="true"]');
-      const closeUnavailable = unavailableDialog && Array.from(unavailableDialog.querySelectorAll('button')).find(candidate => {
-        const label = String(candidate.getAttribute("aria-label") || candidate.textContent || "").trim().toLowerCase();
-        return label === "schließen" || label === "close";
-      });
+      const unavailableDialog = AGP_DOM.openDialog();   // AGP_DOM_ADAPTER_V1
+      const closeUnavailable = AGP_DOM.dialogCloseControl(unavailableDialog);
       if (closeUnavailable) closeUnavailable.click();
       else if (unavailableDialog) {
         document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", code:"Escape", bubbles:true, cancelable:true}));
@@ -679,26 +649,9 @@
       .replace(/\s+/g, " ")
       .trim()
       .toLowerCase();
-    const closeCandidates = dialog
-      ? Array.from(dialog.querySelectorAll(
-        '[data-testid="close-button"], ' +
-        'button[aria-label="Vollbildmodus beenden"], ' +
-        'button[aria-label="Exit full screen"], ' +
-        'button[aria-label="Schließen"], button[aria-label="Close"], button'
-      ))
-      : [];
-    const active = document.activeElement;
-    if (active && active.tagName === "BUTTON" && dialog && dialog.contains(active)) {
-      closeCandidates.unshift(active);
-    }
-    const close = closeCandidates.find(button => {
-      const label = normalizedLabel(
-        button.getAttribute("aria-label") || button.textContent || button.title
-      );
-      return label === "ok" || label === "close" || label === "schließen" ||
-        label === "exit full screen" || label === "vollbildmodus beenden" ||
-        button.getAttribute("data-testid") === "close-button";
-    });
+    // AGP_DOM_ADAPTER_V1: the close control (label === "ok", close, schließen, exit full
+    // screen; the focused button inside the dialog first) is named by the page adapter.
+    const close = AGP_DOM.dialogCloseControl(dialog, document.activeElement);
     let closeMethod = "none";
     if (close) {
       close.click();
