@@ -89,6 +89,7 @@ def test_failures_after_the_start_send_their_shape():
     assert "agpDomShape({composer_form:form, last_assistant:" in helper
     assert "AGP_DOM.alertNotices()" in helper
     adapter = (ROOT / "chrome_extension/chatgpt_dom.js").read_text(encoding="utf-8")
+    adapter += (ROOT / "chrome_extension" / "chatgpt_selectors.js").read_text(encoding="utf-8")   # AGP_SELECTOR_TABLE_V1
     assert "alert: '[role=\"alert\"]'" in adapter and "text.length <= 120" in adapter
 
 

@@ -16,6 +16,7 @@ global.document = {querySelectorAll: () => [{disabled:false, value:"", focus:()=
 global.HTMLTextAreaElement = function HTMLTextAreaElement() {};
 global.crypto = {randomUUID: () => "req-test"};
 global.chrome = {runtime:{lastError:null, sendMessage:(payload,callback)=>callback(Object.assign({},response,{request_id:payload.request_id}))}};
+require("./chrome_extension/chatgpt_selectors.js");   // AGP_SELECTOR_TABLE_V1
 eval(__SOURCE__);
 (async()=>{try{const value=await global.AGPBrowserNativeTransport.submit("probe"); console.log(JSON.stringify({resolved:true,value}));}catch(error){console.log(JSON.stringify({resolved:false,error:String(error)}));}})();
 """

@@ -20,6 +20,7 @@
         "https://chatgpt.com/*"
       ],
       "js": [
+        "chatgpt_selectors.js",
         "build_identity.js",
         "protocol_action_contract_v1.js",
         "transport_protocol_v1.js",

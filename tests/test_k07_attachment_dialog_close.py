@@ -23,6 +23,7 @@ def test_attachment_preview_supports_chatgpt_artifact_side_panel():
     assert "AGP_DOM.previewTextbox(filename)" in helpers
     # AGP_DOM_ADAPTER_V1 (slice 3c): the preview contract lives in the page adapter.
     adapter = (ROOT / "chrome_extension" / "chatgpt_dom.js").read_text(encoding="utf-8")
+    adapter += (ROOT / "chrome_extension" / "chatgpt_selectors.js").read_text(encoding="utf-8")   # AGP_SELECTOR_TABLE_V1
     assert "[role=\"textbox\"][aria-label]" in adapter
     assert "label === expectedName" in adapter
     assert 'label === "herunterladen"' in adapter

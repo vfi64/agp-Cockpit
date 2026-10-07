@@ -16,26 +16,16 @@
       const resolved = globalThis.agpResolveComposer();
       if (resolved) return resolved;
     }
+    // AGP_SELECTOR_TABLE_V1: the canonical order and the chain come from chatgpt_selectors.js.
+    const table = globalThis.AGP_SELECTORS;
     if (typeof document.querySelector === "function") {
-      const canonical = document.querySelector("#prompt-textarea");
-      if (canonical && canonical.getBoundingClientRect().width > 0 &&
-          canonical.getBoundingClientRect().height > 0 && !canonical.disabled) return canonical;
-      const root = document.querySelector('textarea[data-id="root"]');
-      if (root && root.getBoundingClientRect().width > 0 &&
-          root.getBoundingClientRect().height > 0 && !root.disabled) return root;
-      const textarea = document.querySelector("textarea");
-      if (textarea && textarea.getBoundingClientRect().width > 0 &&
-          textarea.getBoundingClientRect().height > 0 && !textarea.disabled) return textarea;
+      for (const selector of table.nativeComposerCanonical) {
+        const el = document.querySelector(selector);
+        if (el && el.getBoundingClientRect().width > 0 &&
+            el.getBoundingClientRect().height > 0 && !el.disabled) return el;
+      }
     }
-    const selectors = [
-      "#prompt-textarea",
-      'textarea[data-id="root"]',
-      "textarea",
-      '[contenteditable="true"][data-testid*="composer"]',
-      '[contenteditable="true"][id*="prompt"]',
-      '[contenteditable="true"][role="textbox"]',
-      'form [contenteditable="true"]'
-    ];
+    const selectors = table.nativeComposerChain;
     if (!document || typeof document.querySelectorAll !== "function") return null;
     for (const selector of selectors) {
       for (const el of document.querySelectorAll(selector)) {

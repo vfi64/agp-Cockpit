@@ -2,6 +2,7 @@
 // bootstrap text and the command digest in the composer; the next start
 // appended to it. Cockpit leftovers are removed, the human's content never.
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const fs = require("fs");
 const path = require("path");
 
@@ -10,8 +11,11 @@ const EVIDENCE = fs.readFileSync(path.join(ROOT, "chrome_extension/native_messag
 const BACKGROUND = fs.readFileSync(path.join(ROOT, "chrome_extension/background.js"), "utf8");
 const BLOCK = BACKGROUND.slice(BACKGROUND.indexOf("const AGP_COCKPIT_TEXT"),
                                BACKGROUND.indexOf("async function agpCleanComposer("));
+// AGP_SELECTOR_TABLE_V1: the cleanup's page expressions run inside agpPageExpression(), as in
+// agpCleanComposer(), so the page gets the selector table the same way Chrome does.
 // eslint-disable-next-line no-new-func
-const api = new Function(EVIDENCE + BLOCK + "; return {agpComposerCleanup, agpComposerInspect, agpResolveComposer};")();
+const api = new Function(AGP_SELECTORS_SRC + EVIDENCE + BLOCK +
+  "; return {agpComposerCleanup, agpComposerInspect, agpResolveComposer, agpPageExpression};")();
 
 const chip = (name, label = "Datei entfernen") =>
   `<div class="chip"><span>${name}</span><button aria-label="${label}" onclick="this.parentElement.remove()">x</button></div>`;
@@ -24,7 +28,7 @@ const page_ = ({text = "", chips = []} = {}) => `<!doctype html><html><body><mai
 
 async function cleanup(page, options) {
   const cdp = await page.context().newCDPSession(page);
-  const evaluate = expression => page.evaluate(expression);
+  const evaluate = expression => page.evaluate(api.agpPageExpression(expression));
   const sendCommand = (method, params) => cdp.send(method, params || {});
   const normalize = value => String(value || "").replace(/\s+/g, " ").trim();
   return api.agpComposerCleanup(evaluate, sendCommand, normalize, options);

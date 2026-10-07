@@ -1,3 +1,4 @@
+importScripts("chatgpt_selectors.js");
 importScripts("result_file_attachment.js");
 importScripts("native_message_evidence.js");
 importScripts("build_identity.js");
@@ -433,7 +434,8 @@ async function agpCleanComposer(tabId, options = {}) {
   let attached = false;
   const sendCommand = (method, params) => chrome.debugger.sendCommand(target, method, params || {});
   const evaluate = async expression => {
-    const result = await sendCommand("Runtime.evaluate", {expression, returnByValue:true, awaitPromise:true});
+    const result = await sendCommand("Runtime.evaluate",
+      {expression:agpPageExpression(expression), returnByValue:true, awaitPromise:true});
     if (result && result.exceptionDetails) throw new Error("CDP Runtime.evaluate failed");
     return result && result.result ? result.result.value : null;
   };
@@ -480,7 +482,7 @@ async function agpNativeTransportV1(message, sender) {
       target,
       "Runtime.evaluate",
       {
-        expression,
+        expression:agpPageExpression(expression),
         returnByValue:true,
         awaitPromise:true
       }
@@ -638,7 +640,7 @@ async function agpNativeTransportV1(message, sender) {
         if (composer && typeof window.focus === "function") window.focus();
         if (composer && typeof composer.focus === "function") composer.focus();
         const active = document.activeElement;
-        const textboxes = Array.from(document.querySelectorAll('[contenteditable="true"][role="textbox"]'));
+        const textboxes = Array.from(document.querySelectorAll(AGP_SELECTORS.composerTextbox));
         return {
           ok:Boolean(composer && active === composer),
           textboxes:textboxes.length,
@@ -728,9 +730,7 @@ async function agpNativeTransportV1(message, sender) {
         const value = composer && "value" in composer
           ? String(composer.value || "")
           : String((composer && (composer.innerText || composer.textContent)) || "");
-        const buttons = Array.from(document.querySelectorAll(
-          'button[data-testid="send-button"], button[aria-label*="Send"], button[aria-label*="Senden"], form button[type="submit"]'
-        ));
+        const buttons = Array.from(document.querySelectorAll(AGP_SELECTORS.sendButtonDiagnostics));
         const normalize = value => String(value || "")
           .replace(/\\u00a0/g, " ")
           .replace(/\\s+/g, " ")
@@ -785,12 +785,7 @@ async function agpNativeTransportV1(message, sender) {
     let sendDiagnostics = null;
     for (let attempt = 0; attempt < 600; attempt += 1) {
       const probe = await evaluate(`(() => {
-        const selectors = [
-          'button[data-testid="send-button"]',
-          'button[aria-label*="Send"]',
-          'button[aria-label*="Senden"]',
-          'form button[type="submit"]'
-        ];
+        const selectors = AGP_SELECTORS.sendButtonProbe;
         const diagnostics = [];
         for (const selector of selectors) {
           const nodes = Array.from(document.querySelectorAll(selector));
@@ -874,7 +869,7 @@ async function agpNativeTransportV1(message, sender) {
             disabled:Boolean(b.disabled),
             aria_disabled:String(b.getAttribute("aria-disabled") || ""),
             text:String(b.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 40)
-          })).concat([{stop_button:Boolean(document.querySelector('[data-testid="stop-button"]')),
+          })).concat([{stop_button:Boolean(document.querySelector(AGP_SELECTORS.stopButton)),
             in_form:Boolean(form)}]);
         })()`) || [];
       } catch (_) {}

@@ -40,6 +40,7 @@ def test_send_button_keeps_existing_contract_and_adds_submit_fallback():
     # AGP_DOM_ADAPTER_V1 (slice 3b): content.js delegates; the contract lives in the adapter.
     assert "return AGP_DOM.sendButton(anchor);" in extract_function(src(), "sendButton")
     adapter = (ROOT / "chrome_extension" / "chatgpt_dom.js").read_text(encoding="utf-8")
+    adapter += (ROOT / "chrome_extension" / "chatgpt_selectors.js").read_text(encoding="utf-8")   # AGP_SELECTOR_TABLE_V1
     for selector in ('button[data-testid="send-button"]', 'button[aria-label*="Send"]',
                      'button[aria-label*="Senden"]', 'button[type="submit"]'):
         assert selector in adapter

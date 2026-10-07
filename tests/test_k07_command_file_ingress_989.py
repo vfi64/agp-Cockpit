@@ -44,11 +44,15 @@ def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     content = (ROOT / "chrome_extension/content.js").read_text()
     assert "AGP_K07_COMMAND_FILE_INGRESS_989" in content
     assert "assistantPythonAttachmentCandidates" in content
-    assert 'button[aria-label$=".py"]' in content
-    assert 'button, [role="button"]' in content
+    # AGP_SELECTOR_TABLE_V1: the file-card selectors are named in chatgpt_selectors.js.
+    assert "AGP_SELECTORS.pythonFileControl" in content and "AGP_SELECTORS.pythonFileRow" in content
+    table = (ROOT / "chrome_extension/chatgpt_selectors.js").read_text()
+    assert 'button[aria-label$=".py"]' in table
+    assert 'button, [role="button"]' in table
     assert "readAssistantButtonAttachment" in content
     # AGP_DOM_ADAPTER_V1: the file card's download control is named by the page adapter.
     adapter = (ROOT / "chrome_extension/chatgpt_dom.js").read_text()
+    adapter += (ROOT / "chrome_extension" / "chatgpt_selectors.js").read_text(encoding="utf-8")   # AGP_SELECTOR_TABLE_V1
     assert 'button[aria-label="Datei herunterladen"]' in adapter
     assert '"/v1/file-loop/download"' in content
     assert "K07_ATTACHMENT_DOWNLOAD_USED" in content

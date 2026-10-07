@@ -1,4 +1,5 @@
 const {test, expect} = require('@playwright/test');
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -145,6 +146,7 @@ for (const html of [
 ]) {
   test('message formatting variant: ' + html.slice(0,55), async ({page}) => {
     await page.setContent('<div data-message-author-role="user">' + html + '</div>');
+    await page.addScriptTag({content:AGP_SELECTORS_SRC});
     await page.addScriptTag({path:path.join(extension, 'native_message_evidence.js')});
     const result = await page.evaluate(() => agpNativeMessageSnapshot());
     expect(result.messages[0].text).toBe('mission status Steps: tests passed');
@@ -157,6 +159,7 @@ test('user-turn evidence accepts current conversation-turn test-id wrappers', as
     '<div><p>mission&nbsp;status</p><p>Steps: tests passed</p></div>' +
     '<button>Mehr anzeigen</button></article>'
   );
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path:path.join(extension, 'native_message_evidence.js')});
   const result = await page.evaluate(() => agpNativeMessageSnapshot());
   expect(result.user_message_count).toBe(1);
@@ -174,6 +177,7 @@ test('user-turn evidence accepts visible localized author-heading layout', async
     '<h5>ChatGPT said:</h5><div>next assistant</div></section>' +
     '</main>'
   );
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path:path.join(extension, 'native_message_evidence.js')});
   const result = await page.evaluate(() => agpNativeMessageSnapshot());
   expect(result.user_message_count).toBe(2);
@@ -191,6 +195,7 @@ test('user-turn evidence matches rendered Markdown to the raw prompt', async ({p
     '<p>- execution_contract.json</p>' +
     '</div></article>'
   );
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path:path.join(extension, 'native_message_evidence.js')});
   const result = await page.evaluate(() => agpNativeMessageSnapshot());
   const rawPrompt = 'Use `agentic-kit transfer chat-switch-complete --json`.\n\n- execution_contract.json';

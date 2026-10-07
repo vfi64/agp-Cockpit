@@ -3,6 +3,7 @@
 // but no assistant-role node existed, so the loop timed out after 180 s.
 // The awaited card is identified by the freshly assigned step number.
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const fs = require("fs");
 const path = require("path");
 
@@ -24,6 +25,7 @@ const DOM = `<!doctype html><html><body><main>
 
 test("the card carrying the expected step is found without assistant-role wrappers", async ({page}) => {
   await page.setContent(DOM);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path:DOM_ADAPTER});
   await page.addScriptTag({content:FUNCTIONS});
   const found = await page.evaluate(() => expectedStepAttachmentCandidates(1475)
@@ -33,6 +35,7 @@ test("the card carrying the expected step is found without assistant-role wrappe
 
 test("older numbered cards and prose mentions are never the awaited response", async ({page}) => {
   await page.setContent(DOM);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path:DOM_ADAPTER});
   await page.addScriptTag({content:FUNCTIONS});
   expect(await page.evaluate(() => expectedStepAttachmentCandidates(1476).length)).toBe(0);
@@ -50,6 +53,7 @@ const TERMINAL_DOM = `<!doctype html><html><body><main>
 
 test("the terminal reply card of the expected step is found; prose, other steps and other json are not", async ({page}) => {
   await page.setContent(TERMINAL_DOM);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path:DOM_ADAPTER});
   await page.addScriptTag({content:FUNCTIONS});
   const found = await page.evaluate(() => expectedStepAttachmentCandidates(1480, "terminal")

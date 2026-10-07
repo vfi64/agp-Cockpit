@@ -6,7 +6,9 @@ const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const start = source.indexOf("  function assistantAttachmentKey");
 const end = source.indexOf("  async function fetchSingleAssistantPythonAttachment", start);
 const code = source.slice(start, end);
-const ADAPTER = fs.readFileSync("chrome_extension/chatgpt_dom.js", "utf8");
+// AGP_SELECTOR_TABLE_V1: the selector table loads first, as in the manifest.
+const ADAPTER = fs.readFileSync("chrome_extension/chatgpt_selectors.js", "utf8") + "\n" +
+  fs.readFileSync("chrome_extension/chatgpt_dom.js", "utf8");
 
 function node({label="", text="", closest=null, buttons=[], parentElement=null, click=null}={}) {
   return {

@@ -414,15 +414,13 @@
     const assistant = [...nodes].reverse().find(node => {
       const id = String(node.getAttribute("data-message-id") || "");
       if (id && baselineIds.has(id)) return false;
-      return node.querySelector('a[href$=".py"], button[aria-label$=".py"], button, [role="button"]');
+      return node.querySelector(AGP_SELECTORS.pythonFileControl);
     }) || selectedAssistantMessageNode();
     if (!assistant) return [];
     // ChatGPT currently renders the attachment card as a plain button with
     // visible filename text. Keep links and labelled controls supported, but
     // also inspect ordinary buttons so the real file-card DOM is covered.
-    const rows = Array.from(assistant.querySelectorAll(
-      "a[href], button[aria-label$=\".py\"], button, [role=\"button\"]"
-    ))
+    const rows = Array.from(assistant.querySelectorAll(AGP_SELECTORS.pythonFileRow))
       .map(anchor => AGP_DOM.fileCardRow(anchor))   // AGP_DOM_ADAPTER_V1 (the .py filter follows)
       .filter(item => (
         /\.py(?:$|[?#\s])/i.test(item.name || "") ||
@@ -478,12 +476,9 @@
     await clientEvent("K07_ASSISTANT_WAIT_OBSERVATION", {
       reason:String(reason || ""),
       expected_step:Number(STATE.nextLocalStep || 0),
-      role_assistant:count('[data-message-author-role="assistant"]'),
-      role_user:count('[data-message-author-role="user"]'),
-      role_any:count("[data-message-author-role]"),
-      message_ids:count("[data-message-id]"),
-      turn_articles:count('article[data-testid^="conversation-turn"]'),
-      testid_turns:count('[data-testid*="conversation-turn"]'),
+      // AGP_SELECTOR_TABLE_V1: the counted page structures are named in chatgpt_selectors.js.
+      ...Object.fromEntries(Object.entries(AGP_SELECTORS.waitObservation)
+        .map(([key, selector]) => [key, count(selector)])),
       author_headings:authorHeadings.slice(-6),
       baseline_ids:assistantBaselineIds().size,
       python_labels:pythonLabels,
@@ -2538,7 +2533,7 @@
     const expectedStep = Number(STATE.nextLocalStep || 0);
     if (expectedStep > 0) {
       const stalePythonAttachment = Array.from(
-        newest.querySelectorAll("a[href], button, [role=\"button\"]")
+        newest.querySelectorAll(AGP_SELECTORS.fileCardCandidate)
       ).some(node => {
         const label = String(
           node.getAttribute("download") ||

@@ -5,6 +5,7 @@
 // to the invisible form 0, so the Kit command digest was attached there and the
 // mission start failed before any effect. This fixture rebuilds that DOM.
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -19,6 +20,7 @@ function loadAttachment() {
   const context = {setTimeout, console};
   context.globalThis = context;
   vm.createContext(context);
+  vm.runInContext(AGP_SELECTORS_SRC, context);
   vm.runInContext(EVIDENCE, context);
   vm.runInContext(fs.readFileSync(SOURCE_FILE, "utf8"), context);
   return context.AGPResultFileAttachment;
@@ -78,6 +80,7 @@ async function chromeApiFor(page) {
 
 test("the resolver ignores composers inside 0x0 forms even without focus", async ({page}) => {
   await startPage(page);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({content:EVIDENCE});
   expect(await page.evaluate(() => agpResolveComposer().id)).toBe("editor-2");
 });
@@ -167,6 +170,7 @@ test("refocus puts the focus back on the resolved composer after the page moved 
     document.getElementById("editor-2").textContent = "AGP-SEND-0123456789abcdef mission";
     main.focus();
   });
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({content:EVIDENCE});
   const result = await page.evaluate(() => {
     const focus = agpRefocusComposerForSubmit(agpResolveComposer);
@@ -183,6 +187,7 @@ test("the send fallback uses the labelled submit button of the composer form (no
       form.addEventListener("submit", event => { event.preventDefault(); window.submitted.push(form.id); });
     }
   });
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({content:EVIDENCE});
   const result = await page.evaluate(() => {
     const button = agpComposerSendButton(agpResolveComposer);
@@ -195,6 +200,7 @@ test("the send fallback uses the labelled submit button of the composer form (no
 test("a disabled or foreign button is never used as the send fallback", async ({page}) => {
   await startPage(page);
   await page.evaluate(() => { document.querySelector("#form-2 button[type=submit]").disabled = true; });
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({content:EVIDENCE});
   expect(await page.evaluate(() => agpComposerSendButton(agpResolveComposer))).toBeNull();
 });

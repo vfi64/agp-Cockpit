@@ -747,6 +747,20 @@ This section is normative for the file loop after local execution.
    `previewContainer`, `previewDownloadButton`, `openDialog()` and `dialogCloseControl(dialog,
    active)` for file cards without href. Further touchpoints move later.
 
+72. One selector table (`AGP_SELECTOR_TABLE_V1`, build release-0.2.2-r8, 2026-10-07): every
+   selector that names ChatGPT's page (ids, test ids, author roles, ARIA labels, dialog and
+   textbox roles) lives in `chrome_extension/chatgpt_selectors.js` as the deep-frozen data
+   object `AGP_SELECTORS`; no other extension file may name one (test). Content scripts read it
+   as a global (manifest: first script), the service worker through `importScripts`, and every
+   expression the service worker injects through `Runtime.evaluate` (background.js:
+   composer cleanup and native transport; result_file_attachment.js: file input and presence
+   probe) runs inside `agpPageExpression()`, which defines `AGP_SELECTORS` from the same table
+   in the page world. `chatgpt_dom.js`, `native_message_evidence.js`,
+   `conversation_contract.js`, `browser_native_transport.js` and the wait diagnostics of
+   `content.js` use the table; behavior is unchanged except that the Phase-5 generation check
+   also knows the `stop-generating-button` test id without a button tag. When ChatGPT changes
+   its page, the fix belongs in this one file.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

@@ -4,6 +4,7 @@
 // focused visible composer and ended in COMPOSER_FOCUS_NOT_VERIFIED. A hidden
 // previous-conversation view also exposed the old step-1480 card.
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const fs = require("fs");
 const path = require("path");
 
@@ -26,12 +27,14 @@ const NEW_CHAT = `<!doctype html><html><body>
 
 test("the hidden or inert textbox is never the composer; the visible one is", async ({page}) => {
   await page.setContent(NEW_CHAT);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({content:EVIDENCE});
   expect(await page.evaluate(() => agpResolveComposer().id)).toBe("live");
 });
 
 test("the focused visible composer wins and focusing it succeeds (the live failure)", async ({page}) => {
   await page.setContent(NEW_CHAT);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({content:EVIDENCE});
   const result = await page.evaluate(() => {
     document.getElementById("live").focus();
@@ -47,6 +50,7 @@ test("the focused visible composer wins and focusing it succeeds (the live failu
 test("serialized resolver works inside the snapshot as background.js evaluates it", async ({page}) => {
   await page.setContent(NEW_CHAT);
   await page.evaluate(() => { document.getElementById("live").textContent = "AGP-SEND-0123456789abcdef hello"; });
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({content:EVIDENCE});
   const expression = await page.evaluate(() =>
     `(${agpNativeMessageSnapshot.toString()})(${agpResolveComposer.toString()})`);
@@ -56,6 +60,7 @@ test("serialized resolver works inside the snapshot as background.js evaluates i
 
 test("cards inside a hidden previous conversation are not candidates", async ({page}) => {
   await page.setContent(NEW_CHAT);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path:DOM_ADAPTER});
   await page.addScriptTag({content:CARD_FUNCTIONS});
   expect(await page.evaluate(() => expectedStepAttachmentCandidates(1480, "terminal").length)).toBe(0);

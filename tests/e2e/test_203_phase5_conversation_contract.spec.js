@@ -1,4 +1,5 @@
 const {test, expect} = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const path = require("path");
 
 const ROOT = process.env.AGP_COCKPIT_ROOT ||
@@ -57,6 +58,7 @@ async function install(page, {url="https://chatgpt.com/c/phase5-target"}={}) {
     });
   });
 
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path: CONTRACT});
 }
 

@@ -3,6 +3,7 @@
 // it touches the page. Fixtures: the r6 start page (three forms, two 0x0) and
 // the three failure shapes.
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const path = require("path");
 
 const EVIDENCE = path.resolve(__dirname, "../../chrome_extension/native_message_evidence.js");
@@ -18,6 +19,7 @@ function composerForm(index, {hidden = false, fileInputs = 1, disabledInputs = f
 
 async function check(page, body) {
   await page.setContent(`<!doctype html><html><body><main>${body}</main></body></html>`);
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path: EVIDENCE});
   return page.evaluate(() => {
     const result = agpMissionTouchpointCheck(agpResolveComposer);

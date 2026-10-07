@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 
 
 // AGP_PHASE066_PLAYWRIGHT_CRYPTO_SUBTLE_HARNESS
@@ -188,6 +189,7 @@ async function installBridgeMocks(page, {fileInput = true} = {}) {
     };
   });
 
+  await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension/native_message_evidence.js")});
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension/chatgpt_dom.js")});
   await page.addScriptTag({path: CONTENT_JS});
