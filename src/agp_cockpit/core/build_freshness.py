@@ -40,6 +40,24 @@ def _read(path: Path, pattern: re.Pattern) -> str:
     return match.group(1) if match else ""
 
 
+_BUILD = re.compile(r"^release-(\d+(?:\.\d+)*)(?:-r(\d+))?$")
+
+
+def build_order(left: str, right: str) -> int | None:
+    """-1/0/1 when both are release build ids (release-<app>[-r<N>]), else None.
+
+    AGP_BUILD_ORDER_V1 (live 2026-10-07, r11): „Abschließen“ switched to main before
+    pulling it; for two seconds the checkout carried the older r10 and the guard said
+    „Quellstand (r10) ist neuer als die laufende App (r11)“. An older source or bundle
+    is no reason to rebuild.
+    """
+    a, b = _BUILD.match(str(left or "")), _BUILD.match(str(right or ""))
+    if not a or not b:
+        return None
+    key = lambda m: (tuple(int(x) for x in m.group(1).split(".")), int(m.group(2) or 0))  # noqa: E731
+    return (key(a) > key(b)) - (key(a) < key(b))
+
+
 def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
           frozen: bool | None = None) -> BuildFreshness:
     root = Path(repository_root)
@@ -48,13 +66,16 @@ def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
     # A run from source is not the bundle; only the packaged app compares with it.
     bundle = _read(root / BUNDLE_ID_FILE, _BUNDLE) if frozen else ""
     source = _read(root / SOURCE_ID_FILE, _SOURCE)
-    if bundle and bundle != running:
+    if bundle and bundle != running and build_order(bundle, running) != -1:
         return BuildFreshness(running, bundle, source, True,
                               f"Neuer Build vorhanden ({bundle}), diese App läuft noch mit {running}. "
                               "Cockpit mit Cmd+Q beenden und neu starten.")
-    if source and source != running:
+    order = build_order(source, running) if source else None
+    if source and source != running and order != -1:
+        relation = (f"ist neuer als die laufende App ({running})" if order == 1
+                    else f"passt nicht zur laufenden App ({running})")
         return BuildFreshness(running, bundle, source, True,
-                              f"Quellstand ({source}) ist neuer als die laufende App ({running}). "
+                              f"Quellstand ({source}) {relation}. "
                               "App neu bauen, Cockpit mit Cmd+Q beenden und neu starten.")
     return BuildFreshness(running, bundle, source, False, "")
 
