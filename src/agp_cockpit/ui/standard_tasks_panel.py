@@ -290,6 +290,8 @@ class StandardTasksPanel(ttk.Frame):
         if self._task_running():
             self.status_var.set("BLOCKED — es läuft bereits ein Task; neue Aufträge erst nach seinem Ende (R5).")
             return False
+        if self._wait_for_extension(task.label, lambda: self.start_standard_task(task, inputs)):
+            return False
         reason = task.check(self.repository_root, inputs)
         if reason:
             self.status_var.set(f"BLOCKED — {task.label}: {reason}")
@@ -660,6 +662,29 @@ class StandardTasksPanel(ttk.Frame):
             self.status_var.set(f"{task.label} nicht gestartet.")
             return
         self.start_standard_task(task, inputs)
+
+    def _wait_for_extension(self, label: str, retry) -> bool:
+        """AGP_START_WAITS_FOR_EXTENSION_V1: True while the start waits for the extension to
+        report the current build after a rebuild (it retries itself once a second)."""
+        from agp_cockpit.core.start_request_client import (
+            SETTLE_ATTEMPTS,
+            extension_settling,
+        )
+        settling = extension_settling(self.repository_root)
+        attempt = getattr(self, "_settle_attempts", 0)
+        if not settling:
+            self._settle_attempts = 0
+            return False
+        if attempt >= SETTLE_ATTEMPTS:
+            self._settle_attempts = 0
+            self.status_var.set(f"BLOCKED — die Chrome-Erweiterung meldet den aktuellen Build nicht ({settling}). "
+                                f"Den ChatGPT-Tab neu laden, dann „{label}“ erneut klicken.")
+            return True
+        self._settle_attempts = attempt + 1
+        self.status_var.set(f"Die Chrome-Erweiterung lädt nach dem Neustart neu ({settling}) — "
+                            f"„{label}“ startet von selbst, sobald sie bereit ist ({attempt + 1}/{SETTLE_ATTEMPTS}) …")
+        self.after(1000, retry)
+        return True
 
     def _task_running(self) -> bool:
         # AGP_ONE_TASK_ALL_TABS_V1

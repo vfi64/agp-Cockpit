@@ -1,1 +1,1 @@
-globalThis.AGP_EXTENSION_BUILD_ID = "release-0.2.2-r5";
+globalThis.AGP_EXTENSION_BUILD_ID = "release-0.2.2-r6";

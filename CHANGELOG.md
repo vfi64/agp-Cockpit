@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- A task started right after „Neu bauen und neu starten“ waits until the Chrome extension reports the new build and then starts by itself, and a refused start stops the mission it had just created instead of leaving it blocking every new start; build `release-0.2.2-r6`.
 - The page adapter also names the attachment preview, its download control and the dialog close controls; `content.js` keeps 10 direct page lookups; build `release-0.2.2-r5`.
 - The page adapter also names the composer fallback, the send control and the generation and stop signals; `content.js` keeps 16 direct page lookups (from 27); build `release-0.2.2-r4`.
 - The browser extension finds file cards, assistant turns and ChatGPT's alerts through one page adapter (`chatgpt_dom.js`), the first module split off `content.js`, and the UI fingerprint also covers the composer's attributes, its element chain and the form's button labels; build `release-0.2.2-r3`.

@@ -72,3 +72,10 @@ def _invisible_test_windows():
     finally:
         for cls, original in originals.items():
             cls.__init__ = original
+
+
+# AGP_START_WAITS_FOR_EXTENSION_V1: no browser runs in the suite; a start never waits for the
+# extension unless a test turns the gate on (tests/test_start_after_rebuild.py).
+@pytest.fixture(autouse=True)
+def _no_extension_gate(monkeypatch):
+    monkeypatch.setenv("AGP_COCKPIT_EXTENSION_GATE", "off")

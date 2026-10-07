@@ -1841,6 +1841,14 @@ class CockpitBridgeServer:
                         )
                         from agp_cockpit.core.start_request import StartRequestStore
                         action = str(data.get("action", "")).strip()
+                        # AGP_START_ABANDONS_ON_FAILURE_V1: a stop that names a mission stops only
+                        # that one; another current mission is left alone (no operator stop either).
+                        expected_mission = str(data.get("mission_id") or "").strip()
+                        if (action.upper() == "STOP" and expected_mission and engine.runtime.state is not None
+                                and engine.runtime.state.mission_id != expected_mission):
+                            self._json(200, {"stopped": False, "reason": "mission-changed",
+                                             "mission_state": engine.runtime.state.state})
+                            return
                         control = OperatorControlStore(runtime_root).request(action)
                         if action.upper() == "STOP":
                             if engine.runtime.state is not None:
