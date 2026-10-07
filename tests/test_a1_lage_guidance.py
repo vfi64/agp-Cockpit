@@ -40,7 +40,8 @@ def test_a_finished_work_task_leads_back_to_the_guided_path_only_when_done():
     calls = []
     standard = SimpleNamespace(note_external_result=lambda t: calls.append(("note", t)),
                                refresh_lage=lambda: calls.append(("lage",)))
-    window = SimpleNamespace(standard_tasks_panel=standard,
+    work = SimpleNamespace(auto_finish_armed=False)
+    window = SimpleNamespace(standard_tasks_panel=standard, simple_task_panel=work,
                              tabs=SimpleNamespace(select=lambda tab: calls.append(("select", tab))))
     MainWindow._work_task_event(window, "finished_done", "TAB", "Fertig ✓ — PR #1")
     assert calls == [("note", "Fertig ✓ — PR #1"), ("select", "TAB"), ("lage",)]
@@ -48,6 +49,15 @@ def test_a_finished_work_task_leads_back_to_the_guided_path_only_when_done():
     MainWindow._work_task_event(window, "finished", "TAB", "Gestoppt")    # a failure stays in its tab
     MainWindow._work_task_event(window, "started", "TAB")
     assert calls == [("lage",), ("lage",)]
+    # AGP_AUTO_FINISH_V1: a ticked task hands „Abschließen“ over instead of a plain Lage refresh
+    calls.clear()
+    standard.request_auto_finish = lambda: calls.append(("auto",))
+    work.auto_finish_armed = True
+    MainWindow._work_task_event(window, "finished_done", "TAB", "Fertig ✓")
+    assert calls == [("note", "Fertig ✓"), ("select", "TAB"), ("auto",)] and not work.auto_finish_armed
+    work.auto_finish_armed = True
+    MainWindow._work_task_event(window, "finished", "TAB", "Gestoppt")    # no finish after a failure
+    assert not work.auto_finish_armed
 
 
 def test_the_external_result_names_its_tab():

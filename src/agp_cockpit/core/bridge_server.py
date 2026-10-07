@@ -1501,11 +1501,17 @@ class CockpitBridgeServer:
                         if mission.state != "NEEDS_HUMAN":
                             raise ValueError(f"mission is {mission.state}, not waiting for a human decision")
                         task_id = str(resolve_task_binding(runtime_root, mission_id).get("task_id") or "")
+                        from agp_cockpit.core.human_decision import SCOPES
+                        scope_key = str(data.get("scope") or "full")
+                        if scope_key not in SCOPES:
+                            raise ValueError(f"unknown approval scope: {scope_key}")
                         record = HumanDecisionStore(runtime_root).record(
                             mission_id=mission_id, task_id=task_id,
                             decision=str(data.get("decision") or ""),
                             question=mission.last_summary, note=str(data.get("note") or ""),
+                            scope=SCOPES[scope_key],
                         )
+                        record["scope_choice"] = scope_key
                         diag.event(
                             "HUMAN_DECISION_RECORDED",
                             component="task",

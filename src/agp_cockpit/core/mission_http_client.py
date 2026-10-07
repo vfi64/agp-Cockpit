@@ -59,11 +59,13 @@ def task_running(*, base_url: str = DEFAULT_BASE_URL) -> bool:
     return mission_running(mission)
 
 
-def record_decision(*, mission_id: str, decision: str, note: str = "",
+def record_decision(*, mission_id: str, decision: str, note: str = "", scope: str = "full",
                     base_url: str = DEFAULT_BASE_URL) -> dict:
-    """AGP_HUMAN_DECISION_V1: answer the NEEDS_HUMAN question of a mission."""
+    """AGP_HUMAN_DECISION_V1: answer the NEEDS_HUMAN question of a mission.
+
+    AGP_APPROVAL_SCOPE_CHOICE_V1: ``scope`` "push_pr" limits an approval to push and PR."""
     return _request(
         "/v1/task/decision",
-        payload={"mission_id": mission_id, "decision": decision, "note": note},
+        payload={"mission_id": mission_id, "decision": decision, "note": note, "scope": scope},
         base_url=base_url,
     )

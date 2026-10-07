@@ -76,6 +76,13 @@ class SimpleTaskPanel(ttk.Frame):
         self.start_button = actions.add(ttk.Button(
             actions, text="Task starten", command=self.start_task, state="disabled"
         ))
+        # AGP_AUTO_FINISH_V1 (owner 2026-10-07): ticked at the start, the start click also
+        # approves „Abschließen“ (push, PR, merge on green CI, post-merge closeout), which
+        # the Cockpit then starts by itself when this task ends DONE with committed work.
+        self.auto_finish_var = tk.BooleanVar(value=False)
+        self.auto_finish_check = actions.add(ttk.Checkbutton(
+            actions, text="danach Push, PR und Merge bei grüner CI", variable=self.auto_finish_var))
+        self.auto_finish_armed = False
         self.pause_button = actions.add(ttk.Button(actions, text="Pause", command=self.pause_file_loop))
         self.resume_button = actions.add(ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop))
         self.stop_button = actions.add(ttk.Button(actions, text="Stop", command=self.stop_file_loop))
@@ -145,6 +152,15 @@ class SimpleTaskPanel(ttk.Frame):
         ttk.Label(note_row, text="Hinweis (optional):").grid(row=0, column=0, sticky="nw", padx=(0, 6))
         self.decision_note = tk.Text(note_row, height=2, width=20, wrap="word", undo=True)
         self.decision_note.grid(row=0, column=1, sticky="ew")
+        # AGP_APPROVAL_SCOPE_CHOICE_V1: the owner names the scope; the bridge enforces it.
+        scope_row = ttk.Frame(self.decision_frame)
+        scope_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        self.decision_scope_var = tk.StringVar(value="push_pr")
+        ttk.Label(scope_row, text="Freigabe für:").grid(row=0, column=0, sticky="w", padx=(0, 6))
+        ttk.Radiobutton(scope_row, text="Push und PR, ohne Merge", value="push_pr",
+                        variable=self.decision_scope_var).grid(row=0, column=1, sticky="w")
+        ttk.Radiobutton(scope_row, text="Push, PR und Merge", value="full",
+                        variable=self.decision_scope_var).grid(row=0, column=2, sticky="w", padx=(8, 0))
         self.decision_frame.grid(row=4, column=0, sticky="ew", pady=(8, 0))
         self.decision_frame.grid_remove()
 
@@ -334,8 +350,9 @@ class SimpleTaskPanel(ttk.Frame):
             self.state_var.set(blocked)
             return
         note = self.decision_note.get("1.0", "end-1c").strip()
+        scope = self.decision_scope_var.get() if decision == "APPROVE" else "full"
         try:
-            record_decision(mission_id=mission_id, decision=decision, note=note)
+            record_decision(mission_id=mission_id, decision=decision, note=note, scope=scope)
             # The NEEDS_HUMAN stop left a durable STOP; the continuation of
             # the same task starts from a clean running control state.
             self.api.operator_control.request("RESUME")
@@ -348,6 +365,7 @@ class SimpleTaskPanel(ttk.Frame):
                     decision=decision,
                     question=self._decision_question,
                     note=note,
+                    scope=scope,
                 ),
                 conversation_url=require_allowed_active_chat().url,
             )["mission"]
@@ -441,9 +459,14 @@ class SimpleTaskPanel(ttk.Frame):
         except Exception as exc:  # noqa: BLE001 - UI boundary surfaces validation failures.
             self.state_var.set(f"Auftrag nicht startbereit — automatische technische Prüfung fehlgeschlagen: {exc}")
             return
+        auto_finish = bool(self.auto_finish_var.get())
         if not messagebox.askyesno(
             "Task starten",
-            "Der geprüfte Gesamtauftrag wird jetzt als dauerhafter Task angelegt.\n\nFortfahren?",
+            "Der geprüfte Gesamtauftrag wird jetzt als dauerhafter Task angelegt.\n\n"
+            + ("Danach startet das Cockpit selbst „Abschließen“: Push · Pull Request · grüne CI · "
+               "Merge · Post-Merge-Abschluss. Dieser Start ist deine Freigabe dafür.\n\n"
+               if auto_finish else "")
+            + "Fortfahren?",
             parent=self.winfo_toplevel(),
         ):
             return
@@ -468,6 +491,8 @@ class SimpleTaskPanel(ttk.Frame):
             return
         self.workflow_phase = "STARTED"
         self._last_outcome = ""
+        self.auto_finish_armed = auto_finish
+        self.auto_finish_check.configure(state="disabled")
         self._emit("started")
         self._hide_decision()
         self.start_button.configure(state="disabled")
@@ -549,6 +574,7 @@ class SimpleTaskPanel(ttk.Frame):
                     # The finished task stays in the editor and can be
                     # changed and started again.
                     self.workflow_phase = "LOADED"
+                    self.auto_finish_check.configure(state="normal")
                     self._last_outcome = progress.outcome
                     self._waiting_note = ""
                     self.update_ampel()
