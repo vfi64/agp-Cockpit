@@ -31,6 +31,7 @@
     candidateText: "",
     candidateStablePolls: 0,
     attachmentWaitStartedAt: 0,
+    transportHoldUntil: 0,
     pendingAttachmentKey: "",
     lastAssistantObservationAt: 0,
     assistantBaselineCount: 0,
@@ -2078,6 +2079,7 @@
   async function stop(reason, event="AUTO_STOPPED", operatorStop=true) {
     STATE.runGeneration += 1;
     STATE.running = false;
+    STATE.transportHoldUntil = 0;
     STATE.waitingForAssistant = false;
         STATE.assistantWaitStartedAt = 0;
     STATE.processingAssistant = false;
@@ -2189,7 +2191,9 @@
       "",
       "Do not return Protocol-v1 JSON for a normal task-first K07 cycle.",
       "Do not substitute prose or JSON for the required .py attachment.",
-      "Never answer with prose only: the Cockpit reads exactly one attached file per turn."
+      "Never answer with prose only: the Cockpit reads exactly one attached file per turn.",
+      // AGP_ONE_UPLOAD_PER_STEP_V1: ChatGPT limits file attachments per period.
+      "Every turn costs one file upload and ChatGPT limits uploads: combine related local work (inspect, change, test, commit) into one work order; avoid steps that only read or print."
     ].join("\n");
   }
 
@@ -2763,6 +2767,14 @@
     }
     await pollOperatorControl();
     if (STATE.paused) return;
+    if (STATE.running && STATE.transportHoldUntil) {
+      if (Date.now() < STATE.transportHoldUntil) return;
+      STATE.transportHoldUntil = 0;
+      STATE.lastEvent = "K07_ATTACHMENT_LIMIT_RETRY";
+      STATE.note = "Anhangslimit-Wartezeit vorbei — das gespeicherte Ergebnis wird erneut gesendet.";
+      await clientEvent("K07_ATTACHMENT_LIMIT_RETRY", {reason:STATE.note});
+      render();
+    }
     await pollExplicitTaskStartRequest();
     await refreshLiveMissionStatus();
     if (!STATE.running || !STATE.waitingForAssistant) return;
@@ -3145,6 +3157,7 @@
 
     } catch (err) {
       STATE.processingAssistant = false;
+      if (await holdForAttachmentLimit(err, runGeneration)) return;
       STATE.errors += 1;
       STATE.note = String(err);
       STATE.lastEvent = "TICK_ERROR";
@@ -3234,6 +3247,52 @@
     if (idleMs <= ASSISTANT_IDLE_TIMEOUT_MS && waitedMs <= ASSISTANT_MAX_WAIT_MS) return null;
     return {idle:idleMs > ASSISTANT_IDLE_TIMEOUT_MS, waitedMs, idleMs, mutations,
             waitedSeconds:Math.round(waitedMs / 1000)};
+  }
+
+  // AGP_ATTACHMENT_LIMIT_HOLD_V1 (live 2026-10-06, Kit slice GF-050 B, step 63):
+  // ChatGPT refused the result upload ("Du hast das Limit für Dateianhänge
+  // erreicht · Erneut versuchen 6. Okt., 19:49"); three retries within seconds
+  // ended the task STOPPED and it had to be restarted from scratch. The result
+  // stays local with delivery PENDING; the loop now waits until the named time
+  // and re-delivers it (the visible command file is replayed, never re-run).
+  const ATTACHMENT_LIMIT_PATTERN = /Limit für Dateianh|upload limit|limit for file|file attachment limit|attachment limit/i;
+  const ATTACHMENT_LIMIT_FALLBACK_MS = 15 * 60 * 1000;
+  const ATTACHMENT_LIMIT_MAX_MS = 24 * 60 * 60 * 1000;
+
+  function attachmentLimitRetryAt(message, now=Date.now()) {
+    const text = String(message || "");
+    if (!ATTACHMENT_LIMIT_PATTERN.test(text)) return 0;
+    const match = /(?:Erneut versuchen|Try again|retry)[^0-9]*(?:[^"\]]*?\s)?(\d{1,2}):(\d{2})\s*([AaPp][Mm])?/.exec(text);
+    if (!match) return now + ATTACHMENT_LIMIT_FALLBACK_MS;
+    let hours = Number(match[1]) % 24;
+    const minutes = Number(match[2]);
+    const meridiem = String(match[3] || "").toUpperCase();
+    if (meridiem === "PM" && hours < 12) hours += 12;
+    if (meridiem === "AM" && hours === 12) hours = 0;
+    const target = new Date(now);
+    target.setHours(hours, minutes, 0, 0);
+    let at = target.getTime() + 60 * 1000;          // one minute after the named time
+    if (at <= now) {
+      // Long past means the named time lies after midnight; otherwise it has
+      // just passed and the upload is tried again in a minute.
+      at = now - at > 12 * 60 * 60 * 1000 ? at + 24 * 60 * 60 * 1000 : now + 60 * 1000;
+    }
+    return Math.min(at, now + ATTACHMENT_LIMIT_MAX_MS);
+  }
+
+  async function holdForAttachmentLimit(err, runGeneration) {
+    const until = attachmentLimitRetryAt(String(err && err.message ? err.message : err));
+    if (!until || !STATE.running || STATE.runGeneration !== runGeneration) return false;
+    STATE.transportHoldUntil = until;
+    STATE.waitingForAssistant = true;
+    STATE.assistantWaitStartedAt = 0;      // no answer is awaited while holding
+    STATE.pendingAttachmentKey = "";
+    const clock = new Date(until).toLocaleTimeString("de-DE", {hour:"2-digit", minute:"2-digit"});
+    STATE.lastEvent = "K07_ATTACHMENT_LIMIT_HOLD";
+    STATE.note = `ChatGPT-Anhangslimit erreicht — das Ergebnis bleibt lokal gespeichert; erneuter Versand automatisch um ${clock}.`;
+    await clientEvent("K07_ATTACHMENT_LIMIT_HOLD", {reason:STATE.note, retry_at:new Date(until).toISOString()});
+    render();
+    return true;
   }
 
   const LIVE_PROBE = {

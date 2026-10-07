@@ -51,7 +51,7 @@ def test_execution_diagnostic_carries_its_candidate_bundle_projection(tmp_path):
         "stdout": log.read_text(encoding="utf-8"),
     })
     projected = rp.project_bundle(diagnostic)
-    assert projected["stdout"]["agp_omitted"].startswith("same text as the attached run_next log")
+    assert projected["stdout"]["agp_omitted"].startswith("same text as \"run_next_log\"")
     inner = projected["candidate_return_bundle_projections"]["7_x_return_bundle.json"]
     assert inner["pr"] == 3 and inner["previous_bundle"]["agp_omitted"]
     assert projected["agp_projection"]["source"] == diagnostic.name
@@ -73,7 +73,9 @@ def test_delivery_keeps_small_results_and_projects_large_ones_deterministically(
     assert large.read_bytes() == before                      # the local evidence is untouched
     payload = json.loads(delivered.read_text(encoding="utf-8"))
     assert payload["agp_projection"]["source_sha256"] and payload["agp_projection"]["source_bytes"] == len(before)
-    assert Path(first["output_file"]).name == log.name and first["bytes_after"] < first["bytes_before"] / 5
+    assert first["output_file"] is None and first["embedded_log"] == log.name   # one upload per step
+    assert payload["run_next_log"]["source"] == log.name and "agp:" in payload["run_next_log"]["text"]
+    assert first["bytes_after"] < first["bytes_before"] / 5
     content = delivered.read_bytes()
     second = rp.delivery_files(tmp_path, large, log)
     assert second == first and delivered.read_bytes() == content     # pure function of the bytes
@@ -91,3 +93,35 @@ def test_bridge_attaches_the_projection():
     assert "result_projection.delivery_files(repo_root, result_path, output_path)" in source
     assert '"result_file": delivery["result_file"]' in source
     assert '"output_file": delivery["output_file"]' in source
+
+
+def test_one_upload_per_step_embeds_the_run_next_log(tmp_path):
+    """AGP_ONE_UPLOAD_PER_STEP_V1 (live 2026-10-06, step 63: ChatGPT attachment limit)."""
+    result = _write(tmp_path / "Download" / "63_x_return_bundle.json", {"status": "PASS", "pr": 7})
+    log = tmp_path / "Download" / "63_run_next_output.txt"
+    log.write_text("short log\n", encoding="utf-8")
+    stats = rp.delivery_files(tmp_path, result, log)
+    delivered = Path(stats["result_file"])
+    assert stats["output_file"] is None and delivered.name == result.name
+    payload = json.loads(delivered.read_text(encoding="utf-8"))
+    assert payload["pr"] == 7 and payload["run_next_log"]["text"] == "short log\n"
+    assert payload["run_next_log"]["source_bytes"] == len("short log\n")
+    assert payload["agp_projection"]["source"] == result.name
+
+
+def test_a_non_json_result_travels_in_an_envelope_with_its_log(tmp_path):
+    broken = tmp_path / "Download" / "4_d_return_bundle.json"
+    broken.parent.mkdir(parents=True)
+    broken.write_text("not json", encoding="utf-8")
+    log = tmp_path / "Download" / "4_run_next_output.txt"
+    log.write_text("trace\n", encoding="utf-8")
+    stats = rp.delivery_files(tmp_path, broken, log)
+    payload = json.loads(Path(stats["result_file"]).read_text(encoding="utf-8"))
+    assert payload["result_text"] == "not json" and payload["run_next_log"]["text"] == "trace\n"
+    assert stats["output_file"] is None and broken.read_text(encoding="utf-8") == "not json"
+
+
+def test_recovery_prompt_names_the_embedded_log():
+    from agp_cockpit.core import file_loop_orchestrator as orchestrator
+    assert "both attached files" not in orchestrator.RECOVERY_CONTINUATION_PREFIX
+    assert '"run_next_log"' in orchestrator.RECOVERY_CONTINUATION_PREFIX

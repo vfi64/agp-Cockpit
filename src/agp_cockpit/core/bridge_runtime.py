@@ -63,6 +63,8 @@ class BridgeRuntime:
             "EXTENSION_HANDSHAKE",
             "COMPOSER_MODEL_VERIFIED", "COMPOSER_MODEL_NOT_VERIFIED",
             "COMPOSER_MODEL_RECOVERY_EXHAUSTED",
+            # AGP_ATTACHMENT_LIMIT_HOLD_V1: recorded for the Lage, never a block.
+            "K07_ATTACHMENT_LIMIT_HOLD", "K07_ATTACHMENT_LIMIT_RETRY",
         }
         state = self.state
         if event not in allowed or state is None:
