@@ -1,0 +1,87 @@
+{
+  "source": "Seed modelled on step 1862 (2026-10-07: terminal reply card without download link, lost reply); built in the cloud test workspace, not a live capture.",
+  "snapshot": {
+    "event": "K07_TERMINAL_FILE_DOWNLOAD_FAILED",
+    "time": 0,
+    "mission_id": "seed",
+    "message": "terminal reply card without href",
+    "shape": {
+      "v": 2,
+      "composer_form": {
+        "t": "form",
+        "c": [
+          {
+            "t": "div",
+            "c": [
+              {
+                "t": "div",
+                "r": "textbox",
+                "l": "ChatGPT fragen",
+                "ce": 1,
+                "i": "prompt-textarea"
+              },
+              {
+                "t": "input",
+                "ty": "file",
+                "z": 1,
+                "v": 1
+              },
+              {
+                "t": "button",
+                "id": "composer-plus-btn",
+                "ty": "button",
+                "l": "Dateien hinzufügen"
+              },
+              {
+                "t": "button",
+                "id": "send-button",
+                "l": "Prompt senden"
+              }
+            ]
+          }
+        ]
+      },
+      "last_assistant": {
+        "t": "div",
+        "a": "assistant",
+        "c": [
+          {
+            "t": "p"
+          },
+          {
+            "t": "div",
+            "c": [
+              {
+                "t": "button",
+                "ty": "button",
+                "c": [
+                  {
+                    "t": "span",
+                    "f": "1862_agp_terminal.json"
+                  },
+                  {
+                    "t": "span"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "nodes": 12,
+      "truncated": false
+    }
+  },
+  "expect": {
+    "composer": "prompt-textarea",
+    "composer_in_form": true,
+    "touchpoint": "ok",
+    "send_button": "send-button",
+    "generation_active": false,
+    "last_turn_cards": {
+      "1862:terminal": [
+        "1862_agp_terminal.json"
+      ]
+    }
+  }
+}

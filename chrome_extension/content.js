@@ -3593,8 +3593,8 @@
       return;
     }
     await clientEvent("MISSION_TOUCHPOINT_SELFTEST", {
-      ok:touchpoints.ok, failure:touchpoints.reason, snapshot:touchpoints.snapshot,
-      fingerprint:touchpoints.fingerprint || "", ui_signature:touchpoints.ui_signature || []});
+      ok:touchpoints.ok, failure:touchpoints.reason, snapshot:touchpoints.snapshot, fingerprint:touchpoints.fingerprint || "",
+      ui_signature:touchpoints.ui_signature || [], fingerprint_version:touchpoints.fingerprint_version || 0});
     if (!touchpoints.ok) {
       const message = typeof agpMissionTouchpointMessage === "function"
         ? agpMissionTouchpointMessage(touchpoints.reason)
