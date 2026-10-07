@@ -1,5 +1,6 @@
 importScripts("result_file_attachment.js");
 importScripts("native_message_evidence.js");
+importScripts("build_identity.js");
 
 const ALARM_NAME = "agp-browser-refresh-tabs";
 const LAST_HANDLED = "agpLastHandledRefreshGeneration";
@@ -157,12 +158,19 @@ async function agpForgetCommandFileDownload(message) {
   return {ok:true, stage:"DOWNLOAD_REMOVED", download_id:id};
 }
 
-async function performRefresh(generation) {
+async function performRefresh(generation, expectedBuild = "") {
   const state = await chrome.storage.local.get([LAST_HANDLED]);
   const handled = Number(state[LAST_HANDLED] || 0);
 
   if (!Number.isFinite(generation) || generation <= handled) {
     return {accepted:false, reason:"already-handled"};
+  }
+  // AGP_SINGLE_REFRESH_V1 (live 2026-10-07): this worker already runs the staged
+  // build; a second reload would orphan the content scripts of the open tabs.
+  const ownBuild = String(globalThis.AGP_EXTENSION_BUILD_ID || "");
+  if (expectedBuild && ownBuild && expectedBuild === ownBuild) {
+    await chrome.storage.local.set({[LAST_HANDLED]:generation});
+    return {accepted:false, reason:"current-build", generation};
   }
 
   const tabs = await chrome.tabs.query({
@@ -223,7 +231,7 @@ chrome.runtime.onMessage.addListener(
       return false;
     }
 
-    performRefresh(Number(message.generation || 0))
+    performRefresh(Number(message.generation || 0), String(message.expected_build_id || ""))
       .then(sendResponse)
       .catch(error => {
         sendResponse({
@@ -250,8 +258,42 @@ async function agpReloadPendingTabs() {
   return pending.tabIds.length;
 }
 
+// AGP_ORPHAN_TAB_RECOVERY_V1 (live 2026-10-07): after a reload of the extension a
+// ChatGPT tab whose content script belongs to the old instance is orphaned (no
+// bridge panel, no polling) until it is reloaded. The new worker pings every
+// ChatGPT tab once it is loaded and reloads those that do not answer.
+async function agpReloadOrphanedTabs(skip = []) {
+  let tabs = [];
+  try {
+    tabs = await chrome.tabs.query({url:["https://chatgpt.com/*", "https://www.chatgpt.com/*"]});
+  } catch (_) { return 0; }
+  let reloaded = 0;
+  for (const tab of tabs) {
+    if (!Number.isInteger(tab.id) || skip.includes(tab.id) || tab.status !== "complete") continue;
+    let alive = false;
+    try {
+      const answer = await chrome.tabs.sendMessage(tab.id, {type:"AGP_PING"});
+      alive = Boolean(answer && answer.ok);
+    } catch (_) { alive = false; }
+    if (!alive) {
+      try { await chrome.tabs.reload(tab.id); reloaded += 1; } catch (_) {}
+    }
+  }
+  return reloaded;
+}
+
+async function agpRecoverTabsAfterReload() {
+  const state = await chrome.storage.local.get([PENDING]);
+  const pending = (state[PENDING] && Array.isArray(state[PENDING].tabIds)) ? state[PENDING].tabIds : [];
+  await agpReloadPendingTabs();
+  await agpReloadOrphanedTabs(pending);
+}
+
 if (chrome.runtime.onInstalled && typeof chrome.runtime.onInstalled.addListener === "function") {
-  chrome.runtime.onInstalled.addListener(() => { void agpReloadPendingTabs(); });
+  chrome.runtime.onInstalled.addListener(() => { void agpRecoverTabsAfterReload(); });
+}
+if (chrome.runtime.onStartup && typeof chrome.runtime.onStartup.addListener === "function") {
+  chrome.runtime.onStartup.addListener(() => { void agpReloadOrphanedTabs(); });
 }
 
 chrome.alarms.onAlarm.addListener(async alarm => {

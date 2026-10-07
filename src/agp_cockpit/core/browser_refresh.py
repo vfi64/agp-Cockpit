@@ -14,6 +14,9 @@ class BrowserRefreshRequest:
     requested_at_unix: float
 
 
+SAME_TARGET_SECONDS = 600
+
+
 def refresh_request_path(repository_root: Path) -> Path:
     return repository_root / ".local" / "agp-cockpit" / "browser" / "refresh_request.json"
 
@@ -31,6 +34,20 @@ def request_browser_refresh(
     root = repository_root.expanduser().resolve()
     path = refresh_request_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
+    # AGP_SINGLE_REFRESH_V1 (live 2026-10-07, r5 -> r6): the handshake and the startup
+    # worker both asked for the new build 130 ms apart; the second generation reloaded
+    # the already current extension again and orphaned the freshly reloaded ChatGPT tab
+    # (the owner had to reload it by hand). One request per target build and minute.
+    if target_build_id:
+        try:
+            current = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            current = None
+        if (isinstance(current, dict) and current.get("target_build_id") == str(target_build_id)[:120]
+                and time.time() - float(current.get("requested_at_unix") or 0) < SAME_TARGET_SECONDS):
+            return BrowserRefreshRequest(generation=int(current["generation"]),
+                                         reason=str(current.get("reason") or ""),
+                                         requested_at_unix=float(current.get("requested_at_unix") or 0))
 
     request = BrowserRefreshRequest(
         generation=time.time_ns(),

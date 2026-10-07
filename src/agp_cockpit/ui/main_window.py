@@ -228,14 +228,17 @@ class MainWindow(ttk.Frame):
             text="Ollama",
             padding=8,
         )
+        # AGP_SYSTEM_BOXES_V1 (owner 2026-10-07): Ollama and Hermes share one height and
+        # their buttons sit on the same line at the bottom of both boxes.
         ollama.grid(
             row=1,
             column=0,
-            sticky="new",
+            sticky="nsew",
             padx=(0, 4),
             pady=(8, 0),
         )
         ollama.columnconfigure(0, weight=1)
+        ollama.rowconfigure(2, weight=1)
 
         ttk.Label(
             ollama,
@@ -280,7 +283,7 @@ class MainWindow(ttk.Frame):
         ollama_buttons.grid(
             row=2,
             column=0,
-            sticky="w",
+            sticky="sw",
             pady=(8, 0),
         )
 
@@ -315,11 +318,12 @@ class MainWindow(ttk.Frame):
         hermes.grid(
             row=1,
             column=1,
-            sticky="new",
+            sticky="nsew",
             padx=(4, 0),
             pady=(8, 0),
         )
         hermes.columnconfigure(0, weight=1)
+        hermes.rowconfigure(1, weight=1)
 
         hermes_label = ttk.Label(
             hermes,
@@ -342,7 +346,7 @@ class MainWindow(ttk.Frame):
         self.hermes_model_button.grid(
             row=1,
             column=0,
-            sticky="w",
+            sticky="sw",
             pady=(8, 0),
         )
 

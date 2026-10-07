@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- One extension refresh per new build (a second one orphaned the ChatGPT tab after „Neu bauen und neu starten“), orphaned ChatGPT tabs reload themselves, „Wiederherstellen“ and „Weitere anzeigen“ align, Ollama and Hermes share one height; build `release-0.2.1-r7`.
 - The „Arbeiten“ tab gets the Ampel, a fixed-height editor and a decision box under the editor whose buttons stay visible, with facts checked by the Cockpit and „Änderungen ansehen“; all tabs wrap to the window width and the repository path has its own line; build `release-0.2.1-r6`.
 - One upload per step (the run_next log travels inside the result file), a ChatGPT attachment limit holds the task until the named time and re-sends the kept result instead of stopping it, and the mission start asks for few combined work orders; build `release-0.2.1-r4`.
 - The Lage follows tasks of the „Arbeiten“ tab, a finished one switches back to Standard Tasks, results name their task, a fresh work branch is no leftover, effects are listed by start click or approval, Kit findings come from the Cockpit checkout, the stale-app line wraps; KIT-GF-024 verified; build `release-0.2.1-r3`.

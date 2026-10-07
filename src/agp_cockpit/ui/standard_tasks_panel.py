@@ -152,9 +152,8 @@ class StandardTasksPanel(ttk.Frame):
         self.path_row = path
         first = True
         for verb in sorted((v for v in VERBS if v.group == "weg"), key=lambda v: v.step or 0):
-            if not first:
-                path.add(ttk.Label(path, text="→"))
-            self._verb_button(path, verb, 0)
+            # the arrow belongs to the step it points to: a wrapped row never ends with „→“
+            self._verb_button(path, verb, 0, arrow=not first)
             first = False
         # „Bei Problemen“ and „Weitere“ share one row (AGP_COMPACT_LAGE_V1).
         problems = FlowRow(sections)
@@ -540,17 +539,19 @@ class StandardTasksPanel(ttk.Frame):
         return "Freigegebene Wirkungen " + "; ".join(
             f"({label}): {'; '.join(items)}" for label, items in groups.items()) + "."
 
-    def _verb_button(self, parent: ttk.Frame, verb: Verb, column: int) -> None:
+    def _verb_button(self, parent: ttk.Frame, verb: Verb, column: int, *, arrow: bool = False) -> None:
         cell = ttk.Frame(parent)
         if isinstance(parent, FlowRow):
             parent.add(cell)
         else:
             cell.grid(row=0, column=column, padx=(0, 8), sticky="n")
+        if arrow:
+            ttk.Label(cell, text="→").grid(row=0, column=0, padx=(0, 8))
         button = ttk.Button(cell, text=self._verb_text(verb, False),
                             command=lambda selected=verb: self.run_verb(selected))
-        button.grid(row=0, column=0, sticky="ew")
+        button.grid(row=0, column=1, sticky="ew")
         badge = ttk.Label(cell, text=verb.badge, foreground="#888888", font=("TkDefaultFont", 10))
-        badge.grid(row=1, column=0)
+        badge.grid(row=1, column=1)
         self.verb_badges[verb.key] = badge
         self.verb_buttons[verb.key] = button
         Tooltip(button, lambda selected=verb: self._tooltip(selected))
