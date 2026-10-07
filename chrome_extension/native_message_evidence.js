@@ -271,12 +271,31 @@ function agpFnv1a(text) {
 }
 
 function agpUiFingerprint(composer, form) {
+  // AGP_UI_FINGERPRINT_V2 (live 2026-10-07, variant a0785191): at the start the composer form
+  // carries no data-testid, so V1 saw only "editable div" and "3 file inputs". V2 adds the
+  // composer's attribute names, the element chain up to its form and the labels of the
+  // form's buttons (UI labels, never chat text).
   const items = new Set();
+  const fold = value => String(value || "").replace(/\d+/g, "#");
   if (composer) {
     const editable = composer.getAttribute && composer.getAttribute("contenteditable");
     items.add("composer:" + String(composer.tagName || "").toLowerCase() + (editable ? ":editable" : ""));
+    for (const attr of Array.from(composer.attributes || [])) {
+      const name = String(attr.name || "");
+      if (name && name !== "style" && name !== "class") items.add("attr:" + fold(name).slice(0, 40));
+    }
+    const chain = [];
+    for (let el = composer.parentElement, depth = 0; el && depth < 8; el = el.parentElement, depth += 1) {
+      chain.push(String(el.tagName || "").toLowerCase());
+      if (el === form) break;
+    }
+    items.add("chain:" + chain.join(">"));
   }
   if (form) {
+    for (const button of form.querySelectorAll("button")) {
+      const label = String((button.getAttribute && button.getAttribute("aria-label")) || "").trim();
+      if (label && label.length <= 40) items.add("button:" + fold(label));
+    }
     for (const el of form.querySelectorAll("[data-testid]")) {
       items.add("testid:" + String(el.getAttribute("data-testid") || "").replace(/\d+/g, "#").slice(0, 60));
     }

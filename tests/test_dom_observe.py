@@ -87,7 +87,9 @@ def test_failures_after_the_start_send_their_shape():
     assert "failureDomShape()" in indeterminate
     helper = CONTENT[CONTENT.index("  function failureDomShape() {"):CONTENT.index("  function submitComposerWithoutButton(")]
     assert "agpDomShape({composer_form:form, last_assistant:" in helper
-    assert "'[role=\"alert\"]'" in helper and "text.length <= 120" in helper
+    assert "AGP_DOM.alertNotices()" in helper
+    adapter = (ROOT / "chrome_extension/chatgpt_dom.js").read_text(encoding="utf-8")
+    assert "alert: '[role=\"alert\"]'" in adapter and "text.length <= 120" in adapter
 
 
 # --- AGP_SEND_OUTCOME_FIRST_V1 --------------------------------------------------------------

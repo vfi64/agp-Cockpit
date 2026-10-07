@@ -732,6 +732,16 @@ This section is normative for the file loop after local execution.
    standard task stopped by a lost or late reply is checked against the repository; a merged
    „Abschließen“ reads „Fertig ✓ — vom Cockpit geprüft“ (`AGP_LOST_REPLY_CHECK_V1`).
 
+71. One page adapter (`AGP_DOM_ADAPTER_V1`, slice 3a, build release-0.2.2-r3, 2026-10-07):
+   ChatGPT's page structure is named in `chrome_extension/chatgpt_dom.js` (`AGP_DOM`, loaded
+   right before content.js). Contracts: `assistantTurns()` the assistant messages in document
+   order; `fileCardRow(anchor)` name, href, button flag and download control of a file card;
+   `stepFileCards(step, kind)` the visible cards of the expected step (`command`:
+   `<step>_*.py`, `terminal`: `<step>_agp_terminal.json`), never in the composer form, a
+   user turn, a dialog or a hidden/inert container, first card per name; `alertNotices()`
+   short `role="alert"` texts. The UI fingerprint (rule 70) is V2: attribute names, element
+   chain and button labels of the composer form. Further touchpoints move in later slices.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

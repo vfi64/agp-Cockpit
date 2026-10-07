@@ -534,6 +534,9 @@ button; (5) done — UI fingerprint per start, `UI_VARIANT_CHANGED`, System tab 
 sanitized page shapes with every failure after the start; replay against the probe code follows with
 (3), which starts the modularization of content.js (owner 2026-10-07: classic scripts, one namespace
 each, no bundler; DOM adapter first). Open: (2) replay, (3).
+Update 2026-10-07 (slice 3a, COMMUNICATION_PROTOCOL 71, build release-0.2.2-r3): `chatgpt_dom.js` carries
+the file-card, assistant-turn and alert touchpoints; content.js selector calls ratcheted to 23. Next
+slices: composer and send controls, generation/stop signals, attachment preview; then (2) replay.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

@@ -251,7 +251,7 @@
   }
 
   function assistantMessageNodes() {
-    return Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
+    return AGP_DOM.assistantTurns();   // AGP_DOM_ADAPTER_V1
   }
 
   // AGP_K07_ASSISTANT_BASELINE_SET_1404
@@ -369,23 +369,7 @@
 
 
   function pythonAttachmentRow(anchor) {
-    const href = String(anchor.href || anchor.getAttribute("href") || "").trim();
-    const label = String(
-      anchor.getAttribute("download") ||
-      anchor.getAttribute("aria-label") ||
-      anchor.getAttribute("title") ||
-      anchor.textContent ||
-      ""
-    ).trim();
-    const match = label.match(/(?:^|[\s/])([^\s/]+\.(?:py|json)(?:[?#][^\s]*)?)/i);
-    const name = match ? match[1] : label.split("/").pop().trim();
-    let row = anchor;
-    let downloadNode = null;
-    for (let depth = 0; depth < 8 && row; depth += 1, row = row.parentElement) {
-      downloadNode = row.querySelector('button[aria-label="Datei herunterladen"], button[aria-label="Download"]');
-      if (downloadNode) break;
-    }
-    return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor, downloadNode};
+    return AGP_DOM.fileCardRow(anchor);   // AGP_DOM_ADAPTER_V1
   }
 
   // AGP_K07_EXPECTED_STEP_ATTACHMENT_IDENTITY_V1
@@ -400,25 +384,8 @@
   function expectedStepAttachmentCandidates(expectedStep, kind="command") {
     // AGP_K07_TERMINAL_REPLY_FILE_V1: a terminal answer is the file card
     // <expectedStep>_agp_terminal.json, with the same identity rules.
-    const pattern = kind === "terminal"
-      ? new RegExp(`^${Number(expectedStep)}_agp_terminal\\.json(?:[?#]|$)`)
-      : new RegExp(`^${Number(expectedStep)}_[^\\s/]+\\.py(?:[?#]|$)`, "i");
-    const unique = new Map();
-    for (const anchor of document.querySelectorAll('a[href], button, [role="button"]')) {
-      if (anchor.closest('form, [data-message-author-role="user"], [role="dialog"], [aria-modal="true"]')) continue;
-      // AGP_COMPOSER_RESOLVER_V1: ChatGPT can keep a previous conversation in
-      // a hidden/inert container after "new chat" (live 2026-09-30: step 1480
-      // of the old chat was reported visible on https://chatgpt.com/).
-      if (anchor.closest('[inert], [aria-hidden="true"]')) continue;
-      const anchorRect = anchor.getBoundingClientRect();
-      if (!(anchorRect.width > 0 && anchorRect.height > 0)) continue;
-      const item = pythonAttachmentRow(anchor);
-      if (!pattern.test(String(item.name || ""))) continue;
-      if (!(item.href || item.isButton)) continue;
-      const key = `${item.href}\n${item.name}`;
-      if (!unique.has(key)) unique.set(key, item);
-    }
-    return Array.from(unique.values());
+    // AGP_COMPOSER_RESOLVER_V1: cards in hidden/inert containers are skipped.
+    return AGP_DOM.stepFileCards(expectedStep, kind);   // AGP_DOM_ADAPTER_V1
   }
 
   function expectedStepFileVisible(step) {
@@ -456,25 +423,7 @@
     const rows = Array.from(assistant.querySelectorAll(
       "a[href], button[aria-label$=\".py\"], button, [role=\"button\"]"
     ))
-      .map(anchor => {
-        const href = String(anchor.href || anchor.getAttribute("href") || "").trim();
-        const label = String(
-          anchor.getAttribute("download") ||
-          anchor.getAttribute("aria-label") ||
-          anchor.getAttribute("title") ||
-          anchor.textContent ||
-          ""
-        ).trim();
-        const match = label.match(/(?:^|[\s/])([^\s/]+\.py(?:[?#][^\s]*)?)/i);
-        const name = match ? match[1] : label.split("/").pop().trim();
-        let row = anchor;
-        let downloadNode = null;
-        for (let depth = 0; depth < 8 && row; depth += 1, row = row.parentElement) {
-          downloadNode = row.querySelector('button[aria-label="Datei herunterladen"], button[aria-label="Download"]');
-          if (downloadNode) break;
-        }
-        return {href, name, isButton: anchor.tagName === "BUTTON", node: anchor, downloadNode};
-      })
+      .map(anchor => AGP_DOM.fileCardRow(anchor))   // AGP_DOM_ADAPTER_V1 (the .py filter follows)
       .filter(item => (
         /\.py(?:$|[?#\s])/i.test(item.name || "") ||
         /\.py(?:$|[?#])/i.test(item.href || "")
@@ -518,7 +467,7 @@
       el.getAttribute("download") || el.getAttribute("aria-label") ||
       el.getAttribute("title") || el.textContent || ""
     ).replace(/\s+/g, " ").trim();
-    const pythonLabels = Array.from(document.querySelectorAll('a[href], button, [role="button"]'))
+    const pythonLabels = Array.from(document.querySelectorAll(AGP_DOM.SELECTORS.fileCardCandidate))
       .map(labelOf).filter(label => /\.py(?:$|[?#\s])/i.test(label)).slice(-5).map(label => label.slice(0, 120));
     const stopLabels = Array.from(document.querySelectorAll("button"))
       .map(button => String(button.getAttribute("aria-label") || button.getAttribute("data-testid") || ""))
@@ -1829,10 +1778,7 @@
       const form = el && el.closest ? el.closest("form") : null;
       const turns = assistantMessageNodes();
       const shape = agpDomShape({composer_form:form, last_assistant:turns.length ? turns[turns.length - 1] : null});
-      shape.alerts = Array.from(document.querySelectorAll('[role="alert"]'))
-        .map(node => String(node.innerText || node.textContent || "").trim())
-        .filter(text => text && text.length <= 120 && !text.includes("\n"))
-        .slice(0, 5);
+      shape.alerts = AGP_DOM.alertNotices();   // AGP_DOM_ADAPTER_V1
       return shape;
     } catch (error) {
       return {nodes:0, error:String(error).slice(0, 120)};

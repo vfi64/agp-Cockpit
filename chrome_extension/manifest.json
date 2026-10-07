@@ -29,6 +29,7 @@
         "phase8_multi_round.js",
         "native_message_evidence.js",
         "browser_native_transport.js",
+        "chatgpt_dom.js",
         "content.js"
       ],
       "run_at": "document_idle"

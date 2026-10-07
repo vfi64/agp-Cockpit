@@ -47,7 +47,9 @@ def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     assert 'button[aria-label$=".py"]' in content
     assert 'button, [role="button"]' in content
     assert "readAssistantButtonAttachment" in content
-    assert 'button[aria-label="Datei herunterladen"]' in content
+    # AGP_DOM_ADAPTER_V1: the file card's download control is named by the page adapter.
+    adapter = (ROOT / "chrome_extension/chatgpt_dom.js").read_text()
+    assert 'button[aria-label="Datei herunterladen"]' in adapter
     assert '"/v1/file-loop/download"' in content
     assert "K07_ATTACHMENT_DOWNLOAD_USED" in content
     assert '[role="dialog"] .cm-content[role="textbox"]' in content
