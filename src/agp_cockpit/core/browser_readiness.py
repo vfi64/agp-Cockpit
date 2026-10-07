@@ -27,15 +27,18 @@ def _read_json(path: Path) -> dict:
 
 
 def _startup_status_path(root: Path) -> Path:
-    return root / ".local" / "agp-cockpit" / "startup" / "status.json"
+    from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+    return runtime_dir(root, "startup", "status.json")
 
 
 def _handled_refresh_path(root: Path) -> Path:
-    return root / ".local" / "agp-cockpit" / "browser" / "handled_refresh.json"
+    from agp_cockpit.core.runtime_paths import runtime_dir
+    return runtime_dir(root, "browser", "handled_refresh.json")
 
 
 def _extension_path(root: Path) -> Path:
-    return root / ".local" / "agp-cockpit" / "bridge" / "extension.json"
+    from agp_cockpit.core.runtime_paths import runtime_dir
+    return runtime_dir(root, "bridge", "extension.json")
 
 
 def _atomic_write_json(path: Path, payload: dict) -> None:

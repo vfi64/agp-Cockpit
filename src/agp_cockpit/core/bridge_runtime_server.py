@@ -5,6 +5,7 @@ import secrets
 from dataclasses import dataclass
 from pathlib import Path
 
+from agp_cockpit.core.runtime_paths import runtime_dir
 from agp_cockpit.core.bridge_server import (
     BridgeServerConfig,
     CockpitBridgeServer,
@@ -34,7 +35,7 @@ class BridgeRuntimeServer:
         self.local_root = (
             runtime_root.expanduser().resolve()
             if runtime_root is not None
-            else (self.repository_root / ".local" / "agp-cockpit" / "bridge")
+            else runtime_dir(self.repository_root, "bridge")   # AGP_RUNTIME_HOME_V1
         )
         self.local_root.mkdir(parents=True, exist_ok=True)
 

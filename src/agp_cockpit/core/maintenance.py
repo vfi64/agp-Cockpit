@@ -85,13 +85,19 @@ def plan(root: Path, *, now: float | None = None, keep_steps: int = KEEP_STEPS,
     root = Path(root).resolve()
     now = time.time() if now is None else now
     max_age = max_age_days * 86400
-    local = root / ".local" / "agp-cockpit"
+    from agp_cockpit.core.runtime_paths import runtime_base
+    local = runtime_base(root)   # AGP_RUNTIME_HOME_V1
     candidates = (
         _download_candidates(root, now, keep_steps, max_age)
         + _aged(local / "delivery", "Zustellungen", now, max_age)
         + _aged(local / "tmp", "Temporär", now, TMP_AGE_SECONDS)
         + _aged(local / "ci", "CI-Nachweise", now, max_age, keep_newest=KEEP_CI_EVIDENCE)
     )
+    # AGP_RUNTIME_HOME_V1: the Cockpit runtime that earlier builds left in a steered
+    # repository is offered as a whole once the runtime lives in the Cockpit's home.
+    legacy = root / ".local" / "agp-cockpit"
+    if local != legacy and legacy.is_dir():
+        candidates.append(Candidate(legacy, _size(legacy), "Alte Cockpit-Laufzeit im Repository"))
     kit_argv, preview = None, "Kit nicht gefunden — Kit-Logs werden nicht aufgeräumt."
     if kit_binary is not None:
         kit_argv = (str(kit_binary), "artifact-gc", "--tmp-logs")
@@ -129,7 +135,8 @@ def execute(root: Path, approved: Plan, *, kit_binary: Path | None = None,
     """Delete what the approved plan lists and a fresh plan still lists."""
     root = Path(root).resolve()
     fresh = {c.path for c in plan(root, now=now).candidates}
-    allowed = (root / "Download", root / ".local" / "agp-cockpit")
+    from agp_cockpit.core.runtime_paths import runtime_base
+    allowed = (root / "Download", runtime_base(root), root / ".local" / "agp-cockpit")
     deleted, freed, skipped = 0, 0, []
     for candidate in approved.candidates:
         path = candidate.path

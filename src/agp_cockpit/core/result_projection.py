@@ -157,7 +157,8 @@ def delivery_files(repository_root: Path, result_file: Path, output_file: Path |
     unprojectable or already small result is delivered unchanged.
     ``output_file`` of the returned stats is always None (one upload per step).
     """
-    target_dir = Path(repository_root) / ".local" / "agp-cockpit" / "delivery"
+    from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+    target_dir = runtime_dir(Path(repository_root), "delivery")
     stats = {"result_file": str(result_file), "output_file": None,
              "bytes_before": 0, "bytes_after": 0, "projected": [], "embedded_log": None}
 

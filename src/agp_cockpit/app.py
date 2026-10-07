@@ -88,6 +88,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if settings.repository_root != str(root):
         settings = persist_repository_root(settings, root)
 
+    # AGP_RUNTIME_HOME_V1 (slice A3): the runtime of a steered repository lives in the
+    # Cockpit's own checkout, before the first log line is written.
+    from agp_cockpit.core.runtime_paths import announce_home
+    announce_home(root)
     log = DiagnosticLogger(root)
     log.event(
         "DESKTOP_START",

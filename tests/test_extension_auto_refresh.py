@@ -118,9 +118,10 @@ def test_browser_copy_is_removed_only_after_the_bridge_accepted_the_file():
     assert forget.index("k07DownloadNameMatches") < forget.index("chrome.downloads.removeFile(id)")
 
 
-def test_work_orders_get_a_repository_tmpdir():
+def test_work_orders_get_a_cockpit_tmpdir():
     source = (ROOT / "src/agp_cockpit/core/file_loop_runner.py").read_text(encoding="utf-8")
-    assert '".local" / "agp-cockpit" / "tmp" / str(step)' in source
+    # AGP_RUNTIME_HOME_V1: the Cockpit's runtime folder of this repository (A3)
+    assert 'runtime_dir(root.resolve(), "tmp", str(step))' in source
     assert 'for name in ("TMPDIR", "TEMP", "TMP"):' in source
 
 

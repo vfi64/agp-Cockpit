@@ -514,7 +514,8 @@ def execute_with_run_next(
         runner_env["AGP_COCKPIT_REPOSITORY_ROOT"] = str(root.resolve())
         # AGP_MAINTENANCE_CLEANUP_V1: temporary files of a work order stay in
         # the repository (cleaned by maintenance), not scattered over /tmp.
-        work_tmp = root.resolve() / ".local" / "agp-cockpit" / "tmp" / str(step)
+        from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+        work_tmp = runtime_dir(root.resolve(), "tmp", str(step))
         work_tmp.mkdir(parents=True, exist_ok=True)
         for name in ("TMPDIR", "TEMP", "TMP"):
             runner_env[name] = str(work_tmp)
