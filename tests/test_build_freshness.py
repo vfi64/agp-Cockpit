@@ -39,3 +39,18 @@ def test_start_block_reason_names_the_restart(tmp_path, monkeypatch):
     monkeypatch.setattr(bf.sys, "frozen", True, raising=False)
     root = repo(tmp_path, bundle="other-build", source=bf.BRIDGE_BUILD_ID)
     assert bf.start_block_reason(root).startswith("Blockiert — Neuer Build vorhanden")
+
+
+def test_live_r11_an_older_checkout_is_no_reason_to_rebuild(tmp_path):
+    """AGP_BUILD_ORDER_V1 (live 2026-10-07): main before its pull carried r10 while r11 ran."""
+    assert bf.build_order("release-0.2.1-r10", "release-0.2.1-r11") == -1
+    assert bf.build_order("release-0.2.2", "release-0.2.1-r11") == 1
+    assert bf.build_order("release-0.2.1", "release-0.2.1-r1") == -1
+    assert bf.build_order("x", "release-0.2.1") is None
+    older = bf.check(repo(tmp_path, bundle="release-0.2.1-r11", source="release-0.2.1-r10"),
+                     running="release-0.2.1-r11", frozen=True)
+    assert not older.stale
+    newer = bf.check(repo(tmp_path / "n", source="release-0.2.1-r12"), running="release-0.2.1-r11", frozen=False)
+    assert newer.stale and "Quellstand (release-0.2.1-r12) ist neuer als die laufende App" in newer.message
+    other = bf.check(repo(tmp_path / "o", source="feature-x"), running="release-0.2.1-r11", frozen=False)
+    assert other.stale and "passt nicht zur laufenden App (release-0.2.1-r11)" in other.message
