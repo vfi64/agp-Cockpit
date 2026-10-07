@@ -155,11 +155,59 @@ def changelog_violations(source: str, repository_root: Path, *, runner=subproces
     if not re.search(rf"^## v{re.escape(version)}\b", text, re.MULTILINE):
         found.append(f"CHANGELOG.md has no section '## v{version}' yet; run the Kit's release preparation "
                      "first (AGP_RELEASE_CHANGELOG_GATE_V1)")
+    found.extend(build_id_violations(repository_root, version))
     return found
 
 
+BUILD_ID_FILES = (
+    ("src/agp_cockpit/version.py", re.compile(r'BRIDGE_BUILD_ID\s*=\s*"([^"]*)"')),
+    ("chrome_extension/build_identity.js", re.compile(r'AGP_EXTENSION_BUILD_ID\s*=\s*"([^"]*)"')),
+)
+
+
+def build_id_violations(repository_root: Path, version: str) -> list[str]:
+    """AGP_RELEASE_BUILD_ID_GATE_V1 (live 2026-10-07, release 0.2.2, step 1853): the release work
+    order wrote "release-0.2.2-r12" (the old rebuild counter kept); the CI turned red only after
+    commit, push and pull request, and the third failed step blocked the task. The release pull
+    request is now created only when both build-id files carry exactly release-<version>.
+    Repositories without these files (not the Cockpit) are not affected."""
+    expected = f"release-{version}"
+    found = []
+    for rel, pattern in BUILD_ID_FILES:
+        try:
+            match = pattern.search((Path(repository_root) / rel).read_text(encoding="utf-8"))
+        except OSError:
+            continue
+        actual = match.group(1) if match else ""
+        if actual != expected:
+            found.append(f"{rel}: the build id is {actual or 'missing'!r}; set it to exactly {expected!r} "
+                         "(no -r<N> suffix on a release) in an earlier work order, then create the release "
+                         "pull request (AGP_RELEASE_BUILD_ID_GATE_V1)")
+    return found
+
+
+def summary_violations(source: str) -> list[str]:
+    """AGP_RELEASE_SUMMARY_JSON_V1 (live 2026-10-07, release 0.2.2, step 1851): the release work
+    order handed the Kit's release preparation a text file; `--summary-lines-from` reads only a
+    JSON list of strings (or {"summary_lines": [...]}) and the step failed with rc 2."""
+    calls = [argv for argv in _kit_calls(source) if "--summary-lines-from" in argv]
+    if not calls:
+        return []
+    named = [argv[argv.index("--summary-lines-from") + 1] for argv in calls
+             if argv.index("--summary-lines-from") + 1 < len(argv)]
+    texts = [value for value in named if value != "<expr>" and not value.lower().endswith(".json")]
+    texts += [value for value in _strings(source)
+              if "summary" in value.lower() and value.lower().endswith((".txt", ".md"))]
+    if not texts:
+        return []
+    return [(f"--summary-lines-from reads only a JSON file (a list of strings, or {{\"summary_lines\": [...]}}); "
+             f"this work order names {sorted(set(texts))[:2]} — write the summary lines as JSON "
+             "(AGP_RELEASE_SUMMARY_JSON_V1)")]
+
+
 def violations(source: str, repository_root: Path) -> list[str]:
-    return category_violations(source, repository_root) + changelog_violations(source, repository_root)
+    return (category_violations(source, repository_root) + changelog_violations(source, repository_root)
+            + summary_violations(source))
 
 
 def manual_github_release_command(root: Path, version: str) -> str:

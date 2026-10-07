@@ -340,7 +340,7 @@ def verify_merged(repository_root: Path, kit_binary: Path, *, pr_decision: dict,
 
 def write_evidence(repository_root: Path, *, head: str, pr: int | None, decision: dict,
                    verdict: CiVerdict, facts: dict | None = None) -> Path:
-    from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+    from agp_cockpit.core.runtime_paths import runtime_dir  # AGP_RUNTIME_HOME_V1
     target = runtime_dir(Path(repository_root), "ci", f"{head or 'unknown'}.json")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps({"head": head, "pr": pr, "verdict": verdict.kind,

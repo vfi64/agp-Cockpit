@@ -180,11 +180,15 @@ def validate_command_content(
             violations = violations + release_violations(source, repository_root, catalog)
             violations = violations + merged_violations(source, repository_root)
             violations = violations + force_violations(source)
-            from agp_cockpit.core.kit_command_catalog import forbidden_execute_violations
+            from agp_cockpit.core.kit_command_catalog import (
+                forbidden_execute_violations,
+            )
             violations = violations + forbidden_execute_violations(source)
             from agp_cockpit.core.kit_command_catalog import short_head_sha_violations
             violations = violations + short_head_sha_violations(source)
-            from agp_cockpit.core.release_hygiene import violations as release_hygiene_violations
+            from agp_cockpit.core.release_hygiene import (
+                violations as release_hygiene_violations,
+            )
             violations = violations + release_hygiene_violations(source, repository_root)
     except SyntaxError as exc:
         raise ValueError(

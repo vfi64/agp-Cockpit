@@ -261,9 +261,12 @@ class StandardTasksPanel(ttk.Frame):
         return self._runtime_root
 
     def _ask_inputs(self, task: StandardTask) -> dict | None:
-        check = lambda values: task.check(self.repository_root, values)  # noqa: E731
+        check = lambda values: task.check(self.repository_root, values)
         if task.key == "release":
-            from agp_cockpit.core.standard_tasks import _current_version, release_resume_version
+            from agp_cockpit.core.standard_tasks import (
+                _current_version,
+                release_resume_version,
+            )
             from agp_cockpit.ui.release_dialog import ask_release_inputs
             return ask_release_inputs(self, current=_current_version(self.repository_root),
                                       resume=release_resume_version(self.repository_root), check=check)
@@ -659,7 +662,8 @@ class StandardTasksPanel(ttk.Frame):
         self.start_standard_task(task, inputs)
 
     def _task_running(self) -> bool:
-        from agp_cockpit.core.mission_http_client import mission_running   # AGP_ONE_TASK_ALL_TABS_V1
+        # AGP_ONE_TASK_ALL_TABS_V1
+        from agp_cockpit.core.mission_http_client import mission_running
         if getattr(self, "_task_active", False):   # AGP_AMPEL_TASK_ACTIVE_V1
             return True
         external = getattr(self, "external_task_active", None)

@@ -203,8 +203,8 @@ def _finish_contract(root: Path) -> dict:
             "Pull request merged with green CI for its head (verified by the Cockpit).",
             "Kit post-merge lifecycle complete; local main equals origin/main; main green.",
         ],
-        "constraints": ["Never from main, except to complete an open Kit post-merge lifecycle "
-                        "(AGP_FINISH_OPEN_FOLLOWUP_V1).", "No force push.",
+        "constraints": [("Never from main, except to complete an open Kit post-merge lifecycle "
+                         "(AGP_FINISH_OPEN_FOLLOWUP_V1)."), "No force push.",
                         "Merge only through the Kit's green-CI gates."],
     }
 
@@ -329,12 +329,12 @@ def _recover_contract(root: Path) -> dict:
                  "repository state; destructive steps only after a human decision."),
         "repository_root": str(root),
         "completion_contract": _verifier("recovered"),
-        "acceptance_criteria": ["The Cockpit's Lagebericht reports BEREIT, a work branch with own "
-                                "work, or main with only the Kit's post-merge follow-up open."],
+        "acceptance_criteria": [("The Cockpit's Lagebericht reports BEREIT, a work branch with own "
+                                 "work, or main with only the Kit's post-merge follow-up open.")],
         "constraints": [
             "Diagnose first.",
-            "Destructive steps only through Kit routes, dry run first, the signed execute only after "
-            "NEEDS_HUMAN and approval (AGP_DESTRUCTIVE_EXECUTE_GATE_V1).",
+            ("Destructive steps only through Kit routes, dry run first, the signed execute only after "
+             "NEEDS_HUMAN and approval (AGP_DESTRUCTIVE_EXECUTE_GATE_V1)."),
         ],
     }
 
@@ -478,8 +478,8 @@ def release_resume_version(root: Path) -> str:
 def _release_publication_text(root: Path) -> tuple[str, str]:
     """(constraint, what the live run publishes) for the repository's publication."""
     if _publication(root) == "github":
-        return ("publication: github — the Kit's signed run creates the annotated tag and the GitHub "
-                "Release entry; no PyPI or Zenodo; never gh release in a work order.",
+        return (("publication: github — the Kit's signed run creates the annotated tag and the GitHub "
+                 "Release entry; no PyPI or Zenodo; never gh release in a work order."),
                 "the annotated tag and the GitHub Release entry (title and notes from the Kit)")
     return ("publication: none — no GitHub Release, PyPI or Zenodo.", "only the annotated tag")
 
@@ -532,9 +532,13 @@ the tag is missing. Skip to phase 2.""" if prepared else f"""Phase 1 — release
    the "## v{version}" section and leave Unreleased empty, in a work order before the pull request:
    the Cockpit rejects the release pull request while Unreleased is not empty
    (AGP_RELEASE_CHANGELOG_GATE_V1). The section is also the text of the GitHub Release entry.
+   Summary lines go to the Kit as a JSON file (--summary-lines-from <file>.json holding a JSON
+   list of strings); a text file is rejected (AGP_RELEASE_SUMMARY_JSON_V1).
 3. If the repository has docs/planning/RELEASE_POLICY.md, perform the release-branch steps it names
    in the same branch (agp-Cockpit: set the build identity in src/agp_cockpit/version.py and
-   chrome_extension/build_identity.js to release-{version}); the repository's tests check them.
+   chrome_extension/build_identity.js to exactly release-{version}, replacing any -r<N> rebuild
+   suffix); the repository's tests check them and the Cockpit rejects the release pull request
+   otherwise (AGP_RELEASE_BUILD_ID_GATE_V1).
 4. Finish the branch through the Kit's pull-request lifecycle: green CI, merge, post-merge closeout,
    local main equal to origin/main.""")
     constraint, published = _release_publication_text(root)
@@ -568,7 +572,7 @@ Name the release pull request as "pr" in the DONE file.
 
 def maintenance_branch(today: str | None = None) -> str:
     import datetime
-    return f"chore/pflege-{today or datetime.date.today().isoformat()}"
+    return f"chore/pflege-{today or datetime.date.today().isoformat()}"   # noqa: DTZ011 - the owner's local day
 
 
 def _maintain_precheck(root: Path, _inputs: dict) -> str | None:

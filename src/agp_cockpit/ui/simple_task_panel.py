@@ -25,6 +25,19 @@ EDITOR_LINES = 8      # AGP_FIXED_EDITOR_V1
 QUESTION_LINES = 5    # AGP_DECISION_BOX_V2
 
 
+def loop_button_states(phase: str, loop_state: str) -> dict[str, str]:
+    """AGP_LOOP_BUTTON_STATES_V1 (owner 2026-10-07): at rest „Pause“, „Fortsetzen“ and „Stop“
+    were clickable and did nothing useful. Pause and Stop act on a running task, Fortsetzen
+    only after a pause, Reset only at rest (stop first)."""
+    running = phase == "STARTED" and loop_state != "STOPPED"
+    paused = running and loop_state == "PAUSED"
+    on, off = "normal", "disabled"
+    return {"pause_button": on if running and not paused else off,
+            "resume_button": on if paused else off,
+            "stop_button": on if running else off,
+            "reset_button": off if phase == "STARTED" else on}
+
+
 class SimpleTaskPanel(ttk.Frame):
     """Default task-first surface. Expert controls stay elsewhere."""
 
@@ -85,6 +98,7 @@ class SimpleTaskPanel(ttk.Frame):
         self.resume_button = actions.add(ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop))
         self.stop_button = actions.add(ttk.Button(actions, text="Stop", command=self.stop_file_loop))
         self.reset_button = actions.add(ttk.Button(actions, text="Reset", command=self.reset_file_loop))
+        self._loop_state = "IDLE"
         self.approve_button = actions.add(ttk.Button(
             actions,
             text="Entscheidung freigeben",
@@ -192,6 +206,7 @@ class SimpleTaskPanel(ttk.Frame):
         self.bind("<Configure>", self._rewrap, add="+")
         self._viewport_width = 0
         follow_viewport(self, self._follow_viewport)
+        self._update_loop_buttons()
 
         self.after(750, self.refresh_status)
 
@@ -233,6 +248,15 @@ class SimpleTaskPanel(ttk.Frame):
 
     def _show_file_loop_state(self, snapshot: dict) -> None:
         self.activity_var.set(f"File-Loop: {snapshot['state']} · Generation {snapshot['generation']}")
+        self._loop_state = str(snapshot.get("state") or "")
+        self._update_loop_buttons()
+
+    def _update_loop_buttons(self) -> None:
+        states = loop_button_states(self.workflow_phase, getattr(self, "_loop_state", ""))
+        for name, state in states.items():
+            button = getattr(self, name, None)
+            if button is not None:
+                button.configure(state=state)
     def pause_file_loop(self) -> None:
         self._show_file_loop_state(self.api.file_loop_pause())
     def resume_file_loop(self) -> None:
@@ -270,6 +294,9 @@ class SimpleTaskPanel(ttk.Frame):
     def _update_start_button(self) -> None:
         startable = self.workflow_phase != "STARTED" and bool(self._editor_text().strip())
         self.start_button.configure(state="normal" if startable else "disabled")
+        if self.workflow_phase != "STARTED":
+            self._loop_state = "IDLE"      # a new or finished task starts with a fresh loop
+        self._update_loop_buttons()
 
     def _on_editor_modified(self, _event=None) -> None:
         if not self.editor.edit_modified():
@@ -536,11 +563,12 @@ class SimpleTaskPanel(ttk.Frame):
         if self.on_task_event is not None:
             try:
                 self.on_task_event(event, text)
-            except Exception:  # noqa: BLE001 - the other tab never breaks this one
+            except Exception:  # noqa: BLE001, S110 - the other tab never breaks this one
                 pass
 
     def refresh_status(self) -> None:
         self.update_ampel()
+        self._update_loop_buttons()
         try:
             # Vor dem tatsächlichen Start gehört die Statuszeile dem lokalen
             # Laden/Prüfen-Ablauf. Ein alter persistenter Task darf das

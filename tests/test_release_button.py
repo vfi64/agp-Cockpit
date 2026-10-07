@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 
 from agp_cockpit.core import standard_verifier as sv
-from agp_cockpit.core.kit_command_catalog import KitCommandCatalog, approval_required_commands
+from agp_cockpit.core.kit_command_catalog import (
+    KitCommandCatalog,
+    approval_required_commands,
+)
 from agp_cockpit.core.standard_tasks import BY_KEY
 
 TASK = BY_KEY["release"]

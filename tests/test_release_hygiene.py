@@ -186,7 +186,7 @@ class _Runner:
         if Path(str(argv[0])).name == "gh":
             self.gh_calls.append(argv)
             return subprocess.CompletedProcess(argv, self.gh_rc, json.dumps(self.gh_payload), "")
-        return subprocess.run(argv, **{k: v for k, v in kw.items() if k != "env"})
+        return subprocess.run(argv, check=False, **{k: v for k, v in kw.items() if k not in ("env", "check")})
 
 
 @pytest.fixture

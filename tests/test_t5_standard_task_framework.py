@@ -548,7 +548,7 @@ def test_rejecting_ends_the_task_without_a_remote_turn(panel, monkeypatch):
 
 
 def test_rejecting_after_executed_effects_offers_recover(panel, monkeypatch):
-    _root, widget, created, _answers, _repo, _runtime = panel
+    _root, widget, _created, _answers, _repo, _runtime = panel
     _needs_human(monkeypatch, widget)
     widget.refresh_progress()
     import dataclasses

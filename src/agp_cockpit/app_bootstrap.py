@@ -187,7 +187,7 @@ def write_startup_status(
     repository_root: Path,
     status: StartupStatus,
 ) -> Path:
-    from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+    from agp_cockpit.core.runtime_paths import runtime_dir  # AGP_RUNTIME_HOME_V1
     root = runtime_dir(repository_root, "startup")
     root.mkdir(parents=True, exist_ok=True)
 

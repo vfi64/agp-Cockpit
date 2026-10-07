@@ -54,7 +54,7 @@ def test_watch_refreshes_once_per_change_and_never_during_a_run(monkeypatch):
     for running, busy, expected in ((False, False, 1), (True, False, 0), (False, True, 0)):
         panel, calls = _panel(running=running, busy=busy)
         sequence = iter([("a",), ("a",), ("b",), ("b",)])
-        monkeypatch.setattr(rs, "local_fingerprint", lambda _root: next(sequence))
+        monkeypatch.setattr(rs, "local_fingerprint", lambda _root, sequence=sequence: next(sequence))
         for _ in range(4):
             StandardTasksPanel._watch_lage(panel)
         assert calls.refreshed == expected, (running, busy)

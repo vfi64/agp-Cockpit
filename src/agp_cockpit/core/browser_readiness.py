@@ -27,7 +27,7 @@ def _read_json(path: Path) -> dict:
 
 
 def _startup_status_path(root: Path) -> Path:
-    from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+    from agp_cockpit.core.runtime_paths import runtime_dir  # AGP_RUNTIME_HOME_V1
     return runtime_dir(root, "startup", "status.json")
 
 

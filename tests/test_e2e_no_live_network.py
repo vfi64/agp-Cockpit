@@ -12,8 +12,8 @@ a `page.route` stub or a local file URL.
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 E2E = Path(__file__).resolve().parent / "e2e"
 GOTO = re.compile(r"page\.goto\(")

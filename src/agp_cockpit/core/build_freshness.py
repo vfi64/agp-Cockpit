@@ -30,6 +30,7 @@ class BuildFreshness:
     source: str
     stale: bool
     message: str
+    note: str = ""       # AGP_RELEASE_IN_PROGRESS_V1: a yellow hint, never a lock
 
 
 def _read(path: Path, pattern: re.Pattern) -> str:
@@ -54,8 +55,36 @@ def build_order(left: str, right: str) -> int | None:
     a, b = _BUILD.match(str(left or "")), _BUILD.match(str(right or ""))
     if not a or not b:
         return None
-    key = lambda m: (tuple(int(x) for x in m.group(1).split(".")), int(m.group(2) or 0))  # noqa: E731
+    key = lambda m: (tuple(int(x) for x in m.group(1).split(".")), int(m.group(2) or 0))
     return (key(a) > key(b)) - (key(a) < key(b))
+
+
+def current_branch(root: Path) -> str:
+    """The checked-out branch from .git/HEAD (a file read; the guard polls every 10 s)."""
+    git = Path(root) / ".git"
+    try:
+        if git.is_file():                                   # a worktree: "gitdir: <path>"
+            git = Path(git.read_text(encoding="utf-8").split(":", 1)[1].strip())
+        head = (git / "HEAD").read_text(encoding="utf-8").strip()
+    except (OSError, IndexError):
+        return ""
+    return head[len("ref: refs/heads/"):] if head.startswith("ref: refs/heads/") else ""
+
+
+def _release_in_progress(root: Path, source: str, running: str) -> str:
+    """AGP_RELEASE_IN_PROGRESS_V1 (live 2026-10-07, release 0.2.2): phase 1 of a release raises
+    the version in the checkout of branch release/<v>; the guard said in red „Quellstand
+    (release-0.2.2-r12) ist neuer als die laufende App“, locked the tasks and advised a rebuild
+    in the middle of the release. On release/<v> a source build id of version <v> that is newer
+    than the running app is the release itself: the version, else ""."""
+    branch = current_branch(root)
+    if not branch.startswith("release/"):
+        return ""
+    version = branch.split("/", 1)[1]
+    match = _BUILD.match(source)
+    if not match or match.group(1) != version or build_order(source, running) != 1:
+        return ""
+    return version
 
 
 def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
@@ -71,6 +100,15 @@ def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
                               f"Neuer Build vorhanden ({bundle}), diese App läuft noch mit {running}. "
                               "Cockpit mit Cmd+Q beenden und neu starten.")
     order = build_order(source, running) if source else None
+    releasing = _release_in_progress(root, source, running) if source else ""
+    if releasing:
+        return BuildFreshness(running, bundle, source, False, "",
+                              note=f"Release {releasing} läuft — die neue Version gilt nach dem Release; "
+                                   "erst dann neu bauen.")
+    if source and source != running and order == 1 and source == _release_id(source):
+        return BuildFreshness(running, bundle, source, True,
+                              f"Release {_BUILD.match(source).group(1)} ist im Quellstand, die App läuft noch "
+                              f"mit {running}. Jetzt neu bauen und neu starten.")
     if source and source != running and order != -1:
         relation = (f"ist neuer als die laufende App ({running})" if order == 1
                     else f"passt nicht zur laufenden App ({running})")
@@ -78,6 +116,12 @@ def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
                               f"Quellstand ({source}) {relation}. "
                               "App neu bauen, Cockpit mit Cmd+Q beenden und neu starten.")
     return BuildFreshness(running, bundle, source, False, "")
+
+
+def _release_id(source: str) -> str:
+    """The plain release build id (release-<app>) of ``source``, without a rebuild counter."""
+    match = _BUILD.match(str(source or ""))
+    return f"release-{match.group(1)}" if match else ""
 
 
 def cockpit_home() -> Path | None:
