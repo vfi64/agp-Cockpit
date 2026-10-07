@@ -15,6 +15,7 @@ from agp_cockpit.adapters.macos_extension import (
     local_extension_root,
 )
 from agp_cockpit.core import result_projection
+from agp_cockpit.core.runtime_paths import runtime_dir
 from agp_cockpit.core.bridge_engine import BridgeEngine
 from agp_cockpit.core.bridge_protocol import (
     encode_turn_response,
@@ -87,7 +88,7 @@ def _kit_command_digest(repo_root: Path) -> dict[str, str]:
         if catalog is None:
             return {}
         target = catalog.write_digest(
-            repo_root / ".local" / "agp-cockpit" / "kit" / "agentic-kit-command-digest.json"
+            runtime_dir(repo_root, "kit", "agentic-kit-command-digest.json")   # AGP_RUNTIME_HOME_V1
         )
         cached = (mtime, str(target), catalog.manifest_sha)
         _KIT_DIGEST_CACHE[str(repo_root)] = cached
@@ -266,7 +267,7 @@ class CockpitBridgeServer:
 
         self.repository_root = repository_root.resolve()
         self.config = cfg
-        self.runtime_root = (runtime_root.expanduser().resolve() if runtime_root is not None else (self.repository_root / ".local" / "agp-cockpit" / "bridge"))
+        self.runtime_root = (runtime_root.expanduser().resolve() if runtime_root is not None else runtime_dir(self.repository_root, "bridge"))
         self.runtime_root.mkdir(parents=True, exist_ok=True)
         self._run_next_controller = RunNextProcessController()
         self.engine = BridgeEngine(self.repository_root)
@@ -1656,13 +1657,7 @@ class CockpitBridgeServer:
                         if event_name == "EXTENSION_HANDSHAKE":
                             import time as _refresh_time
 
-                            handled_refresh_path = (
-                                repo_root
-                                / ".local"
-                                / "agp-cockpit"
-                                / "browser"
-                                / "handled_refresh.json"
-                            )
+                            handled_refresh_path = runtime_dir(repo_root, "browser", "handled_refresh.json")   # AGP_RUNTIME_HOME_V1
                             handled_refresh_path.parent.mkdir(
                                 parents=True,
                                 exist_ok=True,
@@ -1701,13 +1696,7 @@ class CockpitBridgeServer:
                                 encoding="utf-8",
                             )
 
-                            refresh_request_path = (
-                                repo_root
-                                / ".local"
-                                / "agp-cockpit"
-                                / "browser"
-                                / "refresh_request.json"
-                            )
+                            refresh_request_path = runtime_dir(repo_root, "browser", "refresh_request.json")   # AGP_RUNTIME_HOME_V1
                             refresh_generation = 0
                             try:
                                 refresh_request = json.loads(

@@ -100,12 +100,8 @@ class MissionState:
 class MissionStore:
     def __init__(self, repository_root: Path) -> None:
         self.repository_root = repository_root.resolve()
-        self.root = (
-            self.repository_root
-            / ".local"
-            / "agp-cockpit"
-            / "missions"
-        )
+        from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+        self.root = runtime_dir(self.repository_root, "missions")
         self.root.mkdir(parents=True, exist_ok=True)
         self.current_path = self.root / "current.json"
 

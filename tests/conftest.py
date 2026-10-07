@@ -23,3 +23,11 @@ def _no_installed_kit_discovery(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_host_gh(monkeypatch):
     monkeypatch.setenv("AGP_COCKPIT_GH_BINARY", "none")
+
+
+# AGP_RUNTIME_HOME_V1 (PR #272, CI red): app.main() announces the runtime home in the
+# process environment; a test that ran main() moved the runtime of every later test into
+# a foreign folder. Every test starts without it; the empty value is restored to "unset".
+@pytest.fixture(autouse=True)
+def _no_runtime_home(monkeypatch):
+    monkeypatch.setenv("AGP_COCKPIT_RUNTIME_HOME", "")

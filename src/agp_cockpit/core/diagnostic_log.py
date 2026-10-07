@@ -30,12 +30,8 @@ class DiagnosticLogger:
     ) -> None:
         self.repository_root = repository_root.resolve()
         self.config = config or DiagnosticLogConfig()
-        self.log_root = (
-            self.repository_root
-            / ".local"
-            / "agp-cockpit"
-            / "logs"
-        )
+        from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+        self.log_root = runtime_dir(self.repository_root, "logs")
         self.log_root.mkdir(parents=True, exist_ok=True)
         self.log_path = self.log_root / "bridge.log"
 

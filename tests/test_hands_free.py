@@ -146,8 +146,10 @@ def test_a_ticked_work_task_starts_abschliessen_once_the_lage_agrees(monkeypatch
     try:
         panel = m.StandardTasksPanel(root, repository_root=tmp_path, on_open_work=lambda: None)
         started, refreshed = [], []
-        monkeypatch.setattr(panel, "start_standard_task", lambda task, inputs: started.append(task.key) or True)
-        monkeypatch.setattr(panel, "refresh_lage", lambda: refreshed.append(1))
+        # plain instance attributes: a monkeypatch would keep the Tk panel alive until its
+        # teardown, and a later collection in a bridge thread aborts Tcl (Tcl_AsyncDelete)
+        panel.start_standard_task = lambda task, inputs: started.append(task.key) or True
+        panel.refresh_lage = lambda: refreshed.append(1)
         monkeypatch.setattr(m, "availability", lambda verb, state, recover_offered=False: (True, ""))
         panel.request_auto_finish()
         panel._maybe_auto_finish(_State(rs.LAEUFT))        # the ended task still counts: wait
@@ -161,6 +163,9 @@ def test_a_ticked_work_task_starts_abschliessen_once_the_lage_agrees(monkeypatch
         assert started == ["finish"] and "nicht automatisch gestartet" in panel.status_var.get()
     finally:
         root.destroy()
+        del panel, root
+        import gc
+        gc.collect()
 
 
 def test_the_tick_is_part_of_the_start_and_the_main_window_hands_over():
