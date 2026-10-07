@@ -169,7 +169,12 @@ def test_a_ticked_work_task_starts_abschliessen_once_the_lage_agrees(monkeypatch
 
 
 def test_the_tick_is_part_of_the_start_and_the_main_window_hands_over():
-    assert 'text="danach Push, PR und Merge bei grüner CI"' in SIMPLE
+    # AGP_AUTO_FINISH_OPTION_ROW_V1: the tick has its own line under the editor, not in the buttons
+    assert 'text="Nach Erfolg selbst abschließen (Push, PR und Merge bei grüner CI)"' in SIMPLE
+    assert "actions.add(ttk.Checkbutton(" not in SIMPLE
+    assert "self.auto_finish_check = ttk.Checkbutton(\n            options," in SIMPLE
+    assert "Grüne CI prüft nicht, ob die Änderung richtig ist" in SIMPLE
+    assert "tk.BooleanVar(value=False)" in SIMPLE[SIMPLE.index("AGP_AUTO_FINISH"):]
     start = SIMPLE[SIMPLE.index("def start_task("):]
     assert start.index("auto_finish = bool(self.auto_finish_var.get())") < start.index("messagebox.askyesno(")
     assert "Dieser Start ist deine Freigabe dafür." in start

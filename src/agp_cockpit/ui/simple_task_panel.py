@@ -39,7 +39,7 @@ class SimpleTaskPanel(ttk.Frame):
         self.workflow_phase = "EMPTY"
 
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(7, weight=1)        # spare space stays below the boxes
+        self.rowconfigure(8, weight=1)        # spare space stays below the boxes
         self._wrapping: list[ttk.Label] = []
         self._repo_light = repo_light         # AGP_WORK_AMPEL_V1: Lage light at rest
         self._last_outcome = ""
@@ -80,8 +80,6 @@ class SimpleTaskPanel(ttk.Frame):
         # approves „Abschließen“ (push, PR, merge on green CI, post-merge closeout), which
         # the Cockpit then starts by itself when this task ends DONE with committed work.
         self.auto_finish_var = tk.BooleanVar(value=False)
-        self.auto_finish_check = actions.add(ttk.Checkbutton(
-            actions, text="danach Push, PR und Merge bei grüner CI", variable=self.auto_finish_var))
         self.auto_finish_armed = False
         self.pause_button = actions.add(ttk.Button(actions, text="Pause", command=self.pause_file_loop))
         self.resume_button = actions.add(ttk.Button(actions, text="Fortsetzen", command=self.resume_file_loop))
@@ -112,6 +110,18 @@ class SimpleTaskPanel(ttk.Frame):
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.editor.configure(yscrollcommand=scrollbar.set)
         self.editor.bind("<<Modified>>", self._on_editor_modified)
+
+        # AGP_AUTO_FINISH_OPTION_ROW_V1 (owner 2026-10-07): the tick broke the button row; it
+        # is an option of the next start, so it sits in its own line under the editor.
+        options = ttk.Frame(self)
+        options.grid(row=4, column=0, sticky="ew", pady=(6, 0))
+        self.auto_finish_check = ttk.Checkbutton(
+            options, text="Nach Erfolg selbst abschließen (Push, PR und Merge bei grüner CI)",
+            variable=self.auto_finish_var)
+        self.auto_finish_check.grid(row=0, column=0, sticky="w")
+        self._wrap(ttk.Label(options, text="Grüne CI prüft nicht, ob die Änderung richtig ist — "
+                                           "ohne Häkchen siehst du sie vor dem Merge.",
+                             foreground="#888888", justify="left"), 40).grid(row=1, column=0, sticky="w")
 
         # AGP_HUMAN_DECISION_V1: answer a NEEDS_HUMAN question and continue the
         # same task; "Freigeben" is a one-shot approval of remote effects.
@@ -161,7 +171,7 @@ class SimpleTaskPanel(ttk.Frame):
                         variable=self.decision_scope_var).grid(row=0, column=1, sticky="w")
         ttk.Radiobutton(scope_row, text="Push, PR und Merge", value="full",
                         variable=self.decision_scope_var).grid(row=0, column=2, sticky="w", padx=(8, 0))
-        self.decision_frame.grid(row=4, column=0, sticky="ew", pady=(8, 0))
+        self.decision_frame.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         self.decision_frame.grid_remove()
 
         self.state_var = tk.StringVar(value="Bereit — Auftrag eingeben, einfügen oder laden.")
@@ -169,7 +179,7 @@ class SimpleTaskPanel(ttk.Frame):
             self,
             textvariable=self.state_var,
             justify="left",
-        ), 20).grid(row=5, column=0, sticky="ew", pady=(8, 0))
+        ), 20).grid(row=6, column=0, sticky="ew", pady=(8, 0))
 
         self.activity_var = tk.StringVar(
             value="Aktivität: noch kein automatischer Arbeitsschritt gestartet."
@@ -178,7 +188,7 @@ class SimpleTaskPanel(ttk.Frame):
             self,
             textvariable=self.activity_var,
             justify="left",
-        ), 20).grid(row=6, column=0, sticky="ew", pady=(4, 0))
+        ), 20).grid(row=7, column=0, sticky="ew", pady=(4, 0))
         self.bind("<Configure>", self._rewrap, add="+")
         self._viewport_width = 0
         follow_viewport(self, self._follow_viewport)
