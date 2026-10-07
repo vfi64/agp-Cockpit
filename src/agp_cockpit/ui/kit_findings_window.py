@@ -52,9 +52,10 @@ class KitFindingsWindow(tk.Toplevel):
         table.rowconfigure(0, weight=1)
         columns = ("id", "title", "severity", "status", "first")
         self.tree = ttk.Treeview(table, columns=columns, show="headings", height=12, selectmode="browse")
-        for key, label, width in (("id", "ID", 190), ("title", "Titel", 430), ("severity", "Schwere", 90),
-                                  ("status", "Status", 170), ("first", "Seit", 90)):
-            self.tree.heading(key, text=label)
+        self.labels = {"id": "ID", "title": "Titel", "severity": "Schwere", "status": "Status", "first": "Seit"}
+        self.sort_column, self.sort_reverse = "id", False   # AGP_FINDINGS_SORT_V1: opens sorted by ID
+        for key, width in (("id", 190), ("title", 430), ("severity", 90), ("status", 170), ("first", 90)):
+            self.tree.heading(key, text=self.labels[key], command=lambda column=key: self.sort_by(column))
             self.tree.column(key, width=width, stretch=key == "title", anchor="w")
         self.tree.tag_configure("fixed", foreground="#3c7fd0")
         self.tree.tag_configure("progress", foreground="#d0a000")
@@ -131,15 +132,31 @@ class KitFindingsWindow(tk.Toplevel):
                     if f.effective_status(self.installed) not in {kf.OPEN, kf.IN_PROGRESS}]
         return list(self.findings)
 
-    def populate(self) -> None:
+    def sort_by(self, column: str) -> None:
+        """A click on a column head sorts by it; a second click reverses the order."""
+        self.sort_reverse = not self.sort_reverse if column == self.sort_column else False
+        self.sort_column = column
+        selected = self.tree.selection()
+        self.populate(keep=selected[0] if selected else None)
+
+    def populate(self, keep: str | None = None) -> None:
         self.tree.delete(*self.tree.get_children())
-        for finding in self.visible():
+        for key, label in self.labels.items():
+            arrow = (" ▼" if self.sort_reverse else " ▲") if key == self.sort_column else ""
+            self.tree.heading(key, text=label + arrow)
+        ordered = sorted(self.visible(), key=lambda f: kf.sort_key(f, self.sort_column, self.installed),
+                         reverse=self.sort_reverse)
+        for finding in ordered:
             status = finding.effective_status(self.installed)
             tag = {kf.OPEN: "open", kf.IN_PROGRESS: "progress", kf.VERIFIED: "verified"}.get(status, "fixed")
             self.tree.insert("", "end", iid=finding.id, tags=(tag,), values=(
                 finding.id, finding.title, finding.severity, status, finding.first_observed))
         children = self.tree.get_children()
-        if children:
+        if keep in children:
+            self.tree.selection_set(keep)
+            self.tree.see(keep)
+            self.show_selected()
+        elif children:
             self.tree.selection_set(children[0])
             self.show_selected()
         else:

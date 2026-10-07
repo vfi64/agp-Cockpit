@@ -572,6 +572,17 @@ class CockpitBridgeServer:
                                 content, filename=filename, repository_root=repo_root,
                                 allow_remote_effects=True, require_orchestrator=standard_task,
                             )
+                            # AGP_FINISH_PUBLISHES_ONLY_V1 (PR #272, step 1839): „Abschließen“
+                            # publishes; it never repairs code or tests.
+                            from agp_cockpit.core import finish_guard
+                            if mission_now is not None and finish_guard.is_finish_mission(mission_now.title):
+                                from agp_cockpit.core.kit_command_catalog import kit_commands_used
+                                used_names = [str(c.get("qualified_name") or "") for c in
+                                              kit_commands_used(content, KitCommandCatalog.load(repo_root))]
+                                start = finish_guard.start_state(runtime_root, mission_now.mission_id, repo_root)
+                                problems = finish_guard.violations(content, start, used_names)
+                                if problems:
+                                    raise ValueError("command-file semantic contract rejected: " + "; ".join(problems))
                         except ValueError as rejection:
                             # AGP_CORRECTABLE_REJECTION_V1: a work order that breaks the
                             # command authority is not executed; the remote side gets
