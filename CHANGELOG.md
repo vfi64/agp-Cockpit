@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- Pull requests need one-line Unreleased entries, the build id is checked exactly, and Kit commands that declare a write effect in the manifest need an approval (KIT-GF-057 recorded: five commands are declared without their effect); build `release-0.2.1-r9`.
 - „Branch wechseln …“ switches the local branch through the Kit, a ticked „Arbeiten“ task starts „Abschließen“ by itself when it ends DONE, and an approval in the „Arbeiten“ tab names its scope (push and PR, or with merge), which the bridge enforces; build `release-0.2.1-r8`.
 - One extension refresh per new build (a second one orphaned the ChatGPT tab after „Neu bauen und neu starten“), orphaned ChatGPT tabs reload themselves, „Wiederherstellen“ and „Weitere anzeigen“ align, Ollama and Hermes share one height; build `release-0.2.1-r7`.
 - The „Arbeiten“ tab gets the Ampel, a fixed-height editor and a decision box under the editor whose buttons stay visible, with facts checked by the Cockpit and „Änderungen ansehen“; all tabs wrap to the window width and the repository path has its own line; build `release-0.2.1-r6`.

@@ -113,6 +113,12 @@ def unreleased_entries(changelog_text: str) -> list[str]:
     return [line for line in match.group(1).splitlines() if line.strip()]
 
 
+def wrapped_entry_lines(changelog_text: str) -> list[str]:
+    """AGP_ONE_LINE_CHANGELOG_V1 (release 0.2.1, #252): lines of the Unreleased section that do
+    not start an entry ("- "): a wrapped bullet broke the Kit's changelog consistency check."""
+    return [line for line in unreleased_entries(changelog_text) if not line.startswith("- ")]
+
+
 def _branch(root: Path, runner=subprocess.run) -> str:
     try:
         done = runner(["git", "branch", "--show-current"], cwd=str(root), text=True,
@@ -123,19 +129,25 @@ def _branch(root: Path, runner=subprocess.run) -> str:
 
 
 def changelog_violations(source: str, repository_root: Path, *, runner=subprocess.run) -> list[str]:
-    """AGP_RELEASE_CHANGELOG_GATE_V1 — the release pull request needs a moved changelog."""
-    branch = _branch(repository_root, runner=runner)
-    if not branch.startswith("release/"):
-        return []
+    """AGP_RELEASE_CHANGELOG_GATE_V1 — the release pull request needs a moved changelog;
+    AGP_ONE_LINE_CHANGELOG_V1 — every pull request needs one-line Unreleased entries."""
     calls = _kit_calls(source)
     if not any(_creates_pull_request(argv) or tuple(_words(argv)[:2]) == WORK_FINISH for argv in calls):
         return []
-    version = branch.split("/", 1)[1]
     try:
         text = (Path(repository_root) / "CHANGELOG.md").read_text(encoding="utf-8")
     except OSError:
         return []
     found = []
+    wrapped = wrapped_entry_lines(text)
+    if wrapped:
+        found.append("CHANGELOG.md: every Unreleased entry must be one line starting with '- '; join "
+                     f"these continuation lines into their entry in an earlier work order: {wrapped[:3]} "
+                     "(AGP_ONE_LINE_CHANGELOG_V1)")
+    branch = _branch(repository_root, runner=runner)
+    if not branch.startswith("release/"):
+        return found
+    version = branch.split("/", 1)[1]
     if unreleased_entries(text):
         found.append(f"CHANGELOG.md: move every entry of the Unreleased section into '## v{version}' "
                      "and leave Unreleased empty in an earlier work order, then create the release pull "
