@@ -7,6 +7,7 @@
 // without role/test-id/heading wrappers, a fixed five-turn render window,
 // a collapsed long projection and a URL change on send.
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
@@ -86,6 +87,7 @@ function loadBackground(page) {
     },
   };
   vm.createContext(context);
+  vm.runInContext(AGP_SELECTORS_SRC, context);
   vm.runInContext(EVIDENCE, context);
   vm.runInContext(BACKGROUND, context);
   return context;

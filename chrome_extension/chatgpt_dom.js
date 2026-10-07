@@ -31,37 +31,8 @@
 // - dialogCloseControl(dialog, active): the control that closes it (OK, close, Schließen,
 //   exit full screen; the focused button inside the dialog first), or null.
 (function () {
-  const SELECTORS = Object.freeze({
-    assistantTurn: '[data-message-author-role="assistant"]',
-    fileCardCandidate: 'a[href], button, [role="button"]',
-    fileCardExcluded: 'form, [data-message-author-role="user"], [role="dialog"], [aria-modal="true"]',
-    hiddenContainer: '[inert], [aria-hidden="true"]',
-    fileCardDownload: 'button[aria-label="Datei herunterladen"], button[aria-label="Download"]',
-    alert: '[role="alert"]',
-    composerFallback: Object.freeze(['#prompt-textarea', 'textarea', '[contenteditable="true"]']),
-    sendButton: Object.freeze([
-      'button[data-testid="send-button"]',
-      'button[aria-label*="Send"]',
-      'button[aria-label*="Senden"]',
-      'button[type="submit"]',
-    ]),
-    generationActive: Object.freeze([
-      'button[data-testid="stop-button"]',
-      'button[aria-label*="Stop generating"]',
-      'button[aria-label*="Stop response"]',
-      'button[aria-label*="Generierung stoppen"]',
-      'button[aria-label*="Antwort stoppen"]',
-      '[data-is-streaming="true"]',
-      '[data-testid="stop-generating-button"]',
-    ]),
-    stopLikeButton: "form button, [data-testid*='composer'] button",
-    dialog: '[role="dialog"], [aria-modal="true"]',
-    previewTextbox: '[role="dialog"] .cm-content[role="textbox"], [role="dialog"] .cm-content, ' +
-      '.cm-content[role="textbox"], [role="textbox"][aria-label]',
-    dialogClose: '[data-testid="close-button"], button[aria-label="Vollbildmodus beenden"], ' +
-      'button[aria-label="Exit full screen"], button[aria-label="Schließen"], ' +
-      'button[aria-label="Close"], button',
-  });
+  // AGP_SELECTOR_TABLE_V1: the selectors themselves live in chatgpt_selectors.js.
+  const SELECTORS = globalThis.AGP_SELECTORS;
 
   const CLOSE_LABELS = Object.freeze(["ok", "close", "schließen", "exit full screen", "vollbildmodus beenden"]);
   const DOWNLOAD_LABELS = Object.freeze(["download", "herunterladen", "datei herunterladen"]);

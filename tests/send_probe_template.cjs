@@ -7,6 +7,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 const source = fs.readFileSync("chrome_extension/background.js", "utf8");
+// AGP_SELECTOR_TABLE_V1: agpPageExpression() gives every evaluated template this table.
+require("../chrome_extension/chatgpt_selectors.js");
+const AGP_SELECTORS = globalThis.AGP_SELECTORS;
 
 function templates(text) {
   const out = [];
@@ -48,7 +51,7 @@ function probe(button) {
     },
     elementFromPoint:() => div,
   };
-  const context = {document, getComputedStyle:() => ({visibility:"visible", display:"block", pointerEvents:"auto"})};
+  const context = {AGP_SELECTORS, document, getComputedStyle:() => ({visibility:"visible", display:"block", pointerEvents:"auto"})};
   return vm.runInNewContext(cooked, context);
 }
 

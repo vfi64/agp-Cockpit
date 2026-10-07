@@ -89,8 +89,9 @@
       await chromeApi.debugger.attach(target, "1.3");
       attached = true;
       const evaluateValue = async expression => {
+        // AGP_SELECTOR_TABLE_V1: the resolver reads AGP_SELECTORS; give the page world the table.
         const result = await chromeApi.debugger.sendCommand(target, "Runtime.evaluate", {
-          expression, returnByValue: true, awaitPromise: true
+          expression: globalThis.agpPageExpression(expression), returnByValue: true, awaitPromise: true
         });
         return result && result.result ? result.result.value : null;
       };
@@ -105,13 +106,13 @@
       }
 
       const evaluate = await chromeApi.debugger.sendCommand(target, "Runtime.evaluate", {
-        expression: `(() => {
+        expression: globalThis.agpPageExpression(`(() => {
           const composer = (${resolverSource})();
           const form = composer && typeof composer.closest === "function" ? composer.closest("form") : null;
           if (!form) return null;
           const inputs = Array.from(form.querySelectorAll('input[type="file"]'));
           return inputs.find((el) => !el.disabled) || null;
-        })()`,
+        })()`),
         returnByValue: false,
         userGesture: true
       });

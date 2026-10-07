@@ -55,12 +55,15 @@
     return Object.freeze({conversationUrl: configured});
   }
 
+  // AGP_SELECTOR_TABLE_V1: ChatGPT selectors come from chatgpt_selectors.js.
+  const selectorTable = () => globalThis.AGP_SELECTORS;
+
   function composer() {
-    return (
-      document.querySelector("#prompt-textarea") ||
-      document.querySelector("textarea") ||
-      document.querySelector('[contenteditable="true"]')
-    );
+    for (const selector of selectorTable().composerFallback) {
+      const el = document.querySelector(selector);
+      if (el) return el;
+    }
+    return null;
   }
 
   function composerText(el = composer()) {
@@ -92,16 +95,7 @@
   }
 
   function generationActive() {
-    const selectors = [
-      'button[data-testid="stop-button"]',
-      'button[data-testid="stop-generating-button"]',
-      'button[aria-label*="Stop generating"]',
-      'button[aria-label*="Stop response"]',
-      'button[aria-label*="Generierung stoppen"]',
-      'button[aria-label*="Antwort stoppen"]',
-      '[data-is-streaming="true"]'
-    ];
-    return selectors.some(selector => {
+    return selectorTable().generationActive.some(selector => {
       const el = document.querySelector(selector);
       return Boolean(el && !el.disabled);
     });
@@ -109,7 +103,7 @@
 
   function visibleAssistantNodes() {
     return Array.from(
-      document.querySelectorAll('[data-message-author-role="assistant"]')
+      document.querySelectorAll(selectorTable().assistantTurn)
     ).filter(el => {
       const rect = el.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
@@ -253,12 +247,7 @@
   }
 
   function usableSendButton(anchor = composer()) {
-    const selectors = [
-      'button[data-testid="send-button"]',
-      'button[aria-label*="Send"]',
-      'button[aria-label*="Senden"]',
-      'button[type="submit"]'
-    ];
+    const selectors = selectorTable().sendButton;
     const form = anchor && anchor.closest ? anchor.closest("form") : null;
     const candidates = [];
     if (form) {

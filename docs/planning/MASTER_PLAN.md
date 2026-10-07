@@ -542,6 +542,10 @@ signals moved; content.js selector calls 16. Next: attachment preview and eviden
 adapters of browser_native_transport.js and conversation_contract.js, then (2) replay.
 Update 2026-10-07 (slice 3c, build release-0.2.2-r5): attachment preview and dialog close moved; content.js
 selector calls 10 (assistant text extraction, wait diagnostics, activity observer remain).
+Update 2026-10-07 (selector table, COMMUNICATION_PROTOCOL 72, build release-0.2.2-r8): DOM hardening
+step 3 complete — every ChatGPT selector, including those of the injected page helpers, the native
+transport and the Phase-5 contract, lives in `chatgpt_selectors.js`. Next: split `content.js` module by
+module (panel UI, file ingress/result upload, send transport; content.js keeps the controller).
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

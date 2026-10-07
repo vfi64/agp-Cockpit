@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 P8 = ROOT / "chrome_extension/phase8_multi_round.js"
 CC = ROOT / "chrome_extension/conversation_contract.js"
+SEL = ROOT / "chrome_extension/chatgpt_selectors.js"   # AGP_SELECTOR_TABLE_V1
 
 def node(script: str):
     p = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, capture_output=True, check=False)
@@ -156,6 +157,7 @@ global.document={{
   }},
   querySelectorAll:s=>s==='[data-message-author-role="assistant"]'?[assistant]:[]
 }};
+require({json.dumps(str(SEL))});
 require({json.dumps(str(CC))});
 (async()=>{{
   const out=await global.AGPCockpitConversationContract.waitForCompletedProtocolAssistant({{
@@ -188,6 +190,7 @@ global.document={{
   querySelector:s=>null,
   querySelectorAll:s=>s==='[data-message-author-role="assistant"]'?[assistant]:[]
 }};
+require({json.dumps(str(SEL))});
 require({json.dumps(str(CC))});
 (async()=>{{
   const C=global.AGPCockpitConversationContract;

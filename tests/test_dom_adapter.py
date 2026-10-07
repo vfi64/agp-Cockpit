@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXT = ROOT / "chrome_extension"
 CONTENT = (EXT / "content.js").read_text(encoding="utf-8")
 ADAPTER = (EXT / "chatgpt_dom.js").read_text(encoding="utf-8")
+TABLE = (EXT / "chatgpt_selectors.js").read_text(encoding="utf-8")   # AGP_SELECTOR_TABLE_V1
 
 # Ratchet: lower it whenever a slice moves selectors out of content.js; never raise it.
 CONTENT_SELECTOR_CALLS = 10
@@ -30,8 +31,8 @@ def test_the_adapter_is_one_frozen_namespace_with_the_contracted_touchpoints():
                  "stopLikeButtonVisible", "previewTextbox", "previewContainer", "previewDownloadButton",
                  "openDialog", "dialogCloseControl"):
         assert name in exported, name
-    assert "const SELECTORS = Object.freeze({" in ADAPTER
-    assert ADAPTER.count("globalThis.") == 1                  # nothing else leaks into the page
+    assert "const SELECTORS = globalThis.AGP_SELECTORS;" in ADAPTER   # AGP_SELECTOR_TABLE_V1
+    assert ADAPTER.count("globalThis.") == 2                  # reads the table, exports AGP_DOM
 
 
 def test_content_js_delegates_the_moved_touchpoints():
@@ -54,7 +55,7 @@ def test_content_js_delegates_the_moved_touchpoints():
                   'button[data-testid="send-button"]', 'button[aria-label*="Generierung stoppen"]',
                   "'#prompt-textarea'", "form button, [data-testid*='composer'] button",
                   "Vollbildmodus beenden", ".cm-content[role=\"textbox\"]"):
-        assert moved not in CONTENT and moved in ADAPTER, moved
+        assert moved not in CONTENT and moved not in ADAPTER and moved in TABLE, moved
 
 
 def test_content_js_selector_count_only_falls():

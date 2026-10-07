@@ -52,13 +52,13 @@ function agpResolveComposer() {
     }
     return true;
   };
-  const candidates = Array.from(document.querySelectorAll(
-    '#prompt-textarea, textarea[data-id="root"], [contenteditable="true"][role="textbox"], form [contenteditable="true"]'
-  )).filter(usable);
+  // AGP_SELECTOR_TABLE_V1: AGP_SELECTORS is the content-script global, or the scope that
+  // the service worker puts around every injected expression (agpPageExpression, chatgpt_selectors.js).
+  const candidates = Array.from(document.querySelectorAll(AGP_SELECTORS.composer)).filter(usable);
   if (!candidates.length) return null;
   const active = document.activeElement;
   if (active && candidates.includes(active)) return active;
-  const byId = candidates.find(el => el.id === "prompt-textarea");
+  const byId = candidates.find(el => el.id === AGP_SELECTORS.composerPreferredId);
   if (byId) return byId;
   return candidates.find(el => typeof el.closest === "function" && el.closest("form")) || candidates[0];
 }
@@ -78,18 +78,14 @@ function agpNativeMessageSnapshot(resolveComposer) {
   // ChatGPT has used several equivalent user-turn wrappers. Prefer the
   // semantic role selector, then fall back to the turn/test-id wrappers. Do
   // not combine selector results: nested wrappers would double-count a turn.
-  const userSelectors = [
-    '[data-message-author-role="user"]',
-    'article[data-testid^="conversation-turn-user"]',
-    '[data-testid*="conversation-turn"][data-testid*="user"]'
-  ];
+  const userSelectors = AGP_SELECTORS.userTurn;   // AGP_SELECTOR_TABLE_V1
   const visibleElement = node => {
     if (!node || typeof node.getBoundingClientRect !== "function") return false;
     const r = node.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   };
   const cloneMessageText = node => {
-    const content = node.querySelector('[data-testid="collapsible-user-message-content"]');
+    const content = node.querySelector(AGP_SELECTORS.userTurnContent);
     const copy = (content || node).cloneNode(true);
     copy.querySelectorAll('button, [role="button"], [aria-hidden="true"]').forEach(control => control.remove());
     copy.querySelectorAll('br').forEach(br => br.replaceWith(document.createTextNode("\n")));
@@ -151,14 +147,14 @@ function agpNativeMessageSnapshot(resolveComposer) {
   }
   const composer = typeof resolveComposer === "function"
     ? resolveComposer()
-    : document.querySelector('#prompt-textarea, textarea[data-id="root"], form [contenteditable="true"]');
+    : document.querySelector(AGP_SELECTORS.composerSnapshotFallback);
   return {
     url:location.href,
     messages,
     user_message_count:messages.length,
     latest_user_message:messages.length ? messages[messages.length - 1].text : "",
     composer_text:norm(composer ? ("value" in composer ? composer.value : composer.innerText || composer.textContent) : ""),
-    generation_active:Boolean(document.querySelector('[data-testid="stop-button"], [data-is-streaming="true"]'))
+    generation_active:Boolean(document.querySelector(AGP_SELECTORS.generationActiveQuick))
   };
 }
 
@@ -200,10 +196,10 @@ function agpComposerSendButton(resolveComposer) {
   const composer = typeof resolveComposer === "function" ? resolveComposer() : null;
   const form = composer && typeof composer.closest === "function" ? composer.closest("form") : null;
   if (!form) return null;
-  const buttons = Array.from(form.querySelectorAll('button[data-testid="send-button"], button[type="submit"]'));
+  const buttons = Array.from(form.querySelectorAll(AGP_SELECTORS.formSendButton));   // AGP_SELECTOR_TABLE_V1
   return buttons.find(button => {
     const label = String(button.getAttribute("aria-label") || "");
-    if (button.getAttribute("data-testid") !== "send-button" && !/^(send|senden)\b/i.test(label)) return false;
+    if (button.getAttribute("data-testid") !== AGP_SELECTORS.sendButtonTestId && !/^(send|senden)\b/i.test(label)) return false;
     if (button.disabled || button.getAttribute("aria-disabled") === "true") return false;
     const rect = button.getBoundingClientRect();
     const style = getComputedStyle(button);
@@ -247,7 +243,7 @@ function agpMissionTouchpointCheck(resolveComposer) {
     composer_form_index: form ? forms.indexOf(form) : -1,
     file_inputs_in_form: fileInputs.length,
     enabled_file_inputs_in_form: enabledFileInputs.length,
-    send_testid_in_form: Boolean(form && form.querySelector('button[data-testid="send-button"]'))
+    send_testid_in_form: Boolean(form && form.querySelector(AGP_SELECTORS.sendButtonByTestId))
   };
   const ui = agpUiFingerprint(composer, form);
   let reason = "";

@@ -5,6 +5,7 @@
 // behavior that made the previous confirmation fail live on 2026-09-30 while
 // the files were visibly attached.
 const { test, expect } = require("@playwright/test");
+const AGP_SELECTORS_SRC = require("fs").readFileSync(require("path").join(__dirname, "../../chrome_extension/chatgpt_selectors.js"), "utf8");   // AGP_SELECTOR_TABLE_V1: loaded first, as in the manifest
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -22,6 +23,7 @@ function loadAttachment() {
   vm.createContext(context);
   // AGP_RESULT_ATTACHMENT_COMPOSER_BOUND_V1: the seam resolves the composer
   // with the same agpResolveComposer the service worker imports.
+  vm.runInContext(AGP_SELECTORS_SRC, context);
   vm.runInContext(fs.readFileSync(EVIDENCE_FILE, "utf8"), context);
   vm.runInContext(fs.readFileSync(SOURCE_FILE, "utf8"), context);
   return context.AGPResultFileAttachment;

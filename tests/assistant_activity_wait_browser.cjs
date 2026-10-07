@@ -24,6 +24,7 @@ function run({waitedMs, lastActivityAgoMs=null, generation=false, document=undef
     stop:async (message, reason) => { stops.push([message, reason]); }, render:() => {},
     document,
   });
+  vm.runInContext(fs.readFileSync("chrome_extension/chatgpt_selectors.js", "utf8"), context);   // AGP_SELECTOR_TABLE_V1
   vm.runInContext(fs.readFileSync("chrome_extension/chatgpt_dom.js", "utf8"), context);   // AGP_DOM_ADAPTER_V1
   vm.runInContext(code, context);
   if (mutate) vm.runInContext(`ASSISTANT_DOM_MUTATIONS += ${mutate};`, context);
