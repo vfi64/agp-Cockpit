@@ -80,10 +80,11 @@ def test_startup_keeps_waiting_when_the_active_tab_is_not_chatgpt():
 
 def test_panel_shows_mission_turns_and_no_duplicate_mission_line():
     content = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+    panel = (ROOT / "chrome_extension/cockpit_panel.js").read_text(encoding="utf-8")   # AGP_PANEL_MODULE_V1
     status = content[content.index("async function refreshStatus()"):]
     status = status[:status.index("return result;")]
     assert 'STATE.note = "";' in status
-    assert "STATE.mission ? Number(STATE.mission.turn_count || 0)" in content
+    assert "STATE.mission ? Number(STATE.mission.turn_count || 0)" in panel
 
 
 def test_digest_is_attached_once_per_chat_and_manifest():

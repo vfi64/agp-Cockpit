@@ -546,6 +546,9 @@ Update 2026-10-07 (selector table, COMMUNICATION_PROTOCOL 72, build release-0.2.
 step 3 complete — every ChatGPT selector, including those of the injected page helpers, the native
 transport and the Phase-5 contract, lives in `chatgpt_selectors.js`. Next: split `content.js` module by
 module (panel UI, file ingress/result upload, send transport; content.js keeps the controller).
+Update 2026-10-07 (content.js module 1, COMMUNICATION_PROTOCOL 73, build release-0.2.2-r9): the overlay is
+`cockpit_panel.js`; content.js 4246 → 3789 lines (ratchet). Next: file ingress (assistant file cards,
+download/preview materialization, command and terminal file submit), then send transport.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

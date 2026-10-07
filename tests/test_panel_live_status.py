@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
+PANEL = (ROOT / "chrome_extension" / "cockpit_panel.js").read_text(encoding="utf-8")   # AGP_PANEL_MODULE_V1: the overlay lives in cockpit_panel.js
 EVIDENCE = (ROOT / "chrome_extension" / "native_message_evidence.js").read_text(encoding="utf-8")
 
 
@@ -36,4 +37,4 @@ def test_processing_phase_is_timed_and_always_reset():
     finally_part = block[block.index("} finally {"):]
     assert "STATE.processingStartedAt = 0;" in finally_part
     assert 'STATE.processingFile = "";' in finally_part
-    assert "? agpMissionPhaseText(STATE, Date.now()) : \"\"" in CONTENT
+    assert "? agpMissionPhaseText(STATE, Date.now()) : \"\"" in PANEL
