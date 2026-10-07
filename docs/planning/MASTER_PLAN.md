@@ -556,6 +556,8 @@ author role fails it); the UI fingerprint is versioned (the false „NEU“ of t
 All five DOM-hardening steps are done. Order from here (owner 2026-10-07: Claude sets it): content.js
 module 2 file ingress, module 3 send transport, module 4 legacy paths; then Kit 1.0.20 adoption and
 release 0.2.3.
+Update 2026-10-07 (content.js module 2, COMMUNICATION_PROTOCOL 75, build release-0.2.2-r11): file ingress is
+`cockpit_ingress.js`; content.js 3789 → 3312 lines. Next: module 3 send transport.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

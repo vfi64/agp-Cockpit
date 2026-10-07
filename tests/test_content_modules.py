@@ -4,7 +4,9 @@ content.js stays the controller (STATE, mission loop, actions); each split-off m
 classic content script with one frozen namespace, loaded by the manifest before content.js.
 Module 1, AGP_PANEL_MODULE_V1: cockpit_panel.js renders the overlay from STATE and calls back
 into the controller; it never talks to the bridge, the service worker or the ChatGPT page.
-The size of content.js may only fall (ratchet). Real-Chromium checks:
+Module 2, AGP_INGRESS_MODULE_V1: cockpit_ingress.js takes a file card of the expected step to
+the bridge (find, materialize, submit, forget the browser copy); it never sends a prompt and never
+renders. The size of content.js may only fall (ratchet). Real-Chromium checks:
 tests/e2e/test_066_actual_contentjs_send_ack.spec.js and test_066_b1_d1_bootstrap_trace.spec.js
 load the real stack, panel included."""
 import json
@@ -14,15 +16,17 @@ ROOT = Path(__file__).resolve().parents[1]
 EXT = ROOT / "chrome_extension"
 CONTENT = (EXT / "content.js").read_text(encoding="utf-8")
 PANEL = (EXT / "cockpit_panel.js").read_text(encoding="utf-8")
+INGRESS = (EXT / "cockpit_ingress.js").read_text(encoding="utf-8")
 
 # Ratchet: lower it whenever a module leaves content.js; never raise it.
-CONTENT_MAX_LINES = 3789
+CONTENT_MAX_LINES = 3312
 
 
 def test_manifest_loads_every_module_before_the_controller():
     js = json.loads((EXT / "manifest.json").read_text(encoding="utf-8"))["content_scripts"][0]["js"]
     assert js[-1] == "content.js"
     assert js.index("cockpit_panel.js") < js.index("content.js")
+    assert js.index("chatgpt_selectors.js") < js.index("cockpit_ingress.js") < js.index("content.js")
 
 
 def test_the_panel_is_one_namespace_that_only_renders_and_calls_back():
@@ -50,3 +54,21 @@ def test_content_js_only_shrinks():
     lines = len(CONTENT.splitlines())
     assert lines <= CONTENT_MAX_LINES, (
         f"content.js has {lines} lines (limit {CONTENT_MAX_LINES}); new code belongs in a module")
+
+
+def test_the_ingress_module_only_takes_files_to_the_bridge():
+    assert INGRESS.lstrip().startswith("// AGP_INGRESS_MODULE_V1")
+    assert INGRESS.count("globalThis.") == 1 and "globalThis.AGP_INGRESS = Object.freeze({create});" in INGRESS
+    for forbidden in ("sendPrompt(", "render(", "AGP_PANEL", "setInterval(", "STATE.running = "):
+        assert forbidden not in INGRESS, forbidden
+    for route in ('"/v1/file-loop/command"', '"/v1/file-loop/terminal"', '"/v1/file-loop/download"'):
+        assert route in INGRESS, route
+    assert "return Object.seal(self);" in INGRESS          # one step replaceable in tests, never extended
+
+
+def test_content_js_creates_the_ingress_once_and_keeps_no_card_logic():
+    assert CONTENT.count("AGP_INGRESS.create(") == 1
+    for moved in ("function readAssistantButtonAttachment(", "function submitAssistantCommandFile(",
+                  "function materializeDownloadedAttachment(", "AGP_DOM.fileCardRow(", "AGP_DOM.previewTextbox("):
+        assert moved not in CONTENT, moved
+

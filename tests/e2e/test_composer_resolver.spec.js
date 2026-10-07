@@ -11,9 +11,10 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "../..");
 const EVIDENCE = fs.readFileSync(path.join(ROOT, "chrome_extension/native_message_evidence.js"), "utf8");
 const CONTENT = fs.readFileSync(path.join(ROOT, "chrome_extension/content.js"), "utf8");
-const start = CONTENT.indexOf("  function pythonAttachmentRow(anchor)");
-const end = CONTENT.indexOf("  function expectedStepFileVisible", start);
-const CARD_FUNCTIONS = CONTENT.slice(start, end);
+// AGP_INGRESS_MODULE_V1: the card functions live in cockpit_ingress.js; expose them as before.
+const CARD_FUNCTIONS = fs.readFileSync(path.join(ROOT, "chrome_extension/cockpit_ingress.js"), "utf8") +
+  "\n;(() => { const ingress = AGP_INGRESS.create({state:{}});" +
+  " for (const [name, fn] of Object.entries(ingress)) globalThis[name] = fn; })();\n";
 const DOM_ADAPTER = path.join(ROOT, "chrome_extension/chatgpt_dom.js");   // AGP_DOM_ADAPTER_V1
 
 const NEW_CHAT = `<!doctype html><html><body>

@@ -42,6 +42,7 @@ def test_browser_ingress_uses_existing_debugger_and_no_downloads_permission():
     assert "AGP_K07_WAIT_COMMAND_FILE_DOWNLOAD" in background
     assert "k07DownloadStartedAfterArm" in background
     content = (ROOT / "chrome_extension/content.js").read_text()
+    content += (ROOT / "chrome_extension/cockpit_ingress.js").read_text()   # AGP_INGRESS_MODULE_V1
     assert "AGP_K07_COMMAND_FILE_INGRESS_989" in content
     assert "assistantPythonAttachmentCandidates" in content
     # AGP_SELECTOR_TABLE_V1: the file-card selectors are named in chatgpt_selectors.js.

@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- The file ingress of the browser extension (finding the expected file card in ChatGPT's answer, downloading or reading it and handing it to the bridge) is its own module (`cockpit_ingress.js`); `content.js` shrinks to 3312 lines; behavior unchanged; build `release-0.2.2-r11`.
 - DOM hardening complete: a new fingerprint algorithm no longer shows as a new ChatGPT page (the false „NEU“ clears on the next start), and failure snapshots keep enough structure to be replayed against the real probe code in the browser tests; build `release-0.2.2-r10`.
 - The overlay on the ChatGPT page (buttons, status, drag and minimize) is its own module (`cockpit_panel.js`), the first step of splitting `content.js`, which shrinks from 4246 to 3789 lines; behavior unchanged; build `release-0.2.2-r9`.
 - Every ChatGPT selector of the browser extension lives in one table (`chatgpt_selectors.js`), also for the helpers the extension runs inside the ChatGPT page and for the native send path; a test keeps ChatGPT selectors out of every other extension file; build `release-0.2.2-r8`.

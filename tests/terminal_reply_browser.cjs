@@ -3,10 +3,10 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
+const {bindIngress} = require("./ingress_harness.cjs");   // AGP_INGRESS_MODULE_V1
 const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
-const code = section("  async function submitAssistantTerminalReply(", "  async function submitAssistantCommandFile(")
-  + section("  async function stop(", "  function scheduleTick()")
+const code = section("  async function stop(", "  function scheduleTick()")
   + section("  async function tick()", "  const LIVE_PROBE");
 
 async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
@@ -55,6 +55,7 @@ async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
   };
   vm.createContext(context);
   vm.runInContext(code, context);
+  bindIngress(context);
   if (python > 0 || terminal > 1) {
     await context.tick();
     assert.equal(calls.includes("/v1/file-loop/terminal"), false);

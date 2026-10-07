@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def test_protocol_freezes_file_transfer_boundary():
  d=(ROOT/'docs/planning/COMMUNICATION_PROTOCOL.md').read_text()
- s=(ROOT/'chrome_extension/content.js').read_text()
+ s=(ROOT/'chrome_extension/content.js').read_text() +(ROOT/'chrome_extension/cockpit_ingress.js').read_text()   # AGP_INGRESS_MODULE_V1: content.js + its ingress module
  assert 'K07 FILE_TRANSFER — NON-NEGOTIABLE ARCHITECTURE BOUNDARY' in d
  assert 'MUST NOT require, parse, repair, or execute a pure-JSON work order' in d
  g=s.index('K07_FILE_TRANSFER_ATTACHMENT_REQUIRED')

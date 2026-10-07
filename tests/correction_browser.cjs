@@ -3,10 +3,10 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
+const {bindIngress} = require("./ingress_harness.cjs");   // AGP_INGRESS_MODULE_V1
 const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start) + 1));
-const code = section("  async function submitAssistantCommandFile(", "  function composer()")
-  + section("  async function processCompletedAssistant(", "\n  async function ");
+const code = section("  async function processCompletedAssistant(", "\n  async function ");
 
 (async () => {
   const calls = [];
@@ -31,6 +31,7 @@ const code = section("  async function submitAssistantCommandFile(", "  function
   };
   vm.createContext(context);
   vm.runInContext(code, context);
+  bindIngress(context);
   await context.processCompletedAssistant("", 1);
   assert.deepEqual(sent, ["AGP COCKPIT — WORK ORDER NOT EXECUTED"]);
   assert.equal(context.STATE.nextLocalStep, 1541);

@@ -102,17 +102,17 @@ def test_digest_is_attached_once_per_chat_and_manifest():
 
 def test_browser_copy_is_removed_only_after_the_bridge_accepted_the_file():
     """AGP_DOWNLOAD_HYGIENE_V1."""
-    content = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+    content = (ROOT / "chrome_extension/cockpit_ingress.js").read_text(encoding="utf-8")   # AGP_INGRESS_MODULE_V1
     command = content[content.index("async function submitAssistantCommandFile("):]
     command = command[:command.index("AGP_K07_ADVANCE_STEP_AFTER_DELIVERY_V1")]
-    assert command.index("K07_WORK_ORDER_REJECTED_FOR_CORRECTION") < command.index("void forgetBrowserDownload(fetched);")
+    assert command.index("K07_WORK_ORDER_REJECTED_FOR_CORRECTION") < command.index("void self.forgetBrowserDownload(fetched);")
     # AGP_REJECTED_ORDER_KEPT_V1: the rejected order's browser copy goes too (the bridge kept it).
     rejected = command[command.index("K07_WORK_ORDER_REJECTED_FOR_CORRECTION"):command.index("return result;")]
-    assert "void forgetBrowserDownload(fetched);" in rejected
-    assert command.index("K07_FILE_INGRESS_ACCEPTED") < command.rindex("void forgetBrowserDownload(fetched);")
+    assert "void self.forgetBrowserDownload(fetched);" in rejected
+    assert command.index("K07_FILE_INGRESS_ACCEPTED") < command.rindex("void self.forgetBrowserDownload(fetched);")
     terminal = content[content.index("async function submitAssistantTerminalReply("):]
     terminal = terminal[:terminal.index("async function submitAssistantCommandFile(")]
-    assert terminal.index("K07_TERMINAL_REPLY_OBSERVED") < terminal.index("void forgetBrowserDownload(fetched);")
+    assert terminal.index("K07_TERMINAL_REPLY_OBSERVED") < terminal.index("void self.forgetBrowserDownload(fetched);")
     background = (ROOT / "chrome_extension/background.js").read_text(encoding="utf-8")
     forget = background[background.index("async function agpForgetCommandFileDownload("):background.index("async function performRefresh(")]
     assert "k07DownloadNameMatches(item.filename, filename)" in forget

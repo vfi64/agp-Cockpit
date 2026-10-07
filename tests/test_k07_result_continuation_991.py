@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def test_existing_result_attachment_authority_is_reused():
     b=(ROOT/"chrome_extension/background.js").read_text()
-    c=(ROOT/"chrome_extension/content.js").read_text()
+    c=(ROOT/"chrome_extension/content.js").read_text() +(ROOT/"chrome_extension/cockpit_ingress.js").read_text()   # AGP_INGRESS_MODULE_V1: content.js + its ingress module
     assert "agpSubmitFileLoopContinuation(tabId, absolutePath, outputPath, continuationPrompt, message.cycle_id, message.result_sha256)" in b
     assert 'message.type !== "AGP_K07_RESULT_CONTINUATION"' in b
     assert "AGPResultFileAttachment.attachResultFiles" in b

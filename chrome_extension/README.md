@@ -40,6 +40,8 @@ When intentionally starting the development bridge with `.venv/bin/python -m agp
 - `native_message_evidence.js` — composer resolver, committed-turn evidence, touchpoint self-test,
   UI fingerprint and failure shapes.
 - `cockpit_panel.js` — the AGP Cockpit Bridge overlay (`AGP_PANEL`).
+- `cockpit_ingress.js` — file ingress (`AGP_INGRESS`): the expected step's file card from ChatGPT's
+  answer to the bridge.
 - `chatgpt_dom.js` — page adapter (`AGP_DOM`): assistant turns, file cards, send/stop controls,
   preview and dialogs.
 - `content.js` — the controller: state, mission loop and actions; it may only shrink.

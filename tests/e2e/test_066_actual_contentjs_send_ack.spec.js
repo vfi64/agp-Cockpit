@@ -192,6 +192,7 @@ async function installBridgeMocks(page, {fileInput = true} = {}) {
   await page.addScriptTag({content:AGP_SELECTORS_SRC});
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension/native_message_evidence.js")});
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension/cockpit_panel.js")});   // AGP_PANEL_MODULE_V1
+  await page.addScriptTag({path: path.join(ROOT, "chrome_extension/cockpit_ingress.js")});   // AGP_INGRESS_MODULE_V1
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension/chatgpt_dom.js")});
   await page.addScriptTag({path: CONTENT_JS});
   await expect(page.getByText("AGP Cockpit Bridge")).toBeVisible();

@@ -8,10 +8,10 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "../..");
-const CONTENT = fs.readFileSync(path.join(ROOT, "chrome_extension/content.js"), "utf8");
-const start = CONTENT.indexOf("  function pythonAttachmentRow(anchor)");
-const end = CONTENT.indexOf("  // AGP_K07_COMMAND_FILE_INGRESS_989", start);
-const FUNCTIONS = CONTENT.slice(start, end);
+// AGP_INGRESS_MODULE_V1: the card functions live in cockpit_ingress.js; expose them as before.
+const FUNCTIONS = fs.readFileSync(path.join(ROOT, "chrome_extension/cockpit_ingress.js"), "utf8") +
+  "\n;(() => { const ingress = AGP_INGRESS.create({state:{}});" +
+  " for (const [name, fn] of Object.entries(ingress)) globalThis[name] = fn; })();\n";
 const DOM_ADAPTER = path.join(ROOT, "chrome_extension/chatgpt_dom.js");   // AGP_DOM_ADAPTER_V1
 
 const DOM = `<!doctype html><html><body><main>
