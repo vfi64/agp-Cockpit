@@ -219,7 +219,7 @@ class MainWindow(ttk.Frame):
             if not holder:
                 self.after(200, poll)
                 return
-            ok, message = holder[0]
+            _ok, message = holder[0]
             self._branch_button.configure(state="normal")
             panel.status_var.set(message)
             panel.refresh_lage()
@@ -531,8 +531,17 @@ class MainWindow(ttk.Frame):
             self.build_var.set(f"{base} · ⚠ veraltet")
             self._build_label.configure(foreground="#d03030")
             self.freshness_var.set(self._rebuild_note or f"⚠ {freshness.message}")
+            self._freshness_label.configure(foreground="#d03030")
             self._freshness_label.grid()
             self._show_rebuild(freshness)
+        elif freshness is not None and freshness.note:
+            # AGP_RELEASE_IN_PROGRESS_V1: a running release is no stale app — yellow, no button.
+            self.build_var.set(base)
+            self._build_label.configure(foreground="")
+            self.freshness_var.set(freshness.note)
+            self._freshness_label.configure(foreground="#c8a020")
+            self._freshness_label.grid()
+            self._rebuild_button.grid_remove()
         else:
             self.build_var.set(base)
             self._build_label.configure(foreground="")

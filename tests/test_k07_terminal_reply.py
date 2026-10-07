@@ -151,7 +151,7 @@ def test_malformed_terminal_reply_of_a_running_mission_is_corrected(bridge):
 
 
 def test_terminal_corrections_are_bounded(bridge):
-    root, call = bridge
+    _root, call = bridge
     start_mission(call)
     step = 1480
     for _ in range(3):

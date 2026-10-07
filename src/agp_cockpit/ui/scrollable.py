@@ -63,7 +63,7 @@ class ScrollableTab(ttk.Frame):
             for listener in list(self.width_listeners):
                 try:
                     listener(visible)
-                except Exception:  # noqa: BLE001 - one panel never breaks the tab
+                except Exception:  # noqa: BLE001, S112 - one panel never breaks the tab
                     continue
         # AGP_SCROLL_WIDTH_FROM_CONTENT_V1 (P8 live test 2): the content's own
         # width decides, not a fixed 900 px — with the vertical bar shown the

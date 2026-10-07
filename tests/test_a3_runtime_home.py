@@ -39,7 +39,10 @@ def test_a_steered_repository_gets_its_own_folder_in_the_home(home, tmp_path):
 
 
 def test_bridge_log_missions_refresh_delivery_and_tmp_follow_the_home(home, tmp_path):
-    from agp_cockpit.core.browser_refresh import refresh_request_path, request_browser_refresh
+    from agp_cockpit.core.browser_refresh import (
+        refresh_request_path,
+        request_browser_refresh,
+    )
     from agp_cockpit.core.diagnostic_log import DiagnosticLogger
     from agp_cockpit.core.mission_state import MissionStore
     from agp_cockpit.core.result_projection import delivery_files

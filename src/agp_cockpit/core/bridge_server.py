@@ -15,7 +15,6 @@ from agp_cockpit.adapters.macos_extension import (
     local_extension_root,
 )
 from agp_cockpit.core import result_projection
-from agp_cockpit.core.runtime_paths import runtime_dir
 from agp_cockpit.core.bridge_engine import BridgeEngine
 from agp_cockpit.core.bridge_protocol import (
     encode_turn_response,
@@ -49,10 +48,15 @@ from agp_cockpit.core.handoff_completion import (
     prepare_receipt,
 )
 from agp_cockpit.core.protocol_execution_v1 import execute_direct_action
+from agp_cockpit.core.runtime_paths import runtime_dir
 from agp_cockpit.core.task_contract import LocalTaskContract
 from agp_cockpit.core.task_controller import DurableTaskController
 from agp_cockpit.core.task_reply_policy import policy_for
-from agp_cockpit.core.terminal_reply import is_terminal_filename, parse_terminal_reply, record_terminal_reply
+from agp_cockpit.core.terminal_reply import (
+    is_terminal_filename,
+    parse_terminal_reply,
+    record_terminal_reply,
+)
 from agp_cockpit.core.transport_protocol_v1 import (
     ActionRegistry,
     parse_action_frame,
@@ -576,7 +580,9 @@ class CockpitBridgeServer:
                             # publishes; it never repairs code or tests.
                             from agp_cockpit.core import finish_guard
                             if mission_now is not None and finish_guard.is_finish_mission(mission_now.title):
-                                from agp_cockpit.core.kit_command_catalog import kit_commands_used
+                                from agp_cockpit.core.kit_command_catalog import (
+                                    kit_commands_used,
+                                )
                                 used_names = [str(c.get("qualified_name") or "") for c in
                                               kit_commands_used(content, KitCommandCatalog.load(repo_root))]
                                 start = finish_guard.start_state(runtime_root, mission_now.mission_id, repo_root)

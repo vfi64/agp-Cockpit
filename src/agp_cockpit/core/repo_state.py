@@ -372,7 +372,7 @@ def summary_line(state: RepoState) -> str:
 
 
 def write_report(root: Path, state: RepoState) -> Path:
-    from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+    from agp_cockpit.core.runtime_paths import runtime_dir  # AGP_RUNTIME_HOME_V1
     target = runtime_dir(Path(root), "state", "repo-state.json")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(state.as_json(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

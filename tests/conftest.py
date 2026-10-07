@@ -31,3 +31,44 @@ def _no_host_gh(monkeypatch):
 @pytest.fixture(autouse=True)
 def _no_runtime_home(monkeypatch):
     monkeypatch.setenv("AGP_COCKPIT_RUNTIME_HOME", "")
+
+
+# AGP_INVISIBLE_TEST_WINDOWS_V1 (owner 2026-10-07, release 0.2.2): the Kit's local feature
+# gate runs this suite on the owner's Mac, and every GUI test flashed a real Cockpit window
+# in an odd size. Test windows are fully transparent; geometry, mapping and events are
+# unchanged, so the layout tests measure the same. AGP_TEST_SHOW_WINDOWS=1 shows them.
+def _hide_window(window) -> None:
+    try:
+        window.attributes("-alpha", 0.0)
+    except Exception:  # noqa: BLE001, S110 - a platform without alpha keeps its window
+        pass
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _invisible_test_windows():
+    import os
+    if os.environ.get("AGP_TEST_SHOW_WINDOWS") == "1":
+        yield
+        return
+    try:
+        import tkinter
+    except ImportError:
+        yield
+        return
+    originals = {cls: cls.__init__ for cls in (tkinter.Tk, tkinter.Toplevel)}
+
+    def wrap(cls):
+        original = originals[cls]
+
+        def __init__(self, *args, **kwargs):
+            original(self, *args, **kwargs)
+            _hide_window(self)
+        return __init__
+
+    for cls in originals:
+        cls.__init__ = wrap(cls)
+    try:
+        yield
+    finally:
+        for cls, original in originals.items():
+            cls.__init__ = original

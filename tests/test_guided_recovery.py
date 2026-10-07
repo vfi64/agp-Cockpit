@@ -57,8 +57,8 @@ def test_lage_names_the_followup_and_fits_one_line():
 
 
 def test_the_way_out_of_the_live_2026_10_05_case_step_by_step():
-    followup = dict(branch="main", head="a", origin_main="a", post_merge="NOT_PASS", followup_pr=243,
-                    followup_url="https://github.com/o/r/pull/243")
+    followup = {"branch": "main", "head": "a", "origin_main": "a", "post_merge": "NOT_PASS", "followup_pr": 243,
+                "followup_url": "https://github.com/o/r/pull/243"}
     runner = guidance.steps(state(rs.STOERUNG, rs.ABSCHLIESSEN, followup_ci="RUNNER", **followup))
     assert "Re-run failed jobs" in runner[0] and "PR #243" in runner[0] and runner[-1].startswith("Dann „Abschließen“")
     assert guidance.steps(state(rs.STOERUNG, rs.ABSCHLIESSEN, followup_ci="PENDING", **followup))[0].startswith("Warten")

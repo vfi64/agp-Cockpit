@@ -6,6 +6,8 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- A running release shows a yellow note instead of locking the tasks, the release pull request needs the exact build id and JSON summary lines, src and tests pass ruff like the Kit's local gate, test windows stay invisible, and Pause, Fortsetzen, Stop and Reset are clickable only when they act; build `release-0.2.2-r1`.
+
 ## v0.2.2 - 2026-10-07
 
 - The tick „Nach Erfolg selbst abschließen“ has its own line under the editor with a hint that green CI does not check correctness, instead of breaking the button row; it stays off by default.

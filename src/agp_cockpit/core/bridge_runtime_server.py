@@ -5,11 +5,11 @@ import secrets
 from dataclasses import dataclass
 from pathlib import Path
 
-from agp_cockpit.core.runtime_paths import runtime_dir
 from agp_cockpit.core.bridge_server import (
     BridgeServerConfig,
     CockpitBridgeServer,
 )
+from agp_cockpit.core.runtime_paths import runtime_dir
 from agp_cockpit.core.task_contract import LocalTaskContract
 
 

@@ -1,6 +1,5 @@
 """Package „Ohne Handarbeit“ (owner 2026-10-07): branch switch through the Kit, „Abschließen“
 after a ticked „Arbeiten“ task, and an approval scope the bridge enforces."""
-import json
 import os
 import subprocess
 import sys
@@ -55,7 +54,7 @@ def test_the_decision_endpoint_stores_the_scope_and_refuses_unknown_ones(tmp_pat
     sys.path.insert(0, str(ROOT / "tests"))
     import test_human_decision as h
     gen = h._bridge(tmp_path)
-    root, runtime, call = next(gen)
+    _root, runtime, call = next(gen)
     try:
         first = h.mission(call, runtime)
         asked = call("/v1/file-loop/command", {"filename": "1480_push.py",

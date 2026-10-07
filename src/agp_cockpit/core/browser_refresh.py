@@ -18,7 +18,7 @@ SAME_TARGET_SECONDS = 600
 
 
 def refresh_request_path(repository_root: Path) -> Path:
-    from agp_cockpit.core.runtime_paths import runtime_dir   # AGP_RUNTIME_HOME_V1
+    from agp_cockpit.core.runtime_paths import runtime_dir  # AGP_RUNTIME_HOME_V1
     return runtime_dir(repository_root, "browser", "refresh_request.json")
 
 
