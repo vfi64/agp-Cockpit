@@ -579,7 +579,7 @@ Assessment after P8 and the Kit 1.0.14 release; none is decided yet, each needs 
 4. Proposal 6 (rejected work orders into Download/), proposal 7 (narrow release resume
    scope) — done 2026-10-06 (AGP_REJECTED_ORDER_KEPT_V1, AGP_RELEASE_RESUME_SCOPE_V1, build
    release-0.2.0-r5); the P11c switch after KIT-GF-049.
-5. Systemcheck in the System tab.
+5. Systemcheck in the System tab — done 2026-10-07 (AGP_SYSTEM_CHECK_V1, build release-0.2.2-r7).
 6. Proposal 3/9: Abschließen directly, without the ChatGPT round trip — on hold: it would let
    the Cockpit choose a Kit workflow instead of the remote LLM (SCOPE_BOUNDARY §4); only after
    an explicit owner decision that changes the boundary (owner 2026-10-06: principle kept).

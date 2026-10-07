@@ -447,12 +447,18 @@ class MainWindow(ttk.Frame):
         cleanup_label = ttk.Label(tools, text="alte Arbeitsdateien und Kit-Logs, mit Vorschau",
                                   foreground="#888888", wraplength=520, justify="left")
         cleanup_label.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(4, 0))
+        # AGP_SYSTEM_CHECK_V1 (plan item 5): every task precondition at a glance, with the fix.
+        ttk.Button(tools, text="Systemcheck …", command=self.open_system_check).grid(
+            row=2, column=0, sticky="ew", pady=(4, 0))
+        check_label = ttk.Label(tools, text="Build, Bridge, Erweiterung, Kit, Repository, GitHub, Speicher — mit Lösungsweg",
+                                foreground="#888888", wraplength=520, justify="left")
+        check_label.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(4, 0))
 
         def wrap_system(width: int) -> None:
             """AGP_VIEWPORT_WRAP_V1 (live 2026-10-07): the System tab wraps to the visible width."""
             purpose_label.configure(wraplength=max(200, width - 60))
             hermes_label.configure(wraplength=max(160, width // 2 - 60))
-            for label in (findings_label, cleanup_label):
+            for label in (findings_label, cleanup_label, check_label):
                 label.configure(wraplength=max(160, width - 220))
         follow_viewport(parent, wrap_system)
         ttk.Label(parent,textvariable=self.system_focus_var).grid(row=4,column=0,columnspan=2,sticky="w",pady=(8,0))
@@ -484,6 +490,11 @@ class MainWindow(ttk.Frame):
         except Exception:  # noqa: BLE001 - shown as "not found"
             kit = None
         KitFindingsWindow(self, repository_root=home, installed_version=getattr(kit, "version", None))
+
+    def open_system_check(self) -> None:
+        """AGP_SYSTEM_CHECK_V1: read-only; checks the repository this Cockpit steers."""
+        from agp_cockpit.ui.system_check_window import SystemCheckWindow
+        SystemCheckWindow(self, repository_root=self.repository_root)
 
     def open_cleanup(self) -> None:
         """AGP_MAINTENANCE_CLEANUP_V1: preview first, delete only after OK, never while a task runs."""

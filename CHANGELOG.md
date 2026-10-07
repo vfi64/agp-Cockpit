@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- The System tab offers „Systemcheck …“: app build, bridge, Chrome extension, ChatGPT UI variant, Agentic Kit against the CI pin, repository, GitHub CLI login and disk space, each with the step that fixes a problem; build `release-0.2.2-r7`.
 - A task started right after „Neu bauen und neu starten“ waits until the Chrome extension reports the new build and then starts by itself, and a refused start stops the mission it had just created instead of leaving it blocking every new start; build `release-0.2.2-r6`.
 - The page adapter also names the attachment preview, its download control and the dialog close controls; `content.js` keeps 10 direct page lookups; build `release-0.2.2-r5`.
 - The page adapter also names the composer fallback, the send control and the generation and stop signals; `content.js` keeps 16 direct page lookups (from 27); build `release-0.2.2-r4`.

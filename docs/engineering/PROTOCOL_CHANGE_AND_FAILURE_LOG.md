@@ -1477,3 +1477,8 @@ repeat once.
 - AGP_START_WAITS_FOR_EXTENSION_V1: before a mission is created, both tabs ask the runtime identity; while the extension reports an old build, an old version, a stale or no handshake, the start waits once a second (up to 30 s, „… startet von selbst“) and then starts by itself; after 30 s it names the way out (reload the ChatGPT tab). Tests run with `AGP_COCKPIT_EXTENSION_GATE=off` (conftest).
 - AGP_START_ABANDONS_ON_FAILURE_V1: a refused start request stops exactly the mission it named (`/v1/file-loop/control` STOP with `mission_id`; the bridge ignores the stop — without an operator stop — when another mission is current). Build release-0.2.2-r6.
 
+## 2026-10-07 — Systemcheck (r7)
+
+- Live after r6 (PR #288): slice 3c and the start fix merged in one run. The wait for the extension was not exercised (the start came three minutes after the rebuild). `pr-create-complete --post-merge-complete` ended rc 2 for PR #276 and #286 but rc 0 for #288 (same flags): an intermittent Kit behaviour, to be recorded with the Kit 1.0.20 adoption.
+- AGP_SYSTEM_CHECK_V1 (plan item 5): System tab → „Systemcheck …“ runs read-only checks beside the UI thread — app build (stale-app guard), bridge, Chrome extension (runtime identity with a fix per reason), ChatGPT UI variant (AGP_UI_FINGERPRINT_V1), Agentic Kit against the CI pin of the Cockpit's workflows, repository (work facts), GitHub CLI login, free disk space — each ✓/⚠/✗ with the one step that fixes it; a check that raises is reported, never raised. Build release-0.2.2-r7.
+
