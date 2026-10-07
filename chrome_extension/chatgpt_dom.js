@@ -11,6 +11,15 @@
 //   (<step>_*.py) or "terminal" (<step>_agp_terminal.json); never in the composer form,
 //   a user turn, a dialog or a hidden/inert container; first card per name wins.
 // - alertNotices(): ChatGPT's own short alert texts (no chat content), for diagnosis.
+//
+// Slice 3b (composer and send controls):
+// - composerFallback(): the composer when the resolver (agpResolveComposer, rule 67) finds
+//   none: #prompt-textarea, a textarea, then any contenteditable.
+// - sendButton(anchor): a usable (connected, enabled, visible) send control, first inside
+//   the anchor's form, then anywhere; null when ChatGPT shows none (the send never needs it,
+//   AGP_SEND_OUTCOME_FIRST_V1).
+// - generationActive(): a visible stop control or a streaming marker.
+// - stopLikeButtonVisible(): an enabled stop-like button in a composer form (activity signal).
 (function () {
   const SELECTORS = Object.freeze({
     assistantTurn: '[data-message-author-role="assistant"]',
@@ -19,6 +28,23 @@
     hiddenContainer: '[inert], [aria-hidden="true"]',
     fileCardDownload: 'button[aria-label="Datei herunterladen"], button[aria-label="Download"]',
     alert: '[role="alert"]',
+    composerFallback: Object.freeze(['#prompt-textarea', 'textarea', '[contenteditable="true"]']),
+    sendButton: Object.freeze([
+      'button[data-testid="send-button"]',
+      'button[aria-label*="Send"]',
+      'button[aria-label*="Senden"]',
+      'button[type="submit"]',
+    ]),
+    generationActive: Object.freeze([
+      'button[data-testid="stop-button"]',
+      'button[aria-label*="Stop generating"]',
+      'button[aria-label*="Stop response"]',
+      'button[aria-label*="Generierung stoppen"]',
+      'button[aria-label*="Antwort stoppen"]',
+      '[data-is-streaming="true"]',
+      '[data-testid="stop-generating-button"]',
+    ]),
+    stopLikeButton: "form button, [data-testid*='composer'] button",
   });
 
   function assistantTurns() {
@@ -71,5 +97,51 @@
       .slice(0, limit);
   }
 
-  globalThis.AGP_DOM = Object.freeze({SELECTORS, assistantTurns, fileCardRow, stepFileCards, alertNotices});
+  function composerFallback() {
+    for (const selector of SELECTORS.composerFallback) {
+      const el = document.querySelector(selector);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  function isUsableSendControl(el) {
+    if (!el || !el.isConnected || el.disabled) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+
+  function sendButton(anchor = null) {
+    const form = anchor && anchor.closest ? anchor.closest("form") : null;
+    if (form) {
+      for (const selector of SELECTORS.sendButton) {
+        const candidate = form.querySelector(selector);
+        if (isUsableSendControl(candidate)) return candidate;
+      }
+    }
+    for (const selector of SELECTORS.sendButton) {
+      const candidate = Array.from(document.querySelectorAll(selector)).find(isUsableSendControl);
+      if (candidate) return candidate;
+    }
+    return null;
+  }
+
+  function generationActive() {
+    return SELECTORS.generationActive.some(selector => {
+      const el = document.querySelector(selector);
+      return Boolean(el && !el.disabled);
+    });
+  }
+
+  function stopLikeButtonVisible() {
+    return Array.from(document.querySelectorAll(SELECTORS.stopLikeButton))
+      .some(button => !button.disabled && (
+        /^(stop|stoppen)\b/i.test(String(button.getAttribute("aria-label") || "").trim()) ||
+        /stop/i.test(String(button.getAttribute("data-testid") || ""))));
+  }
+
+  globalThis.AGP_DOM = Object.freeze({
+    SELECTORS, assistantTurns, fileCardRow, stepFileCards, alertNotices,
+    composerFallback, isUsableSendControl, sendButton, generationActive, stopLikeButtonVisible,
+  });
 })();

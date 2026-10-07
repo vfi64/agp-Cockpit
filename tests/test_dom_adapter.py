@@ -13,7 +13,7 @@ CONTENT = (EXT / "content.js").read_text(encoding="utf-8")
 ADAPTER = (EXT / "chatgpt_dom.js").read_text(encoding="utf-8")
 
 # Ratchet: lower it whenever a slice moves selectors out of content.js; never raise it.
-CONTENT_SELECTOR_CALLS = 23
+CONTENT_SELECTOR_CALLS = 16
 
 
 def test_the_manifest_loads_the_adapter_right_before_content_js():
@@ -23,8 +23,12 @@ def test_the_manifest_loads_the_adapter_right_before_content_js():
 
 def test_the_adapter_is_one_frozen_namespace_with_the_contracted_touchpoints():
     assert ADAPTER.lstrip().startswith("// AGP_DOM_ADAPTER_V1")
-    assert "globalThis.AGP_DOM = Object.freeze({SELECTORS, assistantTurns, fileCardRow, stepFileCards, " \
-           "alertNotices});" in ADAPTER
+    exported = ADAPTER[ADAPTER.index("globalThis.AGP_DOM = Object.freeze({"):]
+    exported = exported[:exported.index("});")]
+    for name in ("SELECTORS", "assistantTurns", "fileCardRow", "stepFileCards", "alertNotices",
+                 "composerFallback", "isUsableSendControl", "sendButton", "generationActive",
+                 "stopLikeButtonVisible"):
+        assert name in exported, name
     assert "const SELECTORS = Object.freeze({" in ADAPTER
     assert ADAPTER.count("globalThis.") == 1                  # nothing else leaks into the page
 
@@ -33,11 +37,17 @@ def test_content_js_delegates_the_moved_touchpoints():
     for wrapper, call in (("function assistantMessageNodes()", "AGP_DOM.assistantTurns()"),
                           ("function pythonAttachmentRow(anchor)", "AGP_DOM.fileCardRow(anchor)"),
                           ('function expectedStepAttachmentCandidates(expectedStep, kind="command")',
-                           "AGP_DOM.stepFileCards(expectedStep, kind)")):
+                           "AGP_DOM.stepFileCards(expectedStep, kind)"),
+                          ("function isUsableSendControl(el)", "AGP_DOM.isUsableSendControl(el)"),
+                          ("function sendButton(anchor=null)", "AGP_DOM.sendButton(anchor)"),
+                          ("function chatgptGenerationActive()", "AGP_DOM.generationActive()"),
+                          ("function stopLikeComposerButtonVisible()", "AGP_DOM.stopLikeButtonVisible()")):
         body = CONTENT[CONTENT.index(wrapper):]
         body = body[:body.index("\n  }\n")]
         assert call in body and "querySelector" not in body, wrapper
-    for moved in ('button[aria-label="Datei herunterladen"]', 'a[href], button, [role="button"]'):
+    for moved in ('button[aria-label="Datei herunterladen"]', 'a[href], button, [role="button"]',
+                  'button[data-testid="send-button"]', 'button[aria-label*="Generierung stoppen"]',
+                  "'#prompt-textarea'", "form button, [data-testid*='composer'] button"):
         assert moved not in CONTENT and moved in ADAPTER, moved
 
 
