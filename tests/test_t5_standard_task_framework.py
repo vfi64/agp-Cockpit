@@ -609,7 +609,8 @@ def test_assistant_timeout_after_a_merged_finish_is_confirmed_locally(panel, mon
     widget._poll_lage([rs.RepoState(state=rs.BEREIT, summary="s", recommended=rs.ARBEIT_BEGINNEN,
                                     offered=(rs.ARBEIT_BEGINNEN,), facts=facts)])
     assert widget.recover_offered is False
-    assert "Lokal geprüft nach der Zeitüberschreitung" in widget.status_var.get()
+    assert "vom Cockpit geprüft nach der Zeitüberschreitung" in widget.status_var.get()
+    assert "ist freigeschaltet und empfohlen" not in widget.status_var.get()   # AGP_RECOVER_HINT_FOLLOWS_OFFER_V1
     assert widget._late_check is False
 
 

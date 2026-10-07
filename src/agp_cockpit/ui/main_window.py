@@ -48,6 +48,7 @@ class MainWindow(ttk.Frame):
         self.context_var = tk.StringVar(value=f"Repository: {self.repository_root}")
         self.system_focus_var = tk.StringVar(value="Tastaturfokus: —")
         self.bridge_identity_var = tk.StringVar(value="Browser-Bridge wird geprüft …")
+        self.ui_variant_var = tk.StringVar(value="")   # AGP_UI_FINGERPRINT_V1
 
         self._build()
 
@@ -277,6 +278,8 @@ class MainWindow(ttk.Frame):
             column=0,
             sticky="w",
         )
+        ttk.Label(bridge, textvariable=self.ui_variant_var, justify="left").grid(
+            row=1, column=0, sticky="w")
 
         ollama = ttk.LabelFrame(
             parent,
@@ -653,6 +656,18 @@ class MainWindow(ttk.Frame):
             self.bridge_identity_var.set(f"Status: Diagnosefehler\n{exc}")
         finally:
             self.after(2_000, self.refresh_bridge_identity)
+        self.refresh_ui_variant()
+
+    def refresh_ui_variant(self) -> None:
+        """AGP_UI_FINGERPRINT_V1: the ChatGPT UI variant under the bridge identity."""
+        var = getattr(self, "ui_variant_var", None)
+        if var is None:
+            return
+        try:
+            from agp_cockpit.core.ui_observation import variant_line
+            var.set(variant_line(self.repository_root))
+        except Exception:  # noqa: BLE001 - an observation line never breaks the System tab
+            var.set("ChatGPT-Oberfläche: nicht lesbar")
 
     def refresh_runtime_status(self) -> None:
         try:

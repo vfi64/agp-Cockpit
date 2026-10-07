@@ -17,7 +17,7 @@ from agp_cockpit.core.standard_task_progress import (
     clip,
     describe_standard_task_progress,
     late_completion_verdict,
-    stopped_by_assistant_timeout,
+    stopped_by_lost_reply,
 )
 from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
@@ -726,11 +726,14 @@ class StandardTasksPanel(ttk.Frame):
         if self._late_check and self._tracked_task is not None:
             self._late_check = False
             done, verdict = late_completion_verdict(
-                self._tracked_task.key, self._tracked_head, result, self.repository_root)
+                self._tracked_task.key, self._tracked_head, result, self.repository_root,
+                cause=getattr(self, "_late_cause", "") or "nach der Zeitüberschreitung")
             if done:
                 self.recover_offered = False   # nothing to recover: the work is merged
+                self._last_outcome = "DONE"
             self.status_var.set(self.status_var.get() + "\n" + verdict)
         self.apply_state(result)
+        self._retract_recover_hint()
         self._maybe_auto_finish(result)
         text = describe(result)
         effective = getattr(self, "_effective_recommended", None)
@@ -814,6 +817,14 @@ class StandardTasksPanel(ttk.Frame):
         self.show_followup_command("")
         self._poll_job = self.after(2000, self.refresh_progress)
 
+    def _retract_recover_hint(self) -> None:
+        """AGP_RECOVER_HINT_FOLLOWS_OFFER_V1 (live 2026-10-07, step 1862): the result line still
+        recommended „Wiederherstellen“ after the Lage had withdrawn the offer (button grey,
+        light green). The sentence follows the offer."""
+        text = self.status_var.get()
+        if not self.recover_offered and RECOVER_HINT in text:
+            self.status_var.set(text.replace(RECOVER_HINT, RECOVER_CLEARED))
+
     def refresh_progress(self) -> None:
         self._poll_job = None
         mission_id = self._tracked_mission_id
@@ -850,18 +861,21 @@ class StandardTasksPanel(ttk.Frame):
             if progress.outcome == "DONE" and task.follow_up:
                 text += f"\nAls Nächstes empfohlen: „{task.follow_up}“."
                 self.follow_up_key = next((v.key for v in VERBS if v.label == task.follow_up), None)
-            if progress.outcome == "STOPPED" and stopped_by_assistant_timeout(current) \
-                    and current.get("mission_id") == mission_id:
-                # AGP_LATE_COMPLETION_CHECK_V1: verified against the Lagebericht below.
+            lost = stopped_by_lost_reply(current) if progress.outcome == "STOPPED" else ""
+            if lost and current.get("mission_id") == mission_id:
+                # AGP_LATE_COMPLETION_CHECK_V1 / AGP_LOST_REPLY_CHECK_V1: verified against the
+                # Lagebericht below.
                 self._late_check = True
-                text += "\nDie Remote-Antwort kam nicht rechtzeitig — das Cockpit prüft den Stand lokal …"
+                self._late_cause = lost
+                text += ("\nDie Remote-Antwort kam nicht rechtzeitig — das Cockpit prüft den Stand lokal …"
+                         if lost == "nach der Zeitüberschreitung" else
+                         "\nChatGPTs Abschlussdatei war nicht ladbar — das Cockpit prüft den Stand lokal …")
             if progress.outcome != "DONE" and task.offers_recover_on_interrupt:
                 if self._effects_executed():
                     # R6: an interrupted Abschließen with executed effects
                     # offers Wiederherstellen.
                     self.recover_offered = True
-                    text += (f"\n{task.label} wurde unterbrochen — „Wiederherstellen“ ist freigeschaltet "
-                             "und empfohlen.")
+                    text += f"\n{task.label}{RECOVER_HINT}"
                 else:
                     # Live 2026-10-02: a send failure before any effect left
                     # nothing to recover; the task can simply be started again.
@@ -876,6 +890,11 @@ class StandardTasksPanel(ttk.Frame):
             self._poll_job = self.after(2000, self.refresh_progress)
         else:
             self.refresh_lage()   # the finished task changed the repository state
+
+
+RECOVER_HINT = " wurde unterbrochen — „Wiederherstellen“ ist freigeschaltet und empfohlen."
+RECOVER_CLEARED = (" wurde unterbrochen; die Lage zeigt nichts Halbfertiges — "
+                   "„Wiederherstellen“ ist nicht nötig.")
 
 
 def pending_standard_decision(mission: dict, tasks) -> tuple[StandardTask | None, str]:

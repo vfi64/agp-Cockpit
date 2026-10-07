@@ -102,6 +102,36 @@ def _kit_command_digest(repo_root: Path) -> dict[str, str]:
 MAX_POLICY_REJECTIONS = 3
 
 
+def _slim_dom_shape(repo_root: Path, event: str, details: dict) -> dict:
+    """AGP_DOM_SHAPE_SNAPSHOT_V1: the shape goes to its own file; the log keeps its name."""
+    if "dom_shape" not in details:
+        return details
+    from agp_cockpit.core import ui_observation
+    try:
+        return ui_observation.store_dom_shape(repo_root, event, details)
+    except OSError:
+        slim = dict(details)
+        slim["dom_shape"] = {"file": "", "error": "not stored"}
+        return slim
+
+
+def _observe_ui(repo_root: Path, event: str, details: dict, state, diag) -> None:
+    """AGP_UI_FINGERPRINT_V1: a new ChatGPT UI variant is recorded and logged, never blocking."""
+    if event != "MISSION_TOUCHPOINT_SELFTEST":
+        return
+    from agp_cockpit.core import ui_observation
+    try:
+        changed = ui_observation.record_variant(repo_root, details)
+    except OSError:
+        return
+    if changed and changed.get("previous"):
+        before, after = set(changed.get("previous_signature") or []), set(changed.get("signature") or [])
+        diag.event("UI_VARIANT_CHANGED", mission_id=None if state is None else state.mission_id,
+                   component="chrome",
+                   details={"fingerprint": changed["fingerprint"], "previous": changed["previous"],
+                            "added": sorted(after - before)[:20], "removed": sorted(before - after)[:20]})
+
+
 def _correctable(error: Exception) -> bool:
     text = str(error)
     return ("semantic contract rejected" in text) or ("is not executable Python" in text)
@@ -1582,6 +1612,8 @@ class CockpitBridgeServer:
                         details = data.get("details", {})
                         if not isinstance(details, dict):
                             details = {"value": str(details)[:300]}
+                        _observe_ui(repo_root, event_name, details, state, diag)   # observational only
+                        details = _slim_dom_shape(repo_root, event_name, details)
 
                         engine.runtime.record_browser_transport(event_name, details)
 

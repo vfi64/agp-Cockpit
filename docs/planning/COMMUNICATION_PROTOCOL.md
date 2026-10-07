@@ -717,6 +717,21 @@ This section is normative for the file loop after local execution.
    the CHANGELOG "Unreleased" section is not empty or `## v<v>` is missing. The owner's
    approval of phase 2 is not blocked by the release's own build id `release-<v>`.
 
+70. Observation and lost replies (DOM bundle, build release-0.2.2-r2, 2026-10-07). The
+   touchpoint self-test sends a structural fingerprint of the composer (`fingerprint`,
+   `ui_signature`: data-testid values with digits folded, file-input count; no text); a new
+   value is a new ChatGPT UI variant (bridge: `browser/ui-variant.json`, event
+   `UI_VARIANT_CHANGED`, System tab line) and never blocks (`AGP_UI_FINGERPRINT_V1`).
+   `TICK_ERROR` and `SEND_INDETERMINATE` carry `dom_shape`, a sanitized structure of the
+   composer form and the last assistant turn plus short `role="alert"` notices; the bridge
+   stores it under `browser/dom-snapshots/` (newest 30) and logs only its file name
+   (`AGP_DOM_SHAPE_SNAPSHOT_V1`). The bounded send retry no longer needs the send button
+   (`SEND_RETRY_SUBMITTED` via button, form or Enter); only the committed user turn counts
+   (`AGP_SEND_OUTCOME_FIRST_V1`). A terminal reply whose download fails on the chat side is
+   requested again like a command file (`AGP_K07_TERMINAL_REGENERATE_V1`, step 1862). A
+   standard task stopped by a lost or late reply is checked against the repository; a merged
+   „Abschließen“ reads „Fertig ✓ — vom Cockpit geprüft“ (`AGP_LOST_REPLY_CHECK_V1`).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the
