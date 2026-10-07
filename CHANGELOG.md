@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- The page adapter also names the attachment preview, its download control and the dialog close controls; `content.js` keeps 10 direct page lookups; build `release-0.2.2-r5`.
 - The page adapter also names the composer fallback, the send control and the generation and stop signals; `content.js` keeps 16 direct page lookups (from 27); build `release-0.2.2-r4`.
 - The browser extension finds file cards, assistant turns and ChatGPT's alerts through one page adapter (`chatgpt_dom.js`), the first module split off `content.js`, and the UI fingerprint also covers the composer's attributes, its element chain and the form's button labels; build `release-0.2.2-r3`.
 - The Cockpit records the ChatGPT UI variant at every start and a sanitized page shape at every failure, the send retry works without a send button, a lost terminal reply is requested again, a task stopped by a lost or late reply is checked against the repository, and the result line no longer recommends „Wiederherstellen“ once the Lage withdrew it; build `release-0.2.2-r2`.

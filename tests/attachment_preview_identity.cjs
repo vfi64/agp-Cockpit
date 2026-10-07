@@ -6,6 +6,7 @@ const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const start = source.indexOf("  function assistantAttachmentKey");
 const end = source.indexOf("  async function fetchSingleAssistantPythonAttachment", start);
 const code = source.slice(start, end);
+const ADAPTER = fs.readFileSync("chrome_extension/chatgpt_dom.js", "utf8");
 
 function node({label="", text="", closest=null, buttons=[], parentElement=null, click=null}={}) {
   return {
@@ -33,6 +34,7 @@ for (const step of [1469, 1470, 1523]) {
     normalizeObservedMessageText:value => String(value || "").trim(),
   };
   vm.createContext(context);
+  vm.runInContext(ADAPTER, context);   // AGP_DOM_ADAPTER_V1
   vm.runInContext(code, context);
 
   assert.equal(context.readableAttachmentPreview(filename), preview);
@@ -53,7 +55,8 @@ const context = {
   normalizeObservedMessageText:value => String(value || ""),
 };
 vm.createContext(context);
-vm.runInContext(code, context);
+vm.runInContext(ADAPTER, context);   // AGP_DOM_ADAPTER_V1
+  vm.runInContext(code, context);
 assert.equal(context.attachmentPreviewContainer(preview), shell);
 
 (async () => {
@@ -99,6 +102,7 @@ assert.equal(context.attachmentPreviewContainer(preview), shell);
     clientEvent:async (name, payload) => events.push({name, payload}),
   };
   vm.createContext(context);
+  vm.runInContext(ADAPTER, context);   // AGP_DOM_ADAPTER_V1
   vm.runInContext(code, context);
   const result = await context.readAssistantButtonAttachment({
     node:fileButton,

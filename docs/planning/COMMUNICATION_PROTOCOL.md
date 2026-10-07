@@ -743,7 +743,9 @@ This section is normative for the file loop after local execution.
    chain and button labels of the composer form. Slice 3b (r4): `composerFallback()`
    (#prompt-textarea, textarea, contenteditable after the resolver), `sendButton(anchor)` (a
    usable control in the anchor's form first; the send never needs it, rule 70),
-   `generationActive()` and `stopLikeButtonVisible()`. Further touchpoints move later.
+   `generationActive()` and `stopLikeButtonVisible()`. Slice 3c (r5): `previewTextbox(name)`,
+   `previewContainer`, `previewDownloadButton`, `openDialog()` and `dialogCloseControl(dialog,
+   active)` for file cards without href. Further touchpoints move later.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

@@ -13,7 +13,7 @@ CONTENT = (EXT / "content.js").read_text(encoding="utf-8")
 ADAPTER = (EXT / "chatgpt_dom.js").read_text(encoding="utf-8")
 
 # Ratchet: lower it whenever a slice moves selectors out of content.js; never raise it.
-CONTENT_SELECTOR_CALLS = 16
+CONTENT_SELECTOR_CALLS = 10
 
 
 def test_the_manifest_loads_the_adapter_right_before_content_js():
@@ -27,7 +27,8 @@ def test_the_adapter_is_one_frozen_namespace_with_the_contracted_touchpoints():
     exported = exported[:exported.index("});")]
     for name in ("SELECTORS", "assistantTurns", "fileCardRow", "stepFileCards", "alertNotices",
                  "composerFallback", "isUsableSendControl", "sendButton", "generationActive",
-                 "stopLikeButtonVisible"):
+                 "stopLikeButtonVisible", "previewTextbox", "previewContainer", "previewDownloadButton",
+                 "openDialog", "dialogCloseControl"):
         assert name in exported, name
     assert "const SELECTORS = Object.freeze({" in ADAPTER
     assert ADAPTER.count("globalThis.") == 1                  # nothing else leaks into the page
@@ -41,13 +42,18 @@ def test_content_js_delegates_the_moved_touchpoints():
                           ("function isUsableSendControl(el)", "AGP_DOM.isUsableSendControl(el)"),
                           ("function sendButton(anchor=null)", "AGP_DOM.sendButton(anchor)"),
                           ("function chatgptGenerationActive()", "AGP_DOM.generationActive()"),
-                          ("function stopLikeComposerButtonVisible()", "AGP_DOM.stopLikeButtonVisible()")):
+                          ("function stopLikeComposerButtonVisible()", "AGP_DOM.stopLikeButtonVisible()"),
+                          ("function readableAttachmentPreview(filename)", "AGP_DOM.previewTextbox(filename)"),
+                          ("function attachmentPreviewContainer(preview)", "AGP_DOM.previewContainer(preview)"),
+                          ("function attachmentPreviewDownloadButton(preview)",
+                           "AGP_DOM.previewDownloadButton(preview)")):
         body = CONTENT[CONTENT.index(wrapper):]
         body = body[:body.index("\n  }\n")]
         assert call in body and "querySelector" not in body, wrapper
     for moved in ('button[aria-label="Datei herunterladen"]', 'a[href], button, [role="button"]',
                   'button[data-testid="send-button"]', 'button[aria-label*="Generierung stoppen"]',
-                  "'#prompt-textarea'", "form button, [data-testid*='composer'] button"):
+                  "'#prompt-textarea'", "form button, [data-testid*='composer'] button",
+                  "Vollbildmodus beenden", ".cm-content[role=\"textbox\"]"):
         assert moved not in CONTENT and moved in ADAPTER, moved
 
 

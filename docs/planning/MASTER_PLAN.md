@@ -540,6 +540,8 @@ slices: composer and send controls, generation/stop signals, attachment preview;
 Update 2026-10-07 (slice 3b, build release-0.2.2-r4): composer fallback, send control, generation and stop
 signals moved; content.js selector calls 16. Next: attachment preview and evidence lookups, then the
 adapters of browser_native_transport.js and conversation_contract.js, then (2) replay.
+Update 2026-10-07 (slice 3c, build release-0.2.2-r5): attachment preview and dialog close moved; content.js
+selector calls 10 (assistant text extraction, wait diagnostics, activity observer remain).
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 
