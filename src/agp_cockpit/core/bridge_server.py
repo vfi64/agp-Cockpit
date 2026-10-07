@@ -1740,6 +1740,17 @@ class CockpitBridgeServer:
                                     reason="handshake-build-mismatch",
                                     target_build_id=expected_build,
                                 ).generation
+                            if reported_build and reported_build == expected_build:
+                                # AGP_SINGLE_REFRESH_V1: a current extension never reloads
+                                # itself; a pending request counts as done (the startup
+                                # worker waits for that marker).
+                                if refresh_generation > handled_generation:
+                                    marker = json.loads(handled_refresh_path.read_text(encoding="utf-8"))
+                                    marker["generation"] = refresh_generation
+                                    marker["satisfied_by_current_build"] = True
+                                    handled_refresh_path.write_text(
+                                        json.dumps(marker, indent=2) + "\n", encoding="utf-8")
+                                refresh_generation = 0
                             client_response[
                                 "refresh_generation"
                             ] = refresh_generation

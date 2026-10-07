@@ -1178,10 +1178,15 @@
         response.refresh_generation || 0
       );
 
-      if (requestedGeneration > 0) {
+      // AGP_SINGLE_REFRESH_V1: the staged build travels along; an extension that
+      // already runs it does not reload itself (live 2026-10-07: it orphaned this tab).
+      const expectedBuild = String(response.extension_expected_build_id || "");
+      const ownBuild = String(globalThis.AGP_EXTENSION_BUILD_ID || "");
+      if (requestedGeneration > 0 && !(expectedBuild && expectedBuild === ownBuild)) {
         chrome.runtime.sendMessage({
           type:"AGP_REFRESH_INTEGRATION",
-          generation:requestedGeneration
+          generation:requestedGeneration,
+          expected_build_id:expectedBuild
         }).catch(() => {});
       }
 
@@ -1204,6 +1209,12 @@
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message && message.type === "AGP_K07_NATIVE_TRACE_1165") {
       void clientEvent("K07_NATIVE_TRACE", message.payload || {});
+      return false;
+    }
+    if (message && message.type === "AGP_PING") {
+      // AGP_ORPHAN_TAB_RECOVERY_V1: the reloaded extension asks whether this
+      // content script is still connected; an orphaned one never answers.
+      sendResponse({ok:true, build_id:String(globalThis.AGP_EXTENSION_BUILD_ID || "")});
       return false;
     }
     if (message && message.type === "AGP_K07_SEND_PROMPT") {

@@ -83,7 +83,10 @@ class FlowRow(ttk.Frame):
         for index, line in enumerate(lines):
             for position, widget in enumerate(line):
                 widget.pack_forget()
-                widget.pack(in_=self._rows[index], side="left", padx=(self.gap if position else 0, 0))
+                # anchor "n": a button beside a cell of button + badge starts at the same
+                # height (owner 2026-10-07: „Wiederherstellen“ and „Weitere anzeigen“).
+                widget.pack(in_=self._rows[index], side="left", anchor="n",
+                            padx=(self.gap if position else 0, 0))
                 widget.lift(self._rows[index])
         self.configure(height=max(1, height))
 

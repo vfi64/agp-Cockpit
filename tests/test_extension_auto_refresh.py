@@ -42,9 +42,9 @@ def test_outdated_extension_gets_exactly_one_refresh_per_target_build(tmp_path):
         again = _handshake(info, "old-build", handled=generation)
         assert again["refresh_generation"] == generation
 
-        # the staged build reports itself: nothing to do
+        # the staged build reports itself: nothing to do (AGP_SINGLE_REFRESH_V1: no generation at all)
         current = _handshake(info, expected, handled=generation)
-        assert current["refresh_generation"] == generation
+        assert current["refresh_generation"] == 0
     finally:
         runtime.stop()
 
@@ -66,7 +66,7 @@ def test_extension_reacts_within_seconds_and_reloads_its_tabs():
     drift = content[content.index("function checkBuildDrift("):content.index("async function pollExplicitTaskStartRequest()")]
     assert "void sendHandshake(true);" in drift and "< 10000" in drift
     background = (ROOT / "chrome_extension/background.js").read_text(encoding="utf-8")
-    assert "chrome.runtime.onInstalled.addListener(() => { void agpReloadPendingTabs(); });" in background
+    assert "chrome.runtime.onInstalled.addListener(() => { void agpRecoverTabsAfterReload(); });" in background
     assert "await chrome.storage.local.remove(PENDING);" in background
 
 
@@ -122,3 +122,46 @@ def test_work_orders_get_a_repository_tmpdir():
     source = (ROOT / "src/agp_cockpit/core/file_loop_runner.py").read_text(encoding="utf-8")
     assert '".local" / "agp-cockpit" / "tmp" / str(step)' in source
     assert 'for name in ("TMPDIR", "TEMP", "TMP"):' in source
+
+
+def test_live_r6_a_second_request_for_the_same_build_reuses_the_first(tmp_path):
+    """AGP_SINGLE_REFRESH_V1 (live 2026-10-07, r5 -> r6): the handshake and the startup worker
+    wrote two generations 130 ms apart; the current extension reloaded again and orphaned the
+    freshly reloaded ChatGPT tab."""
+    from agp_cockpit.core.browser_refresh import request_browser_refresh
+    first = request_browser_refresh(tmp_path, reason="handshake-build-mismatch", target_build_id="r6")
+    second = request_browser_refresh(tmp_path, reason="staged-extension-version-mismatch", target_build_id="r6")
+    assert second.generation == first.generation
+    other = request_browser_refresh(tmp_path, reason="staged-extension-version-mismatch", target_build_id="r7")
+    assert other.generation > first.generation
+
+
+def test_live_r6_a_current_extension_marks_a_pending_request_done_instead_of_reloading(tmp_path):
+    from agp_cockpit.core.browser_refresh import request_browser_refresh
+    runtime = BridgeRuntimeServer(tmp_path, port=0, runtime_root=tmp_path / "production-runtime")
+    info = runtime.start()
+    try:
+        expected = _handshake(info, "old-build")["extension_expected_build_id"]
+        first = json.loads((tmp_path / ".local/agp-cockpit/browser/refresh_request.json").read_text())["generation"]
+        # the startup worker's request without a target (as in the old flow) arrives later
+        later = request_browser_refresh(tmp_path, reason="cockpit-startup").generation
+        assert later > first
+        current = _handshake(info, expected, handled=first)
+        assert current["refresh_generation"] == 0
+        marker = json.loads((tmp_path / ".local/agp-cockpit/browser/handled_refresh.json").read_text())
+        assert marker["generation"] == later and marker["satisfied_by_current_build"] is True
+    finally:
+        runtime.stop()
+
+
+def test_the_extension_guards_its_reload_and_recovers_orphaned_tabs():
+    background = (ROOT / "chrome_extension/background.js").read_text(encoding="utf-8")
+    assert 'importScripts("build_identity.js");' in background
+    refresh = background[background.index("async function performRefresh("):]
+    assert refresh.index('reason:"current-build"') < refresh.index("chrome.runtime.reload();")
+    orphan = background[background.index("async function agpReloadOrphanedTabs("):]
+    assert '{type:"AGP_PING"}' in orphan[:900] and "chrome.tabs.reload(tab.id)" in orphan[:900]
+    assert "chrome.runtime.onStartup.addListener(() => { void agpReloadOrphanedTabs(); });" in background
+    content = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+    assert 'message.type === "AGP_PING"' in content
+    assert "!(expectedBuild && expectedBuild === ownBuild)" in content

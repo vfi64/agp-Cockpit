@@ -213,3 +213,21 @@ def test_the_standard_tasks_rows_wrap_and_the_repo_path_has_its_own_line(tk_root
     main = MAIN
     assert 'self._context_label.grid(row=0, column=0, columnspan=3, sticky="w")' in main
     assert "follow_viewport(parent, wrap_system)" in main
+
+
+def test_problem_buttons_align_and_the_system_boxes_share_their_height(tk_root, monkeypatch, tmp_path):
+    """Owner 2026-10-07: „Wiederherstellen“ and „Weitere anzeigen“ on one line; Ollama and
+    Hermes equally high with their buttons at the bottom (AGP_SYSTEM_BOXES_V1)."""
+    from agp_cockpit.core import repo_state as rs
+    from agp_cockpit.ui import standard_tasks_panel as m
+    monkeypatch.setattr(m, "bridge_status", lambda: {"mission": None})
+    tk_root.geometry("1000x700")
+    panel = m.StandardTasksPanel(tk_root, repository_root=tmp_path, on_open_work=lambda: None)
+    panel.pack(fill="both", expand=True)
+    for _ in range(6):
+        tk_root.update()
+    assert panel.verb_buttons[rs.WIEDERHERSTELLEN].winfo_rooty() == panel.more_button.winfo_rooty()
+    assert all(w.winfo_class() == "TFrame" for w in panel.path_row.items)  # arrows sit in the cells
+    system = MAIN[MAIN.index("def _build_system_tab"):]
+    assert system.count('sticky="nsew"') >= 2 and "ollama.rowconfigure(2, weight=1)" in system
+    assert "hermes.rowconfigure(1, weight=1)" in system and system.count('sticky="sw"') >= 2
