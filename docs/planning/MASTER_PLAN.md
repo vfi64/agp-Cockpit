@@ -528,6 +528,12 @@ Update 2026-10-05 (Slice C, COMMUNICATION_PROTOCOL 68, build r9): (4) done — t
 touchpoint self-test runs before the composer is touched and stops a start with a clear
 reason; its page-shape snapshot on every start covers part of (2) for the start page.
 Open: (1), (3), (5), and snapshots for failures after the start.
+Update 2026-10-07 (DOM bundle, COMMUNICATION_PROTOCOL 70, build release-0.2.2-r2): (1) done — the
+live send was already outcome-first (committed user turn), the bounded retry no longer needs the send
+button; (5) done — UI fingerprint per start, `UI_VARIANT_CHANGED`, System tab line; (2) capture done —
+sanitized page shapes with every failure after the start; replay against the probe code follows with
+(3), which starts the modularization of content.js (owner 2026-10-07: classic scripts, one namespace
+each, no bundler; DOM adapter first). Open: (2) replay, (3).
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

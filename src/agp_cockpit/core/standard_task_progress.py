@@ -160,8 +160,26 @@ def stopped_by_assistant_timeout(mission: dict | None) -> bool:
                for key in ("last_error", "last_summary", "last_result"))
 
 
+LOST_REPLY_MARKERS = ("browser download timed out", "browser download interrupted")
+
+
+def stopped_by_lost_reply(mission: dict | None) -> str:
+    """Why the remote side's answer never reached the Cockpit, or "".
+
+    AGP_LOST_REPLY_CHECK_V1 (live 2026-10-07, step 1862): ChatGPT wrote the terminal file of a
+    finished „Abschließen“ but could not deliver it („Herunterladen der Datei fehlgeschlagen“);
+    the task ended STOPPED although PR #280 and its handoff were merged. Like a late answer
+    (AGP_LATE_COMPLETION_CHECK_V1) a lost one is checked against the repository."""
+    if stopped_by_assistant_timeout(mission):
+        return "nach der Zeitüberschreitung"
+    if not isinstance(mission, dict) or mission.get("state") != "STOPPED":
+        return ""
+    text = " ".join(str(mission.get(key) or "") for key in ("last_error", "last_summary", "last_result"))
+    return "nach der nicht ladbaren Abschlussdatei" if any(m in text for m in LOST_REPLY_MARKERS) else ""
+
+
 def late_completion_verdict(task_key: str, start_head: str, state, root,
-                            *, runner=None) -> tuple[bool, str]:
+                            *, runner=None, cause: str = "nach der Zeitüberschreitung") -> tuple[bool, str]:
     """AGP_LATE_COMPLETION_CHECK_V1 (live 2026-10-04, step 1689): after an assistant
     timeout the Cockpit checks the repository itself. Only „Abschließen“ can be
     confirmed this way: its work (the commit the task started on) is contained in
@@ -174,19 +192,19 @@ def late_completion_verdict(task_key: str, start_head: str, state, root,
     from agp_cockpit.core import repo_state as rs
     lage = f"Lage {state.state}: {state.summary}"
     if task_key != "finish" or not start_head:
-        return False, f"Lokale Prüfung nach der Zeitüberschreitung: {lage}. Bitte den Stand prüfen."
+        return False, f"Lokale Prüfung {cause}: {lage}. Bitte den Stand prüfen."
     facts = state.facts
     found = guard.relation(Path(root), start_head, "origin/main", runner=runner or subprocess.run)
     contained = found in (guard.MERGED, guard.NO_COMMITS)
     if state.state == rs.BEREIT and facts.post_merge == "PASS" and contained:
-        return True, ("Lokal geprüft nach der Zeitüberschreitung: die Arbeit (Stand "
+        late = "kam zu spät" if cause == "nach der Zeitüberschreitung" else "ging verloren"
+        return True, (f"Fertig ✓ — vom Cockpit geprüft {cause}: die Arbeit (Stand "
                       f"{start_head[:12]}) ist in origin/main, main ist synchron und sauber, "
-                      "post-merge-check PASS — abgeschlossen; nur die Abschlussmeldung der "
-                      "Remote-Seite kam zu spät.")
+                      f"post-merge-check PASS; nur die Abschlussmeldung der Remote-Seite {late}.")
     missing = [text for ok, text in (
         (state.state == rs.BEREIT, f"Lage {state.state}"),
         (facts.post_merge == "PASS", f"post-merge-check {facts.post_merge or 'nicht geprüft'}"),
         (contained, f"Stand {start_head[:12]} {found or 'nicht vergleichbar'}"),
     ) if not ok]
-    return False, ("Lokale Prüfung nach der Zeitüberschreitung: nicht abgeschlossen ("
+    return False, (f"Lokale Prüfung {cause}: nicht abgeschlossen ("
                    + "; ".join(missing) + "). Bitte den Stand prüfen.")

@@ -9,13 +9,14 @@ const section = (start, end) => source.slice(source.indexOf(start), source.index
 const code = section("  // AGP_K07_REMOTE_FILE_REGENERATE_V1", "  async function tick()");
 assert.ok(code.includes("async function requestRemoteFileRegeneration"));
 
-function setup({running=true, advance=true, candidates=[{name:"1712_agp_terminal.json"}]} = {}) {
+function setup({running=true, advance=true, candidates=[{name:"1712_agp_terminal.json"}], terminal=null} = {}) {
   const calls = {reserved:[], prompts:[], events:[], baseline:0};
   const STATE = {running, runGeneration:3, nextLocalStep:1712, lastProcessedAssistantAttachmentKey:"",
                  waitingForAssistant:false, assistantWaitStartedAt:0};
   const context = vm.createContext({
     STATE, Date, Number, String,
     assistantPythonAttachmentCandidates:() => candidates,
+    ...(terminal ? {expectedStepTerminalCandidates:() => terminal} : {}),
     assistantAttachmentKey:list => `key:${list[0].name}`,
     reserveRemoteStep:async (reason, step) => { calls.reserved.push([reason, step]); if (advance) STATE.nextLocalStep = step + 1; },
     clientEvent:async (name, details) => { calls.events.push([name, details]); },
@@ -57,6 +58,15 @@ const TIMEOUT = new Error("K07 command-file browser download timed out");
   t = setup({candidates:[]});
   assert.equal(await t.request(TIMEOUT), false);
   assert.equal(t.calls.prompts.length, 0);
+
+  // 3b. AGP_K07_TERMINAL_REGENERATE_V1 (live 2026-10-07, step 1862): the lost file is a terminal
+  // reply; the command-file lookup sees no .py card, the terminal lookup finds it.
+  t = setup({candidates:[], terminal:[{name:"1862_agp_terminal.json"}]});
+  t.STATE.nextLocalStep = 1862;
+  assert.equal(await t.request(TIMEOUT), true);
+  assert.deepEqual(t.calls.reserved, [["unloadable-remote-attachment", 1862]]);
+  assert.match(t.calls.prompts[0], /The file 1862_agp_terminal\.json /);
+  assert.match(t.calls.prompts[0], /1863_agp_terminal\.json/);
 
   // 4. If the bridge does not advance the step, nothing is sent.
   t = setup({advance:false});

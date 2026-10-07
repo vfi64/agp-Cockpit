@@ -249,11 +249,79 @@ function agpMissionTouchpointCheck(resolveComposer) {
     enabled_file_inputs_in_form: enabledFileInputs.length,
     send_testid_in_form: Boolean(form && form.querySelector('button[data-testid="send-button"]'))
   };
+  const ui = agpUiFingerprint(composer, form);
   let reason = "";
   if (!composer) reason = "composer_not_found";
   else if (!form) reason = "composer_form_not_found";
   else if (!enabledFileInputs.length) reason = "file_input_not_found";
-  return {ok:!reason, reason, snapshot};
+  return {ok:!reason, reason, snapshot, fingerprint:ui.fingerprint, ui_signature:ui.signature};
+}
+
+// AGP_UI_FINGERPRINT_V1 (DOM hardening step 5, owner 2026-10-07): a short fingerprint of the
+// composer's structure — its tag, the data-testid values inside its form (digits folded) and
+// the file-input count; no text. The bridge records every new value as a new ChatGPT UI
+// variant, so a later failure can be related to a UI change. FNV-1a keeps it synchronous.
+function agpFnv1a(text) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+function agpUiFingerprint(composer, form) {
+  const items = new Set();
+  if (composer) {
+    const editable = composer.getAttribute && composer.getAttribute("contenteditable");
+    items.add("composer:" + String(composer.tagName || "").toLowerCase() + (editable ? ":editable" : ""));
+  }
+  if (form) {
+    for (const el of form.querySelectorAll("[data-testid]")) {
+      items.add("testid:" + String(el.getAttribute("data-testid") || "").replace(/\d+/g, "#").slice(0, 60));
+    }
+    items.add("file_inputs:" + form.querySelectorAll('input[type="file"]').length);
+  }
+  const signature = Array.from(items).sort().slice(0, 60);
+  return {fingerprint:signature.length ? agpFnv1a(signature.join("|")) : "", signature};
+}
+
+// AGP_DOM_SHAPE_SNAPSHOT_V1 (DOM hardening step 2): the sanitized shape of named page parts —
+// tag, role, data-testid, type, short aria-label (<= 60 chars), editable/hidden flags and
+// children; never text content. Bounded in nodes and depth; sent with failures after the start.
+function agpDomShape(roots, maxNodes = 300, maxDepth = 10) {
+  let nodes = 0;
+  const walk = (el, depth) => {
+    if (!el || nodes >= maxNodes) return null;
+    nodes += 1;
+    const attr = name => (el.getAttribute ? el.getAttribute(name) : null);
+    const item = {t:String(el.tagName || "").toLowerCase()};
+    const role = attr("role");
+    if (role) item.r = String(role).slice(0, 40);
+    const testid = attr("data-testid");
+    if (testid) item.id = String(testid).slice(0, 60);
+    const type = attr("type");
+    if (type) item.ty = String(type).slice(0, 20);
+    const label = attr("aria-label");
+    if (label && String(label).length <= 60) item.l = String(label);
+    if (attr("contenteditable")) item.ce = 1;
+    if (el.hidden || attr("aria-hidden") === "true" || attr("inert") !== null) item.h = 1;
+    if (depth < maxDepth && el.children && el.children.length) {
+      const kids = [];
+      for (const child of el.children) {
+        const kid = walk(child, depth + 1);
+        if (kid) kids.push(kid);
+        if (nodes >= maxNodes) break;
+      }
+      if (kids.length) item.c = kids;
+    }
+    return item;
+  };
+  const shape = {};
+  for (const [name, el] of Object.entries(roots || {})) shape[name] = el ? walk(el, 0) : null;
+  shape.nodes = nodes;
+  shape.truncated = nodes >= maxNodes;
+  return shape;
 }
 
 function agpMissionTouchpointMessage(reason) {

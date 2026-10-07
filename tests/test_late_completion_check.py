@@ -65,7 +65,7 @@ def test_merged_work_with_green_post_merge_is_confirmed(repo):
     squash_merge(repo)
     done, text = late_completion_verdict("finish", start, state(), repo)
     assert done, text
-    assert "abgeschlossen; nur die Abschlussmeldung" in text and start[:12] in text
+    assert text.startswith("Fertig ✓ — vom Cockpit geprüft") and "nur die Abschlussmeldung" in text and start[:12] in text
 
 
 def test_unmerged_work_or_red_post_merge_is_not_confirmed(repo):

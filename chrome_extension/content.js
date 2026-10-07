@@ -1704,6 +1704,7 @@
         }
       }
       await clientEvent("SEND_INDETERMINATE", {
+        dom_shape:typeof failureDomShape === "function" ? failureDomShape() : null,   // AGP_DOM_SHAPE_SNAPSHOT_V1
         reconciliation:"not_confirmed",
         commit_marker_outside_composer:commitMarkerOutsideComposer(commitMarker),
         native_diagnostics:nativeAck.diagnostics || null,
@@ -1819,6 +1820,43 @@
     }
   }
 
+  // AGP_DOM_SHAPE_SNAPSHOT_V1: the shape of the composer form, the last assistant turn and
+  // ChatGPT's own alert notices (e.g. „Herunterladen der Datei fehlgeschlagen“) at a failure.
+  function failureDomShape() {
+    try {
+      if (typeof agpDomShape !== "function") return {nodes:0, error:"helper missing"};
+      const el = typeof agpResolveComposer === "function" ? agpResolveComposer() : composer();
+      const form = el && el.closest ? el.closest("form") : null;
+      const turns = assistantMessageNodes();
+      const shape = agpDomShape({composer_form:form, last_assistant:turns.length ? turns[turns.length - 1] : null});
+      shape.alerts = Array.from(document.querySelectorAll('[role="alert"]'))
+        .map(node => String(node.innerText || node.textContent || "").trim())
+        .filter(text => text && text.length <= 120 && !text.includes("\n"))
+        .slice(0, 5);
+      return shape;
+    } catch (error) {
+      return {nodes:0, error:String(error).slice(0, 120)};
+    }
+  }
+
+  // AGP_SEND_OUTCOME_FIRST_V1: the submit paths without a usable send button.
+  function submitComposerWithoutButton(composerEl) {
+    const el = composerEl || composer();
+    if (!el) return "";
+    const form = el.closest ? el.closest("form") : null;
+    if (form && typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return "form";
+    }
+    el.focus();
+    for (const type of ["keydown", "keyup"]) {
+      el.dispatchEvent(new KeyboardEvent(type, {
+        key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true, cancelable:true
+      }));
+    }
+    return "enter";
+  }
+
   async function sendPromptDomDegraded(prompt) {
     const transport = createSendTransport(prompt);
 
@@ -1916,9 +1954,18 @@
 
         const retryComposer = composer();
         const retryButton = sendButton(retryComposer);
+        // AGP_SEND_OUTCOME_FIRST_V1 (DOM hardening step 1): the retry no longer needs the
+        // send button either; like the first attempt it falls back to the form submit or
+        // Enter. Only the committed user turn (waitForSentUserMessage) counts as sent.
+        let retryVia = "";
         if (retryButton && !retryButton.disabled) {
           retryButton.click();
-
+          retryVia = "button";
+        } else {
+          retryVia = submitComposerWithoutButton(retryComposer);
+        }
+        if (retryVia) {
+          await clientEvent("SEND_RETRY_SUBMITTED", {via:retryVia});
           transport.retryCount += 1;
           transport.transition(SEND_TRANSPORT.RETRY_ATTEMPTED, {attempt:2});
           transport.transition(SEND_TRANSPORT.WAITING_FOR_ACCEPTANCE, {attempt:2});
@@ -2718,7 +2765,13 @@
     if (!remoteFileDownloadFailed(err)) return false;
     if (AGP_REMOTE_FILE_REGENERATE_ATTEMPTS >= AGP_MAX_REMOTE_FILE_REGENERATE_ATTEMPTS) return false;
     if (!STATE.running || STATE.runGeneration !== runGeneration) return false;
-    const candidates = assistantPythonAttachmentCandidates();
+    // AGP_K07_TERMINAL_REGENERATE_V1 (live 2026-10-07, step 1862): the lost file was the
+    // terminal reply 1862_agp_terminal.json; the command-file lookup found no .py card,
+    // the repair was never asked for and the finished task stopped after three timeouts.
+    let candidates = assistantPythonAttachmentCandidates();
+    if (!candidates.length && typeof expectedStepTerminalCandidates === "function") {
+      candidates = expectedStepTerminalCandidates();
+    }
     if (candidates.length !== 1) return false;
     const failedName = String(candidates[0].name || "");
     const named = Number((failedName.match(/^(\d+)_/) || [])[1] || 0);
@@ -3184,7 +3237,8 @@
         });
       }
       await clientEvent("TICK_ERROR", {
-        message:String(err)
+        message:String(err),
+        dom_shape:typeof failureDomShape === "function" ? failureDomShape() : null   // AGP_DOM_SHAPE_SNAPSHOT_V1
       });
 
       try {
@@ -3777,7 +3831,8 @@
       return;
     }
     await clientEvent("MISSION_TOUCHPOINT_SELFTEST", {
-      ok:touchpoints.ok, failure:touchpoints.reason, snapshot:touchpoints.snapshot});
+      ok:touchpoints.ok, failure:touchpoints.reason, snapshot:touchpoints.snapshot,
+      fingerprint:touchpoints.fingerprint || "", ui_signature:touchpoints.ui_signature || []});
     if (!touchpoints.ok) {
       const message = typeof agpMissionTouchpointMessage === "function"
         ? agpMissionTouchpointMessage(touchpoints.reason)
