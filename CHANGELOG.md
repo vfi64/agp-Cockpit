@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- The „Arbeiten“ tab gets the Ampel, a fixed-height editor, wrapping buttons and a decision box under the editor whose buttons stay visible, with facts checked by the Cockpit and „Änderungen ansehen“; build `release-0.2.1-r5`.
 - One upload per step (the run_next log travels inside the result file), a ChatGPT attachment limit holds the task until the named time and re-sends the kept result instead of stopping it, and the mission start asks for few combined work orders; build `release-0.2.1-r4`.
 - The Lage follows tasks of the „Arbeiten“ tab, a finished one switches back to Standard Tasks, results name their task, a fresh work branch is no leftover, effects are listed by start click or approval, Kit findings come from the Cockpit checkout, the stale-app line wraps; KIT-GF-024 verified; build `release-0.2.1-r3`.
 - Kit 1.0.19 adopted (CI pins, command manifest fb315aa30770); KIT-GF-024/025/028/047/050 fixed in 1.0.19, KIT-GF-053 to KIT-GF-056 recorded from the Cockpit's first run in the Kit repository and the Kit's 1.0.19 release.

@@ -143,6 +143,7 @@ class MainWindow(ttk.Frame):
             repository_root=self.repository_root,
             local_contract=self.local_contract,
             on_task_event=lambda event, text="": self._work_task_event(event, standard_tab, text),
+            repo_light=lambda: self.standard_tasks_panel.ampel_state,   # AGP_WORK_AMPEL_V1
         )
         # AGP_LAGE_ALL_TABS_V1: a task of the „Arbeiten“ tab counts as running in the Lage.
         self.standard_tasks_panel.external_task_active = self.simple_task_panel.task_active
