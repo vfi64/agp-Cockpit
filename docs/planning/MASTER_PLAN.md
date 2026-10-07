@@ -549,6 +549,13 @@ module (panel UI, file ingress/result upload, send transport; content.js keeps t
 Update 2026-10-07 (content.js module 1, COMMUNICATION_PROTOCOL 73, build release-0.2.2-r9): the overlay is
 `cockpit_panel.js`; content.js 4246 → 3789 lines (ratchet). Next: file ingress (assistant file cards,
 download/preview materialization, command and terminal file submit), then send transport.
+Update 2026-10-07 (DOM hardening complete, COMMUNICATION_PROTOCOL 74, build release-0.2.2-r10): (2) replay done —
+shape V2 keeps the decision attributes, the e2e replay rebuilds a page from a shape and runs the real probe
+code (round trip on four ChatGPT-like pages; mutation-checked: dropping disabled, step-file names, inert or
+author role fails it); the UI fingerprint is versioned (the false „NEU“ of the V1→V2 change clears).
+All five DOM-hardening steps are done. Order from here (owner 2026-10-07: Claude sets it): content.js
+module 2 file ingress, module 3 send transport, module 4 legacy paths; then Kit 1.0.20 adoption and
+release 0.2.3.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

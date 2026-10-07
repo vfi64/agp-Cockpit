@@ -34,6 +34,41 @@ def test_a_new_fingerprint_is_a_new_variant_with_time_and_predecessor(tmp_path):
     assert ui_observation.record_variant(tmp_path, {}) is None
 
 
+def test_a_new_fingerprint_algorithm_is_a_silent_new_baseline(tmp_path):
+    # AGP_UI_FINGERPRINT_VERSIONED_V1 (live 2026-10-07: V1 a0785191 → V2 d41f19a2 showed "NEU").
+    v1 = ["composer:div:editable", "file_inputs:3"]
+    v2 = ["attr:role", "chain:div>form", "composer:div:editable", "file_inputs:3"]
+    ui_observation.record_variant(tmp_path, {"fingerprint": "a0785191", "ui_signature": v1}, now=1000.0)
+    assert ui_observation.record_variant(
+        tmp_path, {"fingerprint": "d41f19a2", "ui_signature": v2, "fingerprint_version": 2}, now=2000.0) is None
+    stored = ui_observation.read_variant(tmp_path)
+    assert stored["fingerprint"] == "d41f19a2" and stored["version"] == 2 and stored["previous"] == ""
+    assert "NEU" not in ui_observation.variant_line(tmp_path, now=2060.0)
+    # Same algorithm, new page: still a variant change.
+    changed = ui_observation.record_variant(
+        tmp_path, {"fingerprint": "c0ffee00", "ui_signature": v2 + ["button:Senden"], "fingerprint_version": 2},
+        now=3000.0)
+    assert changed["previous"] == "d41f19a2"
+
+
+def test_a_record_from_before_the_version_field_is_repaired_on_the_next_start(tmp_path):
+    # The owner's record of 2026-10-07: V2 fingerprint stored with a V1 predecessor and no version.
+    ui_observation._write_json(ui_observation.runtime_dir(tmp_path, *ui_observation.VARIANT_FILE), {
+        "fingerprint": "d41f19a2", "signature": ["attr:role", "chain:div>form"], "since": 1000.0,
+        "previous": "a0785191", "previous_signature": ["composer:div:editable", "file_inputs:3"]})
+    assert "NEU" in ui_observation.variant_line(tmp_path, now=1060.0)
+    assert ui_observation.record_variant(tmp_path, {"fingerprint": "d41f19a2", "ui_signature": [
+        "attr:role", "chain:div>form"], "fingerprint_version": 2}, now=2000.0) is None
+    assert "NEU" not in ui_observation.variant_line(tmp_path, now=2060.0)
+    assert ui_observation.read_variant(tmp_path)["since"] == 1000.0       # the page did not change
+
+
+def test_the_extension_sends_the_fingerprint_version():
+    assert "const AGP_UI_FINGERPRINT_VERSION = 2;" in EVIDENCE
+    assert "fingerprint_version:ui.version" in EVIDENCE
+    assert "fingerprint_version:touchpoints.fingerprint_version || 0" in CONTENT
+
+
 def test_the_bridge_logs_a_changed_variant_once(tmp_path):
     events = []
     diag = SimpleNamespace(event=lambda name, **kw: events.append((name, kw["details"])))
@@ -144,3 +179,20 @@ def test_the_recover_sentence_follows_the_offer():
     fake = SimpleNamespace(recover_offered=True, status_var=Var("X" + panel.RECOVER_HINT))
     panel.StandardTasksPanel._retract_recover_hint(fake)
     assert panel.RECOVER_HINT in fake.status_var.get()
+
+
+# --- AGP_DOM_SHAPE_REPLAY_V2 (DOM hardening step 2 completed) --------------------------------
+
+def test_failure_shapes_can_be_replayed_against_the_real_probe_code():
+    assert "const AGP_DOM_SHAPE_VERSION = 2;" in EVIDENCE
+    for field in ("item.i =", "item.di =", "item.a =", "item.d = 1", "item.hr = 1", "item.f =", "item.z = 1", "item.v = 1"):
+        assert field in EVIDENCE, field
+    helper = (ROOT / "tests/e2e/dom_replay.js").read_text(encoding="utf-8")
+    spec = (ROOT / "tests/e2e/test_dom_snapshot_replay.spec.js").read_text(encoding="utf-8")
+    assert "agpResolveComposer()" in helper and "agpMissionTouchpointCheck(" in helper and "AGP_DOM.stepFileCards(" in helper
+    assert "round trip" in spec and "AGP_DOM_SNAPSHOT" in spec
+    fixtures = sorted((ROOT / "tests/browser_fixtures/dom_snapshots").glob("*.json"))
+    assert fixtures
+    for path in fixtures:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert data["source"] and data["expect"] and data["snapshot"]["shape"]["v"] == 2, path.name

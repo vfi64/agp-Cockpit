@@ -771,6 +771,20 @@ This section is normative for the file loop after local execution.
    the ChatGPT page. content.js creates it once and keeps `render()` as a one-line delegate.
    The line count of content.js may only fall (test ratchet).
 
+74. DOM hardening complete (`AGP_UI_FINGERPRINT_VERSIONED_V1`, `AGP_DOM_SHAPE_REPLAY_V2`, build
+   release-0.2.2-r10, 2026-10-07). The UI fingerprint carries its algorithm version
+   (`AGP_UI_FINGERPRINT_VERSION`); a version change is a silent new baseline (no
+   `UI_VARIANT_CHANGED`, no „NEU“), and a stored record whose predecessor came from another
+   version is repaired on the next start. Failure shapes (version 2) also keep element id and
+   data-id, author role, disabled, href/download present (never their values), the Cockpit's own
+   step-file names, zero size and display/visibility — still no chat text and no URLs.
+   `tests/e2e/dom_replay.js` rebuilds the composer form and the last assistant turn from a shape and
+   runs the real resolver, touchpoint self-test and page adapter on it; the round-trip spec proves
+   the same decisions on original and rebuilt pages. A live failure is replayed with
+   `AGP_DOM_SNAPSHOT=<file> npx playwright test tests/e2e/test_dom_snapshot_replay.spec.js` and kept
+   as a regression fixture in `tests/browser_fixtures/dom_snapshots/` (`source`, `snapshot`,
+   `expect`).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

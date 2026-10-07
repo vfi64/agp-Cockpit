@@ -41,6 +41,7 @@ globalThis.AGP_SELECTORS = (() => {
     ],
     userTurnContent: '[data-testid="collapsible-user-message-content"]',
     assistantTurn: '[data-message-author-role="assistant"]',
+    authorRoleAttribute: "data-message-author-role",
     // Send controls: the usable send button (form first), the form-bound submit, diagnostics.
     sendButton: [
       'button[data-testid="send-button"]',

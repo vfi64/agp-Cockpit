@@ -250,7 +250,8 @@ function agpMissionTouchpointCheck(resolveComposer) {
   if (!composer) reason = "composer_not_found";
   else if (!form) reason = "composer_form_not_found";
   else if (!enabledFileInputs.length) reason = "file_input_not_found";
-  return {ok:!reason, reason, snapshot, fingerprint:ui.fingerprint, ui_signature:ui.signature};
+  return {ok:!reason, reason, snapshot, fingerprint:ui.fingerprint, ui_signature:ui.signature,
+    fingerprint_version:ui.version};
 }
 
 // AGP_UI_FINGERPRINT_V1 (DOM hardening step 5, owner 2026-10-07): a short fingerprint of the
@@ -265,6 +266,11 @@ function agpFnv1a(text) {
   }
   return hash.toString(16).padStart(8, "0");
 }
+
+// AGP_UI_FINGERPRINT_VERSIONED_V1: the algorithm version travels with every fingerprint, so a
+// new algorithm is never mistaken for a new ChatGPT page (live 2026-10-07: V1 → V2 showed "NEU").
+// Raise it whenever agpUiFingerprint changes what it collects.
+const AGP_UI_FINGERPRINT_VERSION = 2;
 
 function agpUiFingerprint(composer, form) {
   // AGP_UI_FINGERPRINT_V2 (live 2026-10-07, variant a0785191): at the start the composer form
@@ -298,12 +304,21 @@ function agpUiFingerprint(composer, form) {
     items.add("file_inputs:" + form.querySelectorAll('input[type="file"]').length);
   }
   const signature = Array.from(items).sort().slice(0, 60);
-  return {fingerprint:signature.length ? agpFnv1a(signature.join("|")) : "", signature};
+  return {fingerprint:signature.length ? agpFnv1a(signature.join("|")) : "", signature,
+    version:AGP_UI_FINGERPRINT_VERSION};
 }
 
 // AGP_DOM_SHAPE_SNAPSHOT_V1 (DOM hardening step 2): the sanitized shape of named page parts —
 // tag, role, data-testid, type, short aria-label (<= 60 chars), editable/hidden flags and
 // children; never text content. Bounded in nodes and depth; sent with failures after the start.
+// AGP_DOM_SHAPE_REPLAY_V2 (step 2 completed, owner 2026-10-07): the shape also keeps what the
+// touchpoints decide on, so tests/e2e/dom_replay.js can rebuild the page and replay the real
+// probe code: element id and data-id (structural), author role, disabled, href/download present
+// (never their values), the Cockpit's own step-file names (e.g. 1475_x.py, 1480_agp_terminal.json —
+// identifiers the Cockpit itself issued, never chat text), zero size and display/visibility.
+const AGP_DOM_SHAPE_VERSION = 2;
+const AGP_STEP_FILE_NAME = /\b\d+_[A-Za-z0-9_.-]*\.(?:py|json)\b/g;
+
 function agpDomShape(roots, maxNodes = 300, maxDepth = 10) {
   let nodes = 0;
   const walk = (el, depth) => {
@@ -320,7 +335,30 @@ function agpDomShape(roots, maxNodes = 300, maxDepth = 10) {
     const label = attr("aria-label");
     if (label && String(label).length <= 60) item.l = String(label);
     if (attr("contenteditable")) item.ce = 1;
-    if (el.hidden || attr("aria-hidden") === "true" || attr("inert") !== null) item.h = 1;
+    const elementId = attr("id");
+    if (elementId && String(elementId).length <= 40) item.i = String(elementId);
+    const dataId = attr("data-id");
+    if (dataId && String(dataId).length <= 20) item.di = String(dataId);
+    const author = attr(AGP_SELECTORS.authorRoleAttribute);   // AGP_SELECTOR_TABLE_V1
+    if (author) item.a = String(author).slice(0, 20);
+    if (el.disabled) item.d = 1;
+    if (attr("href") !== null) item.hr = 1;
+    if (attr("download") !== null) item.dl = 1;
+    if (el.hidden) item.h = 1;
+    if (attr("aria-hidden") === "true") item.ah = 1;
+    if (attr("inert") !== null) item.in = 1;
+    if (typeof el.getBoundingClientRect === "function") {
+      const rect = el.getBoundingClientRect();
+      if (!(rect.width > 0 && rect.height > 0)) item.z = 1;
+    }
+    if (typeof getComputedStyle === "function" && el.nodeType === 1) {
+      const style = getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") item.v = 1;
+    }
+    const own = [attr("download"), attr("title"),
+      el.children && el.children.length ? "" : (el.textContent || "")].join(" ");
+    const names = String(own).match(AGP_STEP_FILE_NAME);
+    if (names) item.f = Array.from(new Set(names)).slice(0, 3).join(" ");
     if (depth < maxDepth && el.children && el.children.length) {
       const kids = [];
       for (const child of el.children) {
@@ -332,7 +370,7 @@ function agpDomShape(roots, maxNodes = 300, maxDepth = 10) {
     }
     return item;
   };
-  const shape = {};
+  const shape = {v:AGP_DOM_SHAPE_VERSION};
   for (const [name, el] of Object.entries(roots || {})) shape[name] = el ? walk(el, 0) : null;
   shape.nodes = nodes;
   shape.truncated = nodes >= maxNodes;

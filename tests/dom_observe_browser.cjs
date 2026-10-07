@@ -24,6 +24,7 @@ function el(tag, attrs = {}, children = [], text = "") {
 }
 
 const context = vm.createContext({});
+vm.runInContext(fs.readFileSync("chrome_extension/chatgpt_selectors.js", "utf8"), context);   // AGP_SELECTOR_TABLE_V1
 vm.runInContext(fs.readFileSync("chrome_extension/native_message_evidence.js", "utf8"), context);
 const fingerprint = vm.runInContext("agpUiFingerprint", context);
 const shape = vm.runInContext("agpDomShape", context);
@@ -49,7 +50,7 @@ assert.ok(!JSON.stringify(a).includes("SECRET"));
 // 2. A new control in the form is a new variant; the class attribute (hashed names) is not part of it.
 form.children.push(el("button", {"data-testid": "send-button"}));
 assert.notEqual(fingerprint(composer, form).fingerprint, a.fingerprint);
-assert.deepEqual(plain(fingerprint(null, null)), {fingerprint: "", signature: []});
+assert.deepEqual(plain(fingerprint(null, null)), {fingerprint: "", signature: [], version: 2});   // AGP_UI_FINGERPRINT_VERSIONED_V1
 
 // 3. The shape keeps structure and short labels, never text, and is bounded.
 const turn = el("article", {"data-message-author-role": "assistant", role: "article"}, [
@@ -71,4 +72,19 @@ const big = el("div", {}, Array.from({length: 50}, () => el("span")));
 const bounded = shape({big}, 10);
 assert.equal(bounded.nodes, 10);
 assert.equal(bounded.truncated, true);
+// 4. AGP_DOM_SHAPE_REPLAY_V2: what the touchpoints decide on, still without chat text or URLs.
+const card = el("a", {href: "https://files.example/secret-file-id", download: "1475_task.py"}, [], "1475_task.py Code");
+const prose = el("p", {}, [], "SECRET prose naming 1474_old.py");
+const sendOff = el("button", {"data-testid": "send-button", id: "composer-submit-button"});
+sendOff.disabled = true;
+const turn2 = el("article", {"data-message-author-role": "assistant"}, [prose, card]);
+const form2 = el("form", {}, [el("div", {id: "prompt-textarea", contenteditable: "true", "data-id": "root"}), sendOff]);
+const s2 = shape({composer_form: form2, last_assistant: turn2});
+assert.equal(s2.v, 2);
+assert.equal(s2.last_assistant.a, "assistant");
+assert.deepEqual([s2.last_assistant.c[1].hr, s2.last_assistant.c[1].dl, s2.last_assistant.c[1].f], [1, 1, "1475_task.py"]);
+assert.equal(s2.last_assistant.c[0].f, "1474_old.py");
+assert.deepEqual([s2.composer_form.c[0].i, s2.composer_form.c[0].di, s2.composer_form.c[1].d], ["prompt-textarea", "root", 1]);
+const text2 = JSON.stringify(s2);
+assert.ok(!text2.includes("SECRET") && !text2.includes("files.example") && !text2.includes("Code"));
 console.log("dom_observe_browser: PASS");
