@@ -144,3 +144,25 @@ def summary(findings: list[KitFinding], installed: str | None) -> str:
     return (f"{len(findings)} Befunde · {states.count(OPEN)} offen · {states.count(IN_PROGRESS)} im Kit in Arbeit · "
             f"{states.count(FIXED_NOT_INSTALLED)} behoben, nicht installiert · "
             f"{states.count(FIXED_UNVERIFIED)} behoben, nicht bestätigt · {states.count(VERIFIED)} bestätigt behoben")
+
+
+# AGP_FINDINGS_SORT_V1 (owner 2026-10-07): the table sorts by a clicked column; it opens
+# sorted by ID. IDs sort by their number (KIT-GF-2 before KIT-GF-10), IDs without one last;
+# severities by weight, not alphabetically.
+SEVERITY_RANK = {"critical": 0, "major": 1, "high": 1, "medium-high": 2, "medium": 3, "low": 4}
+SORT_COLUMNS = ("id", "title", "severity", "status", "first")
+
+
+def sort_key(finding: KitFinding, column: str, installed: str | None = None) -> tuple:
+    if column == "id":
+        match = re.match(r"^KIT-GF-(\d+)$", finding.id)
+        return (0, int(match.group(1)), "") if match else (1, 0, finding.id)
+    if column == "title":
+        return (finding.title.casefold(), finding.id)
+    if column == "severity":
+        return (SEVERITY_RANK.get(str(finding.severity).strip().lower(), 9), finding.id)
+    if column == "status":
+        return (finding.effective_status(installed), finding.id)
+    if column == "first":
+        return (str(finding.first_observed or ""), finding.id)
+    raise ValueError(f"unknown column {column}")

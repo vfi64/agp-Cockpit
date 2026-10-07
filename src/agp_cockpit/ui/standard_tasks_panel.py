@@ -23,7 +23,7 @@ from agp_cockpit.core.standard_tasks import StandardTask, standard_tasks
 from agp_cockpit.core.start_request_client import request_task_start
 from agp_cockpit.core.task_operator_api import TaskOperatorAPI
 from agp_cockpit.core.verbs import BY_KEY as VERB_BY_KEY
-from agp_cockpit.core.verbs import VERBS, Verb, availability
+from agp_cockpit.core.verbs import VERBS, Verb, availability, recover_not_needed
 from agp_cockpit.ui.flow_row import FlowRow
 from agp_cockpit.ui.scrollable import follow_viewport
 from agp_cockpit.ui.tooltip import Tooltip
@@ -580,6 +580,11 @@ class StandardTasksPanel(ttk.Frame):
         if self.recover_offered and getattr(state, "state", None) == BEREIT:
             # AGP_RECOVER_OFFER_CLEARS_V1 (live 2026-10-03): once main is clean and
             # synchronized there is nothing left to recover.
+            self.recover_offered = False
+        if self.recover_offered and recover_not_needed(state):
+            # AGP_RECOVER_OFFER_EXPIRES_V1 (owner 2026-10-07, PR #272): the interrupted
+            # Abschließen left a clean work branch with its commits; nothing is half done,
+            # „Abschließen“ simply continues — the light need not stay red.
             self.recover_offered = False
         if self.recover_offered and getattr(state, "state", None) != LAEUFT:
             recommended = WIEDERHERSTELLEN   # R6: interrupted Abschließen

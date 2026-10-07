@@ -102,3 +102,15 @@ def availability(verb: Verb, state: rs.RepoState | None, *,
     if verb.key not in state.offered:
         return False, f"Jetzt nicht verfügbar — {verb.when} Aktuell: {state.state}, {state.summary}"
     return True, ""
+
+
+def recover_not_needed(state) -> bool:
+    """AGP_RECOVER_OFFER_EXPIRES_V1: a clean work branch with own commits, ready to be
+    finished, needs no recovery (an interrupted publication is resumed by „Abschließen“)."""
+    facts = getattr(state, "facts", None)
+    return bool(
+        state is not None and facts is not None
+        and getattr(state, "state", None) == rs.IN_ARBEIT
+        and getattr(state, "recommended", None) == rs.ABSCHLIESSEN
+        and facts.own_commits and not facts.changes
+    )

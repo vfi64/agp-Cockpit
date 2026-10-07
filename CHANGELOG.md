@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- „Abschließen“ only publishes (no work order may touch tests/ or src/, no commit on a clean branch), the interruption memory expires on a clean branch ready to finish, and the Kit findings table sorts by a clicked column (opens sorted by ID); build `release-0.2.1-r11`.
 - The Cockpit keeps the runtime of a steered repository (bridge log, missions, Kit digest, deliveries, work-order temp files) in its own checkout instead of the steered repository, and „Aufräumen“ offers what earlier builds left there; build `release-0.2.1-r10`.
 - Pull requests need one-line Unreleased entries, the build id is checked exactly, and Kit commands that declare a write effect in the manifest need an approval (KIT-GF-057 recorded: five commands are declared without their effect); build `release-0.2.1-r9`.
 - „Branch wechseln …“ switches the local branch through the Kit, a ticked „Arbeiten“ task starts „Abschließen“ by itself when it ends DONE, and an approval in the „Arbeiten“ tab names its scope (push and PR, or with merge), which the bridge enforces; build `release-0.2.1-r8`.
