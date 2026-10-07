@@ -722,6 +722,7 @@ class StandardTasksPanel(ttk.Frame):
                 self.recover_offered = False   # nothing to recover: the work is merged
             self.status_var.set(self.status_var.get() + "\n" + verdict)
         self.apply_state(result)
+        self._maybe_auto_finish(result)
         text = describe(result)
         effective = getattr(self, "_effective_recommended", None)
         if effective and effective != result.recommended and result.recommended:
@@ -729,6 +730,37 @@ class StandardTasksPanel(ttk.Frame):
             text = text.replace(f"Empfohlen: {rs_labels()[result.recommended]}",
                                 f"Empfohlen: {rs_labels()[effective]} (nach dem letzten Task)")
         self.lage_var.set(text)
+
+    def request_auto_finish(self, attempts: int = 15) -> None:
+        """AGP_AUTO_FINISH_V1 (owner 2026-10-07): the task of the „Arbeiten“ tab ended DONE and
+        its start click (with the tick) approved „Abschließen“; start it once the Lage agrees."""
+        self._auto_finish_pending = attempts
+        self.refresh_lage()
+
+    def _maybe_auto_finish(self, state) -> None:
+        pending = getattr(self, "_auto_finish_pending", 0)
+        if not pending or state is None:
+            return
+        from agp_cockpit.core import repo_state as rs
+        if state.state == rs.LAEUFT:
+            # the ended task can still count as running for a moment
+            self._auto_finish_pending = pending - 1
+            if self._auto_finish_pending:
+                self.after(1000, self.refresh_lage)
+            else:
+                self.status_var.set(self.status_var.get()
+                                    + "\nAbschließen nicht automatisch gestartet: es läuft noch ein Task.")
+            return
+        self._auto_finish_pending = 0
+        verb = VERB_BY_KEY[rs.ABSCHLIESSEN]
+        enabled, reason = availability(verb, state, recover_offered=self.recover_offered)
+        if not enabled or state.recommended != rs.ABSCHLIESSEN:
+            why = reason or f"die Lage ist {state.state} — nichts zu veröffentlichen"
+            self.status_var.set(self.status_var.get() + f"\nAbschließen nicht automatisch gestartet: {why}.")
+            return
+        task = self.tasks_by_key.get(verb.task_key or "")
+        if task is not None and self.start_standard_task(task, None):
+            self._auto_finish_started = True
 
     def note_external_result(self, text: str) -> None:
         """AGP_WORK_TAB_HANDOFF_V1: the result of the „Arbeiten“ tab, named as such."""

@@ -93,6 +93,9 @@ class MainWindow(ttk.Frame):
         )
         self._build_label = ttk.Label(context, textvariable=self.build_var, foreground="#888888")
         self._build_label.grid(row=1, column=0, sticky="w", pady=(2, 0))
+        # AGP_BRANCH_SWITCH_V1 (owner 2026-10-07): the local branch through the Kit route.
+        self._branch_button = ttk.Button(context, text="Branch wechseln …", command=self.open_branch_switch)
+        self._branch_button.grid(row=1, column=1, sticky="e", padx=(0, 8), pady=(2, 0))
         # AGP_REPOSITORY_SWITCH_V1 (P4): switch only while idle (R5).
         ttk.Button(context, text="Repo wechseln …", command=self.open_repo_switch).grid(
             row=1, column=2, sticky="e", pady=(2, 0))
@@ -168,10 +171,62 @@ class MainWindow(ttk.Frame):
         """AGP_WORK_TAB_HANDOFF_V1 (owner 2026-10-06): the Lage follows a task of the „Arbeiten“
         tab, and a finished one leads back to the guided path; a decision or a failure stays."""
         panel = self.standard_tasks_panel
+        work = self.simple_task_panel
         if event == "finished_done":
             panel.note_external_result(text)
             self.tabs.select(standard_tab)
+            if work.auto_finish_armed:
+                # AGP_AUTO_FINISH_V1: the tick at the start approved „Abschließen“.
+                work.auto_finish_armed = False
+                panel.request_auto_finish()
+                return
+        if event.startswith("finished"):
+            work.auto_finish_armed = False
         panel.refresh_lage()
+
+    def open_branch_switch(self) -> None:
+        """AGP_BRANCH_SWITCH_V1: idle and clean only; the Kit switches, git verifies."""
+        import threading
+
+        from agp_cockpit.core import branch_switch
+        from agp_cockpit.core.ci_gate import tool_env
+        from agp_cockpit.ui.branch_switch_dialog import ask_branch
+        panel = self.standard_tasks_panel
+        running = panel._task_running()
+        if running:
+            panel.status_var.set(branch_switch.block_reason(self.repository_root, "", task_running=True))
+            return
+        name = ask_branch(self, branch_switch.local_branches(self.repository_root))
+        if not name:
+            return
+        reason = branch_switch.block_reason(self.repository_root, name, task_running=panel._task_running())
+        if reason:
+            panel.status_var.set(f"Branch wechseln — {reason}")
+            return
+        kit = self._installed_kit()
+        if kit is None:
+            panel.status_var.set("Branch wechseln — kein Agentic Project Kit gefunden.")
+            return
+        self._branch_button.configure(state="disabled")
+        panel.status_var.set(f"Branch wechseln — {name} wird über das Kit aktiviert …")
+        holder: list = []
+
+        def work() -> None:
+            holder.append(branch_switch.switch(self.repository_root, kit.binary, name,
+                                               env=tool_env(self.repository_root)))
+
+        def poll() -> None:
+            if not holder:
+                self.after(200, poll)
+                return
+            ok, message = holder[0]
+            self._branch_button.configure(state="normal")
+            panel.status_var.set(message)
+            panel.refresh_lage()
+            self.refresh_build_freshness()   # a different build asks for „Neu bauen und neu starten“
+
+        threading.Thread(target=work, daemon=True).start()
+        poll()
 
     def open_repo_switch(self) -> None:
         """Repo wechseln (P4): idle only (R5); check, provision, persist, restart."""

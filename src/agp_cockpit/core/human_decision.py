@@ -41,6 +41,12 @@ import time
 from pathlib import Path
 
 DECISIONS = frozenset({"APPROVE", "REJECT"})
+# AGP_APPROVAL_SCOPE_CHOICE_V1 (owner 2026-10-06, Kit slice GF-050 B): the owner approved
+# „push and PR“, the remote side ran pr-create-complete and merged. The decision box now
+# names the scope and the bridge enforces it: "push_pr" permits exactly these commands;
+# a merging work order is not executed and asks again.
+PUSH_PR_SCOPE = ("agentic-kit transfer push-current", "agentic-kit transfer pr-create")
+SCOPES = {"push_pr": PUSH_PR_SCOPE, "full": None}
 GRANT_TTL_SECONDS = 24 * 3600
 
 
@@ -221,10 +227,25 @@ def _effects_of(record: dict) -> list[dict]:
     return list((record.get("grant") or {}).get("log") or [])   # records before the field
 
 
-def decision_mission_text(*, goal_text: str, decision: str, question: str, note: str) -> str:
+def decision_mission_text(*, goal_text: str, decision: str, question: str, note: str,
+                          scope: str = "full") -> str:
     """Mission text that continues the same task after the human decision."""
     decision = str(decision).upper()
-    if decision == "APPROVE":
+    if decision == "APPROVE" and scope == "push_pr":
+        verdict = (
+            "APPROVED WITH A LIMITED SCOPE: push and pull request only — NO merge.\n"
+            "- This approval supersedes any \"prepare only\" restriction of the original task "
+            "for exactly pushing the work branch and opening its pull request.\n"
+            "- Your next work order MUST use only `agentic-kit transfer push-current` and "
+            "`agentic-kit transfer pr-create` for its remote effects. Every merging command "
+            "(pr-create-complete, pr-complete, pr-closeout-complete, post-merge-complete, "
+            "work finish without --no-merge, pr merge-if-green) is refused locally and would "
+            "ask the human again.\n"
+            "- Raw git push, git fetch, git pull and gh stay forbidden.\n"
+            "- Completion is verified locally: DONE only when the pull request CI is green for "
+            "the local HEAD. Name the pull request as \"pr\" in the DONE file; do not merge it."
+        )
+    elif decision == "APPROVE":
         verdict = (
             "APPROVED. The human approves exactly the action asked about above.\n"
             "- This approval supersedes any \"prepare only\", \"do not execute\" or similar "
