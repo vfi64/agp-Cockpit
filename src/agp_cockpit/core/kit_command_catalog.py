@@ -54,10 +54,16 @@ REMOTE_EFFECT_COMMANDS = frozenset({
 # therefore asks until it is classified here or the Kit declares its effect.
 LOCAL_ORCHESTRATORS = frozenset({
     "artifact-gc", "chat session-start", "docs lifecycle sweep", "dpa final-closeout-check",
-    "init", "post-release-doi-closeout", "release prepare", "release ready", "release-prep",
+    "init", "release prepare", "release ready", "release-prep",
     "transfer chat-switch-complete", "work recover", "work rescue", "workspace adopt",
     "workspace dpa-intake", "workspace init", "workspace remove", "workspace upgrade",
 })
+# AGP_MANIFEST_REMOTE_EFFECTS_V1 (Kit 1.0.19 manifest, owner 2026-10-07): the Kit declares
+# ``remote_effects`` per command. A declared write effect makes a command remote even when
+# the Cockpit lists it as local (post-release-doi-closeout: release_publish). The Cockpit's
+# own list stays in force as well: the manifest says "none" for five commands that merge,
+# pull or publish (KIT-GF-057), so a command is remote when either source says so.
+READ_ONLY_EFFECTS = frozenset({"none", "network_read"})
 # AGP_DESTRUCTIVE_EXECUTE_GATE_V1 (plan P8, owner 2026-10-03): Kit routes whose
 # dry run is local and read-only but whose signed ``--execute`` rewrites local
 # history or discards files. The dry run runs freely; the execute needs an open
@@ -158,9 +164,17 @@ class KitCommandCatalog:
                 best = command
         return best
 
+    @staticmethod
+    def declared_effects(command: dict) -> tuple[str, ...]:
+        """The manifest's write effects of ``command`` (empty: none declared)."""
+        effects = command.get("remote_effects")
+        if not isinstance(effects, list):
+            return ()
+        return tuple(str(e) for e in effects if str(e) not in READ_ONLY_EFFECTS)
+
     def has_remote_effect(self, command: dict) -> bool:
         name = " ".join(str(p) for p in command["path"])
-        if name in REMOTE_EFFECT_COMMANDS:
+        if name in REMOTE_EFFECT_COMMANDS or self.declared_effects(command):
             return True
         if not self.effect_known(command):
             return True   # AGP_UNKNOWN_EFFECT_ASKS_V1: fail closed

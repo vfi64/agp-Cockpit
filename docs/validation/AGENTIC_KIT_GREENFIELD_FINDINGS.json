@@ -566,6 +566,13 @@
       "historical_id": "agp-Cockpit Kit 1.0.19 adoption",
       "canonical_family": "KIT-GF-024",
       "summary": "agentic-kit ci status read the CI verdict of main without a pull request (PASS)"
+    },
+    {
+      "date": "2026-10-07",
+      "event_id": "GF-E077",
+      "historical_id": "agp-Cockpit hygiene slice (Kit 1.0.19 manifest fb315aa30770)",
+      "canonical_family": "KIT-GF-057",
+      "summary": "command manifest declares remote_effects none for pr merge-if-green, pr-closeout, remote-branch-hygiene-apply, transfer publish-last-report and transfer pull-current"
     }
   ],
   "families": [
@@ -2143,6 +2150,32 @@
       ],
       "kit_repo_status": {
         "date": "2026-10-06",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 28428d8f",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-057",
+      "title": "command manifest understates remote effects of five commands",
+      "first_observed": "2026-10-07",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "Every command whose run pushes, opens or merges a pull request, pulls, deletes remote branches or publishes declares that effect in remote_effects of agentic-kit-commands.json.",
+      "observed": "Kit 1.0.19 manifest fb315aa30770 declares remote_effects [\"none\"] for `pr merge-if-green` (merges), `pr-closeout`, `remote-branch-hygiene-apply`, `transfer publish-last-report` and `transfer pull-current` (pulls); it declares release_publish for post-release-doi-closeout, which the Cockpit had listed as local.",
+      "impact": "A consumer that trusts the manifest alone would run a merge or pull without the owner's approval.",
+      "workaround": "The Cockpit keeps its own list and combines both (fail closed): a command is remote when either source says so (AGP_MANIFEST_REMOTE_EFFECTS_V1).",
+      "repair": "Derive remote_effects from the command implementation (or declare it next to it) and test every command that calls git push/pull, gh pr or a publish API against its declaration.",
+      "regression": "The Cockpit test test_known_manifest_understatements_are_exactly_these fails when the Kit fixes the declarations.",
+      "evidence": [
+        "agp-Cockpit tests/test_hygiene.py::test_known_manifest_understatements_are_exactly_these"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-07",
         "fixed_in": "",
         "kit_state": "OPEN",
         "raw": "not addressed on Kit main 28428d8f",
