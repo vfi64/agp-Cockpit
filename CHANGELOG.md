@@ -6,6 +6,8 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+## v0.2.2 - 2026-10-07
+
 - The tick „Nach Erfolg selbst abschließen“ has its own line under the editor with a hint that green CI does not check correctness, instead of breaking the button row; it stays off by default.
 - An older build in the checkout (main before its pull during „Abschließen“) no longer raises the stale-app warning, and the warning says whether the source is newer or just different; build `release-0.2.1-r12`.
 - „Abschließen“ only publishes (no work order may touch tests/ or src/, no commit on a clean branch), the interruption memory expires on a clean branch ready to finish, and the Kit findings table sorts by a clicked column (opens sorted by ID); build `release-0.2.1-r11`.
