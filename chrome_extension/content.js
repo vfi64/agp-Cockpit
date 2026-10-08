@@ -369,14 +369,6 @@
   }
 
 
-  // AGP_DOM_ADAPTER_V1 (slice 3b): send controls are named by the page adapter.
-  function isUsableSendControl(el) {
-    return AGP_DOM.isUsableSendControl(el);
-  }
-
-  function sendButton(anchor=null) {
-    return AGP_DOM.sendButton(anchor);
-  }
 
   async function settings() {
     const cfg = await chrome.storage.local.get({
@@ -584,7 +576,6 @@
     waitForComposer:(...args) => waitForComposer(...args),
     reserveRemoteStep:(...args) => reserveRemoteStep(...args),
     failureDomShape:(...args) => failureDomShape(...args),
-    sendButton:(...args) => sendButton(...args),
   });
   const {SEND_TRANSPORT, sendPrompt, observedComposerText} = SEND;
   let AGP_FORMAT_REPAIR_ATTEMPTS = 0;

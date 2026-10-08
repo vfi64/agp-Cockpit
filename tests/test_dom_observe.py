@@ -122,7 +122,7 @@ def test_failures_after_the_start_send_their_shape():
     assert "failureDomShape()" in tick_error
     indeterminate = CONTENT[CONTENT.index('await clientEvent("SEND_INDETERMINATE", {'):][:300]
     assert "failureDomShape()" in indeterminate
-    helper = CONTENT[CONTENT.index("  function failureDomShape() {"):CONTENT.index("  function submitComposerWithoutButton(")]
+    helper = CONTENT[CONTENT.index("  function failureDomShape() {"):CONTENT.index("  function resetCandidate() {")]
     assert "agpDomShape({composer_form:form, last_assistant:" in helper
     assert "AGP_DOM.alertNotices()" in helper
     adapter = (ROOT / "chrome_extension/chatgpt_dom.js").read_text(encoding="utf-8")
@@ -131,15 +131,6 @@ def test_failures_after_the_start_send_their_shape():
 
 
 # --- AGP_SEND_OUTCOME_FIRST_V1 --------------------------------------------------------------
-
-def test_the_retry_falls_back_without_a_send_button():
-    retry = CONTENT[CONTENT.index("const retryButton = sendButton(retryComposer);"):]
-    retry = retry[:retry.index("transport.transition(SEND_TRANSPORT.RETRY_ATTEMPTED")]
-    assert "retryVia = submitComposerWithoutButton(retryComposer);" in retry
-    assert "if (retryVia) {" in retry
-    helper = CONTENT[CONTENT.index("  function submitComposerWithoutButton("):CONTENT.index("  async function sendPromptDomDegraded(")]
-    assert "form.requestSubmit();" in helper and 'key:"Enter"' in helper
-
 
 # --- AGP_K07_TERMINAL_REGENERATE_V1 / AGP_LOST_REPLY_CHECK_V1 / AGP_RECOVER_HINT_FOLLOWS_OFFER_V1
 

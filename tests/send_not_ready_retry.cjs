@@ -5,14 +5,14 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const source = fs.readFileSync("chrome_extension/cockpit_send.js", "utf8");
 const start = source.indexOf("  async function sendPrompt(prompt) {");
-const end = source.indexOf("  async function sendPromptDomDegraded(prompt)", start);
+const end = source.indexOf("\n    return Object.freeze(", start);   // AGP_DEGRADED_DOM_PATH_REMOVED_V1
 const code = source.slice(start, end);
 
 async function run({failures, cleanOk = true}) {
   const calls = [];
   let attempts = 0;
   const context = {
-    STATE:{}, AGP_ALLOW_DEGRADED_DOM_FALLBACK:false,
+    STATE:{},
     clientEvent:async (name, details) => { calls.push(["event", name, details]); },
     sleep:async (ms) => { calls.push(["sleep", ms]); },
     sendPromptNative:async () => {

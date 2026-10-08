@@ -23,20 +23,7 @@ def test_r11_bounded_ack():
     assert "i < 60" in s
     assert "setTimeout(resolve, 250)" in s
 
-def test_r11_keeps_r7_fallback_contract():
-    s = text()
-    for needle in [
-        "attempt < 20",
-        "setTimeout(resolve, 150)",
-        "button && !button.disabled",
-        'new KeyboardEvent("keydown"',
-        'new KeyboardEvent("keyup"',
-        "el.dispatchEvent(down)",
-        "el.dispatchEvent(up)",
-    ]:
-        assert needle in s
-
 def test_r11_remains_fail_closed():
     s = text()
-    assert "SEND_UNCONFIRMED" in s
-    assert "if (!acknowledgement.confirmed)" in s
+    # AGP_DEGRADED_DOM_PATH_REMOVED_V1: an unreconciled native send stops as SEND_INDETERMINATE.
+    assert 'throw new Error("SEND_INDETERMINATE: user turn not reconciled")' in s

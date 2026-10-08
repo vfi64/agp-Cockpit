@@ -25,7 +25,7 @@ INGRESS = (EXT / "cockpit_ingress.js").read_text(encoding="utf-8")
 SEND = (EXT / "cockpit_send.js").read_text(encoding="utf-8")
 
 # Ratchet: lower it whenever a module leaves content.js; never raise it.
-CONTENT_MAX_LINES = 2205
+CONTENT_MAX_LINES = 2196
 
 
 def test_manifest_loads_every_module_before_the_controller():

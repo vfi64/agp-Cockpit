@@ -10,23 +10,7 @@ const SRC = fs.readFileSync(path.join(ROOT, "chrome_extension", "content.js"), "
 test("097 timeout semantics use INDETERMINATE rather than timeout-only failure", async () => {
   expect(SRC).toContain('ACCEPTED_LATE:"ACCEPTED_LATE"');
   expect(SRC).toContain("transport.transition(SEND_TRANSPORT.INDETERMINATE");
-  expect(SRC).toContain("positiveUnsentEvidence && transport.retryCount > 0");
-  expect(SRC).toContain("positive evidence shows the prompt is still unsent");
-});
-
-test("097 retry eligibility requires positive unsent evidence", async () => {
-  const safe = SRC.indexOf("const safeToRetry = (");
-  const eligible = SRC.indexOf(
-    "transport.transition(SEND_TRANSPORT.SAFE_RETRY_ELIGIBLE",
-    safe
-  );
-  const retry = SRC.indexOf(
-    "transport.transition(SEND_TRANSPORT.RETRY_ATTEMPTED",
-    eligible
-  );
-  expect(safe).toBeGreaterThanOrEqual(0);
-  expect(eligible).toBeGreaterThan(safe);
-  expect(retry).toBeGreaterThan(eligible);
+  // AGP_DEGRADED_DOM_PATH_REMOVED_V1: the DOM retry with its unsent-evidence failure is gone.
 });
 
 test("097 indeterminate transport is retained for late resolution", async () => {

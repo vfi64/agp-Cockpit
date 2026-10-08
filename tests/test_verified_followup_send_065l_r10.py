@@ -10,21 +10,8 @@ def src():
 
 def test_r10_preserves_verified_send_ack():
     s = src()
-    assert 'STATE.lastEvent = "SEND_UNCONFIRMED"' in s
+    assert 'STATE.lastEvent = "SEND_INDETERMINATE"' in s   # AGP_DEGRADED_DOM_PATH_REMOVED_V1
     assert 'STATE.lastEvent = "PROMPT_SENT"' in s
     assert "waitForSentUserMessage(" in s
     assert "beforeMessages" in s
     assert "beforeAssistantText" in s
-
-def test_r10_preserves_bounded_wait_and_button_readiness():
-    s = src()
-    assert "attempt < 20" in s
-    assert "setTimeout(resolve, 150)" in s
-    assert "button && !button.disabled" in s
-
-def test_r10_preserves_named_enter_pair():
-    s = src()
-    assert 'new KeyboardEvent("keydown"' in s
-    assert 'new KeyboardEvent("keyup"' in s
-    assert "el.dispatchEvent(down)" in s
-    assert "el.dispatchEvent(up)" in s

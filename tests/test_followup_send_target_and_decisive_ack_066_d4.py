@@ -7,9 +7,8 @@ SRC = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8") + "
 ADAPTER = (ROOT / "chrome_extension" / "chatgpt_dom.js").read_text(encoding="utf-8")   # AGP_DOM_ADAPTER_V1
 
 def test_066_d4_scopes_send_control_to_active_composer_form():
-    assert "function sendButton(anchor=null)" in SRC
-    assert "const button = sendButton(composerEl);" in SRC
-    assert "function isUsableSendControl(el)" in SRC
+    # AGP_DEGRADED_DOM_PATH_REMOVED_V1: content.js no longer clicks the send control; the
+    # scoping contract stays in the adapter.
     assert 'const form = anchor && anchor.closest ? anchor.closest("form") : null;' in ADAPTER
     assert "if (isUsableSendControl(candidate)) return candidate;" in ADAPTER
     assert "!el.isConnected" in ADAPTER
@@ -35,4 +34,4 @@ def test_066_d4_remains_bounded_and_fail_closed():
     assert "setTimeout(resolve, 250)" in SRC
     assert 'confirmed:false' in SRC
     assert 'via:"timeout"' in SRC
-    assert 'STATE.lastEvent = "SEND_UNCONFIRMED"' in SRC
+    assert 'STATE.lastEvent = "SEND_INDETERMINATE"' in SRC   # AGP_DEGRADED_DOM_PATH_REMOVED_V1

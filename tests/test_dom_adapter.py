@@ -41,8 +41,6 @@ def test_content_js_delegates_the_moved_touchpoints():
                           ("function pythonAttachmentRow(anchor)", "AGP_DOM.fileCardRow(anchor)"),
                           ('function expectedStepAttachmentCandidates(expectedStep, kind="command")',
                            "AGP_DOM.stepFileCards(expectedStep, kind)"),
-                          ("function isUsableSendControl(el)", "AGP_DOM.isUsableSendControl(el)"),
-                          ("function sendButton(anchor=null)", "AGP_DOM.sendButton(anchor)"),
                           ("function chatgptGenerationActive()", "AGP_DOM.generationActive()"),
                           ("function stopLikeComposerButtonVisible()", "AGP_DOM.stopLikeButtonVisible()"),
                           ("function readableAttachmentPreview(filename)", "AGP_DOM.previewTextbox(filename)"),
