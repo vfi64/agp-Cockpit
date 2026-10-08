@@ -25,8 +25,3 @@ def test_r9_restores_paired_enter_events():
     s = src()
     assert 'new KeyboardEvent("keydown"' in s
     assert 'new KeyboardEvent("keyup"' in s
-
-def test_r9_preserves_multiturn_full_auto():
-    s = src()
-    assert 'run_mode:"FULL_AUTO"' in s
-    assert "065 LIVE 3-TURN READ-ONLY PROBE" in s

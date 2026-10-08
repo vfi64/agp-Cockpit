@@ -48,6 +48,11 @@ When intentionally starting the development bridge with `.venv/bin/python -m agp
   preview and dialogs.
 - `content.js` — the controller: state, mission loop and actions; it may only shrink.
 
+Removed on 2026-10-08 (AGP_LEGACY_PATHS_REMOVED_V1): `protocol_action_contract_v1.js`,
+`transport_protocol_v1.js`, `conversation_contract.js`, `protocol_canonicalizer_v1.js`,
+`phase7_single_round.js` and `phase8_multi_round.js` — loaded only by operator paths without a button
+since 2026-09-15.
+
 Failure shapes from `.local/agp-cockpit/browser/dom-snapshots/` can be replayed against this code with
 `AGP_DOM_SNAPSHOT=<file> npx playwright test tests/e2e/test_dom_snapshot_replay.spec.js`.
 

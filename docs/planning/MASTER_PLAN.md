@@ -561,6 +561,10 @@ Update 2026-10-07 (content.js module 2, COMMUNICATION_PROTOCOL 75, build release
 Update 2026-10-08 (content.js module 3, COMMUNICATION_PROTOCOL 76, build release-0.2.2-r13): send transport is
 `cockpit_send.js`; content.js 3312 → 2617 lines; „Branch wechseln …“ without preselection. Next: module 4
 legacy paths.
+Update 2026-10-08 (content.js module 4a, COMMUNICATION_PROTOCOL 77, build release-0.2.2-r14): operator paths
+without a button since 2026-09-15 and their six content scripts removed; content.js 2617 → 2205 lines.
+Next: 4b the disabled degraded DOM send path in cockpit_send.js (AGP_ALLOW_DEGRADED_DOM_FALLBACK = false),
+then 4c the bridge routes only those paths used (e.g. /v1/task/complete-proposal), if nothing else calls them.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

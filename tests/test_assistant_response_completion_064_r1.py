@@ -46,11 +46,6 @@ def test_old_prompt_based_turn_increment_removed():
     s = source()
     assert "await sendPrompt(result.prompt);\n    STATE.turns += 1;" not in s
 
-def test_live_probe_validation_remains_fail_closed():
-    s = source()
-    assert "function assertExactLiveProbeWorkOrder(text)" in s
-    assert "LIVE probe rejected before local submit" in s
-
 def test_k07_requires_new_assistant_node_after_submit() -> None:
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] / "chrome_extension" / "content.js").read_text(encoding="utf-8")

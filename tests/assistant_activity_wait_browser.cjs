@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
-const code = section("  async function tick()", "  const LIVE_PROBE");
+const code = section("  async function tick()", "  // AGP_LEGACY_PATHS_REMOVED_V1");
 
 function run({waitedMs, lastActivityAgoMs=null, generation=false, document=undefined, mutate=0}) {
   const now = Date.now();

@@ -25,6 +25,6 @@ def test_k07_tick_scheduler_observes_async_failures():
 
 def test_k07_tick_captures_generation_before_polling_can_fail():
     s=Path("chrome_extension/content.js").read_text()
-    tick=s[s.index("async function tick()"):s.index("const LIVE_PROBE")]
+    tick=s[s.index("async function tick()"):s.index("// AGP_LEGACY_PATHS_REMOVED_V1")]
     assert tick.index("const runGeneration = STATE.runGeneration;") < tick.index("try {")
     assert tick.index("try {") < tick.index("await pollOperatorControl();")

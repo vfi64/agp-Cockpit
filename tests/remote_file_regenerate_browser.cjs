@@ -74,7 +74,7 @@ const TIMEOUT = new Error("K07 command-file browser download timed out");
   assert.equal(t.calls.prompts.length, 0);
 
   // 5. Wiring: the tick's error path asks first; every reset point clears the attempt.
-  const tick = section("  async function tick()", "  const LIVE_PROBE");
+  const tick = section("  async function tick()", "  // AGP_LEGACY_PATHS_REMOVED_V1");
   assert.ok(tick.indexOf("requestRemoteFileRegeneration(err, runGeneration)") <
             tick.indexOf("if (STATE.errors >= LIMITS.maxErrors)"));
   // declaration, stop(), startAuto() and both consumed-file paths

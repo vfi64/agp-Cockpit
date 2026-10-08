@@ -808,6 +808,15 @@ This section is normative for the file loop after local execution.
    never runs the mission loop. Every exported name content.js uses must be destructured from
    SEND (static test).
 
+77. content.js module 4a (`AGP_LEGACY_PATHS_REMOVED_V1`, build release-0.2.2-r14, 2026-10-08):
+   the extension loads only chatgpt_selectors.js, build_identity.js, native_message_evidence.js,
+   browser_native_transport.js, cockpit_panel.js, cockpit_ingress.js, cockpit_send.js,
+   chatgpt_dom.js and content.js. The operator paths without a button since 2026-09-15 (DRY
+   mission, LIVE probes 061/065, Phase 5/7/8) and the six content scripts only they loaded are
+   removed; rules above that name `conversation_contract.js` or the Phase-5 generation check are
+   history. The live protocol path (`submitAssistant` → `/v1/protocol/execute`) and the
+   command-file loop are unchanged. A test keeps the removed scripts and names out.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the
