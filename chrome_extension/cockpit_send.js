@@ -1,7 +1,7 @@
 // AGP_SEND_MODULE_V1 (content.js split, module 3, owner 2026-10-07): the send transport — writing
 // the prompt into ChatGPT's composer, the native (CDP) submit through the service worker, the
 // commit nonce, the evidence that the user turn was committed, the bounded retry with the owned
-// draft cleared, and the (disabled) degraded DOM path. content.js stays the controller: it keeps
+// draft cleared (AGP_DEGRADED_DOM_PATH_REMOVED_V1: no DOM fallback). content.js stays the controller: it keeps
 // the pending transport that tick, stop and startAuto read and creates this module once
 // (AGP_SEND.create) with its state and the services named below. The moved functions keep their
 // content.js indentation, so the characterization tests that slice them by function still apply.
@@ -17,7 +17,6 @@
     const waitForComposer = (...args) => host.waitForComposer(...args);
     const reserveRemoteStep = (...args) => host.reserveRemoteStep(...args);
     const failureDomShape = (...args) => host.failureDomShape(...args);
-    const sendButton = (...args) => host.sendButton(...args);
     const setPendingSendTransport = (...args) => host.setPendingSendTransport(...args);
 
 
@@ -173,19 +172,12 @@
     // AGP_BROWSER_SENDER_TRANSPORT_STATE_MACHINE_092
   const SEND_TRANSPORT = Object.freeze({
     IDLE:"IDLE",
-    DRAFT_WRITTEN:"DRAFT_WRITTEN",
     NATIVE_INPUT_REQUESTED:"NATIVE_INPUT_REQUESTED",
     NATIVE_SUBMIT_DISPATCHED:"NATIVE_SUBMIT_DISPATCHED",
-    SUBMIT_ATTEMPTED:"SUBMIT_ATTEMPTED",
-    WAITING_FOR_ACCEPTANCE:"WAITING_FOR_ACCEPTANCE",
     ACCEPTED:"ACCEPTED",
     ACCEPTED_LATE:"ACCEPTED_LATE",
-    SAFE_RETRY_ELIGIBLE:"SAFE_RETRY_ELIGIBLE",
-    RETRY_ATTEMPTED:"RETRY_ATTEMPTED",
-    INDETERMINATE:"INDETERMINATE",
-    FAILED_CONFIRMATION:"FAILED_CONFIRMATION"
+    INDETERMINATE:"INDETERMINATE"
   });
-  const AGP_ALLOW_DEGRADED_DOM_FALLBACK = false;
 
   function createSendTransport(prompt) {
     return {
@@ -528,214 +520,14 @@
         message:String(error && error.message ? error.message : error),
         failure_class:STATE.lastTransportFailureClass || ""
       });
-
-      if (!AGP_ALLOW_DEGRADED_DOM_FALLBACK) {
-        throw error;
-      }
-
-      await clientEvent("DOM_TRANSPORT_DEGRADED_FALLBACK", {
-        explicit_degraded_mode:true
-      });
-      return await sendPromptDomDegraded(prompt);
+      // AGP_DEGRADED_DOM_PATH_REMOVED_V1: there is no DOM fallback; the native transport is the only
+      // send path and its failure stops the step.
+      throw error;
     }
-  }
-
-  // AGP_SEND_OUTCOME_FIRST_V1: the submit paths without a usable send button.
-  function submitComposerWithoutButton(composerEl) {
-    const el = composerEl || composer();
-    if (!el) return "";
-    const form = el.closest ? el.closest("form") : null;
-    if (form && typeof form.requestSubmit === "function") {
-      form.requestSubmit();
-      return "form";
-    }
-    el.focus();
-    for (const type of ["keydown", "keyup"]) {
-      el.dispatchEvent(new KeyboardEvent(type, {
-        key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true, cancelable:true
-      }));
-    }
-    return "enter";
-  }
-
-  async function sendPromptDomDegraded(prompt) {
-    const transport = createSendTransport(prompt);
-
-    const beforeMessages = visibleUserMessages();
-    const beforeAssistantText = lastAssistantText();
-    transport.beforeAssistantText = beforeAssistantText;
-    const composerEl = await waitForComposer();
-    STATE.lastPrompt = prompt;
-    setComposerText(composerEl, prompt);
-    transport.transition(SEND_TRANSPORT.DRAFT_WRITTEN, {chars:prompt.length});
-    const beforeComposerText = observedComposerText();
-    const beforeGenerationActive = chatgptGenerationActive();
-
-    let sentAttempt = false;
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const button = sendButton(composerEl);
-      if (button && !button.disabled) {
-        button.click();
-        sentAttempt = true;
-        break;
-      }
-      await new Promise(resolve => setTimeout(resolve, 150));
-    }
-
-    if (!sentAttempt) {
-      const el = composer();
-      const form = el && el.closest ? el.closest("form") : null;
-      if (form && typeof form.requestSubmit === "function") {
-        form.requestSubmit();
-        sentAttempt = true;
-      }
-    }
-
-    if (!sentAttempt) {
-      const el = composer();
-      if (!el) throw new Error("ChatGPT composer not found");
-      el.focus();
-      const down = new KeyboardEvent("keydown", {
-          key:"Enter",
-          code:"Enter",
-          keyCode:13,
-          which:13,
-          bubbles:true,
-          cancelable:true
-        });
-      const up = new KeyboardEvent("keyup", {
-          key:"Enter",
-          code:"Enter",
-          keyCode:13,
-          which:13,
-          bubbles:true,
-          cancelable:true
-        });
-      el.dispatchEvent(down);
-      el.dispatchEvent(up);
-      sentAttempt = true;
-    }
-
-    if (!sentAttempt) {
-      throw new Error("send path unavailable");
-    }
-
-    setPendingSendTransport(transport);
-    transport.transition(SEND_TRANSPORT.SUBMIT_ATTEMPTED, {attempt:1});
-    transport.transition(SEND_TRANSPORT.WAITING_FOR_ACCEPTANCE, {attempt:1});
-    let acknowledgement = await waitForSentUserMessage(
-      prompt,
-      beforeMessages,
-      beforeAssistantText,
-      beforeComposerText,
-      beforeGenerationActive
-    );
-
-    // AGP_LATE_ACCEPTANCE_BOUNDARY_097
-    // Timeout is epistemic uncertainty, not proof that ChatGPT rejected the send.
-    // Retry remains bounded and requires positive evidence that the exact prompt
-    // is still present and no generation has begun.
-    if (!acknowledgement.confirmed) {
-      const pendingComposer = observedComposerText();
-      const expectedPrompt = normalizeObservedMessageText(prompt);
-      const safeToRetry = (
-        pendingComposer === expectedPrompt &&
-        !chatgptGenerationActive()
-      );
-
-      if (safeToRetry) {
-        transport.transition(SEND_TRANSPORT.SAFE_RETRY_ELIGIBLE, {
-          via:acknowledgement.via || "unknown"
-        });
-        await clientEvent("SEND_RETRY_SAFE_PENDING_COMPOSER", {
-          chars:prompt.length,
-          first_via:acknowledgement.via || "",
-          provisional:acknowledgement.provisional || ""
-        });
-
-        const retryComposer = composer();
-        const retryButton = sendButton(retryComposer);
-        // AGP_SEND_OUTCOME_FIRST_V1 (DOM hardening step 1): the retry no longer needs the
-        // send button either; like the first attempt it falls back to the form submit or
-        // Enter. Only the committed user turn (waitForSentUserMessage) counts as sent.
-        let retryVia = "";
-        if (retryButton && !retryButton.disabled) {
-          retryButton.click();
-          retryVia = "button";
-        } else {
-          retryVia = submitComposerWithoutButton(retryComposer);
-        }
-        if (retryVia) {
-          await clientEvent("SEND_RETRY_SUBMITTED", {via:retryVia});
-          transport.retryCount += 1;
-          transport.transition(SEND_TRANSPORT.RETRY_ATTEMPTED, {attempt:2});
-          transport.transition(SEND_TRANSPORT.WAITING_FOR_ACCEPTANCE, {attempt:2});
-          acknowledgement = await waitForSentUserMessage(
-            prompt,
-            beforeMessages,
-            beforeAssistantText,
-            expectedPrompt,
-            false
-          );
-
-          await clientEvent(
-            acknowledgement.confirmed
-              ? "SEND_RETRY_CONFIRMED"
-              : "SEND_RETRY_UNCONFIRMED",
-            {
-              via:acknowledgement.via || "",
-              provisional:acknowledgement.provisional || ""
-            }
-          );
-        }
-      }
-    }
-
-    if (!acknowledgement.confirmed) {
-      const expectedPrompt = normalizeObservedMessageText(prompt);
-      const positiveUnsentEvidence = (
-        observedComposerText() === expectedPrompt &&
-        !chatgptGenerationActive()
-      );
-
-      if (positiveUnsentEvidence && transport.retryCount > 0) {
-        transport.transition(SEND_TRANSPORT.FAILED_CONFIRMATION, {
-          via:acknowledgement.via || "timeout",
-          positive_unsent_evidence:true
-        });
-        setPendingSendTransport(null);
-        STATE.lastEvent = "SEND_UNCONFIRMED";
-        throw new Error(
-          "SEND_UNCONFIRMED: positive evidence shows the prompt is still unsent"
-        );
-      }
-
-      transport.acknowledgement = acknowledgement;
-      transport.transition(SEND_TRANSPORT.INDETERMINATE, {
-        via:acknowledgement.via || "timeout",
-        attempts:transport.retryCount + 1,
-        generation_started_observed:Boolean(
-          acknowledgement.generation_started_observed
-        )
-      });
-      STATE.lastEvent = "SEND_INDETERMINATE";
-      STATE.note = "Prompt gesendet; Bestätigung noch unbestimmt";
-      return;
-    }
-
-    transport.acknowledgement = acknowledgement;
-    transport.transition(SEND_TRANSPORT.ACCEPTED, {
-      via:acknowledgement.via || "unknown",
-      attempts:transport.retryCount + 1
-    });
-    setPendingSendTransport(null);
-    STATE.lastEvent = "PROMPT_SENT";
-    STATE.note = `Prompt bestätigt via ${acknowledgement.via}`;
   }
 
     return Object.freeze({
       SEND_TRANSPORT,
-      AGP_ALLOW_DEGRADED_DOM_FALLBACK,
       AGP_COMMIT_MARKER_PATTERN,
       setComposerText,
       visibleUserMessages,
@@ -752,8 +544,6 @@
       sendPromptNative,
       sendPrompt,
       sendPromptFailed,
-      submitComposerWithoutButton,
-      sendPromptDomDegraded,
     });
   }
 

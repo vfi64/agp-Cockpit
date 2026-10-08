@@ -565,6 +565,8 @@ Update 2026-10-08 (content.js module 4a, COMMUNICATION_PROTOCOL 77, build releas
 without a button since 2026-09-15 and their six content scripts removed; content.js 2617 → 2205 lines.
 Next: 4b the disabled degraded DOM send path in cockpit_send.js (AGP_ALLOW_DEGRADED_DOM_FALLBACK = false),
 then 4c the bridge routes only those paths used (e.g. /v1/task/complete-proposal), if nothing else calls them.
+Update 2026-10-08 (content.js module 4b, COMMUNICATION_PROTOCOL 78, build release-0.2.2-r15): the disabled DOM
+send path is removed; cockpit_send.js 761 → 551 lines, content.js 2205 → 2196. Next: 4c.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

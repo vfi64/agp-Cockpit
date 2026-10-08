@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- The browser extension no longer carries the disabled DOM send path (click, form submit or Enter instead of the native submit); a failed native send stops the step as before; `cockpit_send.js` shrinks from 761 to 551 lines and `content.js` to 2196; behavior unchanged; build `release-0.2.2-r15`.
 - The browser extension no longer carries the operator paths whose buttons left the overlay on 2026-09-15 (DRY mission, LIVE probes 061/065, Phase 5 bind/draft/send, Phase 7 one round, Phase 8 run/pause/resume/stop), nor the six content scripts only they loaded; the options page drops the unused conversation URL; `content.js` shrinks to 2205 lines; behavior unchanged; build `release-0.2.2-r14`.
 - „Branch wechseln …“ no longer preselects a branch: „Wechseln“ stays disabled until a branch is clicked, main is labelled „zurück auf main“, and Return or a double click only switch with a selection (two unintended switches back to main on 2026-10-07). The send transport of the browser extension (writing the prompt into ChatGPT's composer, native submit, commit nonce, acceptance evidence, bounded retry) is its own module (`cockpit_send.js`); `content.js` shrinks to 2617 lines; behavior unchanged; build `release-0.2.2-r13`.
 - CI: apt gives up per request and falls back to the next Ubuntu mirror, every job and browser install step has a time limit, the runner image is pinned to Ubuntu 24.04 and the actions run on Node 24 (CI only, no rebuild needed).

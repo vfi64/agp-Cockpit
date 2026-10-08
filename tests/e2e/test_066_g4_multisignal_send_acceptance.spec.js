@@ -48,26 +48,23 @@ test("G4 requires four independent bounded send-acceptance signals", async () =>
 test("G4 keeps acknowledgement bounded and does not treat click-attempt as success", async () => {
   const src = source();
   const waitBody = functionBody(src, "waitForSentUserMessage");
-  const sendBody = functionBody(src, "sendPromptDomDegraded");
+  // AGP_DEGRADED_DOM_PATH_REMOVED_V1: the native sender is the only one; a dispatched submit is not
+  // success, only the committed user turn is.
+  const sendBody = functionBody(src, "sendPromptNative");
 
   expect(waitBody).toMatch(/for\s*\(let\s+i\s*=\s*0;\s*i\s*<\s*\d+/);
   expect(waitBody).toMatch(/setTimeout/);
 
-  const clickIndex = Math.max(
-    sendBody.indexOf("button.click()"),
-    sendBody.indexOf("requestSubmit()"),
-    sendBody.indexOf("dispatchEvent(down)")
-  );
+  const dispatched = sendBody.indexOf("transport.transition(SEND_TRANSPORT.NATIVE_SUBMIT_DISPATCHED");
+  const committedCheck = sendBody.indexOf('!== "USER_TURN_COMMITTED"');
   const promptSentIndex = sendBody.indexOf('STATE.lastEvent = "PROMPT_SENT"');
-  expect(clickIndex).toBeGreaterThanOrEqual(0);
-  expect(promptSentIndex).toBeGreaterThan(clickIndex);
-
-  expect(sendBody).toMatch(/acknowledg/);
-  expect(sendBody).toMatch(/if\s*\(\s*!acknowledgement\.confirmed\s*\)/);
+  expect(dispatched).toBeGreaterThanOrEqual(0);
+  expect(committedCheck).toBeGreaterThan(dispatched);
+  expect(promptSentIndex).toBeGreaterThan(committedCheck);
 });
 
 test("G4 encodes the observed real-browser regression", async () => {
   const src = source();
   expect(src).toMatch(/assistant_(response|activity)/);
-  expect(src).toContain("SEND_UNCONFIRMED");
+  expect(src).toContain("SEND_INDETERMINATE");
 });

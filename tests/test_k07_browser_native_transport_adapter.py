@@ -43,15 +43,18 @@ def test_native_module_focuses_and_uses_runtime_message():
     assert ".textContent = text" not in NATIVE
 
 def test_primary_sender_is_native_and_dom_fallback_is_disabled():
+    # AGP_DEGRADED_DOM_PATH_REMOVED_V1: the native transport is the only sender; its failure stops.
     assert "async function sendPromptNative(prompt)" in CONTENT
-    assert "async function sendPromptDomDegraded(prompt)" in CONTENT
     assert "async function sendPrompt(prompt)" in CONTENT
-    assert "const AGP_ALLOW_DEGRADED_DOM_FALLBACK = false;" in CONTENT
+    for gone in ("sendPromptDomDegraded", "AGP_ALLOW_DEGRADED_DOM_FALLBACK", "submitComposerWithoutButton",
+                 "DOM_TRANSPORT_DEGRADED_FALLBACK"):
+        assert gone not in CONTENT, gone
     start = CONTENT.index("async function sendPrompt(prompt)")
-    end = CONTENT.index("async function sendPromptDomDegraded(prompt)", start)
+    end = CONTENT.index("\n    return Object.freeze(", start)
     wrapper = CONTENT[start:end]
     assert "return await sendPromptNative(prompt)" in wrapper
-    assert "if (!AGP_ALLOW_DEGRADED_DOM_FALLBACK)" in wrapper
+    failed = wrapper[wrapper.index("async function sendPromptFailed("):]
+    assert failed.count("throw error;") == 1
 
 def test_native_acceptance_requires_conversation_evidence_and_fails_loud():
     start = CONTENT.index("async function sendPromptNative(prompt)")

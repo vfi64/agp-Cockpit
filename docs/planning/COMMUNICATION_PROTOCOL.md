@@ -817,6 +817,15 @@ This section is normative for the file loop after local execution.
    history. The live protocol path (`submitAssistant` → `/v1/protocol/execute`) and the
    command-file loop are unchanged. A test keeps the removed scripts and names out.
 
+78. content.js module 4b (`AGP_DEGRADED_DOM_PATH_REMOVED_V1`, build release-0.2.2-r15,
+   2026-10-08): the native submit through the service worker is the only send path. There is no
+   DOM fallback (button click, form submit, synthetic Enter); `sendPromptFailed` records the
+   failure and rethrows. The send-transport states are IDLE, NATIVE_INPUT_REQUESTED,
+   NATIVE_SUBMIT_DISPATCHED, ACCEPTED, ACCEPTED_LATE and INDETERMINATE; DRAFT_WRITTEN,
+   SUBMIT_ATTEMPTED, WAITING_FOR_ACCEPTANCE, SAFE_RETRY_ELIGIBLE, RETRY_ATTEMPTED and
+   FAILED_CONFIRMATION belonged to the removed path. The bounded retry of a native send is
+   sendPrompt's diagnosed retry after SEND_BUTTON_NOT_READY (AGP_SEND_NOT_READY_RETRY_V1).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the
