@@ -7,26 +7,6 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 ## Unreleased
 
 ## v0.2.3
-- Releases create the GitHub Release entry of the private repository through the Kit's signed release run (`publication: github`, P11c); the Kit's Kit-repository reference check is switched off for this workspace (`release.publish_checks: none`, KIT-GF-049 reproduced in Kit 1.0.20); no rebuild needed.
-- Kit 1.0.20 adopted (CI pins, command manifest 43b81efb137f): the Kit now declares the remote effects the Cockpit had to add itself (KIT-GF-057 verified); `pr-closeout` and `transfer publish-last-report` no longer ask for an approval (local only); KIT-GF-022/048/049/053/054/055/056 fixed in 1.0.20, KIT-GF-058/059 recorded from the 1.0.19 release run and fixed in 1.0.20; build `release-0.2.2-r16`.
-- The browser extension no longer carries the disabled DOM send path (click, form submit or Enter instead of the native submit); a failed native send stops the step as before; `cockpit_send.js` shrinks from 761 to 551 lines and `content.js` to 2196; behavior unchanged; build `release-0.2.2-r15`.
-- The browser extension no longer carries the operator paths whose buttons left the overlay on 2026-09-15 (DRY mission, LIVE probes 061/065, Phase 5 bind/draft/send, Phase 7 one round, Phase 8 run/pause/resume/stop), nor the six content scripts only they loaded; the options page drops the unused conversation URL; `content.js` shrinks to 2205 lines; behavior unchanged; build `release-0.2.2-r14`.
-- „Branch wechseln …“ no longer preselects a branch: „Wechseln“ stays disabled until a branch is clicked, main is labelled „zurück auf main“, and Return or a double click only switch with a selection (two unintended switches back to main on 2026-10-07). The send transport of the browser extension (writing the prompt into ChatGPT's composer, native submit, commit nonce, acceptance evidence, bounded retry) is its own module (`cockpit_send.js`); `content.js` shrinks to 2617 lines; behavior unchanged; build `release-0.2.2-r13`.
-- CI: apt gives up per request and falls back to the next Ubuntu mirror, every job and browser install step has a time limit, the runner image is pinned to Ubuntu 24.04 and the actions run on Node 24 (CI only, no rebuild needed).
-- Fix: a task no longer stops with „expectedStepAttachmentCandidates is not defined“ after 20 s of waiting for ChatGPT (regression of `release-0.2.2-r11`); build `release-0.2.2-r12`.
-- The file ingress of the browser extension (finding the expected file card in ChatGPT's answer, downloading or reading it and handing it to the bridge) is its own module (`cockpit_ingress.js`); `content.js` shrinks to 3312 lines; behavior unchanged; build `release-0.2.2-r11`.
-- DOM hardening complete: a new fingerprint algorithm no longer shows as a new ChatGPT page (the false „NEU“ clears on the next start), and failure snapshots keep enough structure to be replayed against the real probe code in the browser tests; build `release-0.2.2-r10`.
-- The overlay on the ChatGPT page (buttons, status, drag and minimize) is its own module (`cockpit_panel.js`), the first step of splitting `content.js`, which shrinks from 4246 to 3789 lines; behavior unchanged; build `release-0.2.2-r9`.
-- Every ChatGPT selector of the browser extension lives in one table (`chatgpt_selectors.js`), also for the helpers the extension runs inside the ChatGPT page and for the native send path; a test keeps ChatGPT selectors out of every other extension file; build `release-0.2.2-r8`.
-- The System tab offers „Systemcheck …“: app build, bridge, Chrome extension, ChatGPT UI variant, Agentic Kit against the CI pin, repository, GitHub CLI login and disk space, each with the step that fixes a problem; build `release-0.2.2-r7`.
-- A task started right after „Neu bauen und neu starten“ waits until the Chrome extension reports the new build and then starts by itself, and a refused start stops the mission it had just created instead of leaving it blocking every new start; build `release-0.2.2-r6`.
-- The page adapter also names the attachment preview, its download control and the dialog close controls; `content.js` keeps 10 direct page lookups; build `release-0.2.2-r5`.
-- The page adapter also names the composer fallback, the send control and the generation and stop signals; `content.js` keeps 16 direct page lookups (from 27); build `release-0.2.2-r4`.
-- The browser extension finds file cards, assistant turns and ChatGPT's alerts through one page adapter (`chatgpt_dom.js`), the first module split off `content.js`, and the UI fingerprint also covers the composer's attributes, its element chain and the form's button labels; build `release-0.2.2-r3`.
-- The Cockpit records the ChatGPT UI variant at every start and a sanitized page shape at every failure, the send retry works without a send button, a lost terminal reply is requested again, a task stopped by a lost or late reply is checked against the repository, and the result line no longer recommends „Wiederherstellen“ once the Lage withdrew it; build `release-0.2.2-r2`.
-- A running release shows a yellow note instead of locking the tasks, the release pull request needs the exact build id and JSON summary lines, src and tests pass ruff like the Kit's local gate, test windows stay invisible, and Pause, Fortsetzen, Stop and Reset are clickable only when they act; build `release-0.2.2-r1`.
-
-## v0.2.3 - 2026-10-08
 
 - Releases create the GitHub Release entry of the private repository through the Kit's signed release run (`publication: github`, P11c); the Kit's Kit-repository reference check is switched off for this workspace (`release.publish_checks: none`, KIT-GF-049 reproduced in Kit 1.0.20); no rebuild needed.
 - Kit 1.0.20 adopted (CI pins, command manifest 43b81efb137f): the Kit now declares the remote effects the Cockpit had to add itself (KIT-GF-057 verified); `pr-closeout` and `transfer publish-last-report` no longer ask for an approval (local only); KIT-GF-022/048/049/053/054/055/056 fixed in 1.0.20, KIT-GF-058/059 recorded from the 1.0.19 release run and fixed in 1.0.20; build `release-0.2.2-r16`.
@@ -46,39 +26,12 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 - The browser extension finds file cards, assistant turns and ChatGPT's alerts through one page adapter (`chatgpt_dom.js`), the first module split off `content.js`, and the UI fingerprint also covers the composer's attributes, its element chain and the form's button labels; build `release-0.2.2-r3`.
 - The Cockpit records the ChatGPT UI variant at every start and a sanitized page shape at every failure, the send retry works without a send button, a lost terminal reply is requested again, a task stopped by a lost or late reply is checked against the repository, and the result line no longer recommends „Wiederherstellen“ once the Lage withdrew it; build `release-0.2.2-r2`.
 - A running release shows a yellow note instead of locking the tasks, the release pull request needs the exact build id and JSON summary lines, src and tests pass ruff like the Kit's local gate, test windows stay invisible, and Pause, Fortsetzen, Stop and Reset are clickable only when they act; build `release-0.2.2-r1`.
-- Refresh successor package after PR312
-- chore(release): let the Kit create the GitHub Release entry (P11c)
-- Refresh successor package after PR310
-- chore(kit): adopt agentic-project-kit 1.0.20
-- Refresh successor package after PR308
-- refactor(extension): remove the disabled DOM send path
-- Refresh successor package after PR306
-- refactor(extension): remove the legacy operator paths and their content scripts
-- Refresh successor package after PR304
-- refactor(extension): move the send transport into cockpit_send.js; branch dialog without preselection
-- Refresh successor package after PR302
 - Harden CI runner
-- Refresh successor package after PR300
-- fix(extension): bind expectedStepAttachmentCandidates from the ingress module
-- Refresh successor package after PR298
-- refactor(extension): move the file ingress out of content.js into cockpit_ingress.js
-- Refresh successor package after PR296
-- feat(dom): finish the DOM hardening — versioned UI fingerprint and replayable failure shapes
-- Refresh successor package after PR294
-- refactor(extension): move the ChatGPT overlay out of content.js into cockpit_panel.js
-- Refresh successor package after PR292
-- feat(extension): one ChatGPT selector table for content scripts, service worker and injected page helpers
-- Refresh successor package after PR290
 - Add a read-only Systemcheck with a fix for every problem
-- Refresh successor package after PR288
 - Fix start after rebuild
-- Refresh successor package after PR286
 - Move the composer, send and generation touchpoints into the page adapter
-- Refresh successor package after PR284
 - Move the file-card and assistant-turn touchpoints into a page adapter
-- Refresh successor package after PR282
 - Observe the ChatGPT page and survive a lost terminal reply
-- Refresh successor package after PR280
 - Keep releases robust: no lock mid-release, exact build id, JSON summary, clean lint
 
 ## v0.2.2 - 2026-10-07
