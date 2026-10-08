@@ -369,8 +369,8 @@ def test_recover_offer_clears_once_main_is_ready(panel):
 
 def test_release_policy_allows_the_private_tag_push():
     policy = json.loads((ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"))
-    # P11c (2026-10-05) is prepared; the switch to github waits for KIT-GF-049.
-    assert policy["publication"] == "none" and policy["tag_push"]["allowed"] is True
+    # P11c (2026-10-05) switched on 2026-10-08 with Kit 1.0.20.
+    assert policy["publication"] == "github" and policy["tag_push"]["allowed"] is True
 
 
 # --- T5b (live 2026-10-02) ----------------------------------------------------------------------

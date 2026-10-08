@@ -18,15 +18,15 @@ index or archive; its GitHub Release entries stay in the private repository.
   owner by hand (owner's decision 2026-10-02, `owner_github_release` in the JSON):
   `gh release create <tag> --verify-tag`. The owner decided on 2026-10-05 that the
   Kit's signed release run takes this over (P11c, `kit_github_release` in the JSON,
-  `AGP_KIT_GITHUB_RELEASE_V1`). It is prepared, not yet switched on:
-  `.agentic/config.yaml` carries `release.github_release_title_template: "AGP
-  Cockpit {version} (privat)"` but stays at `publication: none`, because the Kit's
-  GitHub route (1.0.18) also runs the Kit repository's own docs audit and
-  command-reference check, which fail in this repository (KIT-GF-049). The switch
-  is `publication: github` once a Kit release fixes KIT-GF-049; the Kit then
-  creates the annotated tag, pushes it and creates the entry with the version's
-  `CHANGELOG.md` section as its text. Cockpit work orders never run `gh release`
-  themselves.
+  `AGP_KIT_GITHUB_RELEASE_V1`). Switched on 2026-10-08 with Kit 1.0.20:
+  `.agentic/config.yaml` says `publication: github` with `release.github_release_title_template:
+  "AGP Cockpit {version} (privat)"`; the Kit creates the annotated tag, pushes it and
+  creates the entry with the version's `CHANGELOG.md` section as its text. The workspace
+  also sets the Kit's `release.publish_checks: none`: 1.0.20 skips the Kit-repository docs
+  audit here but still runs its command-reference check, which runs a test file of the Kit
+  repository and fails (KIT-GF-049 reproduced in 1.0.20); reference drift is caught by
+  `commands sync-entrypoints` and `agentic-kit check`. Cockpit work orders never run
+  `gh release` themselves.
 - With `publication: github` the Kit blocks a release while a merged pull request
   has no release-note category. Every pull request a work order creates
   therefore already carries a body line `release-note-category: <category>`

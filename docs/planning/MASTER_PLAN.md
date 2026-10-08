@@ -569,7 +569,10 @@ Update 2026-10-08 (content.js module 4b, COMMUNICATION_PROTOCOL 78, build releas
 send path is removed; cockpit_send.js 761 → 551 lines, content.js 2205 → 2196. Next: 4c.
 Update 2026-10-08 (Kit 1.0.20 adoption, build release-0.2.2-r16): CI pins and manifest 43b81efb137f; the remote-effect
 list follows the Kit's declarations (KIT-GF-057 verified); register synced with Kit e4ee4868. Owner decision 2026-10-08:
-Kit adoption before 4c; next release 0.2.3 through `agentic-kit release run`, 4c afterwards.
+Kit adoption before 4c; next release 0.2.3, 4c afterwards.
+Update 2026-10-08 (P11c switched on, no build change): `publication: github` with `release.publish_checks: none`;
+the GitHub Release entry comes from the Kit's signed run. Correction: the Cockpit releases through its Release
+button (release-prep and release-publish), not through `agentic-kit release run` (PyPI/Zenodo phases).
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 
