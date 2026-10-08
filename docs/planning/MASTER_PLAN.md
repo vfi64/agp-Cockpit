@@ -567,6 +567,9 @@ Next: 4b the disabled degraded DOM send path in cockpit_send.js (AGP_ALLOW_DEGRA
 then 4c the bridge routes only those paths used (e.g. /v1/task/complete-proposal), if nothing else calls them.
 Update 2026-10-08 (content.js module 4b, COMMUNICATION_PROTOCOL 78, build release-0.2.2-r15): the disabled DOM
 send path is removed; cockpit_send.js 761 → 551 lines, content.js 2205 → 2196. Next: 4c.
+Update 2026-10-08 (Kit 1.0.20 adoption, build release-0.2.2-r16): CI pins and manifest 43b81efb137f; the remote-effect
+list follows the Kit's declarations (KIT-GF-057 verified); register synced with Kit e4ee4868. Owner decision 2026-10-08:
+Kit adoption before 4c; next release 0.2.3 through `agentic-kit release run`, 4c afterwards.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

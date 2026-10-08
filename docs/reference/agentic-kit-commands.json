@@ -842,7 +842,7 @@
       ],
       "qualified_name": "agentic-kit audit-status-current-state",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "READ_ONLY",
@@ -5745,7 +5745,7 @@
       ],
       "qualified_name": "agentic-kit dpa wrt-ch001-evidence",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -6037,7 +6037,7 @@
       ],
       "qualified_name": "agentic-kit evidence commit-paths",
       "remote_effects": [
-        "none"
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -6397,7 +6397,7 @@
       ],
       "qualified_name": "agentic-kit evidence finalize-log",
       "remote_effects": [
-        "none"
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -6914,7 +6914,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.19",
+          "default": "1.0.20",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -8003,6 +8003,20 @@
           "param_type": "TyperOption",
           "required": false,
           "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print a machine-readable result.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
         }
       ],
       "path": [
@@ -8010,7 +8024,7 @@
       ],
       "qualified_name": "agentic-kit post-release-check",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -8089,7 +8103,7 @@
       ],
       "qualified_name": "agentic-kit post-release-doi-closeout",
       "remote_effects": [
-        "release_publish"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -8320,7 +8334,9 @@
       ],
       "qualified_name": "agentic-kit pr merge-if-green",
       "remote_effects": [
-        "none"
+        "delete_remote",
+        "merge",
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "DESTRUCTIVE",
@@ -8400,7 +8416,7 @@
       ],
       "qualified_name": "agentic-kit pr status",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "READ_ONLY",
@@ -8494,7 +8510,7 @@
       ],
       "qualified_name": "agentic-kit pr wait-ci",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -8581,7 +8597,7 @@
       ],
       "qualified_name": "agentic-kit pr-hygiene",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9055,7 +9071,7 @@
       ],
       "qualified_name": "agentic-kit release-check",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9323,7 +9339,7 @@
       ],
       "qualified_name": "agentic-kit release-notes-generate",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9373,7 +9389,7 @@
       ],
       "qualified_name": "agentic-kit release-plan",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9409,7 +9425,7 @@
       ],
       "qualified_name": "agentic-kit release-preflight",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9548,7 +9564,7 @@
       "name": "release-publish",
       "params": [
         {
-          "default": "1.0.19",
+          "default": "1.0.20",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -9731,7 +9747,7 @@
       ],
       "qualified_name": "agentic-kit release-status",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9781,7 +9797,7 @@
       ],
       "qualified_name": "agentic-kit remote-branch-hygiene",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9859,7 +9875,9 @@
       ],
       "qualified_name": "agentic-kit remote-branch-hygiene-apply",
       "remote_effects": [
-        "none"
+        "delete_remote",
+        "network_read",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -9937,7 +9955,7 @@
       ],
       "qualified_name": "agentic-kit remote-branch-hygiene-report",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -10037,7 +10055,7 @@
       ],
       "qualified_name": "agentic-kit rn",
       "remote_effects": [
-        "none"
+        "fetch"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -10087,7 +10105,7 @@
       ],
       "qualified_name": "agentic-kit rnc",
       "remote_effects": [
-        "none"
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -11035,7 +11053,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.19",
+          "default": "1.0.20",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -11090,7 +11108,7 @@
       ],
       "qualified_name": "agentic-kit state freshness-check",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -11564,7 +11582,7 @@
       ],
       "qualified_name": "agentic-kit transfer branch-create",
       "remote_effects": [
-        "none"
+        "push"
       ],
       "replaces_raw": [
         "git switch -c",
@@ -11647,7 +11665,8 @@
       ],
       "qualified_name": "agentic-kit transfer branch-delete",
       "remote_effects": [
-        "none"
+        "delete_remote",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "DESTRUCTIVE",
@@ -11713,7 +11732,7 @@
       ],
       "qualified_name": "agentic-kit transfer branch-switch",
       "remote_effects": [
-        "none"
+        "fetch"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -12383,7 +12402,8 @@
       ],
       "qualified_name": "agentic-kit transfer continue",
       "remote_effects": [
-        "none"
+        "fetch",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -13883,7 +13903,7 @@
       ],
       "qualified_name": "agentic-kit transfer patch-cycle-status",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -14238,7 +14258,11 @@
       ],
       "qualified_name": "agentic-kit transfer post-merge-settle",
       "remote_effects": [
-        "none"
+        "fetch",
+        "merge",
+        "network_read",
+        "pull_request",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "DESTRUCTIVE",
@@ -14248,6 +14272,101 @@
         "transfer"
       ],
       "when_to_use": "Deterministically settle post-merge generated-output refresh state."
+    },
+    {
+      "dry_run_available": true,
+      "group": "transfer",
+      "help": "Close an unchanged superseded PR after a replacement merged into the same base.",
+      "name": "pr-close-superseded",
+      "params": [
+        {
+          "default": null,
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "pr_number",
+          "opts": [
+            "pr_number"
+          ],
+          "param_type": "TyperArgument",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": null,
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "replacement_pr",
+          "opts": [
+            "--replacement-pr"
+          ],
+          "param_type": "TyperOption",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": null,
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "expected_head_sha",
+          "opts": [
+            "--expected-head-sha"
+          ],
+          "param_type": "TyperOption",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "execute",
+          "opts": [
+            "--execute"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "transfer",
+        "pr-close-superseded"
+      ],
+      "qualified_name": "agentic-kit transfer pr-close-superseded",
+      "remote_effects": [
+        "network_read",
+        "pull_request"
+      ],
+      "replaces_raw": [],
+      "safety": "BOUNDED",
+      "surface": "primitive",
+      "task_tags": [
+        "bounded",
+        "transfer"
+      ],
+      "when_to_use": "Close an unchanged superseded PR after a replacement merged into the same base."
     },
     {
       "dry_run_available": false,
@@ -15144,7 +15263,7 @@
       ],
       "qualified_name": "agentic-kit transfer pr-status",
       "remote_effects": [
-        "none"
+        "network_read"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -15491,7 +15610,7 @@
       ],
       "qualified_name": "agentic-kit transfer pull-current",
       "remote_effects": [
-        "none"
+        "fetch"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -15649,7 +15768,7 @@
       ],
       "qualified_name": "agentic-kit transfer rebase-on-upstream",
       "remote_effects": [
-        "none"
+        "fetch"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -17187,6 +17306,48 @@
           "secondary_opts": []
         },
         {
+          "default": "",
+          "help": "Pull request body; mutually exclusive with --body-file.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "body",
+          "opts": [
+            "--body"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": null,
+          "help": "UTF-8 pull request body file.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "body_file",
+          "opts": [
+            "--body-file"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "Release-note category, for example Fixed; validated before any action.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "release_note_category",
+          "opts": [
+            "--release-note-category"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
           "default": null,
           "help": "Path to include in the commit. Repeatable.",
           "is_flag": false,
@@ -17498,7 +17659,7 @@
       ],
       "qualified_name": "agentic-kit work start",
       "remote_effects": [
-        "none"
+        "fetch"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -17987,7 +18148,7 @@
       ],
       "qualified_name": "agentic-kit work-order upload",
       "remote_effects": [
-        "none"
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -19053,7 +19214,7 @@
   "kind": "agentic_kit_command_reference",
   "meta": {
     "generated_md": "docs/reference/AGENTIC_KIT_COMMANDS.md",
-    "manifest_sha": "fb315aa30770",
+    "manifest_sha": "43b81efb137f",
     "schema_version": 1
   },
   "schema_version": 2,

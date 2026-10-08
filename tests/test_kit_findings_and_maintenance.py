@@ -65,9 +65,8 @@ def test_the_real_register_tracks_the_kit_1_0_18_adoption():
         assert by_id[fid].effective_status("1.0.18") == kf.FIXED_UNVERIFIED
     for fid in ("KIT-GF-025", "KIT-GF-028", "KIT-GF-047", "KIT-GF-050"):
         assert by_id[fid].effective_status("1.0.18") == kf.FIXED_NOT_INSTALLED   # fixed in 1.0.19
-    assert by_id["KIT-GF-022"].effective_status("1.0.18") == kf.IN_PROGRESS
-    for fid in ("KIT-GF-048", "KIT-GF-049"):
-        assert by_id[fid].effective_status("1.0.18") == kf.OPEN
+    for fid in ("KIT-GF-022", "KIT-GF-048", "KIT-GF-049"):                 # fixed in 1.0.20
+        assert by_id[fid].effective_status("1.0.18") == kf.FIXED_NOT_INSTALLED
 
 
 def test_the_real_register_tracks_the_kit_1_0_19_adoption():
@@ -77,9 +76,22 @@ def test_the_real_register_tracks_the_kit_1_0_19_adoption():
     for fid in ("KIT-GF-025", "KIT-GF-028", "KIT-GF-047", "KIT-GF-050"):
         assert by_id[fid].effective_status("1.0.19") == kf.FIXED_UNVERIFIED
         assert by_id[fid].kit["fixed_in"] == "1.0.19"
-    for fid in ("KIT-GF-048", "KIT-GF-049", "KIT-GF-051", "KIT-GF-052", "KIT-GF-053", "KIT-GF-054",
-                "KIT-GF-055", "KIT-GF-056"):
+    for fid in ("KIT-GF-048", "KIT-GF-049", "KIT-GF-053", "KIT-GF-054", "KIT-GF-055", "KIT-GF-056"):
+        assert by_id[fid].effective_status("1.0.19") == kf.FIXED_NOT_INSTALLED, fid   # fixed in 1.0.20
+    for fid in ("KIT-GF-051", "KIT-GF-052"):
         assert by_id[fid].effective_status("1.0.19") == kf.OPEN, fid
+
+
+def test_the_real_register_tracks_the_kit_1_0_20_adoption():
+    """Kit 1.0.20 (2026-10-08): ten fixes released; GF-057 verified at adoption (GF-E080)."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    assert by_id["KIT-GF-057"].effective_status("1.0.20") == kf.VERIFIED
+    for fid in ("KIT-GF-022", "KIT-GF-048", "KIT-GF-049", "KIT-GF-053", "KIT-GF-054", "KIT-GF-055",
+                "KIT-GF-056", "KIT-GF-058", "KIT-GF-059"):
+        assert by_id[fid].effective_status("1.0.20") == kf.FIXED_UNVERIFIED, fid
+        assert by_id[fid].kit["fixed_in"] == "1.0.20"
+    for fid in ("KIT-GF-051", "KIT-GF-052", "KIT-GF-035"):
+        assert by_id[fid].effective_status("1.0.20") == kf.OPEN, fid
 
 
 def test_window_filters_and_shows_details(tmp_path):

@@ -34,17 +34,19 @@ MANIFEST = Path("docs/reference/agentic-kit-commands.json")
 SURFACE_ORDER = {"orchestrator": 0, "diagnostic": 1, "primitive": 2}
 NETWORK_GIT = frozenset({"push", "fetch", "pull"})
 # AGP_REMOTE_EFFECT_GATE_V1: Kit commands with an effect outside the local
-# repository (push, fetch/pull, PR, merge, publish, remote branches). The
-# manifest has no such classification yet; until the Kit provides one, this
-# Cockpit list plus every command whose "replaces_raw" names git push or gh is
-# authoritative. A test fails when an entry disappears from the manifest.
+# repository (push, fetch/pull, PR, merge, publish, remote branches). Since Kit
+# 1.0.20 (KIT-GF-057) the manifest declares every one of them itself; the list
+# stays as a second source (a command is remote when either says so) and a test
+# fails when the manifest understates one again. "pr-closeout" (evaluates a JSON
+# file) and "transfer publish-last-report" (writes the local outbox) left the
+# list with 1.0.20: the Kit showed both implementations to be local only.
 REMOTE_EFFECT_COMMANDS = frozenset({
-    "github-create", "pr merge-if-green", "pr-closeout", "release-publish",
+    "github-create", "pr merge-if-green", "release-publish",
     "remote-branch-hygiene-apply", "remote-next",
     "transfer admin-refresh-pr", "transfer delete-merged-work-branch",
     "transfer evidence-pr-complete", "transfer fetch-origin", "transfer post-merge-complete",
     "transfer pr-closeout-complete", "transfer pr-complete", "transfer pr-create",
-    "transfer pr-create-complete", "transfer pr-merge-safe", "transfer publish-last-report",
+    "transfer pr-create-complete", "transfer pr-merge-safe",
     "transfer pull-current", "transfer push-current", "transfer remote-next",
     "transfer remote-work-start", "transfer sync-main", "work finish",
 })
@@ -61,8 +63,11 @@ LOCAL_ORCHESTRATORS = frozenset({
 # AGP_MANIFEST_REMOTE_EFFECTS_V1 (Kit 1.0.19 manifest, owner 2026-10-07): the Kit declares
 # ``remote_effects`` per command. A declared write effect makes a command remote even when
 # the Cockpit lists it as local (post-release-doi-closeout: release_publish). The Cockpit's
-# own list stays in force as well: the manifest says "none" for five commands that merge,
-# pull or publish (KIT-GF-057), so a command is remote when either source says so.
+# own list stays in force as well, so a command is remote when either source says so (Kit
+# 1.0.19 said "none" for three commands that merge, delete or pull, KIT-GF-057, fixed in 1.0.20).
+# An orchestrator the Cockpit has not classified still asks even when the manifest declares
+# only reads (AGP_UNKNOWN_EFFECT_ASKS_V1): post-release-doi-closeout went from
+# release_publish (1.0.19) to network_read (1.0.20) and keeps asking.
 READ_ONLY_EFFECTS = frozenset({"none", "network_read"})
 # AGP_DESTRUCTIVE_EXECUTE_GATE_V1 (plan P8, owner 2026-10-03): Kit routes whose
 # dry run is local and read-only but whose signed ``--execute`` rewrites local
