@@ -11,8 +11,10 @@ from types import SimpleNamespace
 from agp_cockpit.core import bridge_server, ui_observation
 from agp_cockpit.core.standard_task_progress import stopped_by_lost_reply
 
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
 ROOT = Path(__file__).resolve().parents[1]
-CONTENT = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8")
+CONTENT = (ROOT / "chrome_extension/content.js").read_text(encoding="utf-8") + "\n" + SEND_JS
 EVIDENCE = (ROOT / "chrome_extension/native_message_evidence.js").read_text(encoding="utf-8")
 PANEL = (ROOT / "src/agp_cockpit/ui/standard_tasks_panel.py").read_text(encoding="utf-8")
 

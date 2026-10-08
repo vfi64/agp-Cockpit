@@ -32,6 +32,7 @@
         "browser_native_transport.js",
         "cockpit_panel.js",
         "cockpit_ingress.js",
+        "cockpit_send.js",
         "chatgpt_dom.js",
         "content.js"
       ],

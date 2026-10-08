@@ -145,6 +145,7 @@ test("066-B1-D1 trace actual content.js bootstrap path", async ({page}) => {
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension", "native_message_evidence.js")});
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension", "cockpit_panel.js")});
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension", "cockpit_ingress.js")});
+  await page.addScriptTag({path: path.join(ROOT, "chrome_extension", "cockpit_send.js")});   // AGP_SEND_MODULE_V1
   await page.addScriptTag({path: path.join(ROOT, "chrome_extension", "chatgpt_dom.js")});
   await page.addScriptTag({path: CONTENT_JS});
 

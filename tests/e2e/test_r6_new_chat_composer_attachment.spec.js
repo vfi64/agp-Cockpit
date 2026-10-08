@@ -108,7 +108,7 @@ test("without a visible composer form the attachment fails closed", async ({page
 // AGP_NATIVE_RETRY_OWNED_DRAFT_V1: the real helper from content.js, with the
 // content-script primitives it needs. Attempt 1 left this send's own draft in
 // the composer; attempt 2 must clear exactly that and nothing else.
-const CONTENT = fs.readFileSync(path.join(ROOT, "chrome_extension/content.js"), "utf8");
+const CONTENT = fs.readFileSync(path.join(ROOT, "chrome_extension/cockpit_send.js"), "utf8");   // AGP_SEND_MODULE_V1
 const helperStart = CONTENT.indexOf("  async function clearOwnedDraftBeforeRetry(");
 const helperEnd = CONTENT.indexOf("  async function sendPromptNative(prompt)", helperStart);
 const RETRY_HELPER = CONTENT.slice(helperStart, helperEnd);

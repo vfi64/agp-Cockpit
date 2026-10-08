@@ -9,11 +9,13 @@ source-level contract.
 """
 from pathlib import Path
 
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
 ROOT = Path(__file__).resolve().parents[1]
 EXT = ROOT / "chrome_extension"
 ATTACH = (EXT / "result_file_attachment.js").read_text(encoding="utf-8")
 EVIDENCE = (EXT / "native_message_evidence.js").read_text(encoding="utf-8")
-CONTENT = (EXT / "content.js").read_text(encoding="utf-8")
+CONTENT = (EXT / "content.js").read_text(encoding="utf-8") + "\n" + SEND_JS
 
 
 def _resolver() -> str:

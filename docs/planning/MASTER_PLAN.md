@@ -558,6 +558,9 @@ module 2 file ingress, module 3 send transport, module 4 legacy paths; then Kit 
 release 0.2.3.
 Update 2026-10-07 (content.js module 2, COMMUNICATION_PROTOCOL 75, build release-0.2.2-r11): file ingress is
 `cockpit_ingress.js`; content.js 3789 → 3312 lines. Next: module 3 send transport.
+Update 2026-10-08 (content.js module 3, COMMUNICATION_PROTOCOL 76, build release-0.2.2-r13): send transport is
+`cockpit_send.js`; content.js 3312 → 2617 lines; „Branch wechseln …“ without preselection. Next: module 4
+legacy paths.
 
 ## 2026-10-03 — Improvement proposals (owner: "merken")
 

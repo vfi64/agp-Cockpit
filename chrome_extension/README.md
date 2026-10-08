@@ -42,6 +42,8 @@ When intentionally starting the development bridge with `.venv/bin/python -m agp
 - `cockpit_panel.js` — the AGP Cockpit Bridge overlay (`AGP_PANEL`).
 - `cockpit_ingress.js` — file ingress (`AGP_INGRESS`): the expected step's file card from ChatGPT's
   answer to the bridge.
+- `cockpit_send.js` — send transport (`AGP_SEND`): prompt into the composer, native submit, commit
+  nonce, acceptance evidence and the bounded retry.
 - `chatgpt_dom.js` — page adapter (`AGP_DOM`): assistant turns, file cards, send/stop controls,
   preview and dialogs.
 - `content.js` — the controller: state, mission loop and actions; it may only shrink.

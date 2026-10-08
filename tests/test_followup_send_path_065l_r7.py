@@ -1,11 +1,13 @@
 import re
 from pathlib import Path
 
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "chrome_extension" / "content.js"
 
 def src():
-    return SRC.read_text(encoding="utf-8")
+    return SRC.read_text(encoding="utf-8") + "\n" + SEND_JS
 
 def extract_function(text, name):
     m = re.search(rf'(?:(?:async)\s+)?function\s+{re.escape(name)}\s*\(', text)

@@ -3,10 +3,9 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "../..");
-const SRC = fs.readFileSync(
-  path.join(ROOT, "chrome_extension", "content.js"),
-  "utf8"
-);
+// AGP_SEND_MODULE_V1: the send transport lives in cockpit_send.js.
+const SRC = fs.readFileSync(path.join(ROOT, "chrome_extension", "content.js"), "utf8") + "\n" +
+  fs.readFileSync(path.join(ROOT, "chrome_extension", "cockpit_send.js"), "utf8");
 
 test("097 timeout semantics use INDETERMINATE rather than timeout-only failure", async () => {
   expect(SRC).toContain('ACCEPTED_LATE:"ACCEPTED_LATE"');
@@ -32,7 +31,8 @@ test("097 retry eligibility requires positive unsent evidence", async () => {
 
 test("097 indeterminate transport is retained for late resolution", async () => {
   expect(SRC).toContain("let PENDING_SEND_TRANSPORT = null;");
-  const pending = SRC.indexOf("PENDING_SEND_TRANSPORT = transport;");
+  // AGP_SEND_MODULE_V1: the module hands the transport to the controller's pending slot.
+  const pending = SRC.indexOf("setPendingSendTransport(transport);");
   const indeterminate = SRC.indexOf(
     "transport.transition(SEND_TRANSPORT.INDETERMINATE",
     pending

@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const CONTENT_JS = path.join(ROOT, "chrome_extension", "content.js");
+const CONTENT_JS = path.join(ROOT, "chrome_extension", "cockpit_send.js");   // AGP_SEND_MODULE_V1
 
 function extractFunction(text, name) {
   const re = new RegExp("(?:(?:async)\\s+)?function\\s+" + name + "\\s*\\(");
