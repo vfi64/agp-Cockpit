@@ -125,10 +125,10 @@ def test_policy_violation_is_a_correctable_rejection():
 def test_policy_documents_exist_and_agree():
     policy = json.loads((ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"))
     text = (ROOT / "docs/planning/RELEASE_POLICY.md").read_text(encoding="utf-8")
-    assert policy["publication"] == "none" and "zenodo.org" in policy["forbidden_hosts"]
+    assert policy["publication"] == "github" and "zenodo.org" in policy["forbidden_hosts"]
     assert "No PyPI package, no Zenodo record" in text and "KIT-GF-029" in text
-    # P11c (owner 2026-10-05): the Kit's signed run shall make the GitHub entry; prepared,
-    # the switch waits for KIT-GF-049. Work orders never run gh release themselves.
+    # P11c (owner 2026-10-05): the Kit's signed run makes the GitHub entry; switched on
+    # 2026-10-08 with Kit 1.0.20. Work orders never run gh release themselves.
     assert policy["kit_github_release"]["allowed"] is True and "KIT-GF-049" in policy["kit_github_release"]["status"]
     assert policy["owner_github_release"]["allowed"] is True
     assert "release create" in policy["forbidden_gh"] and "kit_github_release" in text
@@ -200,7 +200,7 @@ def test_the_private_release_route_is_allowed_dry_run_free_live_only_signed():
     assert "marker file" in rp.violations(order(marker), ROOT)[0]
 
 
-@pytest.mark.parametrize("workspace", ["github", "github+pypi+zenodo"])
+@pytest.mark.parametrize("workspace", ["none", "github+pypi+zenodo"])
 def test_release_publish_needs_the_policys_publication(tmp_path, workspace):
     (tmp_path / "docs/planning").mkdir(parents=True)
     (tmp_path / "docs/planning/release_policy.json").write_text(
@@ -208,8 +208,8 @@ def test_release_publish_needs_the_policys_publication(tmp_path, workspace):
     (tmp_path / ".agentic").mkdir()
     (tmp_path / ".agentic/config.yaml").write_text(f"publication: {workspace}\n", encoding="utf-8")
     dry = 'subprocess.run(["agentic-kit", "release-publish", "--dry-run"])'
-    assert "publication: none" in rp.violations(order(dry), tmp_path)[0]
-    (tmp_path / ".agentic/config.yaml").write_text("publication: none\n", encoding="utf-8")
+    assert "publication: github" in rp.violations(order(dry), tmp_path)[0]
+    (tmp_path / ".agentic/config.yaml").write_text("publication: github\n", encoding="utf-8")
     assert rp.violations(order(dry), tmp_path) == []
 
 

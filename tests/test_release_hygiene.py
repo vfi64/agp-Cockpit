@@ -149,10 +149,11 @@ def test_the_real_changelog_has_an_unreleased_section_and_the_corrected_020_entr
 
 # --- AGP_KIT_GITHUB_RELEASE_V1 (P11c) -------------------------------------------------
 
-def test_the_workspace_declares_the_owners_title_and_waits_for_kit_gf_049():
+def test_the_workspace_declares_the_owners_title_and_the_github_route():
     import yaml
     config = yaml.safe_load((ROOT / ".agentic/config.yaml").read_text(encoding="utf-8"))
-    assert config["publication"] == "none"           # switch to github after KIT-GF-049
+    assert config["publication"] == "github"         # P11c switched on 2026-10-08 (Kit 1.0.20)
+    assert config["release"]["publish_checks"] == "none"   # KIT-GF-049 reproduced in 1.0.20
     assert config["release"]["github_release_title_template"] == "AGP Cockpit {version} (privat)"
     assert rh.github_releases_declared(ROOT)        # categories are collected already
 
