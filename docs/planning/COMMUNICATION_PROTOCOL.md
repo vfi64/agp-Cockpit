@@ -826,6 +826,28 @@ This section is normative for the file loop after local execution.
    FAILED_CONFIRMATION belonged to the removed path. The bounded retry of a native send is
    sendPrompt's diagnosed retry after SEND_BUTTON_NOT_READY (AGP_SEND_NOT_READY_RETRY_V1).
 
+79. Release state is the Kit's (`AGP_RELEASE_KIT_OWNED_FILES_V1`, `AGP_UNRELEASED_NOT_RELEASED_V1`,
+   build release-0.2.3-r1, owner 2026-10-08): on `release/<v>` a work order may read
+   CHANGELOG.md but never write CHANGELOG.md, pyproject.toml or docs/releases/versions.json; the
+   Kit's release preparation writes them and replaces its own version section when run again
+   (correctable rejection before the run). The release pull request needs exactly one
+   `## v<version>` section (`AGP_RELEASE_CHANGELOG_GATE_V1`, revised); the former rule "Unreleased
+   empty before the release pull request" is withdrawn — it forced the hand edit that cost release
+   0.2.3 fourteen steps. The Kit's release-prep leaves the released entries under Unreleased
+   (KIT-GF-060); until it consumes them, a rebuild id (`-r<N>`) may not carry released entries
+   under Unreleased (test), so the first work slice after a release removes them.
+
+80. Findings across repositories and patches (planned, owner 2026-10-08; nothing of it is built
+   yet): (1) every finding names `observed_in` (repository, commit, Kit version) and `target_repo`;
+   (2) a Kit finding asks for a Kit route that records and hands over findings between Kit-managed
+   repositories, the register then lives behind it; (3) a read-only patch view groups the findings
+   by target repository and offers a prepared work order per finding; (4) stage A: one click switches
+   to the target repository and runs the normal work cycle up to the green pull request, the owner
+   approves the merge; (5) after a Kit adoption the Cockpit retests each finding's regression
+   criterion itself and records VERIFIED_FIXED or reproduced_in. Merging without the owner's
+   approval (stage B) is not planned (owner: too risky). The DPA adoption adjudication of
+   agp-Cockpit comes first, because it fixes which files a patch may touch.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

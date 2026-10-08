@@ -230,6 +230,25 @@ Acceptance requires fail-loud, resumable behavior at browser boundaries and prot
 5. Preserve the resulting trace as acceptance evidence.
 6. Only after that evidence adjudicate whether legacy Protocol-v1 complexity can be further isolated or removed.
 
+## 13. The Kit is the law and the control (owner 2026-10-08, AGP_KIT_LAW_V1)
+
+- **Roles.** The Kit is the law and the control, the Cockpit steers, the remote LLM decides inside
+  a work order. Every repository change runs through a Kit route; a missing route is a Kit finding,
+  never a Cockpit-local workaround (decision 2026-10-02, reaffirmed).
+- **Who may write a file** follows the Kit's DPA classification of the repository
+  (`agentic-kit dpa repo-adoption-assessment`, read-only; agp-Cockpit 2026-10-08:
+  READY_FOR_DPA_REPO_ADOPTION_ADJUDICATION, 98 surfaces). `generated_projection` and
+  `command_updated_state` are written only by their owning Kit command; `release_state`
+  (CHANGELOG.md) is written on a release branch only by the Kit's release preparation, while the
+  Unreleased entries are authored in reviewed work slices; `agent_instruction` (AGENTS.md) comes
+  from `commands sync-entrypoints`. The per-repository DPA adoption adjudication by the maintainer
+  (the owner) settles every surface; until it is recorded, the Cockpit enforces the classes above
+  (COMMUNICATION_PROTOCOL 79).
+- **Findings and patches across repositories** (planned, COMMUNICATION_PROTOCOL 80): a finding
+  names where it was observed and which repository must fix it; the register belongs behind a Kit
+  route; a patch is an ordinary governed work cycle in the target repository, and its merge needs
+  the owner's approval. More autonomy only by an explicit owner decision.
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

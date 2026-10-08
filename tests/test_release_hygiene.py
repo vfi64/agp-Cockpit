@@ -1,5 +1,6 @@
 """Release slice 2026-10-05: AGP_PR_RELEASE_CATEGORY_V1, AGP_RELEASE_CHANGELOG_GATE_V1,
-AGP_KIT_GITHUB_RELEASE_V1 (P11c) and AGP_RELEASE_PHASE2_APPROVAL_V1."""
+AGP_KIT_GITHUB_RELEASE_V1 (P11c) and AGP_RELEASE_PHASE2_APPROVAL_V1; 2026-10-08:
+AGP_RELEASE_KIT_OWNED_FILES_V1 (release 0.2.3)."""
 from __future__ import annotations
 
 import json
@@ -112,14 +113,45 @@ def release_repo(tmp_path):
     return root
 
 
-def test_the_release_pull_request_needs_an_empty_unreleased_section(release_repo):
+def test_the_release_pull_request_keeps_the_unreleased_entries_and_needs_one_section(release_repo):
+    """Release 0.2.3: the rule "Unreleased must be empty" forced a hand edit of the Kit's release
+    state; the entries now stay (KIT-GF-060) and only a second version section is rejected."""
     pr = order(PR.format(body=', "--body", "release-note-category: Release"'))
-    found = rh.changelog_violations(pr, release_repo)
-    assert len(found) == 1 and "move every entry of the Unreleased section into '## v0.3.0'" in found[0]
-    (release_repo / "CHANGELOG.md").write_text(CHANGELOG.format(unreleased=""), encoding="utf-8")
     assert rh.changelog_violations(pr, release_repo) == []
+    (release_repo / "CHANGELOG.md").write_text(
+        CHANGELOG.format(unreleased="- Detailed entry\n\n## v0.3.0\n\n- Detailed entry\n"), encoding="utf-8")
+    found = rh.changelog_violations(pr, release_repo)
+    assert len(found) == 1 and "2 sections '## v0.3.0'" in found[0]
     assert rh.changelog_violations(order('subprocess.run(["agentic-kit", "release", "prepare"])'),
                                    release_repo) == []        # only the pull-request step is gated
+
+
+HAND_EDIT = """from pathlib import Path
+ch = Path("CHANGELOG.md")
+text = ch.read_text(encoding="utf-8")
+ch.write_text(text.replace("## Unreleased", "## Unreleased\\n\\n## v0.3.0"), encoding="utf-8")
+"""
+
+
+def test_a_release_work_order_never_writes_the_release_state_itself(release_repo):
+    """AGP_RELEASE_KIT_OWNED_FILES_V1: steps 1911/1912/1915/1921 of release 0.2.3 rewrote
+    CHANGELOG.md by regex; only the Kit's release preparation writes it on release/<v>."""
+    found = rh.violations(order(HAND_EDIT), release_repo)
+    assert len(found) == 1 and "AGP_RELEASE_KIT_OWNED_FILES_V1" in found[0] and "CHANGELOG.md" in found[0]
+    versions = order('with open("docs/releases/versions.json", "w") as handle:\n    handle.write("{}")')
+    assert "docs/releases/versions.json" in rh.kit_owned_file_violations(versions, release_repo)[0]
+    reading = order('import json\nfrom pathlib import Path\nlines = Path("CHANGELOG.md").read_text()\n'
+                    'Path(".agentic/tmp/s.json").write_text(json.dumps([lines]))\n'
+                    'subprocess.run(["agentic-kit", "release-prep", "--version", "0.3.0", '
+                    '"--summary-lines-from", ".agentic/tmp/s.json"])')
+    assert rh.kit_owned_file_violations(reading, release_repo) == []
+    git(release_repo, "switch", "-q", "-c", "feat/notes")             # normal slices write Unreleased
+    assert rh.kit_owned_file_violations(order(HAND_EDIT), release_repo) == []
+
+
+def test_pending_entries_ignore_released_ones():
+    text = CHANGELOG.format(unreleased="- Generated line\n- New\n")
+    assert rh.pending_entries(text) == ["- New"] and "- Old" in rh.released_entries(text)
 
 
 def test_the_release_pull_request_needs_the_version_section(release_repo):
@@ -170,7 +202,8 @@ def test_release_prompt_and_contract_name_the_github_entry(tmp_path):
     task = BY_KEY["release"]
     github = task.prompt(workspace(tmp_path / "g"), {"version": "0.3.0"})
     assert "GitHub Release entry" in github and "release-note-category" in github
-    assert "AGP_RELEASE_CHANGELOG_GATE_V1" in github
+    assert "AGP_RELEASE_CHANGELOG_GATE_V1" in github and "AGP_RELEASE_KIT_OWNED_FILES_V1" in github
+    assert "leave Unreleased empty" not in github
     contract = task.contract(workspace(tmp_path / "g"), {"version": "0.3.0"})
     assert "GitHub Release entry v0.3.0 exists and is not a draft." in contract["acceptance_criteria"]
     private = task.prompt(workspace(tmp_path / "n", "none"), {"version": "0.3.0"})

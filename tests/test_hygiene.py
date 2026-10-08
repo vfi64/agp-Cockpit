@@ -43,10 +43,21 @@ def test_the_build_id_is_exactly_the_release_or_a_numbered_rebuild_of_it():
     js = (ROOT / "chrome_extension/build_identity.js").read_text(encoding="utf-8")
     assert js.strip() == f'globalThis.AGP_EXTENSION_BUILD_ID = "{BRIDGE_BUILD_ID}";'
     release = f"release-{APP_VERSION}"
-    if rh.unreleased_entries(text):
+    if rh.pending_entries(text):                     # KIT-GF-060: released entries may still sit there
         assert re.fullmatch(re.escape(release) + r"-r[1-9]\d*", BRIDGE_BUILD_ID), BRIDGE_BUILD_ID
     else:
         assert release == BRIDGE_BUILD_ID
+
+
+def test_the_first_slice_after_a_release_removes_the_released_unreleased_entries():
+    """AGP_UNRELEASED_NOT_RELEASED_V1 (owner 2026-10-08): the Kit's release-prep leaves the entries
+    it released under Unreleased (KIT-GF-060). A rebuild (-r<N>) may not carry them on, or the next
+    release would publish them twice."""
+    from agp_cockpit.version import BRIDGE_BUILD_ID
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    if re.search(r"-r\d+$", BRIDGE_BUILD_ID):
+        stale = [line for line in rh.unreleased_entries(text) if line in rh.released_entries(text)]
+        assert stale == [], f"remove released entries from Unreleased: {stale[:3]}"
 
 
 # --- AGP_MANIFEST_REMOTE_EFFECTS_V1 ------------------------------------------------------------

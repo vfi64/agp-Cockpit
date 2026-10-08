@@ -7,9 +7,17 @@ a line ``release-note-category: <category>`` in its body, which the Kit reads be
 title. ``agentic-kit work finish`` cannot set a pull-request body (KIT-GF-048), so a work order
 creates pull requests with ``agentic-kit transfer pr-create(-complete) --body``.
 
-AGP_RELEASE_CHANGELOG_GATE_V1: on a release branch the pull request is created only after
-every entry of the CHANGELOG.md "Unreleased" section was moved into the version section
-(release 0.1.1 and 0.2.0: the prompt asked for it, the work order skipped it).
+AGP_RELEASE_CHANGELOG_GATE_V1: on a release branch the pull request is created only once the
+Kit's release preparation wrote the version section, and only one of them.
+
+AGP_RELEASE_KIT_OWNED_FILES_V1 (owner 2026-10-08, release 0.2.3): the release state —
+CHANGELOG.md (DPA class ``release_state``), pyproject.toml and docs/releases/versions.json — is
+written on a release branch only by the Kit's release preparation. Release 0.2.3 needed 14 extra
+steps because a work order moved the Unreleased entries by regex (duplicate section, missing date,
+missing blank line); the earlier rule that Unreleased must be empty before the release pull
+request asked for exactly that hand edit and is withdrawn. The Kit's release-prep copies the
+Unreleased entries but leaves them in place (KIT-GF-060); until it consumes them, the first work
+slice after a release removes the released entries (AGP_UNRELEASED_NOT_RELEASED_V1, a test).
 """
 
 from __future__ import annotations
@@ -119,6 +127,79 @@ def wrapped_entry_lines(changelog_text: str) -> list[str]:
     return [line for line in unreleased_entries(changelog_text) if not line.startswith("- ")]
 
 
+def released_entries(changelog_text: str) -> set[str]:
+    """Bullet lines of every version section (``## v<x.y.z>``)."""
+    found: set[str] = set()
+    for match in re.finditer(r"^## v\d+\.\d+\.\d+[^\n]*\n(.*?)(?=^## |\Z)", changelog_text, re.MULTILINE | re.DOTALL):
+        found.update(line for line in match.group(1).splitlines() if line.startswith("- "))
+    return found
+
+
+def pending_entries(changelog_text: str) -> list[str]:
+    """Unreleased entries that no version section carries yet (KIT-GF-060: release-prep copies the
+    entries into the version section and leaves them under Unreleased)."""
+    released = released_entries(changelog_text)
+    return [line for line in unreleased_entries(changelog_text) if line not in released]
+
+
+KIT_OWNED_RELEASE_FILES = ("CHANGELOG.md", "pyproject.toml", "docs/releases/versions.json")
+_WRITE_METHODS = ("write_text", "write_bytes")
+
+
+def _literal_paths(node: ast.AST) -> set[str]:
+    return {sub.value for sub in ast.walk(node) if isinstance(sub, ast.Constant) and isinstance(sub.value, str)
+            for path in KIT_OWNED_RELEASE_FILES if sub.value.endswith(path) or sub.value == Path(path).name}
+
+
+def kit_owned_writes(source: str) -> list[str]:
+    """Kit-owned release files this work order writes itself (write_text/write_bytes or open(..., 'w'/'a'/'x')
+    on a path built from their name, directly or through a variable)."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    named: dict[str, set[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and _literal_paths(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    named.setdefault(target.id, set()).update(_literal_paths(node.value))
+
+    def paths_of(expr: ast.AST) -> set[str]:
+        found = set(_literal_paths(expr))
+        for sub in ast.walk(expr):
+            if isinstance(sub, ast.Name) and sub.id in named:
+                found |= named[sub.id]
+        return found
+
+    written: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _WRITE_METHODS:
+            written |= paths_of(func.value)
+        elif isinstance(func, ast.Name) and func.id == "open" and node.args:
+            mode = node.args[1] if len(node.args) > 1 else next(
+                (kw.value for kw in node.keywords if kw.arg == "mode"), None)
+            if isinstance(mode, ast.Constant) and isinstance(mode.value, str) and set(mode.value) & set("wax"):
+                written |= paths_of(node.args[0])
+    return sorted({path for path in KIT_OWNED_RELEASE_FILES for value in written
+                   if value.endswith(path) or value == Path(path).name})
+
+
+def kit_owned_file_violations(source: str, repository_root: Path, *, runner=subprocess.run) -> list[str]:
+    """AGP_RELEASE_KIT_OWNED_FILES_V1 — on release/<v> only the Kit writes the release state."""
+    written = kit_owned_writes(source)
+    if not written or not _branch(repository_root, runner=runner).startswith("release/"):
+        return []
+    return [(f"this release work order writes {', '.join(written)} itself; on a release branch the release "
+             "state is written only by the Kit's release preparation (agentic-kit release prepare / "
+             "release-prep --summary-lines-from <file>.json), which also replaces its own version section "
+             "when run again. Reading CHANGELOG.md to build the summary lines is fine "
+             "(AGP_RELEASE_KIT_OWNED_FILES_V1)")]
+
+
 def _branch(root: Path, runner=subprocess.run) -> str:
     try:
         done = runner(["git", "branch", "--show-current"], cwd=str(root), text=True,
@@ -129,8 +210,9 @@ def _branch(root: Path, runner=subprocess.run) -> str:
 
 
 def changelog_violations(source: str, repository_root: Path, *, runner=subprocess.run) -> list[str]:
-    """AGP_RELEASE_CHANGELOG_GATE_V1 — the release pull request needs a moved changelog;
-    AGP_ONE_LINE_CHANGELOG_V1 — every pull request needs one-line Unreleased entries."""
+    """AGP_RELEASE_CHANGELOG_GATE_V1 — the release pull request needs exactly one version section
+    written by the Kit; AGP_ONE_LINE_CHANGELOG_V1 — every pull request needs one-line Unreleased
+    entries."""
     calls = _kit_calls(source)
     if not any(_creates_pull_request(argv) or tuple(_words(argv)[:2]) == WORK_FINISH for argv in calls):
         return []
@@ -148,13 +230,14 @@ def changelog_violations(source: str, repository_root: Path, *, runner=subproces
     if not branch.startswith("release/"):
         return found
     version = branch.split("/", 1)[1]
-    if unreleased_entries(text):
-        found.append(f"CHANGELOG.md: move every entry of the Unreleased section into '## v{version}' "
-                     "and leave Unreleased empty in an earlier work order, then create the release pull "
-                     "request (AGP_RELEASE_CHANGELOG_GATE_V1)")
-    if not re.search(rf"^## v{re.escape(version)}\b", text, re.MULTILINE):
+    sections = len(re.findall(rf"^## v{re.escape(version)}\b", text, re.MULTILINE))
+    if not sections:
         found.append(f"CHANGELOG.md has no section '## v{version}' yet; run the Kit's release preparation "
                      "first (AGP_RELEASE_CHANGELOG_GATE_V1)")
+    elif sections > 1:
+        found.append(f"CHANGELOG.md has {sections} sections '## v{version}'; restore CHANGELOG.md from "
+                     "origin/main through the Kit and run the Kit's release preparation once more — it "
+                     "writes exactly one section (AGP_RELEASE_CHANGELOG_GATE_V1)")
     found.extend(build_id_violations(repository_root, version))
     return found
 
@@ -207,7 +290,7 @@ def summary_violations(source: str) -> list[str]:
 
 def violations(source: str, repository_root: Path) -> list[str]:
     return (category_violations(source, repository_root) + changelog_violations(source, repository_root)
-            + summary_violations(source))
+            + summary_violations(source) + kit_owned_file_violations(source, repository_root))
 
 
 def manual_github_release_command(root: Path, version: str) -> str:

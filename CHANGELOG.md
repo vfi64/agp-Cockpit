@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- A release no longer edits the changelog by hand: on a release branch only the Kit's release preparation writes CHANGELOG.md, pyproject.toml and docs/releases/versions.json, the release pull request needs exactly one version section, and the former rule „Unreleased empty“ is withdrawn; KIT-GF-060 recorded; the rule „the Kit is the law, the Cockpit steers“ is written into the architecture, the protocol and CLAUDE.md; build `release-0.2.3-r1`.
 ## v0.2.3 - 2026-10-08
 
 - Releases create the GitHub Release entry of the private repository through the Kit's signed release run (`publication: github`, P11c); the Kit's Kit-repository reference check is switched off for this workspace (`release.publish_checks: none`, KIT-GF-049 reproduced in Kit 1.0.20); no rebuild needed.
