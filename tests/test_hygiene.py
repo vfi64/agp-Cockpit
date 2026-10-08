@@ -63,19 +63,23 @@ def test_every_declared_write_effect_needs_an_approval():
     assert len(declared) >= 20
     assert all(catalog.has_remote_effect(c) for c in declared)
     doi = catalog.command("agentic-kit post-release-doi-closeout")
-    assert catalog.declared_effects(doi) == ("release_publish",) and catalog.has_remote_effect(doi)
+    # Kit 1.0.20 declares network_read (it reads Zenodo, --write changes local files only); the
+    # Cockpit has not classified the orchestrator, so it still asks (AGP_UNKNOWN_EFFECT_ASKS_V1).
+    assert catalog.declared_effects(doi) == () and catalog.has_remote_effect(doi)
     status = catalog.command("agentic-kit ci status")
     assert catalog.declared_effects(status) == () and not catalog.has_remote_effect(status)  # network_read
 
 
 def test_known_manifest_understatements_are_exactly_these():
-    """KIT-GF-057: the manifest says "none" where the Cockpit knows a remote effect. When the
-    Kit fixes a declaration this set shrinks and the finding can be verified."""
+    """KIT-GF-057: Kit 1.0.19 said "none" where the Cockpit knew a remote effect. Kit 1.0.20
+    declares every command of the Cockpit's list (verified at adoption); a new understatement
+    fails here."""
     catalog = _catalog()
     understated = {
         " ".join(c["path"]) for c in catalog.commands
         if " ".join(c["path"]) in kc.REMOTE_EFFECT_COMMANDS and not catalog.declared_effects(c)
     }
-    assert understated == {"pr merge-if-green", "remote-branch-hygiene-apply",
-                           "transfer publish-last-report", "transfer pull-current", "pr-closeout"}
-    assert all(catalog.has_remote_effect(catalog.command("agentic-kit " + n)) for n in understated)
+    assert understated == set()
+    for name in ("pr-closeout", "transfer publish-last-report"):   # local only (Kit 1.0.20)
+        command = catalog.command("agentic-kit " + name)
+        assert catalog.declared_effects(command) == () and not catalog.has_remote_effect(command)
