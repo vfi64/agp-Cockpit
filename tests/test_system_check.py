@@ -60,8 +60,8 @@ def test_extension_names_the_fix(monkeypatch, tmp_path):
     check = sc._extension(tmp_path)
     assert check.level == sc.FAIL and check.fix == "Den ChatGPT-Tab in Chrome neu laden."
     monkeypatch.setattr(runtime_identity, "runtime_identity_status",
-                        lambda *_a, **_k: {"ready": True, "handshake_build_id": "release-0.2.2-r12"})
-    assert sc._extension(tmp_path).detail == "meldet Build release-0.2.2-r12"
+                        lambda *_a, **_k: {"ready": True, "handshake_build_id": "release-0.2.2-r13"})
+    assert sc._extension(tmp_path).detail == "meldet Build release-0.2.2-r13"
 
 
 def test_disk_and_repository(monkeypatch, tmp_path):

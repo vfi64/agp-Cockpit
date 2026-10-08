@@ -1,10 +1,12 @@
 from pathlib import Path
 
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "chrome_extension" / "content.js"
 
 def text():
-    return CONTENT.read_text()
+    return CONTENT.read_text() + "\n" + SEND_JS
 
 def test_r11_marker():
     assert "AGP_SEND_ACK_FALSE_NEGATIVE_065L_R11" in text()

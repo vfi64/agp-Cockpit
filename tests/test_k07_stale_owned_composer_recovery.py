@@ -1,7 +1,9 @@
 from pathlib import Path
 
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
 ROOT = Path(__file__).resolve().parents[1]
-TEXT = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
+TEXT = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8") + "\n" + SEND_JS
 
 def native_fn():
     start = TEXT.index("async function sendPromptNative(prompt)")
@@ -20,7 +22,7 @@ def test_exact_current_prompt_is_only_auto_recoverable_draft():
     assert 'setComposerText(staleOwnedComposer, "")' in fn
 
 def test_failed_command_recovery_draft_is_owned_by_cockpit():
-    fn = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
+    fn = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8") + "\n" + SEND_JS
     assert "The attached local execution evidence reports a FAILED command-file step." in fn
 
 def test_cleanup_must_be_observed_before_native_submit_continues():

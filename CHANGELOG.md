@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- „Branch wechseln …“ no longer preselects a branch: „Wechseln“ stays disabled until a branch is clicked, main is labelled „zurück auf main“, and Return or a double click only switch with a selection (two unintended switches back to main on 2026-10-07). The send transport of the browser extension (writing the prompt into ChatGPT's composer, native submit, commit nonce, acceptance evidence, bounded retry) is its own module (`cockpit_send.js`); `content.js` shrinks to 2617 lines; behavior unchanged; build `release-0.2.2-r13`.
 - CI: apt gives up per request and falls back to the next Ubuntu mirror, every job and browser install step has a time limit, the runner image is pinned to Ubuntu 24.04 and the actions run on Node 24 (CI only, no rebuild needed).
 - Fix: a task no longer stops with „expectedStepAttachmentCandidates is not defined“ after 20 s of waiting for ChatGPT (regression of `release-0.2.2-r11`); build `release-0.2.2-r12`.
 - The file ingress of the browser extension (finding the expected file card in ChatGPT's answer, downloading or reading it and handing it to the bridge) is its own module (`cockpit_ingress.js`); `content.js` shrinks to 3312 lines; behavior unchanged; build `release-0.2.2-r11`.

@@ -4,9 +4,10 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "../..");
 const CONTENT_JS = path.join(ROOT, "chrome_extension", "content.js");
+const SEND_JS = path.join(ROOT, "chrome_extension", "cockpit_send.js");   // AGP_SEND_MODULE_V1
 
 function source() {
-  return fs.readFileSync(CONTENT_JS, "utf8");
+  return fs.readFileSync(CONTENT_JS, "utf8") + "\n" + fs.readFileSync(SEND_JS, "utf8");
 }
 
 function functionBody(src, name) {

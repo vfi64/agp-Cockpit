@@ -3,7 +3,7 @@ const path = require("path");
 const { test, expect } = require("@playwright/test");
 
 const SRC = fs.readFileSync(
-  path.join(__dirname, "../../chrome_extension/content.js"),
+  path.join(__dirname, "../../chrome_extension/cockpit_send.js"),   // AGP_SEND_MODULE_V1
   "utf8"
 );
 
@@ -11,7 +11,8 @@ function sendPromptBody() {
   const start = SRC.indexOf("async function sendPromptDomDegraded(");
   const nextAsync = SRC.indexOf("\n  async function ", start + 10);
   const nextFunction = SRC.indexOf("\n  function ", start + 10);
-  const candidates = [nextAsync, nextFunction].filter(v => v > start);
+  const moduleEnd = SRC.indexOf("\n    return Object.freeze(", start + 10);
+  const candidates = [nextAsync, nextFunction, moduleEnd].filter(v => v > start);
   const end = candidates.length ? Math.min(...candidates) : SRC.length;
   return SRC.slice(start, end);
 }

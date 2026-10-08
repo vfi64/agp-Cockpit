@@ -3,10 +3,9 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "../..");
-const source = fs.readFileSync(
-  path.join(root, "chrome_extension", "content.js"),
-  "utf8"
-);
+// AGP_SEND_MODULE_V1: the send transport lives in cockpit_send.js.
+const source = fs.readFileSync(path.join(root, "chrome_extension", "content.js"), "utf8") + "\n" +
+  fs.readFileSync(path.join(root, "chrome_extension", "cockpit_send.js"), "utf8");
 
 test("085 retry eligibility still requires exact pending prompt and no generation", async () => {
   const unconfirmed = source.indexOf("if (!acknowledgement.confirmed)");

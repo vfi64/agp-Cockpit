@@ -6,7 +6,9 @@ Module 1, AGP_PANEL_MODULE_V1: cockpit_panel.js renders the overlay from STATE a
 into the controller; it never talks to the bridge, the service worker or the ChatGPT page.
 Module 2, AGP_INGRESS_MODULE_V1: cockpit_ingress.js takes a file card of the expected step to
 the bridge (find, materialize, submit, forget the browser copy); it never sends a prompt and never
-renders. The size of content.js may only fall (ratchet). Real-Chromium checks:
+renders. Module 3, AGP_SEND_MODULE_V1: cockpit_send.js writes the prompt into the composer and
+proves the commit (native submit, commit nonce, bounded retry); it never renders and never runs the
+mission loop. The size of content.js may only fall (ratchet). Real-Chromium checks:
 tests/e2e/test_066_actual_contentjs_send_ack.spec.js and test_066_b1_d1_bootstrap_trace.spec.js
 load the real stack, panel included."""
 import json
@@ -18,9 +20,10 @@ EXT = ROOT / "chrome_extension"
 CONTENT = (EXT / "content.js").read_text(encoding="utf-8")
 PANEL = (EXT / "cockpit_panel.js").read_text(encoding="utf-8")
 INGRESS = (EXT / "cockpit_ingress.js").read_text(encoding="utf-8")
+SEND = (EXT / "cockpit_send.js").read_text(encoding="utf-8")
 
 # Ratchet: lower it whenever a module leaves content.js; never raise it.
-CONTENT_MAX_LINES = 3312
+CONTENT_MAX_LINES = 2617
 
 
 def test_manifest_loads_every_module_before_the_controller():
@@ -28,6 +31,7 @@ def test_manifest_loads_every_module_before_the_controller():
     assert js[-1] == "content.js"
     assert js.index("cockpit_panel.js") < js.index("content.js")
     assert js.index("chatgpt_selectors.js") < js.index("cockpit_ingress.js") < js.index("content.js")
+    assert js.index("browser_native_transport.js") < js.index("cockpit_send.js") < js.index("content.js")
 
 
 def test_the_panel_is_one_namespace_that_only_renders_and_calls_back():
@@ -86,3 +90,33 @@ def test_every_ingress_function_content_js_calls_is_bound():
         bare = re.findall(r"(?<![\w.])" + name + r"\(", CONTENT)
         assert not bare or name in bound, f"content.js calls {name}() but does not bind it from INGRESS"
 
+
+
+def test_the_send_module_only_sends_and_never_renders_or_loops():
+    assert SEND.lstrip().startswith("// AGP_SEND_MODULE_V1")
+    assert SEND.count("globalThis.") == 1 and "globalThis.AGP_SEND = Object.freeze({create});" in SEND
+    for forbidden in ("render(", "AGP_PANEL", "AGP_INGRESS", "setInterval(", "STATE.running = ",
+                      "PENDING_SEND_TRANSPORT"):
+        assert forbidden not in SEND, forbidden
+    assert "setPendingSendTransport(" in SEND             # the pending transport stays in the controller
+
+
+def test_content_js_creates_the_send_module_once_and_keeps_no_send_logic():
+    assert CONTENT.count("AGP_SEND.create(") == 1
+    for moved in ("function sendPromptNative(", "function waitForSentUserMessage(", "function setComposerText(",
+                  "function createSendTransport(", "function clearOwnedDraftBeforeRetry(",
+                  "function sendPromptDomDegraded("):
+        assert moved not in CONTENT, moved
+
+
+def test_every_send_name_content_js_uses_is_bound():
+    # Same guard as for the ingress (live r11): a moved name used bare in content.js would only
+    # fail at run time.
+    tail = SEND[SEND.index("return Object.freeze({"):]
+    exported = re.findall(r"^      (\w+),$", tail, re.MULTILINE)
+    assert "sendPrompt" in exported and "SEND_TRANSPORT" in exported
+    end = CONTENT.index("} = SEND;")
+    bound = CONTENT[CONTENT.rindex("const {", 0, end):end]
+    for name in exported:
+        bare = re.findall(r"(?<![\w.$])" + name + r"(?![\w$:])", CONTENT)
+        assert not bare or name in bound, f"content.js uses {name} but does not bind it from SEND"

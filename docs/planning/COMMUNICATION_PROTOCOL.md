@@ -796,6 +796,18 @@ This section is normative for the file loop after local execution.
    functions go through a sealed `self`, so a test replaces exactly one step
    (`tests/ingress_harness.cjs`).
 
+76. content.js module 3 (`AGP_SEND_MODULE_V1`, build release-0.2.2-r13, 2026-10-08):
+   `cockpit_send.js` (`AGP_SEND.create(host)`, manifest: after browser_native_transport.js and
+   cockpit_ingress.js, before chatgpt_dom.js and content.js) owns the send transport — composer
+   text, the native (CDP) submit through the service worker, the commit nonce, the evidence that
+   the user turn was committed, the bounded retry with the owned draft cleared, and the disabled
+   degraded DOM path. The pending transport stays in content.js (tick, stop and startAuto read it);
+   the module sets it only through `host.setPendingSendTransport`. Host services: state,
+   normalizeObservedMessageText, composer, chatgptGenerationActive, clientEvent, lastAssistantText,
+   sleep, waitForComposer, reserveRemoteStep, failureDomShape, sendButton. It never renders and
+   never runs the mission loop. Every exported name content.js uses must be destructured from
+   SEND (static test).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

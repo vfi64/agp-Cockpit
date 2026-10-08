@@ -1,10 +1,12 @@
 import json
 from pathlib import Path
 
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = json.loads((ROOT / "chrome_extension" / "manifest.json").read_text())
 BACKGROUND = (ROOT / "chrome_extension" / "background.js").read_text()
-CONTENT = (ROOT / "chrome_extension" / "content.js").read_text()
+CONTENT = (ROOT / "chrome_extension" / "content.js").read_text() + "\n" + SEND_JS
 NATIVE = (ROOT / "chrome_extension" / "browser_native_transport.js").read_text()
 
 def test_manifest_enables_debugger_and_loads_adapter_before_content():

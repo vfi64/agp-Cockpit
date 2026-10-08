@@ -1,7 +1,9 @@
 from pathlib import Path
 
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
 ROOT = Path(__file__).resolve().parents[1]
-SRC = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8")
+SRC = (ROOT / "chrome_extension" / "content.js").read_text(encoding="utf-8") + "\n" + SEND_JS
 ADAPTER = (ROOT / "chrome_extension" / "chatgpt_dom.js").read_text(encoding="utf-8")   # AGP_DOM_ADAPTER_V1
 
 def test_066_d4_scopes_send_control_to_active_composer_form():

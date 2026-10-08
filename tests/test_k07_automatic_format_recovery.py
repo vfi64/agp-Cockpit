@@ -1,6 +1,8 @@
 from pathlib import Path
 
-C = Path("chrome_extension/content.js").read_text()
+SEND_JS = (Path(__file__).resolve().parents[1] / "chrome_extension" / "cockpit_send.js").read_text(encoding="utf-8")  # AGP_SEND_MODULE_V1
+
+C = Path("chrome_extension/content.js").read_text() + "\n" + SEND_JS
 
 
 def test_bounded_automatic_format_repair_is_present():

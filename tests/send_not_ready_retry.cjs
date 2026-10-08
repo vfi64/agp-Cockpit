@@ -1,9 +1,9 @@
 // AGP_SEND_NOT_READY_RETRY_V1: the actual sendPrompt/sendPromptFailed of
-// content.js with stubs — one diagnosed retry after a text-only clean.
+// cockpit_send.js (AGP_SEND_MODULE_V1) with stubs — one diagnosed retry after a text-only clean.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-const source = fs.readFileSync("chrome_extension/content.js", "utf8");
+const source = fs.readFileSync("chrome_extension/cockpit_send.js", "utf8");
 const start = source.indexOf("  async function sendPrompt(prompt) {");
 const end = source.indexOf("  async function sendPromptDomDegraded(prompt)", start);
 const code = source.slice(start, end);
