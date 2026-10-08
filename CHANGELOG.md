@@ -6,8 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
-## v0.2.3
-
+## v0.2.3 - 2026-10-08
 - Releases create the GitHub Release entry of the private repository through the Kit's signed release run (`publication: github`, P11c); the Kit's Kit-repository reference check is switched off for this workspace (`release.publish_checks: none`, KIT-GF-049 reproduced in Kit 1.0.20); no rebuild needed.
 - Kit 1.0.20 adopted (CI pins, command manifest 43b81efb137f): the Kit now declares the remote effects the Cockpit had to add itself (KIT-GF-057 verified); `pr-closeout` and `transfer publish-last-report` no longer ask for an approval (local only); KIT-GF-022/048/049/053/054/055/056 fixed in 1.0.20, KIT-GF-058/059 recorded from the 1.0.19 release run and fixed in 1.0.20; build `release-0.2.2-r16`.
 - The browser extension no longer carries the disabled DOM send path (click, form submit or Enter instead of the native submit); a failed native send stops the step as before; `cockpit_send.js` shrinks from 761 to 551 lines and `content.js` to 2196; behavior unchanged; build `release-0.2.2-r15`.
