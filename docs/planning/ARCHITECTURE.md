@@ -244,6 +244,12 @@ Acceptance requires fail-loud, resumable behavior at browser boundaries and prot
   from `commands sync-entrypoints`. The per-repository DPA adoption adjudication by the maintainer
   (the owner) settles every surface; until it is recorded, the Cockpit enforces the classes above
   (COMMUNICATION_PROTOCOL 79).
+- **Autonomy** (owner 2026-10-08, AGP_RELEASE_AUTONOMY_V1): the owner's go — a start click or a
+  release named in a work order — is the consent; the agent hands it to the Kit gate by gate as long
+  as each gate matches the consented work and the Kit's checks PASS, also for irreversible
+  publication (PyPI, DOI). The agent never invents consent; FAIL, BLOCKED or a difference stops the
+  run. How gates are approved belongs to the Kit (KIT-GF-061); until then the rule lives in
+  COMMUNICATION_PROTOCOL 81 and the task instructions.
 - **Findings and patches across repositories** (planned, COMMUNICATION_PROTOCOL 80): a finding
   names where it was observed and which repository must fix it; the register belongs behind a Kit
   route; a patch is an ordinary governed work cycle in the target repository, and its merge needs

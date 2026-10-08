@@ -625,9 +625,12 @@ many findings per slice as is safe. Order:
 
 1. Release changelog under Kit control (COMMUNICATION_PROTOCOL 79, KIT-GF-060 recorded, rules in
    ARCHITECTURE §13, COMMUNICATION_PROTOCOL 80 and CLAUDE.md) — build release-0.2.3-r1.
+1b. Release autonomy in the Cockpit (COMMUNICATION_PROTOCOL 81): phase 2 of the Release task runs
+   under the start click; the remote side signs only a gate that matches the started release.
 2. Codex package 3: KIT-GF-060, the rest of KIT-GF-049 (command-reference check in external
-   workspaces, authority-gate evidence paths), then the other open findings in safe bundles;
-   Kit 1.0.21 through `agentic-kit release run`, owner at every gate. Then adopt it here.
+   workspaces, authority-gate evidence paths), then the other open findings in safe bundles, and
+   KIT-GF-061 (approval policy); Kit 1.0.21 through `agentic-kit release run`, fully autonomous after
+   the owner's go (COMMUNICATION_PROTOCOL 81). Then adopt it here.
 3. DPA repository adoption adjudication of agp-Cockpit (owner as maintainer), from the Kit's
    assessment; afterwards the Cockpit derives Kit-owned files from it.
 4. Findings data model stage 1 (`observed_in`, `target_repo`) and the Kit finding for a

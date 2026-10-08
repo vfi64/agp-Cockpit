@@ -848,6 +848,14 @@ This section is normative for the file loop after local execution.
    approval (stage B) is not planned (owner: too risky). The DPA adoption adjudication of
    agp-Cockpit comes first, because it fixes which files a patch may touch.
 
+81. Release autonomy (`AGP_RELEASE_AUTONOMY_V1`, owner 2026-10-08): the owner's go covers every gate
+   of the consented release in every Kit-managed repository, including irreversible publication
+   (GitHub release, PyPI, DOI). A gate is passed only when its summary names exactly the consented
+   version, tag and target commit and the Kit's checks PASS; FAIL, BLOCKED or any difference stops
+   the run. Recorded in `docs/planning/release_policy.json` (`approval`). Not yet built in the
+   Cockpit: phase 2 of the Release task still asks (next slice). The Kit has no approval policy and
+   no approver record yet (KIT-GF-061).
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

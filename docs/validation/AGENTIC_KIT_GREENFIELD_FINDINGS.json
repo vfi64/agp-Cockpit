@@ -615,6 +615,13 @@
       "historical_id": "P11c rehearsal (Kit 1.0.20)",
       "canonical_family": "KIT-GF-049",
       "summary": "release-metadata-authority-gate looks for release-prep evidence only in Kit-repository paths"
+    },
+    {
+      "date": "2026-10-08",
+      "event_id": "GF-E084",
+      "historical_id": "owner decision on release autonomy",
+      "canonical_family": "KIT-GF-061",
+      "summary": "release-run gates accept any caller with the signature; no approval policy, no approver record"
     }
   ],
   "families": [
@@ -2333,6 +2340,33 @@
           "description": "release work orders may not write CHANGELOG.md, pyproject.toml or docs/releases/versions.json; the release pull request needs exactly one version section; AGP_UNRELEASED_NOT_RELEASED_V1 makes the first slice after a release remove released entries"
         }
       ]
+    },
+    {
+      "id": "KIT-GF-061",
+      "title": "release run has no declared approval policy and does not record who approved a gate",
+      "first_observed": "2026-10-08",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "A workspace declares how release-run gates are approved (for example release.approval: upfront | per_gate) and the Kit enforces it; the run state and evidence record the approver and the source of the consent (owner go in a work order, start click, interactive approval).",
+      "observed": "Kit 1.0.20: GATE_SEQUENCE B4, C2, C3, D4 (D2R) pass for any caller that hands over the gate's signature (--execute --expected-signature); there is no workspace setting for the approval mode and no record of who approved. Owner decision 2026-10-08: releases run fully autonomously after the owner's go, including PyPI and DOI, and stop only on FAIL/BLOCKED or a gate that differs from the consented release — today that rule can live only in the agents' instructions.",
+      "impact": "The autonomy rule of a release is not Kit-enforced; an agent that signs a gate outside the consented release is indistinguishable from one that follows it.",
+      "workaround": "Cockpit and Codex sign a gate only when its summary matches the consented release (version, tag, target commit) and stop on FAIL/BLOCKED or any difference (agp-Cockpit COMMUNICATION_PROTOCOL 81).",
+      "repair": "release.approval in the workspace manifest; release run honours it (upfront: consent recorded once, gates proceed while their subject matches the consented plan); approver and consent source in the run state and the release evidence.",
+      "regression": "With release.approval: upfront and a consent for version X the run passes every gate without a further signature while each gate subject matches; a gate with another version, tag or commit stops; the evidence names the consent.",
+      "evidence": [
+        "agentic_project_kit/release_run.py (1.0.20): GATE_SEQUENCE, _run_or_gate, _approval_signature; no approval-mode setting",
+        "agp-Cockpit owner decision 2026-10-08 (release autonomy, COMMUNICATION_PROTOCOL 81)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-08",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main e4ee4868",
+        "report": ""
+      }
     }
   ],
   "explicit_exclusions": [

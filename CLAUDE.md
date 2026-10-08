@@ -64,6 +64,9 @@ If any older planning text, prior chat, issue, or suggestion conflicts with `doc
 - Codex tasks bundle as many findings per slice as is safe; each finding keeps its own
   regression test and report.
 - Larger changes are discussed with the owner first, as a numbered list of options.
+- Releases run fully autonomously after the owner's go, PyPI and DOI included; a gate is passed only
+  when it matches the consented release and the Kit's checks PASS, otherwise stop
+  (COMMUNICATION_PROTOCOL 81). Never sign a gate without that consent.
 
 ## Local maintainer instructions
 

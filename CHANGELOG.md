@@ -6,6 +6,7 @@ Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Vers
 
 ## Unreleased
 
+- Owner rule recorded: a release runs fully autonomously after the owner's go, also for irreversible publication, and stops on FAIL, BLOCKED or any difference from the consented release (COMMUNICATION_PROTOCOL 81, release_policy.json `approval`); KIT-GF-061 recorded (the Kit's release run has no approval policy and no approver record).
 - A release no longer edits the changelog by hand: on a release branch only the Kit's release preparation writes CHANGELOG.md, pyproject.toml and docs/releases/versions.json, the release pull request needs exactly one version section, and the former rule „Unreleased empty“ is withdrawn; KIT-GF-060 recorded; the rule „the Kit is the law, the Cockpit steers“ is written into the architecture, the protocol and CLAUDE.md; build `release-0.2.3-r1`.
 ## v0.2.3 - 2026-10-08
 
