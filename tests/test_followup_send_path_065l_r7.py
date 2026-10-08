@@ -65,9 +65,3 @@ def test_dom_degraded_sender_has_bounded_enter_fallback():
     assert 'key:"Enter"' in block
     assert "el.dispatchEvent(down)" in block
     assert "el.dispatchEvent(up)" in block
-
-def test_multiturn_full_auto_and_validation_contracts_remain():
-    text = src()
-    assert 'run_mode:"FULL_AUTO"' in text
-    assert "065 multi-turn LIVE probe rejected before local submit" in text
-    assert "work order differs from bounded read-only sequence" in text

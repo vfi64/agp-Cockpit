@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
-const code = section("  async function stop(", "  function scheduleTick()") + section("  async function tick()", "  const LIVE_PROBE");
+const code = section("  async function stop(", "  function scheduleTick()") + section("  async function tick()", "  // AGP_LEGACY_PATHS_REMOVED_V1");
 const LIMIT = 'Error: ChatGPT composer did not show the selected result evidence files: {"before":{"composer_sample":' +
   '["Du hast das Limit für Dateianhänge erreicht","Erneut versuchen 6. Okt., 19:49","063_gf';
 

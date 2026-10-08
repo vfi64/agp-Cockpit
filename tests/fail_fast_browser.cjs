@@ -40,7 +40,7 @@ async function rejectionStopsOnFirstError() {
     },
   });
   vm.createContext(context);
-  vm.runInContext(stopCode + section("  async function tick()", "  const LIVE_PROBE"), context);
+  vm.runInContext(stopCode + section("  async function tick()", "  // AGP_LEGACY_PATHS_REMOVED_V1"), context);
   await context.tick();   // settling
   await context.tick();   // consume -> rejected
   assert.equal(context.STATE.running, false);
@@ -64,7 +64,7 @@ async function transientErrorIsRetried() {
     processCompletedAssistant:async () => { throw new Error("K07 command-file browser download timed out"); },
   });
   vm.createContext(context);
-  vm.runInContext(stopCode + section("  async function tick()", "  const LIVE_PROBE"), context);
+  vm.runInContext(stopCode + section("  async function tick()", "  // AGP_LEGACY_PATHS_REMOVED_V1"), context);
   await context.tick();
   await context.tick();
   assert.equal(context.STATE.running, true);

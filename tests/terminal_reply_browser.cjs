@@ -7,7 +7,7 @@ const {bindIngress} = require("./ingress_harness.cjs");   // AGP_INGRESS_MODULE_
 const source = fs.readFileSync("chrome_extension/content.js", "utf8");
 const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
 const code = section("  async function stop(", "  function scheduleTick()")
-  + section("  async function tick()", "  const LIVE_PROBE");
+  + section("  async function tick()", "  // AGP_LEGACY_PATHS_REMOVED_V1");
 
 async function scenario({bridgeState="NEEDS_HUMAN", python=0, terminal=1}={}) {
   const calls = [];

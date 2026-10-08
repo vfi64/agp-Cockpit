@@ -8,7 +8,9 @@ Module 2, AGP_INGRESS_MODULE_V1: cockpit_ingress.js takes a file card of the exp
 the bridge (find, materialize, submit, forget the browser copy); it never sends a prompt and never
 renders. Module 3, AGP_SEND_MODULE_V1: cockpit_send.js writes the prompt into the composer and
 proves the commit (native submit, commit nonce, bounded retry); it never renders and never runs the
-mission loop. The size of content.js may only fall (ratchet). Real-Chromium checks:
+mission loop. Module 4, AGP_LEGACY_PATHS_REMOVED_V1: the operator paths without a button since
+2026-09-15 (DRY mission, LIVE probes, Phase 5/7/8) and the content scripts only they loaded are
+gone. The size of content.js may only fall (ratchet). Real-Chromium checks:
 tests/e2e/test_066_actual_contentjs_send_ack.spec.js and test_066_b1_d1_bootstrap_trace.spec.js
 load the real stack, panel included."""
 import json
@@ -23,7 +25,7 @@ INGRESS = (EXT / "cockpit_ingress.js").read_text(encoding="utf-8")
 SEND = (EXT / "cockpit_send.js").read_text(encoding="utf-8")
 
 # Ratchet: lower it whenever a module leaves content.js; never raise it.
-CONTENT_MAX_LINES = 2617
+CONTENT_MAX_LINES = 2205
 
 
 def test_manifest_loads_every_module_before_the_controller():
@@ -120,3 +122,17 @@ def test_every_send_name_content_js_uses_is_bound():
     for name in exported:
         bare = re.findall(r"(?<![\w.$])" + name + r"(?![\w$:])", CONTENT)
         assert not bare or name in bound, f"content.js uses {name} but does not bind it from SEND"
+
+
+LEGACY_SCRIPTS = ("protocol_action_contract_v1.js", "transport_protocol_v1.js", "conversation_contract.js",
+                  "protocol_canonicalizer_v1.js", "phase7_single_round.js", "phase8_multi_round.js")
+
+
+def test_the_legacy_operator_paths_stay_removed():
+    js = json.loads((EXT / "manifest.json").read_text(encoding="utf-8"))["content_scripts"][0]["js"]
+    for name in LEGACY_SCRIPTS:
+        assert name not in js and not (EXT / name).exists(), name
+    for gone in ("newDryMission", "LiveProbeMission", "LIVE_PROBE", "phase5", "phase7RunOneRound", "phase8",
+                 "AGPCockpitPhase", "AGPCockpitConversationContract"):
+        assert gone not in CONTENT, gone
+    assert "conversationUrl" not in (EXT / "options.js").read_text(encoding="utf-8")

@@ -23,5 +23,4 @@ def test_execution_core_not_modified_by_startup_wakeup():
     bridge = Path("src/agp_cockpit/core/bridge_server.py").read_text(encoding="utf-8")
     content = Path("chrome_extension/content.js").read_text(encoding="utf-8")
     assert "/v1/turn" in bridge
-    assert "LIVE_PROBE" in content
     assert "SINGLE_STEP" in content

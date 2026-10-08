@@ -24,8 +24,6 @@ def test_busy_indicator_is_status_only():
     assert "role\", \"status" in block
     assert "aria-live\", \"polite" in block
 
-def test_existing_live_probe_contract_remains():
+def test_existing_turn_counting_remains():
     s = _source()
-    assert "title:\"061 LIVE READ-ONLY PROBE\"" in s
     assert "STATE.turns += 1" in s
-    assert "assertExactLiveProbeWorkOrder" in s

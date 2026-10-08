@@ -31,7 +31,7 @@ def test_attachment_preview_supports_chatgpt_artifact_side_panel():
 
 def test_attachment_is_committed_only_after_successful_processing():
     tick_start = CONTENT.index("async function tick()")
-    tick_end = CONTENT.index("const LIVE_PROBE", tick_start)
+    tick_end = CONTENT.index("// AGP_LEGACY_PATHS_REMOVED_V1", tick_start)
     tick = CONTENT[tick_start:tick_end]
 
     direct_process = tick.index("await processCompletedAssistant(lastAssistantText(), runGeneration);")

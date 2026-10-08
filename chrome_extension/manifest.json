@@ -22,12 +22,6 @@
       "js": [
         "chatgpt_selectors.js",
         "build_identity.js",
-        "protocol_action_contract_v1.js",
-        "transport_protocol_v1.js",
-        "conversation_contract.js",
-        "protocol_canonicalizer_v1.js",
-        "phase7_single_round.js",
-        "phase8_multi_round.js",
         "native_message_evidence.js",
         "browser_native_transport.js",
         "cockpit_panel.js",

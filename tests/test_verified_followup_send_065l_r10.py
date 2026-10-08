@@ -28,8 +28,3 @@ def test_r10_preserves_named_enter_pair():
     assert 'new KeyboardEvent("keyup"' in s
     assert "el.dispatchEvent(down)" in s
     assert "el.dispatchEvent(up)" in s
-
-def test_r10_preserves_multiturn_full_auto_contract():
-    s = src()
-    assert 'run_mode:"FULL_AUTO"' in s
-    assert "065 LIVE 3-TURN READ-ONLY PROBE" in s

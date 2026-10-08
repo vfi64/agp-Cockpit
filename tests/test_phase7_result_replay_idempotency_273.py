@@ -10,6 +10,6 @@ def test_server_result_replay_contract():
     assert 'duplicate action has no completed result; automatic replay forbidden' in text
 
 def test_browser_accepts_replayed_result():
-    text=Path('chrome_extension/phase7_single_round.js').read_text()
-    assert '["EXECUTED","REPLAYED"].includes(data.decision)' in text
-    assert 'data.decision === "DUPLICATE"' not in text
+    # AGP_LEGACY_PATHS_REMOVED_V1: phase7_single_round.js is gone; the live client is submitAssistant.
+    text=Path('chrome_extension/content.js').read_text()
+    assert '["EXECUTED","REPLAYED"].includes(String(result.decision || ""))' in text

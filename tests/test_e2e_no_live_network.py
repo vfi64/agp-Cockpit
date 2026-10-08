@@ -34,9 +34,3 @@ def test_every_navigating_spec_serves_its_own_page():
         if GOTO.search(text) and "page.route(" not in text and "pathToFileURL" not in text:
             offenders.append(spec.name)
     assert offenders == [], f"specs that may load a live website: {offenders}"
-
-
-def test_conversation_contract_spec_stubs_chatgpt():
-    text = (E2E / "test_203_phase5_conversation_contract.spec.js").read_text(encoding="utf-8")
-    assert "AGP_E2E_NO_LIVE_NETWORK_V1" in text
-    assert text.index('page.route("https://chatgpt.com/**"') < text.index("await page.goto(url)")
