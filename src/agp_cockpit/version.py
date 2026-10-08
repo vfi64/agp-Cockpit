@@ -1,5 +1,5 @@
 """Version and identity constants for the desktop/bridge runtime."""
 
-APP_VERSION = "0.2.2"
+APP_VERSION = "0.2.3"
 BRIDGE_PROTOCOL_VERSION = 1
-BRIDGE_BUILD_ID = "release-0.2.2-r16"
+BRIDGE_BUILD_ID = "release-0.2.3"
