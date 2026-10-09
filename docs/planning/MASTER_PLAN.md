@@ -643,7 +643,13 @@ many findings per slice as is safe. Order:
 6. Patch view: stage 3 read-only inside the existing Kit findings window; a tab „Patch“ only with
    stage 4 (runs in the target repository), so the UI stays compact.
 7. 4c: bridge routes used only by the removed operator paths.
-8. Watch CI run times (main run #858 took 8:46 instead of about 2 minutes).
+8. Watch CI run times (main run #858 took 8:46 instead of about 2 minutes) — closed 2026-10-09: the
+   runs of #319–#321 took 1:43–1:53 each; #858 was an outlier.
+2a. Done 2026-10-09 (r3, Kit 1.0.21 adopted, manifest 6d76959d314e): CI pins, sync-entrypoints,
+   register (KIT-GF-049/052/060/061 fixed in 1.0.21, 023/035 on Kit main, KIT-GF-064 new), the
+   `publish_checks: none` override removed; retest of 049 and 060 in a disposable clone by the
+   owner's runner before the merge. `release.approval` stays undeclared until 1b (owner 2026-10-09:
+   „ja, unbedingt“), because declaring it makes every gate require attribution.
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority

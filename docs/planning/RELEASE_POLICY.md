@@ -23,11 +23,11 @@ entry of the repository („AGP Cockpit <version>“).
   `AGP_KIT_GITHUB_RELEASE_V1`). Switched on 2026-10-08 with Kit 1.0.20:
   `.agentic/config.yaml` says `publication: github` with `release.github_release_title_template:
   "AGP Cockpit {version}"` (since 2026-10-09 without „(privat)“); the Kit creates the annotated tag, pushes it and
-  creates the entry with the version's `CHANGELOG.md` section as its text. The workspace
-  also sets the Kit's `release.publish_checks: none`: 1.0.20 skips the Kit-repository docs
-  audit here but still runs its command-reference check, which runs a test file of the Kit
-  repository and fails (KIT-GF-049 reproduced in 1.0.20); reference drift is caught by
-  `commands sync-entrypoints` and `agentic-kit check`. Cockpit work orders never run
+  creates the entry with the version's `CHANGELOG.md` section as its text. Kit 1.0.20
+  still ran a Kit-repository test here, so the workspace set `release.publish_checks: none`
+  (KIT-GF-049); since Kit 1.0.21 those checks skip themselves in an external workspace and the
+  override is gone. Reference drift is caught by `commands sync-entrypoints` and
+  `agentic-kit check`. Cockpit work orders never run
   `gh release` themselves.
 - With `publication: github` the Kit blocks a release while a merged pull request
   has no release-note category. Every pull request a work order creates
