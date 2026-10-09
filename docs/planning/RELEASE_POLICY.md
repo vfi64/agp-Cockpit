@@ -71,14 +71,16 @@ annotated tag `v0.1.0` set by the owner on main after the merge.
   `pyproject.toml`, `APP_VERSION` in `src/agp_cockpit/version.py`, the
   `CHANGELOG.md` section and a row **appended** to `docs/releases/versions.json`
   (`app`, `build_id`, `kit`, `date`, `tag`, `published: false`).
-- The row's build id is the release build `release-<app>`. The release work
-  order sets `BRIDGE_BUILD_ID` (`src/agp_cockpit/version.py`) and
-  `chrome_extension/build_identity.js` to that value in the same branch: the
-  build id is read literally by the stale-app guard and by the extension, so it
-  is not a Kit version anchor. Rebuilds between releases carry `-r<N>`.
+- The row's build id is the release build `release-<app>`. Since 2026-10-09 the build id
+  follows the version (`AGP_BUILD_ID_DERIVED_V1`): `APP_VERSION` in `src/agp_cockpit/version.py`
+  and `AGP_APP_VERSION` in `chrome_extension/build_identity.js` are Kit version anchors, and a
+  rebuild between releases raises the revision (`BUILD_REVISION`, `AGP_BUILD_REVISION`), which
+  counts only while it names the current version. The Kit's release preparation therefore yields
+  `release-<app>` in both files without a hand edit, and on `release/<v>` no work order writes
+  them (`AGP_RELEASE_KIT_OWNED_FILES_V1`). Rebuilds between releases carry `-r<N>`.
 - The Chrome extension version lives in `chrome_extension/manifest.json` only.
-- `tests/test_release_versions.py` enforces all of this; a release branch whose
-  build id was not set fails with a message naming both files.
+- `tests/test_release_versions.py` and `tests/test_build_id_derived.py` enforce all of this; a
+  release branch whose build id does not follow the version fails with a message naming both files.
 - Rehearsed 2026-10-04 with Kit 1.0.16 in a sandbox clone: `release prepare
   --version 0.1.1 --write` plus the build-id step → full test suite, `release-check`,
   `check` and `doctor` PASS.

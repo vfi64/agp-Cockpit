@@ -87,7 +87,7 @@ def test_the_release_pull_request_needs_the_exact_release_build_id(tmp_path, mon
     monkeypatch.setattr(rh, "_branch", lambda _root, runner=None: "release/0.2.2")
     found = rh.changelog_violations(PR, root)
     assert len(found) == 2 and all("AGP_RELEASE_BUILD_ID_GATE_V1" in item for item in found)
-    assert "'release-0.2.2-r12'" in found[0] and "exactly 'release-0.2.2'" in found[0]
+    assert "'release-0.2.2-r12'" in found[0] and "expected 'release-0.2.2'" in found[0]
     root = checkout(tmp_path, "release/0.2.2", "release-0.2.2", js_id="release-0.2.1-r12")
     assert ["chrome_extension/build_identity.js" in item for item in rh.changelog_violations(PR, root)] == [True]
     root = checkout(tmp_path, "release/0.2.2", "release-0.2.2")

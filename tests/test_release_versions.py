@@ -21,7 +21,7 @@ def _rows():
 
 
 def test_app_versions_agree_with_the_latest_release_row():
-    from agp_cockpit.version import APP_VERSION, BRIDGE_BUILD_ID
+    from agp_cockpit.version import APP_VERSION, BRIDGE_BUILD_ID, build_id_from_text
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     build_js = (ROOT / "chrome_extension/build_identity.js").read_text(encoding="utf-8")
     rows = _rows()
@@ -31,9 +31,9 @@ def test_app_versions_agree_with_the_latest_release_row():
         assert latest["app"] == APP_VERSION and latest["tag"] == f"v{APP_VERSION}"
         assert latest["build_id"] == f"release-{APP_VERSION}"
         assert re.fullmatch(re.escape(latest["build_id"]) + r"(-r\d+)?", BRIDGE_BUILD_ID), (
-            "BRIDGE_BUILD_ID must be the release build or a rebuild of it; a release sets "
-            f"src/agp_cockpit/version.py and chrome_extension/build_identity.js to {latest['build_id']}")
-    assert f'"{BRIDGE_BUILD_ID}"' in build_js
+            "BRIDGE_BUILD_ID must be the release build or a rebuild of it; it follows APP_VERSION "
+            f"(AGP_BUILD_ID_DERIVED_V1), so a release names {latest['build_id']} by itself")
+    assert build_id_from_text(build_js) == BRIDGE_BUILD_ID
     assert all(row["published"] is False for row in rows)
     assert all("extension" not in row for row in rows)
 
@@ -58,6 +58,7 @@ def test_the_kit_owns_the_version_anchors():
     assert anchors["src/agp_cockpit/version.py"] == {
         "kind": "source_constant", "path": "src/agp_cockpit/version.py",
         "name": "APP_VERSION", "label": "APP_VERSION"}
+    assert anchors["chrome_extension/build_identity.js"]["name"] == "AGP_APP_VERSION"   # AGP_BUILD_ID_DERIVED_V1
     table = anchors["docs/releases/versions.json"]
     assert (table["kind"], table["list"], table["version_field"], table["position"]) == (
         "json_table", "releases", "app", "append")

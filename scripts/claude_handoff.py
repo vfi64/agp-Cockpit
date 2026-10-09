@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import importlib.util
 import json
 import re
 import subprocess
@@ -47,6 +48,18 @@ def _match(path: Path, pattern: str, label: str) -> str:
     return found.group(1)
 
 
+def _build_id(path: Path, label: str) -> str:
+    """AGP_BUILD_ID_DERIVED_V1: the build id follows the version; read it exactly as the Cockpit does."""
+    spec = importlib.util.spec_from_file_location(
+        "_agp_version", Path(__file__).resolve().parents[1] / "src/agp_cockpit/version.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    found = module.build_id_from_text(path.read_text(encoding="utf-8"))
+    if not found:
+        raise HandoffError(f"{label} not found in {path}")
+    return found
+
+
 def collect_facts(root: Path) -> dict:
     """Facts the next chat can re-derive from the repository alone."""
     status = _git(root, "status", "--porcelain")
@@ -68,9 +81,8 @@ def collect_facts(root: Path) -> dict:
         "worktree_clean": status == "",
         "latest_tag": _git(root, "describe", "--tags", "--abbrev=0"),
         "app_version": _match(version, r'^APP_VERSION = "([^"]+)"', "APP_VERSION"),
-        "bridge_build_id": _match(version, r'^BRIDGE_BUILD_ID = "([^"]+)"', "BRIDGE_BUILD_ID"),
-        "extension_build_id": _match(root / "chrome_extension/build_identity.js",
-                                     r'AGP_EXTENSION_BUILD_ID = "([^"]+)"', "AGP_EXTENSION_BUILD_ID"),
+        "bridge_build_id": _build_id(version, "BRIDGE_BUILD_ID"),
+        "extension_build_id": _build_id(root / "chrome_extension/build_identity.js", "AGP_EXTENSION_BUILD_ID"),
         "kit_ci_pin": _match(root / ".github/workflows/agentic-gate.yaml",
                              r'agentic-project-kit==([0-9][^"\s]*)', "Kit CI pin"),
         "command_manifest_sha": str(contract["command_reference"]["manifest_sha"]),

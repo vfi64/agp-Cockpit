@@ -42,6 +42,11 @@ release:
       path: src/agp_cockpit/version.py
       name: APP_VERSION
       label: APP_VERSION
+    # AGP_BUILD_ID_DERIVED_V1 (owner 2026-10-09): the extension's build id follows this version.
+    - kind: source_constant
+      path: chrome_extension/build_identity.js
+      name: AGP_APP_VERSION
+      label: AGP_APP_VERSION (extension build id)
     - kind: json_table
       path: docs/releases/versions.json
       label: AGP_VERSION_MAP_V1 app version

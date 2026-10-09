@@ -650,6 +650,13 @@
       "historical_id": "Kit CHANGELOG at v1.0.21",
       "canonical_family": "KIT-GF-064",
       "summary": "the Kit's own CHANGELOG keeps released entries under Unreleased (0 at v1.0.19, 9 at v1.0.20, 14 at v1.0.21)"
+    },
+    {
+      "date": "2026-10-09",
+      "event_id": "GF-E089",
+      "historical_id": "Kit 1.0.21 retest (release 0.2.4 rehearsal)",
+      "canonical_family": "KIT-GF-060",
+      "summary": "KIT-GF-060 and KIT-GF-049 verified with Kit 1.0.21 in a disposable clone: Unreleased consumed, one version section, stable rerun; release-publish dry run PASS with both Kit-only checks skipped"
     }
   ],
   "families": [
@@ -2021,7 +2028,7 @@
       "id": "KIT-GF-049",
       "title": "release-publish GitHub route requires Kit-repository checks in external workspaces",
       "first_observed": "2026-10-05",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -2059,7 +2066,8 @@
           "marker": "AGP_KIT_GITHUB_RELEASE_V1",
           "description": "release.publish_checks: none in .agentic/config.yaml (the Kit's documented setting for external workspaces); reference drift is caught by commands sync-entrypoints and agentic-kit check"
         }
-      ]
+      ],
+      "verified_by": "2026-10-09 owner rehearsal with Kit 1.0.21 in a disposable clone (.local/agp-cockpit/logs/kit1021-rehearsal-20261009-110839.log): without the release.publish_checks: none override, release-publish --dry-run for 0.2.4 is PASS; docs audit and command reference check both SKIP in this external workspace."
     },
     {
       "id": "KIT-GF-050",
@@ -2351,7 +2359,7 @@
       "id": "KIT-GF-060",
       "title": "release-prep copies the Unreleased entries into the version section but leaves them under Unreleased",
       "first_observed": "2026-10-08",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace-release",
       "aliases": [],
@@ -2381,7 +2389,8 @@
           "marker": "AGP_RELEASE_KIT_OWNED_FILES_V1",
           "description": "release work orders may not write CHANGELOG.md, pyproject.toml or docs/releases/versions.json; the release pull request needs exactly one version section; AGP_UNRELEASED_NOT_RELEASED_V1 makes the first slice after a release remove released entries"
         }
-      ]
+      ],
+      "verified_by": "2026-10-09 owner rehearsal with Kit 1.0.21 in a disposable clone (release 0.2.4, nothing pushed; .local/agp-cockpit/logs/kit1021-rehearsal-20261009-110839.log): release prepare --write consumed the four Unreleased bullets passed as summary lines, wrote exactly one '## v0.2.4' section, and a second run left CHANGELOG.md byte-identical."
     },
     {
       "id": "KIT-GF-061",
