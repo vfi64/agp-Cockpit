@@ -601,6 +601,27 @@
       "historical_id": "P11c retest (Kit 1.0.20, disposable clone)",
       "canonical_family": "KIT-GF-049",
       "summary": "release-publish GitHub route still runs the Kit-repository command-reference test in an external workspace that carries the Kit command reference"
+    },
+    {
+      "date": "2026-10-08",
+      "event_id": "GF-E082",
+      "historical_id": "agp-Cockpit release 0.2.3 (steps 1911-1927, PR #314/#316)",
+      "canonical_family": "KIT-GF-060",
+      "summary": "release-prep left the released entries under Unreleased; the hand move produced a duplicate section and format drift"
+    },
+    {
+      "date": "2026-10-08",
+      "event_id": "GF-E083",
+      "historical_id": "P11c rehearsal (Kit 1.0.20)",
+      "canonical_family": "KIT-GF-049",
+      "summary": "release-metadata-authority-gate looks for release-prep evidence only in Kit-repository paths"
+    },
+    {
+      "date": "2026-10-08",
+      "event_id": "GF-E084",
+      "historical_id": "owner decision on release autonomy",
+      "canonical_family": "KIT-GF-061",
+      "summary": "release-run gates accept any caller with the signature; no approval policy, no approver record"
     }
   ],
   "families": [
@@ -1975,7 +1996,8 @@
         "agentic-kit docs-audit in the clone: missing required documentation files (docs/TEST_GATES.md, docs/DOCUMENTATION_COVERAGE.yaml, sentinel.yaml, …)",
         "Related: KIT-GF-035 (docs-audit checks the Kit's own document set in an external workspace, OPEN) is the docs-audit half of this blocker; KIT-GF-022 (command-reference refresh in packaged use, repair in progress) touches the command-reference half. 049 stays separate: release-publish must not block on either check where it does not apply, even after 035/022.",
         "agentic-project-kit 1.0.20 (PyPI): Kit #2419, report docs/reports/greenfield/KIT-GF-049-external-release-publish-checks-2026-10-07.md",
-        "2026-10-08 retest, Kit 1.0.20, disposable clone of agp-Cockpit main 2fdc4b2 with publication: github: release-publish --dry-run SKIPs docs audit but runs `transfer command-reference-check`, which runs pytest tests/test_agentic_kit_command_reference_is_current.py (a Kit-repository file) and FAILs (rc 4, file not found); the auto-detection keys on docs/reference/agentic-kit-commands.json, which `commands sync-entrypoints` writes into every adopting workspace"
+        "2026-10-08 retest, Kit 1.0.20, disposable clone of agp-Cockpit main 2fdc4b2 with publication: github: release-publish --dry-run SKIPs docs audit but runs `transfer command-reference-check`, which runs pytest tests/test_agentic_kit_command_reference_is_current.py (a Kit-repository file) and FAILs (rc 4, file not found); the auto-detection keys on docs/reference/agentic-kit-commands.json, which `commands sync-entrypoints` writes into every adopting workspace",
+        "2026-10-08 P11c rehearsal (Kit 1.0.20): run before the merge, release-metadata-authority-gate looks for release-prep evidence only under tmp/*release-prep* and docs/reports/**, while release prepare writes it to .agentic/state/handoff/reports/release/ in an external workspace; the Release button runs the dry run after the merge, where the gate passes without evidence (low)"
       ],
       "kit_repo_status": {
         "date": "2026-10-08",
@@ -2281,6 +2303,69 @@
         "kit_state": "CLOSED",
         "raw": "Kit #2424, released in 1.0.20; used for the 1.0.19 closeout (#2432)",
         "report": "docs/reports/greenfield/KIT-GF-059-doi-closeout-recovery-2026-10-07.md"
+      }
+    },
+    {
+      "id": "KIT-GF-060",
+      "title": "release-prep copies the Unreleased entries into the version section but leaves them under Unreleased",
+      "first_observed": "2026-10-08",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace-release",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The Kit's release preparation consumes the Unreleased entries it releases: the version section carries them, ## Unreleased stays as an empty heading; idempotent, visible in the dry run, accepted by the release-prep consistency check and the release metadata authority gate.",
+      "observed": "Kit 1.0.20, external workspace agp-Cockpit, release 0.2.3: release-prep --summary-lines-from writes '## v0.2.3 - 2026-10-08' (with the blank line) but leaves every entry under '## Unreleased' (_external_changelog inserts the section, Unreleased is not touched); no Kit route empties it. The Cockpit's rule 'Unreleased empty before the release pull request' made the work order move the entries by regex: a second '## v0.2.3' section without date (CI: duplicate release section), a missing date, then a missing blank line that the release-prep dry run flagged as drift — 14 extra steps (1911-1927) and a follow-up PR #316.",
+      "impact": "Every release needs a hand edit of the Kit-owned release state or leaves the released entries under Unreleased, where the next release publishes them again.",
+      "workaround": "agp-Cockpit (AGP_RELEASE_KIT_OWNED_FILES_V1, AGP_UNRELEASED_NOT_RELEASED_V1): release work orders never write CHANGELOG.md; the first work slice after a release removes the released entries from Unreleased (enforced by a test on rebuild ids).",
+      "repair": "release-prep (external path) removes from Unreleased exactly the entries it carried into the version section and keeps the Unreleased heading; dry run lists the change; regression test in an external fixture.",
+      "regression": "In an external workspace with three Unreleased entries, release-prep --version X --summary-lines-from <those entries>.json yields one '## vX - date' section with the three entries and an empty '## Unreleased'; a second run changes nothing; release-publish --dry-run after the merge PASSes.",
+      "evidence": [
+        ".local/agp-cockpit/delivery/1914_diagnose_release_0_2_3_ci_return_bundle.json (CI: CHANGELOG.md: duplicate release section v0.2.3)",
+        ".local/agp-cockpit/delivery/1923_diagnose_release_prep_drift_return_bundle.json (release-prep would add the blank line after the heading)",
+        "agentic_project_kit/release_prepare.py _external_changelog (1.0.20): inserts the version section, never edits Unreleased",
+        "agp-Cockpit PR #316 fix(release): canonicalize 0.2.3 changelog spacing"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-08",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main e4ee4868",
+        "report": ""
+      },
+      "cockpit_mitigation": [
+        {
+          "date": "2026-10-08",
+          "marker": "AGP_RELEASE_KIT_OWNED_FILES_V1",
+          "description": "release work orders may not write CHANGELOG.md, pyproject.toml or docs/releases/versions.json; the release pull request needs exactly one version section; AGP_UNRELEASED_NOT_RELEASED_V1 makes the first slice after a release remove released entries"
+        }
+      ]
+    },
+    {
+      "id": "KIT-GF-061",
+      "title": "release run has no declared approval policy and does not record who approved a gate",
+      "first_observed": "2026-10-08",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "A workspace declares how release-run gates are approved (for example release.approval: upfront | per_gate) and the Kit enforces it; the run state and evidence record the approver and the source of the consent (owner go in a work order, start click, interactive approval).",
+      "observed": "Kit 1.0.20: GATE_SEQUENCE B4, C2, C3, D4 (D2R) pass for any caller that hands over the gate's signature (--execute --expected-signature); there is no workspace setting for the approval mode and no record of who approved. Owner decision 2026-10-08: releases run fully autonomously after the owner's go, including PyPI and DOI, and stop only on FAIL/BLOCKED or a gate that differs from the consented release — today that rule can live only in the agents' instructions.",
+      "impact": "The autonomy rule of a release is not Kit-enforced; an agent that signs a gate outside the consented release is indistinguishable from one that follows it.",
+      "workaround": "Cockpit and Codex sign a gate only when its summary matches the consented release (version, tag, target commit) and stop on FAIL/BLOCKED or any difference (agp-Cockpit COMMUNICATION_PROTOCOL 81).",
+      "repair": "release.approval in the workspace manifest; release run honours it (upfront: consent recorded once, gates proceed while their subject matches the consented plan); approver and consent source in the run state and the release evidence.",
+      "regression": "With release.approval: upfront and a consent for version X the run passes every gate without a further signature while each gate subject matches; a gate with another version, tag or commit stops; the evidence names the consent.",
+      "evidence": [
+        "agentic_project_kit/release_run.py (1.0.20): GATE_SEQUENCE, _run_or_gate, _approval_signature; no approval-mode setting",
+        "agp-Cockpit owner decision 2026-10-08 (release autonomy, COMMUNICATION_PROTOCOL 81)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-08",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main e4ee4868",
+        "report": ""
       }
     }
   ],

@@ -58,5 +58,11 @@
     "work_orders": "gh release create/upload/edit/delete stay forbidden (forbidden_gh)",
     "status": "active since 2026-10-08 (Kit 1.0.20; release.publish_checks: none because the Kit's command-reference check still runs a Kit-repository test here, KIT-GF-049 reproduced in 1.0.20)",
     "switch": "done 2026-10-08: publication: github in .agentic/config.yaml and here, after a dry run of the GitHub route in a disposable clone"
+  },
+  "approval": {
+    "decided": "2026-10-08",
+    "marker": "AGP_RELEASE_AUTONOMY_V1",
+    "rule": "The owner's go (start click of the Release task, or the release named in a work order) covers every gate of that release, including irreversible publication (GitHub release; PyPI and DOI where a repository has them). The agent passes a gate only when its summary matches the consented release (version, tag, target commit) and the Kit's checks PASS; on FAIL, BLOCKED or any difference it stops.",
+    "status": "Cockpit implementation pending (phase 2 of the Release task still asks); Kit-side approval policy pending KIT-GF-061"
   }
 }

@@ -33,10 +33,13 @@ index or archive; its GitHub Release entries stay in the private repository.
   (`AGP_PR_RELEASE_CATEGORY_V1`, enforced on work orders as soon as the workspace
   declares the GitHub route or its title template, i.e. now); `agentic-kit work
   finish --execute` cannot set a body and is rejected (KIT-GF-048).
-- The release pull request is created only after every entry of the
-  `CHANGELOG.md` "Unreleased" section was moved into the version section
-  (`AGP_RELEASE_CHANGELOG_GATE_V1`, enforced on work orders on `release/<v>`); the
-  section is the text of the GitHub entry.
+- The version section of `CHANGELOG.md` is the text of the GitHub entry. On
+  `release/<v>` only the Kit's release preparation writes `CHANGELOG.md`,
+  `pyproject.toml` and `docs/releases/versions.json` (`AGP_RELEASE_KIT_OWNED_FILES_V1`,
+  2026-10-08); the release pull request needs exactly one `## v<version>` section
+  (`AGP_RELEASE_CHANGELOG_GATE_V1`). The Kit leaves the released entries under
+  "Unreleased" (KIT-GF-060); the first work slice after a release removes them
+  (`AGP_UNRELEASED_NOT_RELEASED_V1`).
 - No PyPI package, no Zenodo record. There is no Zenodo
   record for this repository; none may be created, updated or queried, and a
   release must not attempt a Zenodo or DOI step.

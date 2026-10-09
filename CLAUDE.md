@@ -50,6 +50,24 @@ If any older planning text, prior chat, issue, or suggestion conflicts with `doc
 - Do not introduce an autonomous Kit command-selection service.
 - Do not introduce a Cockpit-owned GitHub/FILE_TRANSFER workflow service.
 
+## The Kit is the law (owner 2026-10-08, AGP_KIT_LAW_V1)
+
+- The Kit is the law and the control, the Cockpit steers (docs/planning/ARCHITECTURE.md §13).
+- Never hand-edit a file the Kit writes: generated projections and command-updated state
+  (`.agentic/state/**`, `.agentic/registries/**`), AGENTS.md and the command references
+  (`commands sync-entrypoints`), and on a release branch CHANGELOG.md, pyproject.toml and
+  docs/releases/versions.json (release preparation). The Kit's DPA classification decides
+  (`agentic-kit dpa repo-adoption-assessment`, read-only).
+- A missing Kit route is a Kit finding with a Codex task, never a Cockpit-local workaround.
+- After a release the first slice removes the released entries from CHANGELOG.md „Unreleased“
+  (KIT-GF-060; a test fails otherwise).
+- Codex tasks bundle as many findings per slice as is safe; each finding keeps its own
+  regression test and report.
+- Larger changes are discussed with the owner first, as a numbered list of options.
+- Releases run fully autonomously after the owner's go, PyPI and DOI included; a gate is passed only
+  when it matches the consented release and the Kit's checks PASS, otherwise stop
+  (COMMUNICATION_PROTOCOL 81). Never sign a gate without that consent.
+
 ## Local maintainer instructions
 
 Whenever the maintainer must perform local work, provide that work as an executable Python script whenever reasonably possible.
