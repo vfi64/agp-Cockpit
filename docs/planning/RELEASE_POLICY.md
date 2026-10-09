@@ -1,26 +1,28 @@
 # Release policy — agp-Cockpit
 
 Status: active
-Status-date: 2026-10-05
+Status-date: 2026-10-09
 Decision status: accepted
 Review policy: on material change
 Note: active · Decided by the owner on 2026-10-02 · Machine-readable form:
 `docs/planning/release_policy.json` (marker `AGP_RELEASE_POLICY_V1`).
 
-agp-Cockpit is the owner's private tool. It is not published to any package
-index or archive; its GitHub Release entries stay in the private repository.
+agp-Cockpit is the owner's tool in a public repository (public since 2026-10-09,
+owner decision; before that private). It is not published to any package index or
+archive: no PyPI package, no Zenodo record. Its releases are a tag and a GitHub Release
+entry of the repository („AGP Cockpit <version>“).
 
-- A release is private: version bump, changelog entry, annotated git tag and a
-  local app build. Pushing the tag to the private repository is allowed
+- A release is a version bump, changelog entry, annotated git tag and a
+  local app build. Pushing the tag to the repository is allowed
   (owner's decision 2026-10-02, `tag_push` in the JSON); it is a remote effect
   and needs the owner's approval of the release run.
-- The GitHub Release entry in the private repository is still created by the
+- The GitHub Release entry was first created by the
   owner by hand (owner's decision 2026-10-02, `owner_github_release` in the JSON):
   `gh release create <tag> --verify-tag`. The owner decided on 2026-10-05 that the
   Kit's signed release run takes this over (P11c, `kit_github_release` in the JSON,
   `AGP_KIT_GITHUB_RELEASE_V1`). Switched on 2026-10-08 with Kit 1.0.20:
   `.agentic/config.yaml` says `publication: github` with `release.github_release_title_template:
-  "AGP Cockpit {version} (privat)"`; the Kit creates the annotated tag, pushes it and
+  "AGP Cockpit {version}"` (since 2026-10-09 without „(privat)“); the Kit creates the annotated tag, pushes it and
   creates the entry with the version's `CHANGELOG.md` section as its text. The workspace
   also sets the Kit's `release.publish_checks: none`: 1.0.20 skips the Kit-repository docs
   audit here but still runs its command-reference check, which runs a test file of the Kit

@@ -2,13 +2,13 @@
   "schema_version": 1,
   "marker": "AGP_RELEASE_POLICY_V1",
   "publication": "github",
-  "statement": "agp-Cockpit is the owner's private tool and is not published to package indexes. A release is: version bump, changelog entry, annotated git tag, a local app build and a GitHub Release entry in the private repository (visible only to the owner). The entry is created by the Kit's signed release run (kit_github_release, owner 2026-10-05, P11c; active since 2026-10-08 with Kit 1.0.20). No PyPI package, no Zenodo record. No Zenodo record exists for this repository; none may be created, updated or queried. Cockpit work orders never create, edit or delete GitHub Releases themselves.",
+  "statement": "agp-Cockpit is the owner's tool in a public repository (public since 2026-10-09) and is not published to package indexes or archives. A release is: version bump, changelog entry, annotated git tag, a local app build and a GitHub Release entry of the repository, created by the Kit's signed release run (kit_github_release). No PyPI package, no Zenodo record. No Zenodo record exists for this repository; none may be created, updated or queried. Cockpit work orders never create, edit or delete GitHub Releases themselves.",
   "allowed": [
     "version bump",
     "changelog entry",
     "annotated git tag (pushing it is a remote effect and needs the owner's approval)",
     "local app build",
-    "GitHub Release entry in the private repository: by the Kit's signed release run (kit_github_release, publication: github)"
+    "GitHub Release entry of the repository: by the Kit's signed release run (kit_github_release, publication: github)"
   ],
   "forbidden_kit_commands": [
     "agentic-kit post-release-doi-closeout"
@@ -28,14 +28,14 @@
   "tag_push": {
     "decided": "2026-10-02",
     "allowed": true,
-    "target": "origin (private repository vfi64/agp-Cockpit)",
+    "target": "origin (public repository vfi64/agp-Cockpit)",
     "condition": "after the owner's approval of the release run"
   },
   "owner_github_release": {
     "decided": "2026-10-02",
     "allowed": true,
     "by": "the owner, by hand (gh release create --verify-tag)",
-    "condition": "repository stays private; the tag exists; no Zenodo integration enabled for the repository",
+    "condition": "the tag exists; no Zenodo integration enabled for the repository",
     "work_orders": "still forbidden (forbidden_gh)",
     "until": "kit_github_release is active (publication: github) — since 2026-10-08"
   },
@@ -54,7 +54,7 @@
     "by": "agentic-kit release-publish --execute --allow-execute --expected-signature <signature> (publication: github)",
     "title": ".agentic/config.yaml release.github_release_title_template",
     "notes": "the CHANGELOG.md section of the version (AGP_RELEASE_CHANGELOG_GATE_V1 keeps it complete)",
-    "condition": "repository stays private; Kit >= 1.0.17 (KIT-GF-043); every pull request carries a release-note category (AGP_PR_RELEASE_CATEGORY_V1)",
+    "condition": "Kit >= 1.0.17 (KIT-GF-043); every pull request carries a release-note category (AGP_PR_RELEASE_CATEGORY_V1)",
     "work_orders": "gh release create/upload/edit/delete stay forbidden (forbidden_gh)",
     "status": "active since 2026-10-08 (Kit 1.0.20; release.publish_checks: none because the Kit's command-reference check still runs a Kit-repository test here, KIT-GF-049 reproduced in 1.0.20)",
     "switch": "done 2026-10-08: publication: github in .agentic/config.yaml and here, after a dry run of the GitHub route in a disposable clone"
@@ -64,5 +64,11 @@
     "marker": "AGP_RELEASE_AUTONOMY_V1",
     "rule": "The owner's go (start click of the Release task, or the release named in a work order) covers every gate of that release, including irreversible publication (GitHub release; PyPI and DOI where a repository has them). The agent passes a gate only when its summary matches the consented release (version, tag, target commit) and the Kit's checks PASS; on FAIL, BLOCKED or any difference it stops.",
     "status": "Cockpit implementation pending (phase 2 of the Release task still asks); Kit-side approval policy pending KIT-GF-061"
+  },
+  "repository_visibility": {
+    "decided": "2026-10-09",
+    "visibility": "public",
+    "previously": "private",
+    "rule": "public repository; releases are a tag and a GitHub Release entry; no PyPI package and no Zenodo record, as before"
   }
 }

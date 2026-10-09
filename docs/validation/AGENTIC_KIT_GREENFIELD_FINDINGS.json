@@ -622,6 +622,20 @@
       "historical_id": "owner decision on release autonomy",
       "canonical_family": "KIT-GF-061",
       "summary": "release-run gates accept any caller with the signature; no approval policy, no approver record"
+    },
+    {
+      "date": "2026-10-09",
+      "event_id": "GF-E085",
+      "historical_id": "PR #319 CI runs 860/861 without logs",
+      "canonical_family": "KIT-GF-062",
+      "summary": "every check of PR #319 failed without a job log (Actions quota); no Kit route to re-run them, the remote LLM asked for raw gh authority in a loop"
+    },
+    {
+      "date": "2026-10-09",
+      "event_id": "GF-E086",
+      "historical_id": "refresh PR CI duration",
+      "canonical_family": "KIT-GF-063",
+      "summary": "handoff/successor refresh PRs of the Cockpit run the full CI; the Kit's light-mode classifier only knows the Kit-repo layout"
     }
   ],
   "families": [
@@ -2365,6 +2379,60 @@
         "fixed_in": "",
         "kit_state": "OPEN",
         "raw": "not addressed on Kit main e4ee4868",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-062",
+      "title": "no Kit route to re-run failed CI checks of a pull request",
+      "first_observed": "2026-10-09",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-ci-governance",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "A Kit command (for example agentic-kit pr rerun-checks --pr N) re-runs the failed checks of a pull request after a deterministic classification of the failure (never started / infrastructure vs code) and records the rerun as evidence; agents use it instead of raw gh.",
+      "observed": "Kit 1.0.20: pr-closeout and the github check policy read check states, but nothing re-runs a run. On 2026-10-09 every check of agp-Cockpit PR #319 failed without a job log because the GitHub Actions quota was used up; the remote LLM, bound to Kit routes, asked repeatedly for raw gh run rerun authority. The owner re-ran the jobs on GitHub by hand.",
+      "impact": "A CI failure caused by GitHub (quota, billing, runner) blocks the autonomous closeout and invites requests for raw tool authority.",
+      "workaround": "agp-Cockpit classifies checks that never ran (AGP_CI_NOT_STARTED_V1: no start, or failed within 3 s), shows the owner „Re-run all jobs“ on GitHub and the task prompts stop with NEEDS_HUMAN instead of asking for gh authority.",
+      "repair": "A Kit route that re-runs the failed checks of a PR only when the Kit classifies them as not-run (no log / zero duration / cancelled before a runner) and refuses for real test failures; result in the closeout evidence.",
+      "regression": "A PR whose failed checks never started is re-run by the route; a PR with a failed test step is refused with the reason; the evidence names the run ids.",
+      "evidence": [
+        "agentic_project_kit/github_check_policy.py (1.0.20): reads checks, no rerun",
+        "agp-Cockpit PR #319, Actions runs 860/861 (2026-10-09)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-09",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit 1.0.20",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-063",
+      "title": "CI light mode for refresh pull requests only knows the Kit-repo layout",
+      "first_observed": "2026-10-09",
+      "status": "OPEN",
+      "severity": "low",
+      "classification": "agentic-kit-ci-governance",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The managed CI of a consumer workspace runs a deterministic light path for Kit-made handoff/successor refresh PRs whose diff stays inside the Kit-owned state paths of that workspace.",
+      "observed": "Kit 1.0.20 ci_runtime_policy.py: ADMIN_REFRESH_LIGHT with the branch rule ^(?:docs|codex)/post-pr\\d+-(handoff-refresh|successor-package-refresh)$, but its path sets name the Kit repository's own layout; the managed CI template of a consumer workspace has no light mode, so every Cockpit refresh PR runs the full suite (run #858: 8:46).",
+      "impact": "Refresh PRs that change only Kit-owned state cost a full CI run and delay the closeout.",
+      "workaround": "None; the Cockpit waits for the full run. No Cockpit-local classifier (owner decision 2026-10-09: only if the Kit's determinism is kept).",
+      "repair": "Derive the light-path sets from the workspace manifest (Kit-owned state paths of the consumer) and expose the light mode in the managed CI template.",
+      "regression": "A consumer refresh PR touching only .agentic/state/** and the handoff files takes the light path; one more file outside the set takes the full path.",
+      "evidence": [
+        "agentic_project_kit/ci_runtime_policy.py (1.0.20): ADMIN_REFRESH_LIGHT, branch regex, path sets",
+        "agp-Cockpit Actions run #858 (8:46)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-09",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit 1.0.20",
         "report": ""
       }
     }

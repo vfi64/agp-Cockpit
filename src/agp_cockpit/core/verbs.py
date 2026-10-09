@@ -108,9 +108,11 @@ def recover_not_needed(state) -> bool:
     """AGP_RECOVER_OFFER_EXPIRES_V1: a clean work branch with own commits, ready to be
     finished, needs no recovery (an interrupted publication is resumed by „Abschließen“)."""
     facts = getattr(state, "facts", None)
-    return bool(
-        state is not None and facts is not None
-        and getattr(state, "state", None) == rs.IN_ARBEIT
-        and getattr(state, "recommended", None) == rs.ABSCHLIESSEN
-        and facts.own_commits and not facts.changes
-    )
+    if state is None or facts is None or getattr(state, "recommended", None) != rs.ABSCHLIESSEN:
+        return False
+    if getattr(state, "state", None) == rs.STOERUNG:
+        # AGP_RECOVER_OFFER_EXPIRES_V2 (live 2026-10-09, PR #319): main is clean and synchronized and
+        # only the Kit's follow-up pull request is open; unless its CI found a real failure,
+        # „Abschließen“ completes it — „Wiederherstellen“ would end at the same step.
+        return getattr(facts, "followup_ci", "") != rs.FOLLOWUP_FAILED
+    return bool(getattr(state, "state", None) == rs.IN_ARBEIT and facts.own_commits and not facts.changes)

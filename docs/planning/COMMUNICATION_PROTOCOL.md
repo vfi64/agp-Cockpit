@@ -855,6 +855,15 @@ This section is normative for the file loop after local execution.
    the run. Recorded in `docs/planning/release_policy.json` (`approval`). Not yet built in the
    Cockpit: phase 2 of the Release task still asks (next slice). The Kit has no approval policy and
    no approver record yet (KIT-GF-061).
+82. CI that never ran (`AGP_CI_NOT_STARTED_V1`, build release-0.2.3-r2, owner 2026-10-09): when
+   every failed check of a pull request has no start or ended within 3 seconds, the cause is
+   GitHub (runner, Actions quota, billing), not the code. The Lage shows „CI nicht gestartet“ with
+   „Re-run all jobs“ on GitHub; the recovery offer expires as soon as the CI is no longer red.
+   A work order never re-runs checks: there is no Kit route (KIT-GF-062) and raw gh stays
+   forbidden, so the remote side stops with NEEDS_HUMAN and never asks for more tool authority.
+   A lighter CI for refresh pull requests comes only from the Kit's deterministic classifier
+   (KIT-GF-063), never from a Cockpit-local rule. The repository is public since 2026-10-09
+   (owner), without PyPI and Zenodo.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

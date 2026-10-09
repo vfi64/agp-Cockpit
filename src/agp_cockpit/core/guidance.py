@@ -75,6 +75,10 @@ def _followup_steps(f) -> list[str]:
         return [f"Auf GitHub {pr}{url}: „Re-run failed jobs“ — GitHub hat einen CI-Job ohne Runner abgebrochen.",
                 "Warten, bis die CI grün ist, dann „Aktualisieren“.",
                 "Dann „Abschließen“ klicken."]
+    if f.followup_ci == rs.FOLLOWUP_NOT_STARTED:
+        return [f"GitHub hat die CI von {pr}{url} nicht gestartet (oft: Actions-Kontingent oder Billing).",
+                "Auf GitHub die Laufseite öffnen, den Grund prüfen und „Re-run all jobs“ klicken.",
+                "Wenn die CI grün ist: „Aktualisieren“, dann „Abschließen“."]
     if f.followup_ci == rs.FOLLOWUP_PENDING:
         return [f"Warten: die CI von {pr} läuft noch (GitHub).", "Dann „Aktualisieren“ und „Abschließen“."]
     if f.followup_ci == rs.FOLLOWUP_FAILED:

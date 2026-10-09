@@ -2,7 +2,7 @@
 
 The owner decided on 2026-10-02 that agp-Cockpit is never published to PyPI or
 Zenodo. Since 2026-10-05 (P11c, AGP_KIT_GITHUB_RELEASE_V1) the Kit's signed release
-run also creates the GitHub Release entry of the private repository
+run also creates the GitHub Release entry of the repository
 (``publication: github``); a work order still never runs ``gh release`` itself. The
 policy lives in docs/planning/release_policy.json; work orders that would publish
 otherwise are rejected as correctable violations.
@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 
 POLICY_PATH = Path("docs/planning/release_policy.json")
-# Policies this module enforces: private tag only, or tag plus the Kit-made GitHub entry.
+# Policies this module enforces: tag only, or tag plus the Kit-made GitHub Release entry.
 RESTRICTED_PUBLICATIONS = ("none", "github")
 
 

@@ -47,7 +47,8 @@ def test_changelog_has_a_section_per_release():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     for row in _rows():
         assert f"## {row['tag']} - {row['date']}" in changelog
-    assert "No GitHub Release" in changelog or "not published" in changelog
+    # Public repository since 2026-10-09; never published to a package index or archive.
+    assert "no PyPI package and no Zenodo record" in changelog
 
 
 def test_the_kit_owns_the_version_anchors():
