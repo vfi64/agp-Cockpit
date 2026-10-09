@@ -533,21 +533,21 @@ the tag is missing. Skip to phase 2.""" if prepared else f"""Phase 1 — release
    anchors declared in .agentic/config.yaml and writes the "## v{version}" section of the
    changelog, which is also the text of the GitHub Release entry). Its summary lines name the
    user-visible changes since the previous release tag: the entries of the CHANGELOG.md
-   "Unreleased" section that no version section carries yet, completed from the merged pull
-   requests since that tag — never a one-line stub such as "Prepare release". Summary lines go
-   to the Kit as a JSON file (--summary-lines-from <file>.json holding a JSON list of strings); a
-   text file is rejected (AGP_RELEASE_SUMMARY_JSON_V1). Reading CHANGELOG.md to build them is
-   fine, but never write CHANGELOG.md, pyproject.toml or docs/releases/versions.json yourself on
-   the release branch: only the Kit writes the release state, and running its preparation again
-   replaces its own section (AGP_RELEASE_KIT_OWNED_FILES_V1). The Unreleased entries stay where they
-   are; the Kit does not consume them yet (KIT-GF-060) and the next work slice removes them
-   (AGP_UNRELEASED_NOT_RELEASED_V1). The Cockpit creates the release pull request only with exactly
-   one "## v{version}" section (AGP_RELEASE_CHANGELOG_GATE_V1).
+   "Unreleased" section that no version section carries yet, each passed verbatim (the text after
+   "- "), completed from the merged pull requests since that tag — never a one-line stub such as
+   "Prepare release". Summary lines go to the Kit as a JSON file (--summary-lines-from <file>.json
+   holding a JSON list of strings); a text file is rejected (AGP_RELEASE_SUMMARY_JSON_V1). Reading
+   CHANGELOG.md to build them is fine, but never write CHANGELOG.md, pyproject.toml,
+   docs/releases/versions.json or the build identity yourself on the release branch: only the Kit
+   writes the release state, and running its preparation again replaces its own section
+   (AGP_RELEASE_KIT_OWNED_FILES_V1). The Kit removes from "Unreleased" exactly the entries it
+   carries into the version section (KIT-GF-060, Kit 1.0.21). The Cockpit creates the release pull
+   request only with exactly one "## v{version}" section (AGP_RELEASE_CHANGELOG_GATE_V1).
 3. If the repository has docs/planning/RELEASE_POLICY.md, perform the release-branch steps it names
-   in the same branch (agp-Cockpit: set the build identity in src/agp_cockpit/version.py and
-   chrome_extension/build_identity.js to exactly release-{version}, replacing any -r<N> rebuild
-   suffix); the repository's tests check them and the Cockpit rejects the release pull request
-   otherwise (AGP_RELEASE_BUILD_ID_GATE_V1).
+   in the same branch. agp-Cockpit has none left: its build identity follows the version the Kit
+   writes (AGP_BUILD_ID_DERIVED_V1: src/agp_cockpit/version.py and chrome_extension/build_identity.js
+   then name exactly release-{version}); its tests check it and the Cockpit rejects the release pull
+   request otherwise (AGP_RELEASE_BUILD_ID_GATE_V1).
 4. Finish the branch through the Kit's pull-request lifecycle: green CI, merge, post-merge closeout,
    local main equal to origin/main.""")
     constraint, published = _release_publication_text(root)

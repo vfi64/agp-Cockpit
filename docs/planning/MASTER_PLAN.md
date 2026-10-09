@@ -650,6 +650,10 @@ many findings per slice as is safe. Order:
    `publish_checks: none` override removed; retest of 049 and 060 in a disposable clone by the
    owner's runner before the merge. `release.approval` stays undeclared until 1b (owner 2026-10-09:
    „ja, unbedingt“), because declaring it makes every gate require attribution.
+2b. Done 2026-10-09 (r4, build release-0.2.3-r3, COMMUNICATION_PROTOCOL 83): the build id follows
+   the version (owner: Weg 1), so a release needs no hand edit; KIT-GF-049 and KIT-GF-060 verified
+   by the owner's rehearsal (GF-E089). Next: 1b — the Release task runs `agentic-kit release run`
+   with `release.approval: upfront` and `--approved-by vfi64 --consent-source "Cockpit-Start …"`.
 
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority

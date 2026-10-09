@@ -864,6 +864,14 @@ This section is normative for the file loop after local execution.
    A lighter CI for refresh pull requests comes only from the Kit's deterministic classifier
    (KIT-GF-063), never from a Cockpit-local rule. The repository is public since 2026-10-09
    (owner), without PyPI and Zenodo.
+83. Build id follows the version (`AGP_BUILD_ID_DERIVED_V1`, build release-0.2.3-r3, owner
+   2026-10-09): `APP_VERSION`/`AGP_APP_VERSION` are Kit version anchors and the build id is
+   `release-<version>`, plus `-r<N>` while `BUILD_REVISION`/`AGP_BUILD_REVISION` names that
+   version. A rebuild slice raises the revision in both files; a release changes nothing by hand,
+   so the Kit's `release run` can carry the release alone (MASTER_PLAN 1b). On `release/<v>` a
+   work order that writes either file is rejected (AGP_RELEASE_KIT_OWNED_FILES_V1). Readers of
+   another checkout or of the app bundle use `build_id_from_text`, which also reads the older
+   literal form.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

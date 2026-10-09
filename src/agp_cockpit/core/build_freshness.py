@@ -15,12 +15,10 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from agp_cockpit.version import BRIDGE_BUILD_ID
+from agp_cockpit.version import BRIDGE_BUILD_ID, build_id_from_text
 
 BUNDLE_ID_FILE = Path(".local/agp-cockpit/dist/AGP Cockpit.app/Contents/Resources/chrome_extension/build_identity.js")
 SOURCE_ID_FILE = Path("src/agp_cockpit/version.py")
-_BUNDLE = re.compile(r'AGP_EXTENSION_BUILD_ID\s*=\s*"([^"]+)"')
-_SOURCE = re.compile(r'BRIDGE_BUILD_ID\s*=\s*"([^"]+)"')
 
 
 @dataclass(frozen=True)
@@ -33,12 +31,12 @@ class BuildFreshness:
     note: str = ""       # AGP_RELEASE_IN_PROGRESS_V1: a yellow hint, never a lock
 
 
-def _read(path: Path, pattern: re.Pattern) -> str:
+def _read(path: Path) -> str:
+    """AGP_BUILD_ID_DERIVED_V1: the build id the file defines (derived or, in older builds, literal)."""
     try:
-        match = pattern.search(path.read_text(encoding="utf-8"))
+        return build_id_from_text(path.read_text(encoding="utf-8"))
     except OSError:
         return ""
-    return match.group(1) if match else ""
 
 
 _BUILD = re.compile(r"^release-(\d+(?:\.\d+)*)(?:-r(\d+))?$")
@@ -93,8 +91,8 @@ def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
     if frozen is None:
         frozen = bool(getattr(sys, "frozen", False))
     # A run from source is not the bundle; only the packaged app compares with it.
-    bundle = _read(root / BUNDLE_ID_FILE, _BUNDLE) if frozen else ""
-    source = _read(root / SOURCE_ID_FILE, _SOURCE)
+    bundle = _read(root / BUNDLE_ID_FILE) if frozen else ""
+    source = _read(root / SOURCE_ID_FILE)
     if bundle and bundle != running and build_order(bundle, running) != -1:
         return BuildFreshness(running, bundle, source, True,
                               f"Neuer Build vorhanden ({bundle}), diese App läuft noch mit {running}. "

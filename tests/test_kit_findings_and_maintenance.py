@@ -67,7 +67,7 @@ def test_the_real_register_tracks_the_kit_1_0_18_adoption():
         assert by_id[fid].effective_status("1.0.18") == kf.FIXED_NOT_INSTALLED   # fixed in 1.0.19
     for fid in ("KIT-GF-022", "KIT-GF-048"):                               # fixed in 1.0.20
         assert by_id[fid].effective_status("1.0.18") == kf.FIXED_NOT_INSTALLED
-    assert by_id["KIT-GF-049"].effective_status("1.0.18") == kf.FIXED_NOT_INSTALLED   # fixed in 1.0.21
+    assert by_id["KIT-GF-049"].effective_status("1.0.18") == kf.VERIFIED   # fixed in 1.0.21, GF-E089
 
 
 def test_the_real_register_tracks_the_kit_1_0_19_adoption():
@@ -79,8 +79,8 @@ def test_the_real_register_tracks_the_kit_1_0_19_adoption():
         assert by_id[fid].kit["fixed_in"] == "1.0.19"
     for fid in ("KIT-GF-048", "KIT-GF-053", "KIT-GF-054", "KIT-GF-055", "KIT-GF-056"):
         assert by_id[fid].effective_status("1.0.19") == kf.FIXED_NOT_INSTALLED, fid   # fixed in 1.0.20
-    for fid in ("KIT-GF-049", "KIT-GF-052"):                                # fixed in 1.0.21
-        assert by_id[fid].effective_status("1.0.19") == kf.FIXED_NOT_INSTALLED, fid
+    assert by_id["KIT-GF-052"].effective_status("1.0.19") == kf.FIXED_NOT_INSTALLED   # fixed in 1.0.21
+    assert by_id["KIT-GF-049"].effective_status("1.0.19") == kf.VERIFIED              # GF-E089
     assert by_id["KIT-GF-051"].effective_status("1.0.19") == kf.OPEN
 
 
@@ -95,7 +95,7 @@ def test_the_real_register_tracks_the_kit_1_0_20_adoption():
     assert by_id["KIT-GF-051"].effective_status("1.0.20") == kf.OPEN
     # P11c retest (GF-E081): the GitHub route still ran the Kit-repository reference check here.
     assert by_id["KIT-GF-049"].reproduced_in == "1.0.20"
-    for fid in ("KIT-GF-049", "KIT-GF-052", "KIT-GF-035"):                 # fixed later (1.0.21 / main)
+    for fid in ("KIT-GF-052", "KIT-GF-035"):                               # fixed later (1.0.21 / main)
         assert by_id[fid].effective_status("1.0.20") == kf.FIXED_NOT_INSTALLED, fid
 
 
@@ -103,8 +103,11 @@ def test_the_real_register_tracks_the_kit_1_0_21_adoption():
     """Kit 1.0.21 (2026-10-09, GF-E087): four fixes released, GF-023/035 only on Kit main."""
     by_id = {f.id: f for f in kf.load(ROOT)}
     for fid in ("KIT-GF-049", "KIT-GF-052", "KIT-GF-060", "KIT-GF-061"):
-        assert by_id[fid].effective_status("1.0.21") == kf.FIXED_UNVERIFIED, fid
         assert by_id[fid].fixed_in == "1.0.21" and by_id[fid].kit["fixed_in"] == "1.0.21", fid
+    for fid in ("KIT-GF-049", "KIT-GF-060"):                                  # GF-E089 rehearsal
+        assert by_id[fid].effective_status("1.0.21") == kf.VERIFIED, fid
+    for fid in ("KIT-GF-052", "KIT-GF-061"):
+        assert by_id[fid].effective_status("1.0.21") == kf.FIXED_UNVERIFIED, fid
     for fid in ("KIT-GF-023", "KIT-GF-035"):                                  # Kit main, unreleased
         assert by_id[fid].effective_status("1.0.21") == kf.FIXED_NOT_INSTALLED, fid
     for fid in ("KIT-GF-051", "KIT-GF-062", "KIT-GF-063", "KIT-GF-064"):

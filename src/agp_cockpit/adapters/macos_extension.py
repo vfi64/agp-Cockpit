@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 from agp_cockpit.adapters.macos_settings import settings_path
+from agp_cockpit.version import build_id_from_text  # AGP_BUILD_ID_DERIVED_V1
 
 
 class ExtensionStagingError(RuntimeError):
@@ -31,13 +32,9 @@ def _manifest_build_id(source: Path) -> str:
         content = (source / "build_identity.js").read_text(encoding="utf-8")
     except OSError as exc:
         raise ExtensionStagingError(f"cannot read extension build identity: {exc}") from exc
-    prefix = 'globalThis.AGP_EXTENSION_BUILD_ID = "'
-    suffix = '";'
-    if prefix not in content or suffix not in content:
+    build_id = build_id_from_text(content)
+    if not build_id.strip():
         raise ExtensionStagingError("extension build identity file has no valid build id")
-    build_id = content.split(prefix, 1)[1].split(suffix, 1)[0]
-    if not isinstance(build_id, str) or not build_id.strip():
-        raise ExtensionStagingError("extension manifest has no valid AGP build identity")
     return build_id.strip()
 
 

@@ -38,10 +38,10 @@ def test_a_pull_request_with_a_wrapped_entry_is_rejected_on_every_branch(tmp_pat
 def test_the_build_id_is_exactly_the_release_or_a_numbered_rebuild_of_it():
     """Release 0.2.1 (#250): a substring replace produced ``-r5`` twice; now the rule is exact:
     without Unreleased entries the build is the release build, with entries a rebuild ``-r<N>``."""
-    from agp_cockpit.version import APP_VERSION, BRIDGE_BUILD_ID
+    from agp_cockpit.version import APP_VERSION, BRIDGE_BUILD_ID, build_id_from_text
     text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     js = (ROOT / "chrome_extension/build_identity.js").read_text(encoding="utf-8")
-    assert js.strip() == f'globalThis.AGP_EXTENSION_BUILD_ID = "{BRIDGE_BUILD_ID}";'
+    assert build_id_from_text(js) == BRIDGE_BUILD_ID          # AGP_BUILD_ID_DERIVED_V1
     release = f"release-{APP_VERSION}"
     if rh.pending_entries(text):                     # KIT-GF-060: released entries may still sit there
         assert re.fullmatch(re.escape(release) + r"-r[1-9]\d*", BRIDGE_BUILD_ID), BRIDGE_BUILD_ID

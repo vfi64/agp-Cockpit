@@ -142,7 +142,10 @@ def pending_entries(changelog_text: str) -> list[str]:
     return [line for line in unreleased_entries(changelog_text) if line not in released]
 
 
-KIT_OWNED_RELEASE_FILES = ("CHANGELOG.md", "pyproject.toml", "docs/releases/versions.json")
+# AGP_BUILD_ID_DERIVED_V1: version.py and build_identity.js carry Kit version anchors; on a release
+# branch their build id follows the version, nothing is set by hand.
+KIT_OWNED_RELEASE_FILES = ("CHANGELOG.md", "pyproject.toml", "docs/releases/versions.json",
+                           "src/agp_cockpit/version.py", "chrome_extension/build_identity.js")
 _WRITE_METHODS = ("write_text", "write_bytes")
 
 
@@ -242,30 +245,29 @@ def changelog_violations(source: str, repository_root: Path, *, runner=subproces
     return found
 
 
-BUILD_ID_FILES = (
-    ("src/agp_cockpit/version.py", re.compile(r'BRIDGE_BUILD_ID\s*=\s*"([^"]*)"')),
-    ("chrome_extension/build_identity.js", re.compile(r'AGP_EXTENSION_BUILD_ID\s*=\s*"([^"]*)"')),
-)
+BUILD_ID_FILES = ("src/agp_cockpit/version.py", "chrome_extension/build_identity.js")
 
 
 def build_id_violations(repository_root: Path, version: str) -> list[str]:
     """AGP_RELEASE_BUILD_ID_GATE_V1 (live 2026-10-07, release 0.2.2, step 1853): the release work
     order wrote "release-0.2.2-r12" (the old rebuild counter kept); the CI turned red only after
-    commit, push and pull request, and the third failed step blocked the task. The release pull
-    request is now created only when both build-id files carry exactly release-<version>.
-    Repositories without these files (not the Cockpit) are not affected."""
+    commit, push and pull request. Since AGP_BUILD_ID_DERIVED_V1 (2026-10-09) the build id follows
+    the version the Kit's release preparation writes, so release-<version> needs no hand edit; the
+    gate stays as the check that the derivation holds. Repositories without these files (not the
+    Cockpit) are not affected."""
+    from agp_cockpit.version import build_id_from_text
     expected = f"release-{version}"
     found = []
-    for rel, pattern in BUILD_ID_FILES:
+    for rel in BUILD_ID_FILES:
         try:
-            match = pattern.search((Path(repository_root) / rel).read_text(encoding="utf-8"))
+            actual = build_id_from_text((Path(repository_root) / rel).read_text(encoding="utf-8"))
         except OSError:
             continue
-        actual = match.group(1) if match else ""
         if actual != expected:
-            found.append(f"{rel}: the build id is {actual or 'missing'!r}; set it to exactly {expected!r} "
-                         "(no -r<N> suffix on a release) in an earlier work order, then create the release "
-                         "pull request (AGP_RELEASE_BUILD_ID_GATE_V1)")
+            found.append(f"{rel}: the build id is {actual or 'missing'!r}, expected {expected!r}; the Kit's "
+                         "release preparation sets the version and the build id follows it — run it for "
+                         f"{version} and never edit the build id on a release branch "
+                         "(AGP_RELEASE_BUILD_ID_GATE_V1, AGP_BUILD_ID_DERIVED_V1)")
     return found
 
 
