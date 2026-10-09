@@ -152,6 +152,8 @@ def post_merge_check(root: Path, kit, *, runner=subprocess.run) -> tuple[str, st
 
 FOLLOWUP_BRANCH = __import__("re").compile(r"^docs/post-pr\d+-")
 FOLLOWUP_GREEN, FOLLOWUP_PENDING, FOLLOWUP_RUNNER, FOLLOWUP_FAILED = "GREEN", "PENDING", "RUNNER", "FAILED"
+FOLLOWUP_NOT_STARTED = "NOT_STARTED"       # AGP_CI_NOT_STARTED_V1
+_NOT_STARTED_SECONDS = 3
 _RUNNER_CONCLUSIONS = {"CANCELLED", "STARTUP_FAILURE", "TIMED_OUT", "STALE"}
 _FAILED_CONCLUSIONS = {"FAILURE", "ACTION_REQUIRED"}
 _PENDING_STATUS = {"QUEUED", "IN_PROGRESS", "PENDING", "WAITING", "REQUESTED", "EXPECTED"}
@@ -163,6 +165,9 @@ def classify_checks(rollup) -> str:
     aggregate job failed. A cancelled or never-started job means „re-run“, not „repair";
     it wins over a failure because the aggregate job fails with it."""
     checks = [c for c in (rollup or []) if isinstance(c, dict)]
+    failed = [c for c in checks if str(c.get("conclusion") or "").upper() in _FAILED_CONCLUSIONS]
+    if failed and all(_never_ran(c) for c in failed):
+        return FOLLOWUP_NOT_STARTED
     conclusions = {str(c.get("conclusion") or "").upper() for c in checks}
     states = {str(c.get("state") or "").upper() for c in checks}
     statuses = {str(c.get("status") or "").upper() for c in checks}
@@ -173,6 +178,24 @@ def classify_checks(rollup) -> str:
     if not checks or statuses & _PENDING_STATUS or "PENDING" in states:
         return FOLLOWUP_PENDING
     return FOLLOWUP_GREEN
+
+
+def _never_ran(check: dict) -> bool:
+    """AGP_CI_NOT_STARTED_V1 (live 2026-10-09, PR #319): with the Actions quota used up every job
+    of the run failed at once without a log. A failed check that started and completed within a
+    few seconds (or never started) did not run the code."""
+    from datetime import datetime
+    started, completed = str(check.get("startedAt") or ""), str(check.get("completedAt") or "")
+    if not completed:
+        return False
+    if not started or started.startswith("0001-"):
+        return True
+    try:
+        begin = datetime.fromisoformat(started)
+        end = datetime.fromisoformat(completed)
+    except ValueError:
+        return False
+    return (end - begin).total_seconds() <= _NOT_STARTED_SECONDS
 
 
 def followup_pull_request(root: Path, *, runner=subprocess.run) -> tuple[int | None, str, str]:

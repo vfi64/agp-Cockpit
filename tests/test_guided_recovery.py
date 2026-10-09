@@ -5,6 +5,7 @@ werden“; „der Bildschirmplatz ist endlich“)."""
 import json
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 from agp_cockpit.core import guidance
 from agp_cockpit.core import repo_state as rs
@@ -103,3 +104,43 @@ def test_panel_layout_is_compact():
     assert 'font=("TkDefaultFont", 18, "bold")' not in panel
     assert "self.decision_frame.grid(row=1, column=0" in panel     # right under the Lage
     assert "wraplength=760" not in panel and "wraplength=700" not in panel
+
+
+# --- AGP_CI_NOT_STARTED_V1 / AGP_RECOVER_OFFER_EXPIRES_V2 (live 2026-10-09, PR #319) -----------
+
+QUOTA_319 = [
+    {"name": "python", "status": "COMPLETED", "conclusion": "FAILURE",
+     "startedAt": "2026-10-09T05:46:58Z", "completedAt": "2026-10-09T05:46:59Z"},
+    {"name": "browser", "status": "COMPLETED", "conclusion": "FAILURE",
+     "startedAt": "2026-10-09T05:46:58Z", "completedAt": "2026-10-09T05:46:58Z"},
+    {"name": "agentic-gate", "status": "COMPLETED", "conclusion": "FAILURE",
+     "startedAt": "0001-01-01T00:00:00Z", "completedAt": "2026-10-09T05:47:00Z"},
+]
+
+
+def test_ci_that_never_ran_is_not_a_code_failure():
+    assert rs.classify_checks(QUOTA_319) == rs.FOLLOWUP_NOT_STARTED
+    ran = [dict(QUOTA_319[0], completedAt="2026-10-09T05:49:30Z")] + QUOTA_319[1:]
+    assert rs.classify_checks(ran) == rs.FOLLOWUP_FAILED          # one job really ran and failed
+    assert rs.classify_checks([{"conclusion": "FAILURE"}]) == rs.FOLLOWUP_FAILED   # no timing: real
+
+
+def test_the_guidance_names_the_rerun_and_the_recovery_offer_expires():
+    from agp_cockpit.core.verbs import recover_not_needed
+    facts = SimpleNamespace(followup_pr=319, followup_url="https://github.com/o/r/pull/319",
+                            followup_ci=rs.FOLLOWUP_NOT_STARTED)
+    steps = guidance._followup_steps(facts)
+    assert "nicht gestartet" in steps[0] and "Re-run all jobs" in steps[1]
+    state = SimpleNamespace(state=rs.STOERUNG, recommended=rs.ABSCHLIESSEN, facts=facts)
+    assert recover_not_needed(state)
+    for verdict in (rs.FOLLOWUP_GREEN, rs.FOLLOWUP_RUNNER, rs.FOLLOWUP_PENDING):
+        assert recover_not_needed(SimpleNamespace(state=rs.STOERUNG, recommended=rs.ABSCHLIESSEN,
+                                                  facts=SimpleNamespace(followup_ci=verdict)))
+    assert not recover_not_needed(SimpleNamespace(state=rs.STOERUNG, recommended=rs.ABSCHLIESSEN,
+                                                  facts=SimpleNamespace(followup_ci=rs.FOLLOWUP_FAILED)))
+
+
+def test_every_task_prompt_says_how_to_handle_ci_that_never_ran():
+    from agp_cockpit.core import standard_tasks as st
+    assert "AGP_CI_NOT_STARTED_V1" in st._COMMON and "never ask for more tool authority" in st._COMMON
+    assert "KIT-GF-062" in st._COMMON

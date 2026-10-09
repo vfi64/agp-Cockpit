@@ -627,6 +627,10 @@ many findings per slice as is safe. Order:
    ARCHITECTURE §13, COMMUNICATION_PROTOCOL 80 and CLAUDE.md) — build release-0.2.3-r1.
 1b. Release autonomy in the Cockpit (COMMUNICATION_PROTOCOL 81): phase 2 of the Release task runs
    under the start click; the remote side signs only a gate that matches the started release.
+1c. Done 2026-10-09 (build release-0.2.3-r2, COMMUNICATION_PROTOCOL 82): CI that never ran is
+   recognised and handed to the owner („Re-run all jobs“); the repository is public (free Actions
+   minutes, no PyPI, no Zenodo). Codex package 3 gets KIT-GF-062 (re-run route) and KIT-GF-063
+   (light CI for refresh PRs of consumer workspaces, deterministic).
 2. Codex package 3: KIT-GF-060, the rest of KIT-GF-049 (command-reference check in external
    workspaces, authority-gate evidence paths), then the other open findings in safe bundles, and
    KIT-GF-061 (approval policy); Kit 1.0.21 through `agentic-kit release run`, fully autonomous after

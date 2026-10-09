@@ -126,6 +126,11 @@ no orchestrator fits. Exactly one newly numbered Download/<step>_*.py work order
 step, executed through run_next.py, one canonical return bundle per execution; evaluate each
 result completely before the next work order. Use the Cockpit-verified repository facts in each
 continuation instead of re-running commands to check a result.
+CI that never ran (AGP_CI_NOT_STARTED_V1): when every failed check of a pull request ended
+without running — no job log ("log not found"), zero duration, cancelled or never acquired by a
+runner — the cause is GitHub (runner, Actions quota or billing), not the code. There is no Kit
+route to re-run checks (KIT-GF-062) and raw gh stays forbidden: stop with NEEDS_HUMAN that names
+the pull request, the run and „Re-run all jobs“ on GitHub, and never ask for more tool authority.
 """
 
 
@@ -546,7 +551,7 @@ the tag is missing. Skip to phase 2.""" if prepared else f"""Phase 1 — release
 4. Finish the branch through the Kit's pull-request lifecycle: green CI, merge, post-merge closeout,
    local main equal to origin/main.""")
     constraint, published = _release_publication_text(root)
-    return f"""STANDARD TASK — RELEASE {version} (private release)
+    return f"""STANDARD TASK — RELEASE {version}
 
 Repository: {root}
 Version: {version} · tag v{version} · {constraint}
@@ -554,7 +559,7 @@ Version: {version} · tag v{version} · {constraint}
 {phase_one}
 
 Phase 2 — tag publication (always asks):
-5. On main, run the Kit's private release publication as a dry run. Then stop with NEEDS_HUMAN and
+5. On main, run the Kit's release publication as a dry run. Then stop with NEEDS_HUMAN and
    state the version, the tag, the target commit, the planned actions and the approval signature
    of the dry run, so the owner can approve exactly that plan.
 6. After the approval, run the live publication with that signature (the Kit's execute options

@@ -1,4 +1,4 @@
-"""Input dialog of "Release" (plan P11): the version of the private release."""
+"""Input dialog of "Release" (plan P11): the version of the release (tag plus the Kit-made GitHub Release entry)."""
 
 from __future__ import annotations
 

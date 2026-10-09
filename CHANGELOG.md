@@ -1,11 +1,12 @@
 # Changelog — AGP Cockpit
 
-Private tool; releases are not published (no PyPI or Zenodo); the private
-repository carries a GitHub Release entry per release, made by the owner until the
-Kit's signed release run takes it over (`docs/planning/RELEASE_POLICY.md`). Version map: `docs/releases/versions.json`.
+The owner's tool in a public repository; no PyPI package and no Zenodo record. Each
+release is a tag and a GitHub Release entry made by the Kit's signed release run
+(`docs/planning/RELEASE_POLICY.md`). Version map: `docs/releases/versions.json`.
 
 ## Unreleased
 
+- When every failed check of a pull request ended without running (no log, no start or done within 3 s — GitHub's Actions quota on PR #319), the Lage says „CI nicht gestartet“ and names „Re-run all jobs“ on GitHub instead of a code failure, the recovery offer disappears as soon as the CI is no longer red, and every task prompt stops with NEEDS_HUMAN instead of asking for raw gh authority; the repository is public, release titles drop „(privat)“; KIT-GF-062 (no Kit route to re-run checks) and KIT-GF-063 (CI light mode only for the Kit's own layout) recorded; build `release-0.2.3-r2`.
 - Owner rule recorded: a release runs fully autonomously after the owner's go, also for irreversible publication, and stops on FAIL, BLOCKED or any difference from the consented release (COMMUNICATION_PROTOCOL 81, release_policy.json `approval`); KIT-GF-061 recorded (the Kit's release run has no approval policy and no approver record).
 - A release no longer edits the changelog by hand: on a release branch only the Kit's release preparation writes CHANGELOG.md, pyproject.toml and docs/releases/versions.json, the release pull request needs exactly one version section, and the former rule „Unreleased empty“ is withdrawn; KIT-GF-060 recorded; the rule „the Kit is the law, the Cockpit steers“ is written into the architecture, the protocol and CLAUDE.md; build `release-0.2.3-r1`.
 ## v0.2.3 - 2026-10-08

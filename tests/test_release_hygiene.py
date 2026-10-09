@@ -186,7 +186,7 @@ def test_the_workspace_declares_the_owners_title_and_the_github_route():
     config = yaml.safe_load((ROOT / ".agentic/config.yaml").read_text(encoding="utf-8"))
     assert config["publication"] == "github"         # P11c switched on 2026-10-08 (Kit 1.0.20)
     assert config["release"]["publish_checks"] == "none"   # KIT-GF-049 reproduced in 1.0.20
-    assert config["release"]["github_release_title_template"] == "AGP Cockpit {version} (privat)"
+    assert config["release"]["github_release_title_template"] == "AGP Cockpit {version}"   # public since 2026-10-09
     assert rh.github_releases_declared(ROOT)        # categories are collected already
 
 
