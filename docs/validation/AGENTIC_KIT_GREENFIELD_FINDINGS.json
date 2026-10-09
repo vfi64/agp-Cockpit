@@ -657,6 +657,13 @@
       "historical_id": "Kit 1.0.21 retest (release 0.2.4 rehearsal)",
       "canonical_family": "KIT-GF-060",
       "summary": "KIT-GF-060 and KIT-GF-049 verified with Kit 1.0.21 in a disposable clone: Unreleased consumed, one version section, stable rerun; release-publish dry run PASS with both Kit-only checks skipped"
+    },
+    {
+      "date": "2026-10-09",
+      "event_id": "GF-E090",
+      "historical_id": "1b preparation (release run code review, Kit 1.0.21)",
+      "canonical_family": "KIT-GF-065",
+      "summary": "release run gives publication: github the full package and DOI sequence (C3 dispatches release.yml, D1-D4 DOI branch); release branch hard-coded codex/release-<v>"
     }
   ],
   "families": [
@@ -2497,6 +2504,33 @@
         "fixed_in": "",
         "kit_state": "OPEN",
         "raw": "not addressed on Kit main 35e9b5a7",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-065",
+      "title": "release run treats publication: github like a package and DOI publication",
+      "first_observed": "2026-10-09",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The release-run step sequence follows the declared publication policy: none A1-C2; github A1-C2 plus the post-release check; github+pypi adds C3; +zenodo adds D1-D5. A gate the policy does not declare is never offered, signed or covered by upfront consent; C3 blocks with a named blocker when the package-index workflow file is missing. The release branch prefix is configurable (the Cockpit expects release/<v>).",
+      "observed": "Kit 1.0.21 release_run.py: _step_sequence(private_publication=not policy.publishes_anywhere) and publishes_anywhere is true for every policy except none, so publication: github gets A1-D5. After C2 (tag and GitHub Release) gate C3 defaults to release.yml, raises no blocker for a missing file and calls gh workflow run release.yml --ref v<x>; D1-D4 then open a DOI branch and DOI closeout pull request for a workspace without Zenodo. With release.approval: upfront these gates pass without a further signature. The release branch is hard-coded codex/release-<v> (and -doi). Found by code review while preparing MASTER_PLAN 1b; not run.",
+      "impact": "The Cockpit cannot move its Release task onto release run with upfront consent: the run would end red at C3 or attempt package and DOI steps the repository's policy forbids.",
+      "workaround": "None; MASTER_PLAN 1b waits for the fix (Codex package 4, slice A0). The Cockpit keeps its current release route (release prepare, then release-publish with the owner's approval).",
+      "repair": "Derive the step sequence and the gate set from the publication policy; block C3 when the workflow file is missing; make the release branch prefix configurable.",
+      "regression": "External fixtures with none, github, github+pypi and github+pypi+zenodo show exactly the expected steps and gates, in dry run and with upfront consent; a missing release.yml blocks C3 for github+pypi.",
+      "evidence": [
+        "agentic_project_kit/release_run.py (1.0.21): _step_sequence, _package_index_workflow, _package_index_workflow_blockers, branch codex/release-<v>",
+        "agentic_project_kit/publication_policy.py (1.0.21): publishes_anywhere"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-09",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 35e9b5a7; Codex package 4 slice A0",
         "report": ""
       }
     }
