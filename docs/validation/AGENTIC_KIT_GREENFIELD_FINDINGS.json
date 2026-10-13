@@ -671,6 +671,27 @@
       "historical_id": "Kit 1.0.24 adoption",
       "canonical_family": "KIT-GF-051",
       "summary": "Kit 1.0.24 adopted (manifest bf05db61066e): KIT-GF-023/035/064/065 fixed in 1.0.22, KIT-GF-017/021/027/051/062/063 fixed in 1.0.23 (Kit reconciliation report 2026-10-11); RULE-REGISTRY-BOOTSTRAP still without closure; KIT-GF-051 retested by the owner's kit update run, KIT-GF-065/061 by release 0.2.4"
+    },
+    {
+      "date": "2026-10-13",
+      "event_id": "GF-E092",
+      "historical_id": "plan discussion: verified findings",
+      "canonical_family": "KIT-GF-066",
+      "summary": "the Kit's adjudication of external findings exists only as Markdown; no machine-readable status, retest definition or committed release-run evidence"
+    },
+    {
+      "date": "2026-10-13",
+      "event_id": "GF-E093",
+      "historical_id": "release-run rehearsal 0.2.5, step A2",
+      "canonical_family": "KIT-GF-067",
+      "summary": "release ready / standard-error-scan run ./.venv/bin/agentic-kit literally; FileNotFoundError in a clone without .venv"
+    },
+    {
+      "date": "2026-10-13",
+      "event_id": "GF-E094",
+      "historical_id": "release-run rehearsal 0.2.5, step A2",
+      "canonical_family": "KIT-GF-068",
+      "summary": "audit-ns-legacy-references blocks the release on a line of the Cockpit's findings ledger that quotes ./ns; its context lists know only the Kit repository's paths"
     }
   ],
   "families": [
@@ -2242,7 +2263,7 @@
       "impact": "Local, ignored files block a release and can exhaust the machine.",
       "workaround": "Move local runtime folders out of the checkout before release ready.",
       "repair": "Enumerate files with git ls-files (tracked plus untracked not ignored) in these audits; stream results instead of collecting them.",
-      "regression": "A checkout with an ignored folder containing ./ns references and absolute paths passes both audits.",
+      "regression": "A checkout with an ignored folder containing legacy ./ns references and absolute paths passes both audits.",
       "evidence": [
         "agentic-project-kit tmp/release-run-1.0.19-steps/A2.json (108 MB, blockers standard-error-scan)",
         "agp-Cockpit .local/agp-cockpit/archive/kit-repo-runtime-20261006 and kit-repo-download-20261006",
@@ -2563,6 +2584,85 @@
         "kit_state": "CLOSED",
         "raw": "Kit #2450, released in agentic-project-kit 1.0.22 (PyPI, tag v1.0.22, #2454)",
         "report": "docs/reports/greenfield/KIT-GF-065-release-publication-policy-2026-10-09.md"
+      }
+    },
+    {
+      "id": "KIT-GF-066",
+      "title": "the Kit's adjudication of external findings is not machine-readable",
+      "first_observed": "2026-10-13",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "One committed, generated, schema-versioned status per external finding (Kit state, fixed_in, PRs, report, external retest definition, Kit release evidence) and committed release-run evidence per release.",
+      "observed": "docs/reports/greenfield/*.md carry state, fix and expected external retest as prose; the Cockpit's sync reads only docs/reports/*.json, so 1.0.21–1.0.24 were synced by hand; release-run evidence stays in tmp/release-run-<v>.json, the only proof for steps the Cockpit cannot run (C3/C4, DOI closeout).",
+      "impact": "No deterministic way to verify a finding in the consuming workspace; PyPI/DOI findings cannot be verified here at all.",
+      "workaround": "Manual sync from the Markdown reports.",
+      "repair": "Status export plus a read command; release run writes committed evidence (Codex package 5, slice B).",
+      "regression": "Export rerun byte-identical; every family has a report; schema validation; release evidence matches the run state.",
+      "evidence": [
+        "agentic-project-kit docs/reports/greenfield/ (Markdown only)",
+        "agp-Cockpit src/agp_cockpit/core/kit_findings_sync.py reads only docs/reports/*.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 52e4cb3a; Codex package 5",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-067",
+      "title": "release and transfer diagnostics run ./.venv/bin/agentic-kit literally",
+      "first_observed": "2026-10-13",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "Every Kit subprocess call uses the workspace-owned resolver of `kit status` (KIT-GF-021).",
+      "observed": "Kit 1.0.24: `release run` step A2 (`release ready` → `transfer standard-error-scan --before-release`) fails with FileNotFoundError './.venv/bin/agentic-kit' in a clone without .venv (owner's release rehearsal 2026-10-13); literal paths in cli_commands/transfer_diagnostics.py, transfer_workflow_next.py, successor_handoff_package.py.",
+      "impact": "A release or scan fails in any workspace whose Kit is not at ./.venv/bin/agentic-kit.",
+      "workaround": "The rehearsal links the clone's .venv to the repository's .venv (git-excluded).",
+      "repair": "Use the shared resolver everywhere (Codex package 5, slice E).",
+      "regression": "A fixture with the Kit outside ./.venv passes release ready and standard-error-scan.",
+      "evidence": [
+        "agentic_project_kit/cli_commands/transfer_diagnostics.py (1.0.24): standard-error-scan steps call ./.venv/bin/agentic-kit"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 52e4cb3a; Codex package 5",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-068",
+      "title": "the ./ns legacy-reference audit blocks a release on an external workspace's findings ledger",
+      "first_observed": "2026-10-13",
+      "status": "OPEN",
+      "severity": "low",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "In an external workspace the audit classifies evidence and ledger files (for example docs/validation/**) as evidence context, or reads a declared classification, instead of only the Kit repository's path lists.",
+      "observed": "Kit 1.0.24 `audit-ns-legacy-references` (inside `transfer standard-error-scan --before-release`, so inside `release ready` and `release run` A2) blocked release 0.2.5 of agp-Cockpit on one line of docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json that describes the KIT-GF-054 regression with './ns references'; its safe/historical contexts are hard-coded Kit-repository paths (docs/reports/, docs/planning/, tests/, …).",
+      "impact": "A consumer's own record of Kit findings blocks its release.",
+      "workaround": "The ledger line names the references 'legacy' (an explicit historical marker); a Cockpit test runs the Kit's audit over the ledger.",
+      "repair": "Declared or manifest-derived evidence contexts for external workspaces (Codex package 5, slice F).",
+      "regression": "An external fixture whose findings ledger quotes legacy ./ns references passes; an active legacy ./ns instruction in a script still blocks.",
+      "evidence": [
+        "agentic_project_kit/ns_legacy_reference_audit.py (1.0.24): classify_legacy_reference path lists"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 52e4cb3a; Codex package 5",
+        "report": ""
       }
     }
   ],

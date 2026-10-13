@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- The Kit's release readiness check no longer stops on the Cockpit's own findings ledger (one quoted legacy command reference is now marked as legacy, and a test runs the Kit's audit over the ledger); KIT-GF-066, KIT-GF-067 and KIT-GF-068 recorded; no rebuild needed.
 - A release is now one run of the Kit's release orchestrator: the click on „Release“ is the consent, the Kit records who approved and stops on any error or any difference in version, tag or target commit; no second question before the tag; release branches stay `release/<version>`; build `release-0.2.4-r2`.
 - The System check no longer reports a new ChatGPT page when only the composer's state changed: the send, expand, voice and stop controls left the UI fingerprint (version 3; the first start after the rebuild sets a new baseline without „NEU“); build `release-0.2.4-r1`.
 
