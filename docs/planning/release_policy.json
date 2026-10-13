@@ -43,9 +43,10 @@
     "decided": "2026-10-04",
     "marker": "AGP_SIGNED_PRIVATE_RELEASE_V1",
     "commands": [
-      "agentic-kit release-publish"
+      "agentic-kit release-publish",
+      "agentic-kit release run"
     ],
-    "rule": "The Kit's release route (Kit 1.0.16, KIT-GF-038; GitHub entry since Kit 1.0.17, KIT-GF-043): the dry run is free and prints an approval signature; the live run needs --execute --allow-execute --expected-signature <that signature> and the owner's approval; .agentic/config.yaml must declare the policy's publication (github: annotated tag plus GitHub Release entry, no PyPI or Zenodo); never the marker file .agentic/release/ENABLE_LIVE_PUBLISH."
+    "rule": "The Kit's release route (Kit 1.0.16, KIT-GF-038; GitHub entry since Kit 1.0.17, KIT-GF-043): the dry run is free and prints an approval signature; the live run needs --execute --allow-execute --expected-signature <that signature> and the owner's approval; .agentic/config.yaml must declare the policy's publication (github: annotated tag plus GitHub Release entry, no PyPI or Zenodo); never the marker file .agentic/release/ENABLE_LIVE_PUBLISH. Since 2026-10-13 (AGP_RELEASE_RUN_AUTONOMY_V1) the Release task runs agentic-kit release run: its gates are signed like release-publish, and a live run also names --approved-by and --consent-source."
   },
   "kit_github_release": {
     "decided": "2026-10-05",
@@ -63,7 +64,7 @@
     "decided": "2026-10-08",
     "marker": "AGP_RELEASE_AUTONOMY_V1",
     "rule": "The owner's go (start click of the Release task, or the release named in a work order) covers every gate of that release, including irreversible publication (GitHub release; PyPI and DOI where a repository has them). The agent passes a gate only when its summary matches the consented release (version, tag, target commit) and the Kit's checks PASS; on FAIL, BLOCKED or any difference it stops.",
-    "status": "Kit 1.0.21 offers release.approval per_gate | upfront with attributed consent and drift checks (KIT-GF-061); the Cockpit declares upfront together with the Release task change (MASTER_PLAN 1b), not before"
+    "status": "active since 2026-10-13 (AGP_RELEASE_RUN_AUTONOMY_V1): .agentic/config.yaml release.approval: upfront and release.branch_prefix: release/; the Release task runs agentic-kit release run, the start click is the consent recorded at gate B4 (--approved-by, --consent-source), later gates pass only while version, tag and target commit match; KIT-GF-061/065 retested by the first such release"
   },
   "repository_visibility": {
     "decided": "2026-10-09",

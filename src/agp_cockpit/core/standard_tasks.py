@@ -397,8 +397,39 @@ def _release_scope() -> frozenset[str]:
 RELEASE_RESUME_SCOPE = frozenset({"agentic-kit transfer sync-main", "agentic-kit transfer pull-current"})
 
 
+# AGP_RELEASE_RUN_AUTONOMY_V1 (owner 2026-10-08 „vollautonom“, 2026-10-13 „1b“): a workspace that
+# declares release.approval: upfront releases through the Kit's orchestrator alone. The start click
+# approves exactly that run (it syncs main, prepares, merges the release pull request, tags and
+# publishes); the Kit records the consent at gate B4 and refuses any later gate whose version, tag or
+# target commit differs (KIT-GF-061). Its own sync routes stay in scope for a resumed run.
+RELEASE_RUN_SCOPE = frozenset({"agentic-kit release run", "agentic-kit transfer sync-main",
+                               "agentic-kit transfer pull-current"})
+
+
+def release_config(root: Path) -> dict:
+    try:
+        import yaml
+        data = yaml.safe_load((Path(root) / ".agentic/config.yaml").read_text(encoding="utf-8"))
+    except (OSError, ValueError, ImportError):
+        return {}
+    release = (data or {}).get("release") if isinstance(data, dict) else None
+    return release if isinstance(release, dict) else {}
+
+
+def release_run_route(root: Path) -> bool:
+    """AGP_RELEASE_RUN_AUTONOMY_V1: the workspace consents up front, so the Kit's release run carries it."""
+    return release_config(root).get("approval") == "upfront"
+
+
+def _release_branch(root: Path, version: str) -> str:
+    prefix = str(release_config(root).get("branch_prefix") or "") if release_run_route(root) else ""
+    return f"{prefix or 'release/'}{version}"
+
+
 def _release_scope_for(root: Path, inputs: dict) -> frozenset[str]:
     version = str(inputs.get("version") or "").strip()
+    if release_run_route(root):
+        return RELEASE_RUN_SCOPE          # a stopped run resumes from the Kit's own state
     if version and version == _current_version(root):
         return RELEASE_RESUME_SCOPE
     return _release_scope()
@@ -460,12 +491,12 @@ def _release_precheck(root: Path, inputs: dict) -> str | None:
     current = _version_tuple(_current_version(root))
     if current is not None and wanted < current:
         return f"Version {version} ist kleiner als die aktuelle {_current_version(root)}."
-    if _current_version(root) == version:
+    if _current_version(root) == version and not release_run_route(root):
         # AGP_RELEASE_RESUME_PHASE2_V1 (live 2026-10-04, release 0.1.1): phase 1 is merged and only
         # the tag is missing. The squash-merged release branch may still exist (origin/release/<v>
         # stayed after #204); it is not reused, the task skips to the tag.
         return None
-    branch = f"release/{version}"
+    branch = _release_branch(root, version)
     for ref in (branch, f"origin/{branch}"):
         if _git_value(root, "rev-parse", "--verify", "--quiet", ref):
             return f"Branch {branch} existiert schon ({ref})."
@@ -496,9 +527,13 @@ def _release_contract(root: Path, inputs: dict) -> dict:
     version = str(inputs.get("version") or "").strip()
     constraint, _ = _release_publication_text(root)
     github = _publication(root) == "github"
+    run = release_run_route(root)
     return {
         "title": f"Standard Task: Release {version}",
-        "goal": (f"Private release {version}: release branch with the Kit's release preparation, "
+        "goal": (f"Release {version} through the Kit's release run under the owner's up-front consent: "
+                 "release branch with the Kit's preparation, merged with green CI, annotated tag and "
+                 "publication, each gate only while it matches this release." if run else
+                 f"Private release {version}: release branch with the Kit's release preparation, "
                  "merged with green CI, then the annotated tag pushed through the Kit's signed private "
                  "release route after the owner's approval."),
         "repository_root": str(root),
@@ -508,7 +543,9 @@ def _release_contract(root: Path, inputs: dict) -> dict:
             f"Annotated tag v{version} on origin; its commit is in origin/main; pyproject names {version}.",
         ] + ([f"GitHub Release entry v{version} exists and is not a draft."] if github else []),
         "constraints": [constraint,
-                        "The live tag publication only with the owner's approval of its signed plan.",
+                        ("The start click is the consent; the Kit's release run records it and stops on "
+                         "any gate that differs from this release." if run else
+                         "The live tag publication only with the owner's approval of its signed plan."),
                         "No force push; no marker file."],
     }
 
@@ -527,6 +564,8 @@ def _release_approval_text(prepared: bool) -> str:
 # one-line stub and the Unreleased section stayed; step 2 names the summary source.
 def _release_prompt(root: Path, inputs: dict) -> str:
     version = str(inputs.get("version") or "").strip()
+    if release_run_route(root):
+        return _release_run_prompt(root, version)
     prepared = _current_version(root) == version
     phase_one = (f"""Phase 1 is already done: main names version {version} (prepared and merged earlier) and
 the tag is missing. Skip to phase 2.""" if prepared else f"""Phase 1 — release branch:
@@ -577,6 +616,64 @@ Completion is verified locally: DONE is accepted only after the Cockpit checked 
 pull request is merged with green CI, main is green, the annotated tag v{version} is on origin, its
 commit is in origin/main and pyproject.toml at the tag names {version}{' and the GitHub Release entry exists' if _publication(root) == 'github' else ''}.
 Name the release pull request as "pr" in the DONE file.
+"""
+
+
+def release_approver(root: Path) -> str:
+    """Who consents: the local git user (the one who clicks), else the owner of origin."""
+    import re
+    name = _git_value(root, "config", "user.name")
+    if name:
+        return name
+    match = re.search(r"github\.com[:/]([^/:]+)/", _git_value(root, "remote", "get-url", "origin") or "")
+    return match.group(1) if match else "owner"
+
+
+def _release_run_prompt(root: Path, version: str) -> str:
+    """AGP_RELEASE_RUN_AUTONOMY_V1: the whole release is one Kit orchestrator under up-front consent."""
+    import datetime
+    constraint, published = _release_publication_text(root)
+    branch = _release_branch(root, version)
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")   # noqa: DTZ005 - the owner's local time
+    consent = f"AGP Cockpit start click: Release {version} ({stamp})"
+    approver = release_approver(root)
+    github = _publication(root) == "github"
+    return f"""STANDARD TASK — RELEASE {version}
+
+Repository: {root}
+Version: {version} · tag v{version} · branch {branch} · {constraint}
+
+The whole release is one run of the Kit's end-to-end release orchestrator, chosen from the command
+digest (AGP_RELEASE_RUN_AUTONOMY_V1): it synchronizes main, checks readiness, prepares {branch},
+merges the release pull request after green CI, creates the annotated tag and publishes {published}.
+This workspace declares release.approval: upfront: the owner's start click is the consent for exactly
+this release; the Kit records it once at gate B4 and lets later gates pass only while version, tag and
+target commit match the consented plan (KIT-GF-061). The start click approves this orchestrator and
+the Kit's main synchronization only; any other remote effect asks.
+1. Summary lines: read the "Unreleased" section of CHANGELOG.md and hand every entry that no version
+   section carries yet to the orchestrator verbatim (the text after "- "), one summary-line option
+   each — never a one-line stub such as "Prepare release". Never write CHANGELOG.md, pyproject.toml,
+   docs/releases/versions.json or the build identity yourself (AGP_RELEASE_KIT_OWNED_FILES_V1): the Kit's
+   preparation writes them, removes the carried entries from "Unreleased" (KIT-GF-060) and the build
+   identity follows the version (AGP_BUILD_ID_DERIVED_V1).
+2. Plan: run the orchestrator for version {version} with those summary lines and JSON output, without
+   its execute option. It stops at gate B4 with AWAITING_APPROVAL, the gate and its approval
+   signature. Continue only when the gate names version {version}, branch {branch} and only release
+   files the Kit's preparation wrote; otherwise stop with NEEDS_HUMAN.
+3. Execute: run it again with its execute option, the expected signature of that gate, --approved-by
+   "{approver}" and --consent-source "{consent}". Do not ask NEEDS_HUMAN for this consent.
+4. If it stops at another gate with AWAITING_APPROVAL, pass that gate the same way only when it names
+   version {version}, tag v{version} and the consented target commit.
+5. Stop with NEEDS_HUMAN on FAIL, BLOCKED, a recovery offer (D2R) or any difference from this release;
+   never work around a Kit blocker and never run the Kit's single release, publication or pull-request
+   steps yourself for this release. A stopped run resumes from the Kit's own state when the
+   orchestrator is started again for {version}.
+Never force-push; never merge red CI; never gh release.
+{_COMMON}
+Completion is verified locally: DONE is accepted only after the Cockpit checked that the release
+pull request is merged with green CI, main is green, the annotated tag v{version} is on origin, its
+commit is in origin/main and pyproject.toml at the tag names {version}{' and the GitHub Release entry exists' if github else ''}.
+Name the release pull request as "pr" in the DONE file (the run's B4 result names it).
 """
 
 
@@ -695,8 +792,9 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
     StandardTask(
         key="release",
         label="Release",
-        description=("Privates Release: Release-Branch über das Kit, Merge, dann nach Freigabe der signierte "
-                     "Tag-Push (bei publication: github mit GitHub-Release-Eintrag)."),
+        description=("Release über das Kit: Release-Branch, Merge, Tag und GitHub-Release-Eintrag; mit "
+                     "release.approval: upfront in einem Lauf (agentic-kit release run), sonst fragt der "
+                     "Tag-Push noch einmal."),
         contract_factory=_release_contract,
         prompt_factory=_release_prompt,
         effect="github",
@@ -705,16 +803,16 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
         approved_scope=_release_scope(),
         scope_factory=_release_scope_for,
         ci_gate_merge=True,
-        confirm=("„Release“ erstellt ein privates Release:\n"
+        # AGP_RELEASE_RUN_AUTONOMY_V1: with release.approval: upfront the click is the whole consent.
+        confirm=("„Release“ erstellt ein Release über das Kit:\n"
                  "Release-Branch · Release-Vorbereitung des Kits · Pull Request · grüne CI · Merge · "
-                 "Post-Merge-Abschluss.\n\n"
-                 "Der Start gibt genau diese Wirkungen frei. Der Push des Tags (bei publication: github "
-                 "mit dem GitHub-Release-Eintrag des Kits) fragt danach noch einmal: Du siehst Version, "
-                 "Tag, Ziel-Commit, die geplanten Aktionen und die Signatur des Probelaufs und gibst "
-                 "genau diesen Plan frei. Kein PyPI, kein Zenodo.\n\n"
-                 "Nennt main die Version schon (Release-Branch gemergt, Tag fehlt), entfällt der "
-                 "Release-Branch: Es folgt nur der Tag, und der Start gibt dann nur das "
-                 "Aktualisieren von main frei.\n\n"
+                 "annotierter Tag · GitHub-Release-Eintrag. Kein PyPI, kein Zenodo.\n\n"
+                 "Deklariert das Repo release.approval: upfront (agp-Cockpit seit 2026-10-13), ist dieser "
+                 "Klick deine Zustimmung zu genau diesem Release: Das Kit hält sie fest und stoppt bei "
+                 "jedem Fehler oder jeder Abweichung von Version, Tag oder Ziel-Commit. Ohne diese "
+                 "Deklaration fragt der Tag-Push noch einmal mit Version, Tag, Ziel-Commit und Signatur.\n\n"
+                 "Ein angehaltener Kit-Lauf setzt beim nächsten Start dort fort, wo er stand; ohne "
+                 "Deklaration entfällt der Release-Branch, wenn main die Version schon nennt (nur noch Tag).\n\n"
                  "Jetzt starten?"),
         offers_recover_on_interrupt=True,
     ),

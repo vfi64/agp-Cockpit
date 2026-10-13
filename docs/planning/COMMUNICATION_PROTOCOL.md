@@ -852,9 +852,8 @@ This section is normative for the file loop after local execution.
    of the consented release in every Kit-managed repository, including irreversible publication
    (GitHub release, PyPI, DOI). A gate is passed only when its summary names exactly the consented
    version, tag and target commit and the Kit's checks PASS; FAIL, BLOCKED or any difference stops
-   the run. Recorded in `docs/planning/release_policy.json` (`approval`). Not yet built in the
-   Cockpit: phase 2 of the Release task still asks (next slice). The Kit has no approval policy and
-   no approver record yet (KIT-GF-061).
+   the run. Recorded in `docs/planning/release_policy.json` (`approval`). Built on 2026-10-13
+   (rule 84): the Kit's release run records the consent (KIT-GF-061, Kit 1.0.21).
 82. CI that never ran (`AGP_CI_NOT_STARTED_V1`, build release-0.2.3-r2, owner 2026-10-09): when
    every failed check of a pull request has no start or ended within 3 seconds, the cause is
    GitHub (runner, Actions quota, billing), not the code. The Lage shows „CI nicht gestartet“ with
@@ -874,6 +873,15 @@ This section is normative for the file loop after local execution.
    work order that writes either file is rejected (AGP_RELEASE_KIT_OWNED_FILES_V1). Readers of
    another checkout or of the app bundle use `build_id_from_text`, which also reads the older
    literal form.
+84. Release through the Kit's release run (`AGP_RELEASE_RUN_AUTONOMY_V1`, build release-0.2.4-r2, owner
+   2026-10-13 „1b“): a workspace with `release.approval: upfront` releases in one Kit orchestrator run.
+   The start click approves only that orchestrator and the Kit's main synchronization; the work order
+   plans it (gate B4 with signature), then executes it with `--approved-by <local git user>` and
+   `--consent-source "AGP Cockpit start click: Release <v> (<time>)"`; the Kit records the consent and
+   refuses a later gate whose version, tag or target commit differs. `release.branch_prefix: release/`
+   keeps release branches named `release/<v>` (KIT-GF-065). A live release run without signature,
+   approver or consent source is rejected before it runs. Workspaces without the declaration keep the
+   two-phase release whose tag push asks.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

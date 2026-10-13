@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- A release is now one run of the Kit's release orchestrator: the click on „Release“ is the consent, the Kit records who approved and stops on any error or any difference in version, tag or target commit; no second question before the tag; release branches stay `release/<version>`; build `release-0.2.4-r2`.
 - The System check no longer reports a new ChatGPT page when only the composer's state changed: the send, expand, voice and stop controls left the UI fingerprint (version 3; the first start after the rebuild sets a new baseline without „NEU“); build `release-0.2.4-r1`.
 
 ## v0.2.4 - 2026-10-13
