@@ -741,6 +741,13 @@
       "historical_id": "Kit 1.0.25 adoption",
       "canonical_family": "KIT-GF-072",
       "summary": "rule-registry check BLOCKED after an unrelated comment line in .agentic/config.yaml"
+    },
+    {
+      "date": "2026-10-13",
+      "event_id": "GF-E102",
+      "historical_id": "refresh PR #347, steps 2070/2072",
+      "canonical_family": "KIT-GF-073",
+      "summary": "post-merge-settle BLOCKED: pr-wait-ci rejects the browser check skipped by the light path"
     }
   ],
   "families": [
@@ -2621,7 +2628,8 @@
       "evidence": [
         "agentic_project_kit/ci_runtime_policy.py (1.0.20): ADMIN_REFRESH_LIGHT, branch regex, path sets",
         "agp-Cockpit Actions run #858 (8:46)",
-        "2026-10-13 Kit 1.0.25 adds `ci runtime-plan` for customized workflows; adopted as AGP_CI_LIGHT_REFRESH_V1, live verification with the next refresh pull request"
+        "2026-10-13 Kit 1.0.25 adds `ci runtime-plan` for customized workflows; adopted as AGP_CI_LIGHT_REFRESH_V1, live verification with the next refresh pull request",
+        "2026-10-13 live: refresh PR #347 was classified light (python job 54 s, browser skipped), but the closeout blocked on the skipped check (KIT-GF-073); not verified"
       ],
       "kit_repo_status": {
         "date": "2026-10-13",
@@ -2858,6 +2866,33 @@
       "repair": "Codex package 6 (addendum).",
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [],
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "recorded by the Cockpit on Kit 1.0.25",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-073",
+      "title": "the Kit's CI policy blocks a consumer's light path because skipped checks count as not green",
+      "first_observed": "2026-10-13",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "When `ci runtime-plan` classified a pull request as light, the jobs the light path skips are accepted by pr-wait-ci, ci readiness and post-merge-settle (or the Kit's documented fragment avoids SKIPPED required checks).",
+      "observed": "Kit 1.0.25, agp-Cockpit refresh PR #347 after #346: the light path ran (python job 54 s, browser job SKIPPED, agentic-gate green), but `transfer post-merge-settle` ended BLOCKED (SUCCESSOR_PACKAGE_REFRESH_CI_BLOCKED) because pr-wait-ci treats SKIPPED as blocking; github_check_policy.OPTIONAL_SKIPPED_CHECK_NAMES only holds the Kit repository's own pytest-parallel-shadow. The documented KIT-GF-063 fragment skips its heavy jobs on the light path, so every consumer that follows it blocks the same way.",
+      "impact": "The post-merge closeout of every refresh pull request blocks; the remote side asks again and again for a CI re-run, which would skip again.",
+      "workaround": "AGP_CI_LIGHT_NO_SKIP_V1: the browser job always runs and succeeds on the light path with its steps conditional, so no check is SKIPPED.",
+      "repair": "Codex package 6, slice F.",
+      "regression": "External fixture: a light refresh PR whose heavy jobs are skipped passes pr-wait-ci and post-merge-settle; a skipped job on a full classification still blocks.",
+      "evidence": [
+        "agentic_project_kit/github_check_policy.py (1.0.25): OPTIONAL_SKIPPED_CHECK_NAMES",
+        "agp-Cockpit PR #347, Cockpit steps 2070 and 2072"
+      ],
       "kit_repo_status": {
         "date": "2026-10-13",
         "fixed_in": "",
