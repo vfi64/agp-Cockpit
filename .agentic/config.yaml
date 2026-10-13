@@ -25,12 +25,7 @@ gates:
 # annotated tag and the GitHub Release entry of the repository (publication: github); switched on
 # 2026-10-08 with Kit 1.0.20. Since Kit 1.0.21 (KIT-GF-049) the Kit-repository checks skip
 # themselves in an external workspace, so the former `publish_checks: none` override is gone.
-publication: github);
-# switched on 2026-10-08 with Kit 1.0.20 (KIT-GF-049). `publish_checks: none` is the Kit's own
-# setting for external workspaces: the auto-detection still runs `transfer command-reference-check`
-# here because this workspace carries the Kit command reference, and that check runs a test file of
-# the Kit repository (KIT-GF-049 reproduced in 1.0.20). Reference drift is caught by
-# `commands sync-entrypoints` and `agentic-kit check` instead.
+# (A broken comment line had left a duplicate key „publication: github);“ here; YAML kept the last.)
 publication: github
 release:
   github_release_title_template: "AGP Cockpit {version}"
@@ -66,3 +61,12 @@ release:
         date: '{date}'
         tag: '{tag}'
         published: false
+# AGP_NS_LEGACY_EVIDENCE_V1 (Kit 1.0.25, KIT-GF-068): the findings ledger records Kit defects and quotes
+# legacy command references as evidence, and so do the committed retest evidence files; the Kit's
+# legacy-reference audit treats exactly these files as declared evidence. Scripts and docs that instruct stay outside the declaration.
+audit:
+  ns_legacy:
+    evidence_paths:
+      - docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json
+      - docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md
+      - docs/validation/evidence/*.json

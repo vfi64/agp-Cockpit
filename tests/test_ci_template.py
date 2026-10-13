@@ -59,3 +59,39 @@ def test_runner_image_is_pinned_and_actions_run_on_node_24():
         assert action in text, action
     assert not re.search(r"actions/(checkout|setup-node|cache)@v4|actions/setup-python@v5", text)
 
+
+
+def test_refresh_pull_requests_take_the_kits_light_path_and_everything_else_runs_full():
+    """AGP_CI_LIGHT_REFRESH_V1 (Kit 1.0.25, KIT-GF-063): `agentic-kit ci runtime-plan` decides; Kit check and
+    doctor always run; a missing or failed classification is full."""
+    jobs = yaml.safe_load(SOURCE.read_text(encoding="utf-8"))["jobs"]
+    python, browser = jobs["python"], jobs["browser"]
+    plan = next(step for step in python["steps"] if step.get("id") == "plan")
+    assert plan["if"] == "github.event_name == 'pull_request'"                 # a push to main is full
+    assert "agentic-kit ci runtime-plan" in plan["run"] and 'echo "mode=full"' in plan["run"]
+    assert python["outputs"]["mode"] == "${{ steps.plan.outputs.mode }}"
+    assert python["steps"][0].get("with", {}).get("fetch-depth") == 0             # base and head are local
+    pytest_step = next(step for step in python["steps"] if "pytest" in str(step.get("run", "")))
+    kit_step = next(step for step in python["steps"] if "agentic-kit check" in str(step.get("run", "")))
+    assert pytest_step["if"] == "steps.plan.outputs.mode != 'light'" and "if" not in kit_step
+    assert browser["needs"] == "python" and browser["if"] == "always() && needs.python.outputs.mode != 'light'"
+    gate = jobs["agentic-gate"]["steps"][0]["run"]
+    assert 'needs.python.outputs.mode }}" = "light"' in gate and '= "skipped"' in gate
+    text = SOURCE.read_text(encoding="utf-8")
+    assert text.count("agentic-project-kit") == 1                              # kit update keeps one pin
+
+
+def test_workspace_config_has_no_duplicate_keys():
+    """A broken comment line once left `publication: github);` beside `publication: github` (YAML kept the last)."""
+    class Strict(yaml.SafeLoader):
+        pass
+
+    def mapping(loader, node, deep=False):
+        keys = [loader.construct_object(key, deep=deep) for key, _ in node.value]
+        duplicates = sorted({key for key in keys if keys.count(key) > 1})
+        assert not duplicates, f"duplicate keys {duplicates} at line {node.start_mark.line + 1}"
+        return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+    Strict.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
+    for path in (ROOT / ".agentic/config.yaml", SOURCE):
+        yaml.load(path.read_text(encoding="utf-8"), Loader=Strict)

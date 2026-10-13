@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: bf05db61066e
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: d1604f13011e
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
 - Schema version: `2`
 - Source: `generated_from_typer_click_registry`
-- Command count: `262`
+- Command count: `266`
 
 ## Commands
 
@@ -367,6 +367,25 @@ Render the session-start refresher and full inline command list.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
+
+### `agentic-kit ci runtime-plan`
+
+- Safety: `BOUNDED`
+- Surface: `diagnostic`
+- When to use: Classify a custom CI diff; unknown input always requests full tests.
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Classify a custom CI diff; unknown input always requests full tests.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `base` | `TyperOption` | --base | `True` |  |  |
+| `head` | `TyperOption` | --head | `True` |  |  |
+| `branch` | `TyperOption` | --branch | `False` | `` |  |
+| `event_name` | `TyperOption` | --event-name | `False` | `` |  |
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit ci status`
 
@@ -1450,6 +1469,38 @@ Create and push a GitHub repository for an initialized project.
 |---|---:|---|---:|---|---|
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root. |
 
+### `agentic-kit greenfield export`
+
+- Safety: `BOUNDED`
+- Surface: `primitive`
+- When to use: Plan or sign the Kit maintainer's deterministic local status projections.
+- Dry-run available: `True`
+- Remote effects: `none`
+
+Plan or sign the Kit maintainer's deterministic local status projections.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
+| `execute` | `TyperOption` | --execute | `False` | `False` |  |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` |  |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
+
+### `agentic-kit greenfield status`
+
+- Safety: `READ_ONLY`
+- Surface: `diagnostic`
+- When to use: Read the installed Kit's public adjudications; never change a consumer ledger.
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Read the installed Kit's public adjudications; never change a consumer ledger.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `finding_id` | `TyperOption` | --id | `False` | `` |  |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
+
 ### `agentic-kit gui initial-llm-prompt`
 
 - Safety: `BOUNDED`
@@ -1476,7 +1527,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.24` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.25` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1489,7 +1540,7 @@ Run the pre-GUI readiness gate.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `path` | `TyperOption` | --path | `False` | `.agentic/handoff_state.yaml` |  |
+| `path` | `TyperOption` | --path | `False` | `` |  |
 
 ### `agentic-kit handoff post-merge-refresh-status`
 
@@ -1511,7 +1562,7 @@ _No parameters._
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `path` | `TyperOption` | --path | `False` | `.agentic/handoff_state.yaml` |  |
+| `path` | `TyperOption` | --path | `False` | `` |  |
 | `intended_output` | `TyperOption` | --intended-output | `False` |  | Prompt path that this render will write after generation. |
 
 ### `agentic-kit handoff refresh`
@@ -1524,7 +1575,7 @@ _No parameters._
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `path` | `TyperArgument` | path | `False` | `.agentic/handoff_state.yaml` |  |
+| `path` | `TyperArgument` | path | `False` | `` |  |
 | `write` | `TyperOption` | --write | `False` | `False` | Write refreshed safe_state to YAML. |
 
 ### `agentic-kit handoff show`
@@ -1537,7 +1588,7 @@ _No parameters._
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `path` | `TyperOption` | --path | `False` | `.agentic/handoff_state.yaml` |  |
+| `path` | `TyperOption` | --path | `False` | `` |  |
 
 ### `agentic-kit init`
 
@@ -2081,7 +2132,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.0.24` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.25` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2194,6 +2245,23 @@ Write a K3 remote branch hygiene evidence report only with --execute.
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `no_push` | `TyperOption` | --no-push | `False` | `False` | Commit locally without pushing. |
 
+### `agentic-kit rule-registry bootstrap`
+
+- Safety: `BOUNDED`
+- Surface: `primitive`
+- When to use: Plan or sign a local evidence-derived external Kit inventory write.
+- Dry-run available: `True`
+- Remote effects: `none`
+
+Plan or sign a local evidence-derived external Kit inventory write.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
+| `execute` | `TyperOption` | --execute | `False` | `False` |  |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` |  |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
+
 ### `agentic-kit rule-registry check`
 
 - Safety: `READ_ONLY`
@@ -2202,7 +2270,10 @@ Write a K3 remote branch hygiene evidence report only with --execute.
 - Dry-run available: `False`
 - Remote effects: `none`
 
-_No parameters._
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit rule-registry register`
 
@@ -2242,6 +2313,7 @@ Add one reviewed rule mechanism with direct evidence coverage.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Emit machine-readable JSON. |
 | `fail_on_followups` | `TyperOption` | --fail-on-followups | `False` | `False` | Exit non-zero when follow-up items remain, even if validation passes. |
 
@@ -2385,7 +2457,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.24` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.25` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`

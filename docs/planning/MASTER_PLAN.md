@@ -672,6 +672,8 @@ P1 — next:
    group A (fresh external workspace) at once, the rest from the Kit's export.
 3. Findings data model stage 1: source_repo / target_repo.
 4. Adopt Kit 1.0.25 before 2026-11-01: light CI for refresh pull requests, rule-registry bootstrap.
+   Done 2026-10-13 through `kit update` (AGP_CI_LIGHT_REFRESH_V1, rule-registry bootstrap, KIT-GF-068
+   declaration); executable retests follow with Codex package 6 (KIT-GF-070, Kit 1.0.26).
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults.
