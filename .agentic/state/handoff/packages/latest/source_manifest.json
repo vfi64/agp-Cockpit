@@ -3,7 +3,7 @@
   "schema_version": 1,
   "sources": [
     {
-      "bytes": 2656,
+      "bytes": 2834,
       "exists": true,
       "path": ".agentic/config.yaml",
       "yaml_valid": true
