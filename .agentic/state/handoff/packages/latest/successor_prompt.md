@@ -37,8 +37,8 @@ Critical rule IDs:
 
 ## Current continuation state
 
-- branch: `docs/post-pr348-successor-package-refresh`
-- head_matches_origin_main: `True`
+- branch: `release/0.2.6`
+- head_matches_origin_main: `False`
 - worktree_clean: `True`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
 - document_registry_source: `.agentic/registries/documentation.yaml`
@@ -154,14 +154,14 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
     "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
   ],
   "repo": {
-    "branch": "docs/post-pr348-successor-package-refresh",
+    "branch": "release/0.2.6",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "926e1f7030d9c9b04c86b0643b3f455a95150b96",
-    "head_matches_origin_main": true,
-    "head_short": "926e1f70",
+    "head": "0740e385b12945cb8b2258e2fe63142d37e23aae",
+    "head_matches_origin_main": false,
+    "head_short": "0740e385",
     "local_path": "cd /path/to/",
-    "origin_main": "926e1f7030d9c9b04c86b0643b3f455a95150b96",
-    "origin_main_short": "926e1f70",
+    "origin_main": "b0c70bfab4b6305b9e421cc612fed641b8627f42",
+    "origin_main_short": "b0c70bfa",
     "worktree_clean": true
   }
 }

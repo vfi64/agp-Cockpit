@@ -1,0 +1,178 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-13",
+  "explicit_summary_lines": [
+    "On the light CI path the browser job now runs and succeeds without browser tests instead of being skipped: the Kit's CI policy counts a skipped check as not green and blocked the closeout of refresh PR #347 (KIT-GF-073 recorded); no rebuild needed.",
+    "Kit 1.0.25 adopted through the Kit's own `kit update` (manifest d1604f13011e): refresh pull requests now take the Kit's light CI path (Kit check and doctor only, AGP_CI_LIGHT_REFRESH_V1), the findings ledger and evidence files are declared evidence for the legacy-reference audit (KIT-GF-068), the rule-mechanism inventory is bootstrapped; KIT-GF-021, 051, 068 and the rule-registry bootstrap confirmed, KIT-GF-070\u2013072 recorded; no rebuild needed.",
+    "Kit findings KIT-GF-061 and KIT-GF-065 are confirmed fixed by the first live release run (0.2.5); the evidence is a committed file (`docs/validation/evidence/release-run-0.2.5.json`), and a test now requires dated evidence for every confirmed finding and checks each evidence file against the register; no rebuild needed.",
+    "Gate B4 of a release run may list the Kit's own state under `.agentic/state/` besides the release files: the release task's path rule is now code (`release_gate_files`, AGP_RELEASE_GATE_PATHS_V1) instead of a too narrow sentence; KIT-GF-069 recorded (the Kit's release run stops at C1 in external workspaces; 0.2.5 was published with `release-publish`); build `release-0.2.5-r1`."
+  ],
+  "from_tag": "v0.2.5",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.2.6",
+        "--from-tag",
+        "v0.2.5",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-026-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 10612,
+      "stdout_sha256": "254f1fddc275191e76ba7556f5eda2f9dc7a11885c8c8ebacb889a37581329e0"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.2.6",
+        "--date",
+        "2026-10-13",
+        "--summary-line",
+        "On the light CI path the browser job now runs and succeeds without browser tests instead of being skipped: the Kit's CI policy counts a skipped check as not green and blocked the closeout of refresh PR #347 (KIT-GF-073 recorded); no rebuild needed.",
+        "--summary-line",
+        "Kit 1.0.25 adopted through the Kit's own `kit update` (manifest d1604f13011e): refresh pull requests now take the Kit's light CI path (Kit check and doctor only, AGP_CI_LIGHT_REFRESH_V1), the findings ledger and evidence files are declared evidence for the legacy-reference audit (KIT-GF-068), the rule-mechanism inventory is bootstrapped; KIT-GF-021, 051, 068 and the rule-registry bootstrap confirmed, KIT-GF-070\u2013072 recorded; no rebuild needed.",
+        "--summary-line",
+        "Kit findings KIT-GF-061 and KIT-GF-065 are confirmed fixed by the first live release run (0.2.5); the evidence is a committed file (`docs/validation/evidence/release-run-0.2.5.json`), and a test now requires dated evidence for every confirmed finding and checks each evidence file against the register; no rebuild needed.",
+        "--summary-line",
+        "Gate B4 of a release run may list the Kit's own state under `.agentic/state/` besides the release files: the release task's path rule is now code (`release_gate_files`, AGP_RELEASE_GATE_PATHS_V1) instead of a too narrow sentence; KIT-GF-069 recorded (the Kit's release run stops at C1 in external workspaces; 0.2.5 was published with `release-publish`); build `release-0.2.5-r1`.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-026-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "91f7a286c20c7f88eed013b72980649cb9f0a8ecf830c84f351084a5197ba448"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "c197006e0dd803df1ecd4e3fda888fae622c57d33fcb5533a327b6871eeaac8d"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "dc3f9af3a18035f0ca4ff26e692fa80b56b4a5a51c144d869598f15c292de16f"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-026-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.2.6"
+}
