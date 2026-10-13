@@ -2,7 +2,7 @@
 
 import re
 
-APP_VERSION = "0.2.4"
+APP_VERSION = "0.2.5"
 BRIDGE_PROTOCOL_VERSION = 1
 
 # AGP_BUILD_ID_DERIVED_V1 (owner 2026-10-09): the build id follows the version, so a release needs

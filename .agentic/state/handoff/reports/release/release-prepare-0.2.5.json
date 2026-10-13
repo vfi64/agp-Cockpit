@@ -1,0 +1,175 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-13",
+  "explicit_summary_lines": [
+    "The Kit's release readiness check no longer stops on the Cockpit's own findings ledger (one quoted legacy command reference is now marked as legacy, and a test runs the Kit's audit over the ledger); KIT-GF-066, KIT-GF-067 and KIT-GF-068 recorded; no rebuild needed.",
+    "A release is now one run of the Kit's release orchestrator: the click on \u201eRelease\u201c is the consent, the Kit records who approved and stops on any error or any difference in version, tag or target commit; no second question before the tag; release branches stay `release/<version>`; build `release-0.2.4-r2`.",
+    "The System check no longer reports a new ChatGPT page when only the composer's state changed: the send, expand, voice and stop controls left the UI fingerprint (version 3; the first start after the rebuild sets a new baseline without \u201eNEU\u201c); build `release-0.2.4-r1`."
+  ],
+  "from_tag": "v0.2.4",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.2.5",
+        "--from-tag",
+        "v0.2.4",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-025-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 9070,
+      "stdout_sha256": "2d5e117307ac3bac9f42e1b54944ccf3ac0afd8ce69f8c593aa0ed43ca8eef2b"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.2.5",
+        "--date",
+        "2026-10-13",
+        "--summary-line",
+        "The Kit's release readiness check no longer stops on the Cockpit's own findings ledger (one quoted legacy command reference is now marked as legacy, and a test runs the Kit's audit over the ledger); KIT-GF-066, KIT-GF-067 and KIT-GF-068 recorded; no rebuild needed.",
+        "--summary-line",
+        "A release is now one run of the Kit's release orchestrator: the click on \u201eRelease\u201c is the consent, the Kit records who approved and stops on any error or any difference in version, tag or target commit; no second question before the tag; release branches stay `release/<version>`; build `release-0.2.4-r2`.",
+        "--summary-line",
+        "The System check no longer reports a new ChatGPT page when only the composer's state changed: the send, expand, voice and stop controls left the UI fingerprint (version 3; the first start after the rebuild sets a new baseline without \u201eNEU\u201c); build `release-0.2.4-r1`.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-025-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "93bf6c36de9300c87bd11ab34872d42f2f22e12a9a76a7fdc64a6c885b47d023"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "1c01e568df61b3983a822ada14ae0964b82336ba70e0e0a8c8db8ef65c785c53"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "840e5a598086f55199d21bc03d28098b3bac60b9ea56c69652751d267dc85821"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-025-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.2.5"
+}
