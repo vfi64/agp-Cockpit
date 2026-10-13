@@ -97,6 +97,11 @@ globalThis.AGP_SELECTORS = (() => {
     dialogClose: '[data-testid="close-button"], button[aria-label="Vollbildmodus beenden"], ' +
       'button[aria-label="Exit full screen"], button[aria-label="Schließen"], ' +
       'button[aria-label="Close"], button',
+    // AGP_UI_FINGERPRINT_V3 (live 2026-10-13, cf1f11c3 vs 40c3718c): controls that ChatGPT shows or
+    // hides with the composer's state (text present: send and expand; empty: voice; answering:
+    // stop). Lower-case fragments of their aria-label or data-testid; never part of the fingerprint.
+    fingerprintStateControls: ["send", "senden", "voice", "speech", "sprach",
+      "ausklappen", "einklappen", "expand", "collapse", "stop"],
   });
 })();
 

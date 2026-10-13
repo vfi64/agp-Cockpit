@@ -66,7 +66,19 @@ def test_a_record_from_before_the_version_field_is_repaired_on_the_next_start(tm
 
 
 def test_the_extension_sends_the_fingerprint_version():
-    assert "const AGP_UI_FINGERPRINT_VERSION = 2;" in EVIDENCE
+    assert "const AGP_UI_FINGERPRINT_VERSION = 3;" in EVIDENCE      # AGP_UI_FINGERPRINT_V3
+    assert "fingerprintStateControls" in EVIDENCE
+
+
+def test_the_owners_two_signatures_of_2026_10_13_are_one_page_after_v3(tmp_path):
+    """cf1f11c3 (empty composer) and 40c3718c (text in it) differed only in state controls; V3 is a
+    silent new baseline, so the System tab shows no „NEU“ for that page again."""
+    common = ["attr:role", "button:ChatGPT-Modell auswählen", "chain:div>div", "composer:div:editable"]
+    ui_observation.record_variant(tmp_path, {"fingerprint": "40c3718c", "ui_signature": common + [
+        "button:Senden", "button:Ausklappen"], "fingerprint_version": 2}, now=1000.0)
+    assert ui_observation.record_variant(tmp_path, {"fingerprint": "0a0b0c0d", "ui_signature": common,
+                                                    "fingerprint_version": 3}, now=2000.0) is None
+    assert "NEU" not in ui_observation.variant_line(tmp_path, now=2060.0)
     assert "fingerprint_version:ui.version" in EVIDENCE
     assert "fingerprint_version:touchpoints.fingerprint_version || 0" in CONTENT
 
