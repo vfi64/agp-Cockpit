@@ -270,7 +270,8 @@ function agpFnv1a(text) {
 // AGP_UI_FINGERPRINT_VERSIONED_V1: the algorithm version travels with every fingerprint, so a
 // new algorithm is never mistaken for a new ChatGPT page (live 2026-10-07: V1 → V2 showed "NEU").
 // Raise it whenever agpUiFingerprint changes what it collects.
-const AGP_UI_FINGERPRINT_VERSION = 2;
+// V3 (live 2026-10-13): state-dependent controls left the fingerprint (AGP_UI_FINGERPRINT_V3).
+const AGP_UI_FINGERPRINT_VERSION = 3;
 
 function agpUiFingerprint(composer, form) {
   // AGP_UI_FINGERPRINT_V2 (live 2026-10-07, variant a0785191): at the start the composer form
@@ -279,6 +280,10 @@ function agpUiFingerprint(composer, form) {
   // form's buttons (UI labels, never chat text).
   const items = new Set();
   const fold = value => String(value || "").replace(/\d+/g, "#");
+  // AGP_UI_FINGERPRINT_V3 (live 2026-10-13): "Senden"/"Ausklappen" with text in the composer,
+  // "Sprachchat starten" when it is empty — the same page gave two fingerprints and a false "NEU".
+  const stateful = value => (AGP_SELECTORS.fingerprintStateControls || [])
+    .some(fragment => String(value || "").toLowerCase().includes(fragment));
   if (composer) {
     const editable = composer.getAttribute && composer.getAttribute("contenteditable");
     items.add("composer:" + String(composer.tagName || "").toLowerCase() + (editable ? ":editable" : ""));
@@ -296,9 +301,10 @@ function agpUiFingerprint(composer, form) {
   if (form) {
     for (const button of form.querySelectorAll("button")) {
       const label = String((button.getAttribute && button.getAttribute("aria-label")) || "").trim();
-      if (label && label.length <= 40) items.add("button:" + fold(label));
+      if (label && label.length <= 40 && !stateful(label)) items.add("button:" + fold(label));
     }
     for (const el of form.querySelectorAll("[data-testid]")) {
+      if (stateful(el.getAttribute("data-testid"))) continue;
       items.add("testid:" + String(el.getAttribute("data-testid") || "").replace(/\d+/g, "#").slice(0, 60));
     }
     items.add("file_inputs:" + form.querySelectorAll('input[type="file"]').length);

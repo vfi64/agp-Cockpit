@@ -47,10 +47,17 @@ assert.deepEqual(plain(a.signature), [
   "composer:div:editable", "file_inputs:2", "testid:composer-plus-btn", "testid:model-switcher-#"]);
 assert.equal(fingerprint(composer, form).fingerprint, a.fingerprint);
 assert.ok(!JSON.stringify(a).includes("SECRET"));
-// 2. A new control in the form is a new variant; the class attribute (hashed names) is not part of it.
-form.children.push(el("button", {"data-testid": "send-button"}));
+// 2. AGP_UI_FINGERPRINT_V3 (live 2026-10-13): controls that follow the composer's state do not
+//    change the fingerprint (the owner's page gave cf1f11c3 empty and 40c3718c with text).
+form.children.push(el("button", {"data-testid": "send-button", "aria-label": "Senden"}));
+form.children.push(el("button", {"aria-label": "Ausklappen"}));
+form.children.push(el("button", {"aria-label": "Sprachchat starten"}));
+form.children.push(el("button", {"data-testid": "stop-button", "aria-label": "Stop streaming"}));
+assert.equal(fingerprint(composer, form).fingerprint, a.fingerprint);
+// A new structural control in the form is a new variant; the class attribute (hashed names) is not part of it.
+form.children.push(el("button", {"data-testid": "composer-tools-btn", "aria-label": "Werkzeuge"}));
 assert.notEqual(fingerprint(composer, form).fingerprint, a.fingerprint);
-assert.deepEqual(plain(fingerprint(null, null)), {fingerprint: "", signature: [], version: 2});   // AGP_UI_FINGERPRINT_VERSIONED_V1
+assert.deepEqual(plain(fingerprint(null, null)), {fingerprint: "", signature: [], version: 3});   // AGP_UI_FINGERPRINT_VERSIONED_V1
 
 // 3. The shape keeps structure and short labels, never text, and is bounded.
 const turn = el("article", {"data-message-author-role": "assistant", role: "article"}, [

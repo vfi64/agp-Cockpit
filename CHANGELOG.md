@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- The System check no longer reports a new ChatGPT page when only the composer's state changed: the send, expand, voice and stop controls left the UI fingerprint (version 3; the first start after the rebuild sets a new baseline without „NEU“); build `release-0.2.4-r1`.
+
 ## v0.2.4 - 2026-10-13
 
 - Kit 1.0.24 adopted (CI pins, command manifest bf05db61066e): KIT-GF-023/035/064/065 fixed in 1.0.22 and KIT-GF-017/021/027/051/062/063 fixed in 1.0.23 are recorded; checks that never ran are re-run through the Kit's `pr rerun-checks` (its plan is free, its signed run asks the owner); no rebuild needed.
