@@ -106,8 +106,8 @@ def test_the_real_register_tracks_the_kit_1_0_21_adoption():
         assert by_id[fid].fixed_in == "1.0.21" and by_id[fid].kit["fixed_in"] == "1.0.21", fid
     for fid in ("KIT-GF-049", "KIT-GF-060"):                                  # GF-E089 rehearsal
         assert by_id[fid].effective_status("1.0.21") == kf.VERIFIED, fid
-    for fid in ("KIT-GF-052", "KIT-GF-061"):
-        assert by_id[fid].effective_status("1.0.21") == kf.FIXED_UNVERIFIED, fid
+    assert by_id["KIT-GF-052"].effective_status("1.0.21") == kf.FIXED_UNVERIFIED
+    assert by_id["KIT-GF-061"].effective_status("1.0.24") == kf.VERIFIED       # release 0.2.5 (GF-E096)
     for fid in ("KIT-GF-023", "KIT-GF-035"):                                  # released in 1.0.22
         assert by_id[fid].effective_status("1.0.21") == kf.FIXED_NOT_INSTALLED, fid
 
@@ -120,7 +120,8 @@ def test_the_real_register_tracks_the_kit_1_0_24_adoption():
                          ("KIT-GF-027", "1.0.23"), ("KIT-GF-051", "1.0.23"), ("KIT-GF-062", "1.0.23"),
                          ("KIT-GF-063", "1.0.23")):
         assert by_id[fid].fixed_in == version and by_id[fid].kit["fixed_in"] == version, fid
-        assert by_id[fid].effective_status("1.0.24") == kf.FIXED_UNVERIFIED, fid
+        verified = fid == "KIT-GF-065"                                     # release 0.2.5 (GF-E096)
+        assert by_id[fid].effective_status("1.0.24") == (kf.VERIFIED if verified else kf.FIXED_UNVERIFIED), fid
     assert by_id["KIT-GF-RULE-REGISTRY-BOOTSTRAP"].effective_status("1.0.24") != kf.VERIFIED
 
 

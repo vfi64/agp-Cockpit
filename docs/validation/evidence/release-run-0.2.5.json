@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "kind": "agp_kit_retest_evidence",
+  "id": "release-run-0.2.5",
+  "date": "2026-10-13",
+  "kit_version": "1.0.24",
+  "source": "agp-Cockpit release 0.2.5: Kit release run (.agentic/tmp/release-run-0.2.5.json and steps/C1.json in the owner workspace, not committed) and the owner's release-publish runner (.local/agp-cockpit/logs/release-publish-025-20261013-172353.log)",
+  "release_run": {
+    "version": "0.2.5",
+    "publication_policy": "github",
+    "release_branch": "release/0.2.5",
+    "planned_steps": [
+      "A1",
+      "A2",
+      "A3",
+      "B1",
+      "B2",
+      "B3",
+      "B4",
+      "C1",
+      "C2",
+      "C4"
+    ],
+    "finished_steps": [
+      "A1",
+      "A2",
+      "A3",
+      "B1",
+      "B2",
+      "B3",
+      "B4"
+    ],
+    "step_results": {
+      "A1": "PASS",
+      "A2": "PASS",
+      "A3": "PASS",
+      "B1": "PASS",
+      "B2": "PASS",
+      "B3": "PASS",
+      "B4": "PASS"
+    },
+    "approvals": [
+      {
+        "step_id": "B4",
+        "approved_by": "vfi64",
+        "consent_source": "AGP Cockpit start click: Release 0.2.5 (2026-10-13 16:38)",
+        "approved_at": "2026-10-13T14:38:56.605799+00:00",
+        "approval_mode": "upfront",
+        "gate_signature": "6fef55b6d44ccb04f61a203f",
+        "target_commit": "4e02435437fe2b3d913ef419a1bd6e52dc5d426c"
+      }
+    ],
+    "c1": {
+      "returncode": 0,
+      "blockers": [
+        "release-publish"
+      ],
+      "release_publish_status": "PASS",
+      "release_publish_blocker_count": 0,
+      "checks": {
+        "release-prep dry-run": "PASS",
+        "release metadata authority gate": "PASS",
+        "docs audit": "SKIP",
+        "command reference check": "SKIP",
+        "GitHub release title configuration": "PASS"
+      },
+      "blockers_note": "reported by the release run's result; the step file is written before the verdict and carries none"
+    }
+  },
+  "release_publish": {
+    "mode": "execute",
+    "status": "PASS",
+    "tag": "v0.2.5",
+    "target_commit": "95448ab133b8b76d57632ace060ce6a2d0670b1f",
+    "approval_signature": "700d52c5d27875df18813ca1",
+    "checks": {
+      "release-prep dry-run": "PASS",
+      "release metadata authority gate": "PASS",
+      "docs audit": "SKIP",
+      "command reference check": "SKIP",
+      "GitHub release title configuration": "PASS",
+      "release commit integrity": "PASS",
+      "execute annotated git tag v0.2.5": "PASS",
+      "execute git push origin v0.2.5": "PASS",
+      "execute gh release create v0.2.5": "PASS",
+      "execute gh release view v0.2.5": "PASS",
+      "execute post-release-check --version 0.2.5": "PASS"
+    }
+  },
+  "verifies": {
+    "KIT-GF-061": "gate B4 recorded approved_by vfi64 with the consent source of the Cockpit's start click under release.approval: upfront",
+    "KIT-GF-065": "publication: github planned A1–C2 plus C4 (no C3 package index, no D DOI steps) and kept the release branch release/0.2.5"
+  },
+  "not_verified": {
+    "KIT-GF-047": "the run did not reach the end: C1 stopped (KIT-GF-069); publication by release-publish"
+  }
+}
