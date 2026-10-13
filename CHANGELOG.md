@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Gate B4 of a release run may list the Kit's own state under `.agentic/state/` besides the release files: the release task's path rule is now code (`release_gate_files`, AGP_RELEASE_GATE_PATHS_V1) instead of a too narrow sentence; KIT-GF-069 recorded (the Kit's release run stops at C1 in external workspaces; 0.2.5 was published with `release-publish`); build `release-0.2.5-r1`.
+
 ## v0.2.5 - 2026-10-13
 
 - The Kit's release readiness check no longer stops on the Cockpit's own findings ledger (one quoted legacy command reference is now marked as legacy, and a test runs the Kit's audit over the ledger); KIT-GF-066, KIT-GF-067 and KIT-GF-068 recorded; no rebuild needed.

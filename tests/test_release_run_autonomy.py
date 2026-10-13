@@ -71,3 +71,26 @@ def test_the_policy_names_the_release_run_as_a_signed_route():
     policy = json.loads((ROOT / "docs/planning/release_policy.json").read_text(encoding="utf-8"))
     assert "agentic-kit release run" in policy["signed_kit_commands"]["commands"]
     assert policy["approval"]["status"].startswith("active since 2026-10-13")
+
+
+def test_gate_b4_paths_are_the_release_files_and_the_kits_own_state():
+    """AGP_RELEASE_GATE_PATHS_V1: release 0.2.5 stopped at B4 because the prompt allowed only the release files,
+    while the Kit's branch completion also refreshes its handoff state under .agentic/state/."""
+    files = st.release_gate_files(ROOT)
+    assert {"CHANGELOG.md", "pyproject.toml", "src/agp_cockpit/version.py",
+            "chrome_extension/build_identity.js", "docs/releases/versions.json"} == set(files)
+    gate_025 = [".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+                ".agentic/state/handoff/packages/latest/execution_contract.json",
+                ".agentic/state/handoff/reports/", *files]
+    assert st.release_gate_differences(ROOT, gate_025) == []
+    assert st.release_gate_differences(ROOT, [*gate_025, "src/agp_cockpit/app.py"]) == ["src/agp_cockpit/app.py"]
+    assert st.release_gate_differences(ROOT, [".agentic/config.yaml"]) == [".agentic/config.yaml"]
+    prompt = TASK.prompt(ROOT, {"version": "0.2.6"})
+    assert "AGP_RELEASE_GATE_PATHS_V1" in prompt and ".agentic/state/" in prompt
+    assert all(f in prompt for f in files)
+
+
+def test_gate_b4_files_follow_the_declared_version_anchors(tmp_path):
+    root = _repo(tmp_path, {"approval": "upfront", "version_anchors": [{"path": "app/VERSION"}, {"kind": "x"}]})
+    assert st.release_gate_files(root) == ("CHANGELOG.md", "pyproject.toml", "app/VERSION")
+    assert st.release_gate_files(_repo(tmp_path / "b", {"approval": "upfront"})) == ("CHANGELOG.md", "pyproject.toml")

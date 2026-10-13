@@ -421,6 +421,27 @@ def release_run_route(root: Path) -> bool:
     return release_config(root).get("approval") == "upfront"
 
 
+# AGP_RELEASE_GATE_PATHS_V1 (2026-10-13, release 0.2.5): gate B4 of the Kit's release run lists the paths
+# its release branch commits. Besides the release files the Kit's preparation writes, the Kit's own branch
+# completion refreshes its handoff state under .agentic/state/. Any other path is a difference.
+RELEASE_FILES = ("CHANGELOG.md", "pyproject.toml")
+KIT_STATE_PREFIX = ".agentic/state/"
+
+
+def release_gate_files(root: Path) -> tuple[str, ...]:
+    """The release files of gate B4: changelog, project version and every declared version anchor."""
+    anchors = release_config(root).get("version_anchors")
+    paths = [str(a.get("path")) for a in anchors if isinstance(a, dict) and a.get("path")] \
+        if isinstance(anchors, list) else []
+    return tuple(dict.fromkeys([*RELEASE_FILES, *paths]))
+
+
+def release_gate_differences(root: Path, paths: list[str]) -> list[str]:
+    """The paths of a B4 gate outside the release files and the Kit's own state (empty: the gate fits)."""
+    allowed = set(release_gate_files(root))
+    return [p for p in paths if p not in allowed and not p.startswith(KIT_STATE_PREFIX)]
+
+
 def _release_branch(root: Path, version: str) -> str:
     prefix = str(release_config(root).get("branch_prefix") or "") if release_run_route(root) else ""
     return f"{prefix or 'release/'}{version}"
@@ -638,6 +659,7 @@ def _release_run_prompt(root: Path, version: str) -> str:
     consent = f"AGP Cockpit start click: Release {version} ({stamp})"
     approver = release_approver(root)
     github = _publication(root) == "github"
+    files = ", ".join(release_gate_files(root))
     return f"""STANDARD TASK — RELEASE {version}
 
 Repository: {root}
@@ -658,8 +680,10 @@ the Kit's main synchronization only; any other remote effect asks.
    identity follows the version (AGP_BUILD_ID_DERIVED_V1).
 2. Plan: run the orchestrator for version {version} with those summary lines and JSON output, without
    its execute option. It stops at gate B4 with AWAITING_APPROVAL, the gate and its approval
-   signature. Continue only when the gate names version {version}, branch {branch} and only release
-   files the Kit's preparation wrote; otherwise stop with NEEDS_HUMAN.
+   signature. Continue only when the gate names version {version} and branch {branch}, and its paths
+   are only the release files ({files}) and the Kit's own state under {KIT_STATE_PREFIX} (the
+   Kit's branch completion refreshes the handoff there; AGP_RELEASE_GATE_PATHS_V1). Any other path, or
+   another version or branch: stop with NEEDS_HUMAN and name it.
 3. Execute: run it again with its execute option, the expected signature of that gate, --approved-by
    "{approver}" and --consent-source "{consent}". Do not ask NEEDS_HUMAN for this consent.
 4. If it stops at another gate with AWAITING_APPROVAL, pass that gate the same way only when it names
