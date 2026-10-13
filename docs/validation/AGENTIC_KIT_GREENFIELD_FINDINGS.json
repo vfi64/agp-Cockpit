@@ -664,6 +664,13 @@
       "historical_id": "1b preparation (release run code review, Kit 1.0.21)",
       "canonical_family": "KIT-GF-065",
       "summary": "release run gives publication: github the full package and DOI sequence (C3 dispatches release.yml, D1-D4 DOI branch); release branch hard-coded codex/release-<v>"
+    },
+    {
+      "date": "2026-10-13",
+      "event_id": "GF-E091",
+      "historical_id": "Kit 1.0.24 adoption",
+      "canonical_family": "KIT-GF-051",
+      "summary": "Kit 1.0.24 adopted (manifest bf05db61066e): KIT-GF-023/035/064/065 fixed in 1.0.22, KIT-GF-017/021/027/051/062/063 fixed in 1.0.23 (Kit reconciliation report 2026-10-11); RULE-REGISTRY-BOOTSTRAP still without closure; KIT-GF-051 retested by the owner's kit update run, KIT-GF-065/061 by release 0.2.4"
     }
   ],
   "families": [
@@ -1182,7 +1189,7 @@
       "id": "KIT-GF-017",
       "title": "pr-merge-safe requires Kit-owned fresh LLM context artifacts that may not exist in a valid external workspace",
       "first_observed": "2026-09-05",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -1211,12 +1218,13 @@
         }
       ],
       "kit_repo_status": {
-        "date": "2026-09-16",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "open_repair_and_released_package_retest_required",
-        "report": "docs/reports/POST_V1_0_12_RELEASED_PACKAGE_CONTEXT_RETEST_20260916.json"
-      }
+        "date": "2026-10-13",
+        "fixed_in": "1.0.23",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2469, released in agentic-project-kit 1.0.23 (PyPI, tag v1.0.23, #2471)",
+        "report": "docs/reports/greenfield/KIT-GF-017-released-external-merge-retest-2026-10-10.md"
+      },
+      "fixed_in": "1.0.23"
     },
     {
       "id": "KIT-GF-018",
@@ -1258,12 +1266,19 @@
         "601R5_NO_AUTOMATIC_KIT_INVENTORY_PRODUCER_PROVEN",
         "601R6_KIT_ADOPTION_DEFECT_CONFIRMED"
       ],
-      "required_action": "Provide deterministic Kit-owned bootstrap/adoption or explicit gate applicability; never fabricate registration semantics or hand-create inventory."
+      "required_action": "Provide deterministic Kit-owned bootstrap/adoption or explicit gate applicability; never fabricate registration semantics or hand-create inventory.",
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "Kit PLANNING_RELEASE_RECONCILIATION_20261011: no closure report; tracked as applicability/bootstrap review",
+        "report": "docs/reports/PLANNING_RELEASE_RECONCILIATION_20261011.md"
+      }
     },
     {
       "id": "KIT-GF-021",
       "title": "External-workspace Kit CLI discovery can misdiagnose an intact project-local installation as missing",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace-cli-resolution",
       "expected": "Resolve the workspace-owned Kit executable/environment deterministically before concluding it is absent or choosing global installation.",
@@ -1276,7 +1291,15 @@
         "Step 1277 pre-upgrade 1.0.10 in agp-Cockpit/.venv",
         "Step 1277 successful in-place upgrade to 1.0.13",
         "Step 1277 command-for/check/doctor operational"
-      ]
+      ],
+      "fixed_in": "1.0.23",
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "1.0.23",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2465, released in agentic-project-kit 1.0.23 (PyPI, tag v1.0.23, #2471)",
+        "report": "docs/reports/greenfield/KIT-GF-021-workspace-kit-discovery-2026-10-10.md"
+      }
     },
     {
       "id": "KIT-GF-022",
@@ -1321,15 +1344,15 @@
         "tests/test_ci_gate.py::test_run_pr_status_calls_the_kit_and_tolerates_trailing_lines"
       ],
       "first_observed": "2026-10-01",
-      "status": "OPEN",
+      "status": "FIXED",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.22",
       "kit_repo_status": {
-        "date": "2026-10-09",
-        "fixed_in": "",
+        "date": "2026-10-13",
+        "fixed_in": "1.0.22",
         "kit_state": "CLOSED",
-        "raw": "Kit #2448 on main 35e9b5a7, after 1.0.21, not released yet",
+        "raw": "Kit #2448, released in agentic-project-kit 1.0.22 (PyPI, tag v1.0.22, #2454)",
         "report": "docs/reports/greenfield/KIT-GF-023-pure-json-stdout-2026-10-09.md"
       }
     },
@@ -1441,17 +1464,24 @@
         }
       ],
       "first_observed": "2026-10-01",
-      "status": "OPEN",
+      "status": "FIXED",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.23",
       "extensions": [
         {
           "date": "2026-10-02",
           "title": "Verdict only at the start of the JSON; a stdout tail loses it",
           "observed": "Step 1573: pr-create-complete --post-merge-complete --json returned 0 after merging PR #147 and refresh #148, but its top-level verdict (PR number, merge, result_status) stands at the start of a ~20 KB JSON whose end is the restore-known-volatile sub-step. The remote work order kept only the stdout tail; the 24 KB return bundle contained no PR number, the remote side could not see the merge and re-ran the orchestrator (KIT-GF-030)."
         }
-      ]
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "1.0.23",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2463, released in agentic-project-kit 1.0.23 (PyPI, tag v1.0.23, #2471)",
+        "report": "docs/reports/greenfield/KIT-GF-027-bounded-pr-ci-findings-2026-10-09.md"
+      }
     },
     {
       "id": "KIT-GF-028",
@@ -1646,7 +1676,7 @@
       "id": "KIT-GF-035",
       "title": "docs-audit checks the Kit's own document set in an external workspace",
       "first_observed": "2026-10-03",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -1661,12 +1691,13 @@
         "agentic-kit doc-lifecycle-audit --json: rc 1, 21 findings (missing-review-policy, invalid-status, missing-decision-status, missing-status)."
       ],
       "kit_repo_status": {
-        "date": "2026-10-09",
-        "fixed_in": "",
+        "date": "2026-10-13",
+        "fixed_in": "1.0.22",
         "kit_state": "CLOSED",
-        "raw": "Kit #2446 on main 35e9b5a7, after 1.0.21, not released yet",
+        "raw": "Kit #2446, released in agentic-project-kit 1.0.22 (PyPI, tag v1.0.22, #2454)",
         "report": "docs/reports/greenfield/KIT-GF-035-external-documentation-audit-2026-10-09.md"
-      }
+      },
+      "fixed_in": "1.0.22"
     },
     {
       "id": "KIT-GF-036",
@@ -2117,11 +2148,11 @@
       "id": "KIT-GF-051",
       "title": "No Kit route updates the Kit in an external workspace",
       "first_observed": "2026-10-06",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.23",
       "expected": "One Kit command (for example `agentic-kit kit update --version X`) adopts a Kit release in a workspace: dry run with a signature listing the planned changes, then install the version into the workspace interpreter, raise the managed CI pins (template and workflow) and synchronize the command entrypoints, report the new manifest ACK, and run check/doctor; on a work branch through the Kit's work route so the change is finished like any other.",
       "observed": "Kit 1.0.18 has no such route (agp-Cockpit P10a survey 2026-10-04: no Kit route for updating the Kit itself). The Cockpit adopted 1.0.16, 1.0.17 and 1.0.18 by hand (#194, #228, #230): pip install into .venv, both CI pins edited, `commands sync-entrypoints --execute`, check/doctor. A Cockpit-side updater would emulate an unsupported Kit capability (SCOPE_BOUNDARY §4/§6); the owner decided on 2026-10-06 to keep the architecture principle, so the Cockpit's „Kit aktualisieren“ waits for this route.",
       "impact": "Every Kit release needs a manual, multi-step adoption in each workspace; the Cockpit cannot offer the step as a standard task.",
@@ -2134,11 +2165,11 @@
         "docs/planning/SCOPE_BOUNDARY.md §4, §6"
       ],
       "kit_repo_status": {
-        "date": "2026-10-06",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "not addressed on Kit main eebe6fbe; Codex task prepared",
-        "report": ""
+        "date": "2026-10-13",
+        "fixed_in": "1.0.23",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2465, released in agentic-project-kit 1.0.23 (PyPI, tag v1.0.23, #2471)",
+        "report": "docs/reports/greenfield/KIT-GF-051-signed-workspace-kit-update-2026-10-10.md"
       }
     },
     {
@@ -2430,11 +2461,11 @@
       "id": "KIT-GF-062",
       "title": "no Kit route to re-run failed CI checks of a pull request",
       "first_observed": "2026-10-09",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit-ci-governance",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.23",
       "expected": "A Kit command (for example agentic-kit pr rerun-checks --pr N) re-runs the failed checks of a pull request after a deterministic classification of the failure (never started / infrastructure vs code) and records the rerun as evidence; agents use it instead of raw gh.",
       "observed": "Kit 1.0.20: pr-closeout and the github check policy read check states, but nothing re-runs a run. On 2026-10-09 every check of agp-Cockpit PR #319 failed without a job log because the GitHub Actions quota was used up; the remote LLM, bound to Kit routes, asked repeatedly for raw gh run rerun authority. The owner re-ran the jobs on GitHub by hand.",
       "impact": "A CI failure caused by GitHub (quota, billing, runner) blocks the autonomous closeout and invites requests for raw tool authority.",
@@ -2446,22 +2477,22 @@
         "agp-Cockpit PR #319, Actions runs 860/861 (2026-10-09)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-09",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "not addressed on Kit 1.0.20",
-        "report": ""
+        "date": "2026-10-13",
+        "fixed_in": "1.0.23",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2463, released in agentic-project-kit 1.0.23 (PyPI, tag v1.0.23, #2471)",
+        "report": "docs/reports/greenfield/KIT-GF-062-signed-ci-rerun-2026-10-09.md"
       }
     },
     {
       "id": "KIT-GF-063",
       "title": "CI light mode for refresh pull requests only knows the Kit-repo layout",
       "first_observed": "2026-10-09",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "low",
       "classification": "agentic-kit-ci-governance",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.23",
       "expected": "The managed CI of a consumer workspace runs a deterministic light path for Kit-made handoff/successor refresh PRs whose diff stays inside the Kit-owned state paths of that workspace.",
       "observed": "Kit 1.0.20 ci_runtime_policy.py: ADMIN_REFRESH_LIGHT with the branch rule ^(?:docs|codex)/post-pr\\d+-(handoff-refresh|successor-package-refresh)$, but its path sets name the Kit repository's own layout; the managed CI template of a consumer workspace has no light mode, so every Cockpit refresh PR runs the full suite (run #858: 8:46).",
       "impact": "Refresh PRs that change only Kit-owned state cost a full CI run and delay the closeout.",
@@ -2473,22 +2504,22 @@
         "agp-Cockpit Actions run #858 (8:46)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-09",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "not addressed on Kit 1.0.20",
-        "report": ""
+        "date": "2026-10-13",
+        "fixed_in": "1.0.23",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2467, released in agentic-project-kit 1.0.23 (PyPI, tag v1.0.23, #2471); the light path needs the Kit's managed CI template, which this workspace does not adopt (customized CI, AGP_CI_UPDATE_GUARD_V1) — retest open",
+        "report": "docs/reports/greenfield/KIT-GF-063-workspace-refresh-ci-2026-10-10.md"
       }
     },
     {
       "id": "KIT-GF-064",
       "title": "the Kit's own release keeps released entries under Unreleased",
       "first_observed": "2026-10-09",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "low",
       "classification": "agentic-kit-release-governance",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.22",
       "expected": "After a release of the Kit repository itself, Unreleased holds only entries that no version section carries (as KIT-GF-060 now does for external workspaces).",
       "observed": "Kit CHANGELOG.md: Unreleased holds 0 bullets at tag v1.0.19, 9 at v1.0.20 and 14 at v1.0.21; entries for KIT-GF-048/053/057 (released in 1.0.20) and KIT-GF-052/060/061 (released in 1.0.21) are still listed under Unreleased on main 35e9b5a7. The KIT-GF-060 repair is limited to external workspaces (report KIT-GF-060-consume-unreleased-2026-10-09.md).",
       "impact": "Unreleased of the Kit no longer tells what the next release adds; release notes and adopters read released fixes as pending.",
@@ -2500,22 +2531,22 @@
         "docs/reports/greenfield/KIT-GF-060-consume-unreleased-2026-10-09.md (scope: external workspaces)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-09",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "not addressed on Kit main 35e9b5a7",
-        "report": ""
+        "date": "2026-10-13",
+        "fixed_in": "1.0.22",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2452, released in agentic-project-kit 1.0.22 (PyPI, tag v1.0.22, #2454)",
+        "report": "docs/reports/greenfield/KIT-GF-064-kit-changelog-consumption-2026-10-09.md"
       }
     },
     {
       "id": "KIT-GF-065",
       "title": "release run treats publication: github like a package and DOI publication",
       "first_observed": "2026-10-09",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit-release-governance",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.0.22",
       "expected": "The release-run step sequence follows the declared publication policy: none A1-C2; github A1-C2 plus the post-release check; github+pypi adds C3; +zenodo adds D1-D5. A gate the policy does not declare is never offered, signed or covered by upfront consent; C3 blocks with a named blocker when the package-index workflow file is missing. The release branch prefix is configurable (the Cockpit expects release/<v>).",
       "observed": "Kit 1.0.21 release_run.py: _step_sequence(private_publication=not policy.publishes_anywhere) and publishes_anywhere is true for every policy except none, so publication: github gets A1-D5. After C2 (tag and GitHub Release) gate C3 defaults to release.yml, raises no blocker for a missing file and calls gh workflow run release.yml --ref v<x>; D1-D4 then open a DOI branch and DOI closeout pull request for a workspace without Zenodo. With release.approval: upfront these gates pass without a further signature. The release branch is hard-coded codex/release-<v> (and -doi). Found by code review while preparing MASTER_PLAN 1b; not run.",
       "impact": "The Cockpit cannot move its Release task onto release run with upfront consent: the run would end red at C3 or attempt package and DOI steps the repository's policy forbids.",
@@ -2527,11 +2558,11 @@
         "agentic_project_kit/publication_policy.py (1.0.21): publishes_anywhere"
       ],
       "kit_repo_status": {
-        "date": "2026-10-09",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "not addressed on Kit main 35e9b5a7; Codex package 4 slice A0",
-        "report": ""
+        "date": "2026-10-13",
+        "fixed_in": "1.0.22",
+        "kit_state": "CLOSED",
+        "raw": "Kit #2450, released in agentic-project-kit 1.0.22 (PyPI, tag v1.0.22, #2454)",
+        "report": "docs/reports/greenfield/KIT-GF-065-release-publication-policy-2026-10-09.md"
       }
     }
   ],
@@ -2689,9 +2720,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "35e9b5a78b1b1c9734a3f6bb0671edba762fb382",
-    "latest_release": "1.0.21",
-    "synced": "2026-10-09",
+    "kit_commit": "52e4cb3a",
+    "latest_release": "1.0.24",
+    "synced": "2026-10-13",
     "note": "Snapshot of the Kit's own adjudication (docs/reports/*.json of the Kit repository). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
   }
 }

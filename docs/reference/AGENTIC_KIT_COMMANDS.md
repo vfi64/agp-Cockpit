@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 6d76959d314e
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: bf05db61066e
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
 - Schema version: `2`
 - Source: `generated_from_typer_click_registry`
-- Command count: `259`
+- Command count: `262`
 
 ## Commands
 
@@ -821,6 +821,7 @@ Run the umbrella documentation-system audit.
 |---|---:|---|---:|---|---|
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `report_path` | `TyperOption` | --report | `False` |  |  |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print one JSON audit result. |
 
 ### `agentic-kit docs-registry`
 
@@ -1475,7 +1476,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.21` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.24` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1583,6 +1584,39 @@ Lint instruction text against the current command manifest.
 | `strict_unknown` | `TyperOption` | --strict-unknown | `False` | `False` | Treat unknown raw git/gh commands as blocking. |
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
+
+### `agentic-kit kit status`
+
+- Safety: `READ_ONLY`
+- Surface: `diagnostic`
+- When to use: Verify the workspace-owned Kit interpreter and installation without global PATH guesses.
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Verify the workspace-owned Kit interpreter and installation without global PATH guesses.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Workspace root. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Emit one JSON document. |
+
+### `agentic-kit kit update`
+
+- Safety: `BOUNDED`
+- Surface: `orchestrator`
+- When to use: Plan a released Kit update; signed execution installs locally, updates CI pins and checks the workspace.
+- Dry-run available: `True`
+- Remote effects: `network_read`
+
+Plan a released Kit update; signed execution installs locally, updates CI pins and checks the workspace.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `version` | `TyperOption` | --version | `True` |  | Exact released stable Kit version (X.Y.Z). |
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | External workspace on a work branch. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Execute the exactly signed update plan. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature from the current dry run. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Emit one JSON document. |
 
 ### `agentic-kit onboarding measure`
 
@@ -1759,6 +1793,23 @@ Merge only when PR checks are green, refs match, and merge state is clean.
 | `main_ci_poll_seconds` | `TyperOption` | --main-ci-poll-seconds | `False` | `10` | Post-merge main CI polling interval. |
 | `merge_state_timeout_seconds` | `TyperOption` | --merge-state-timeout-seconds | `False` | `60` | Pre-merge GitHub merge-state wait timeout. |
 | `merge_state_poll_seconds` | `TyperOption` | --merge-state-poll-seconds | `False` | `5` | Pre-merge GitHub merge-state polling interval. |
+
+### `agentic-kit pr rerun-checks`
+
+- Safety: `BOUNDED`
+- Surface: `diagnostic`
+- When to use: Plan or execute a signed rerun; real test failures are refused.
+- Dry-run available: `True`
+- Remote effects: `network_read`, `workflow_rerun`
+
+Plan or execute a signed rerun; real test failures are refused.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `pr_number` | `TyperOption` | --pr | `True` |  | PR whose never-started failed jobs may be retried. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Execute only the freshly signed rerun plan. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Exact dry-run approval signature. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print one JSON result. |
 
 ### `agentic-kit pr status`
 
@@ -2030,7 +2081,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.0.21` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.24` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2334,7 +2385,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.21` |  |
+| `version` | `TyperOption` | --version | `False` | `1.0.24` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -3052,6 +3103,7 @@ Merge a substantive PR if needed, then finish post-merge handoff closeout.
 | `poll_seconds` | `TyperOption` | --poll-seconds | `False` | `10` | CI polling interval for the substantive PR and refresh PR. |
 | `merge_state_timeout_seconds` | `TyperOption` | --merge-state-timeout-seconds | `False` | `60` |  |
 | `merge_state_poll_seconds` | `TyperOption` | --merge-state-poll-seconds | `False` | `5` |  |
+| `summary` | `TyperOption` | --summary | `False` | `False` | Print bounded JSON with a full local evidence file. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print JSON instead of text. |
 
 ### `agentic-kit transfer pr-complete`
@@ -3072,6 +3124,7 @@ Wait for CI, safely merge an existing PR, and synchronize main.
 | `merge_method` | `TyperOption` | --merge-method | `False` | `squash` | GitHub merge method. |
 | `timeout_seconds` | `TyperOption` | --timeout-seconds | `False` | `300` | Maximum CI wait time. |
 | `poll_seconds` | `TyperOption` | --interval-seconds, --poll-seconds | `False` | `10` | CI polling interval. |
+| `summary` | `TyperOption` | --summary | `False` | `False` | Print a bounded projection; save full step evidence locally. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print JSON instead of text. |
 | `skip_llm_context_gate` | `TyperOption` | --skip-llm-context-gate | `False` | `False` | Recovery-only: run PR completion without requiring fresh generated LLM context. |
 | `post_merge_complete` | `TyperOption` | --post-merge-complete | `False` | `False` | Accepted compatibility flag: pr-complete already runs post-merge-complete after a successful merge. |
@@ -3114,6 +3167,7 @@ Create, validate, merge, and optionally close out a PR without manual PR/SHA cop
 | `timeout_seconds` | `TyperOption` | --timeout-seconds | `False` | `300` | Maximum CI wait time. |
 | `poll_seconds` | `TyperOption` | --interval-seconds, --poll-seconds | `False` | `10` | CI polling interval. |
 | `post_merge_complete` | `TyperOption` | --post-merge-complete | `False` | `False` | After pr-complete, run visible post-merge closeout using the concrete PR number. |
+| `summary` | `TyperOption` | --summary | `False` | `False` | Print a bounded projection; save full step evidence locally. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print JSON instead of text. |
 | `skip_llm_context_gate` | `TyperOption` | --skip-llm-context-gate | `False` | `False` | Recovery-only: run PR create/complete without requiring fresh generated LLM context. |
 

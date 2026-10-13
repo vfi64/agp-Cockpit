@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.0.24 adopted (CI pins, command manifest bf05db61066e): KIT-GF-023/035/064/065 fixed in 1.0.22 and KIT-GF-017/021/027/051/062/063 fixed in 1.0.23 are recorded; checks that never ran are re-run through the Kit's `pr rerun-checks` (its plan is free, its signed run asks the owner); no rebuild needed.
 - Protocol lesson recorded: a format change must stay readable by the build that is still running (the r2 app offered no rebuild after #324); no rebuild needed.
 - KIT-GF-065 recorded: the Kit's release run gives a GitHub-only release the PyPI and DOI steps, so the fully autonomous Release waits for the Kit fix; no rebuild needed.
 - The build id follows the version: the Kit's release preparation sets it to `release-<version>` in the app and the browser extension, so a release needs no hand edit and can run entirely through the Kit; rebuilds between releases still carry `-r<N>`; KIT-GF-049 and KIT-GF-060 verified with Kit 1.0.21; build `release-0.2.3-r3`.

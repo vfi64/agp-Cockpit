@@ -143,4 +143,15 @@ def test_the_guidance_names_the_rerun_and_the_recovery_offer_expires():
 def test_every_task_prompt_says_how_to_handle_ci_that_never_ran():
     from agp_cockpit.core import standard_tasks as st
     assert "AGP_CI_NOT_STARTED_V1" in st._COMMON and "never ask for more tool authority" in st._COMMON
-    assert "KIT-GF-062" in st._COMMON
+    assert "KIT-GF-062" in st._COMMON and "agentic-kit pr rerun-checks --pr" in st._COMMON
+
+
+def test_the_rerun_plan_is_free_and_only_its_execute_is_a_remote_effect():
+    from pathlib import Path
+
+    from agp_cockpit.core import kit_command_catalog as kc
+    catalog = kc.KitCommandCatalog.load(Path(__file__).resolve().parents[1])
+    plan = 'import subprocess\nsubprocess.run(["agentic-kit", "pr", "rerun-checks", "--pr", "7", "--json"])\n'
+    run = plan.replace('"--json"', '"--execute", "--expected-signature", "abc", "--json"')
+    assert kc.remote_effect_commands(plan, catalog) == []
+    assert kc.remote_effect_commands(run, catalog) == ["agentic-kit pr rerun-checks"]
