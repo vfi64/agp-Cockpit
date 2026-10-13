@@ -29,6 +29,11 @@ entry of the repository („AGP Cockpit <version>“).
   override is gone. Reference drift is caught by `commands sync-entrypoints` and
   `agentic-kit check`. Cockpit work orders never run
   `gh release` themselves.
+- Since 2026-10-13 (`AGP_RELEASE_RUN_AUTONOMY_V1`) the workspace declares `release.approval: upfront`
+  and `release.branch_prefix: release/`: the Release task is one run of `agentic-kit release run`. The
+  start click is the owner's consent; the Kit records it at gate B4 (`--approved-by`,
+  `--consent-source`, KIT-GF-061) and passes the tag and GitHub Release gate only while version, tag and
+  target commit match. Its step plan follows `publication: github` (no PyPI, no DOI steps, KIT-GF-065).
 - With `publication: github` the Kit blocks a release while a merged pull request
   has no release-note category. Every pull request a work order creates
   therefore already carries a body line `release-note-category: <category>`

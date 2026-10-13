@@ -655,6 +655,48 @@ many findings per slice as is safe. Order:
    by the owner's rehearsal (GF-E089). Next: 1b — the Release task runs `agentic-kit release run`
    with `release.approval: upfront` and `--approved-by vfi64 --consent-source "Cockpit-Start …"`.
 
+## 2026-10-13 — Plan after release 0.2.4 (owner discussion)
+
+Owner decisions (2026-10-13): the Cockpit stays the owner's private tool until it has an API transport;
+the repository is public only until 2026-11-01 (free Actions minutes), so a lighter CI for refresh pull
+requests must be in place before; the name stays „Agentic Project Kit“ (the website drops „Agentic
+Execution Runtime“ and gets one plain explanatory sentence); the external test repository is
+vfi64/digital-embryo. Kit-side work for „every finding verified“ is Codex package 5 (Kit 1.0.25:
+RULE-REGISTRY bootstrap, KIT-GF-066 machine-readable status and release evidence, 001/003/005/013/016,
+light CI for customized workflows).
+
+P1 — next:
+1. 1b release autonomy (AGP_RELEASE_RUN_AUTONOMY_V1) — built 2026-10-13, build release-0.2.4-r2; the first
+   release through it (0.2.5) retests KIT-GF-047/061/065.
+2. KIT-GF-066 in the ledger and a retest runner: only the runner sets VERIFIED_FIXED (code-enforced);
+   group A (fresh external workspace) at once, the rest from the Kit's export.
+3. Findings data model stage 1: source_repo / target_repo.
+4. Adopt Kit 1.0.25 before 2026-11-01: light CI for refresh pull requests, rule-registry bootstrap.
+5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
+   without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
+   bridge defaults.
+
+P2 — then:
+6. Closeout record per task (intent → approvals → steps → Kit evidence SHAs → result), committed.
+7. One start path for standard and free tasks with a common repository/Kit/contract check.
+8. First-run assistant (installer stage B): installed mode without source, pairing code instead of a
+   token, gh login, adoption through Kit routes, honest readiness.
+9. Patch: read-only view in the Kit findings window, then the task „Patch“ (one finding = one run in its
+   target repository).
+10. DPA adoption adjudication of agp-Cockpit.
+11. Website (Codex): audience, problem and result first; glossary; who it is not for; before/after; a
+    three-minute first handoff; then an English Show HN text (300–450 words, exact counts).
+
+P3 — strategic:
+12. Transport layer and API transport (OpenAI-compatible first: DeepSeek, Qwen, Kimi, local), the
+    precondition for other LLMs and for any public Cockpit.
+13. Tab-bound browser binding and a crash-safe launch record, when a live failure asks for it.
+14. Public distribution (signed app, Chrome Web Store) only after 12.
+15. A derived, rebuildable memory index over repository, closeout records and logs.
+
+Rejected: browser adapters for further web chats, Perplexity as executor, self-patching without a
+human gate, a private database as a second source of truth beside the repository.
+
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.

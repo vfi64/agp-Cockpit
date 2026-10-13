@@ -79,22 +79,30 @@ def _signed_release_violations(source: str, repository_root: Path, policy: dict,
     signed = set((policy.get("signed_kit_commands") or {}).get("commands") or ())
     names = set(used)
     if catalog is None:   # without a catalog: a literal invocation still counts
-        names |= {name for name in signed if name.split()[1] in source}
+        names |= {name for name in signed
+                  if all(f'"{word}"' in source or f"'{word}'" in source or f" {word}" in source
+                         for word in name.split()[1:])}
     if not names & signed:
         return []
     from agp_cockpit.core.kit_command_catalog import _may_execute
     found = []
     wanted = str(policy.get("publication") or "none")
     if _workspace_publication(repository_root) != wanted:
-        found.append("agentic-kit release-publish runs here only with the repository's release policy "
+        found.append("the Kit's release route runs here only with the repository's release policy "
                      f"(.agentic/config.yaml publication: {wanted}, {POLICY_PATH})")
     if "ENABLE_LIVE_PUBLISH" in source:
         found.append("a live release-publish uses its signed approval, never the marker file "
                      ".agentic/release/ENABLE_LIVE_PUBLISH")
-    if _may_execute(source) and not all(flag in source for flag in (
+    if "agentic-kit release-publish" in names and _may_execute(source) and not all(flag in source for flag in (
             "--execute", "--allow-execute", "--expected-signature")):
         found.append("a live release-publish needs --execute --allow-execute --expected-signature "
                      "<the signature of its dry run>")
+    # AGP_RELEASE_RUN_AUTONOMY_V1 (owner 2026-10-08/13, KIT-GF-061): a signed release run records who
+    # approved and the source of the consent; without them the Kit refuses an explicit policy anyway.
+    if "agentic-kit release run" in names and "--execute" in source and not all(flag in source for flag in (
+            "--expected-signature", "--approved-by", "--consent-source")):
+        found.append("a live release run needs --execute --expected-signature <the gate's signature> "
+                     "--approved-by <owner> --consent-source <the start click>")
     return found
 
 

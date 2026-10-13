@@ -34,6 +34,12 @@ publication: github);
 publication: github
 release:
   github_release_title_template: "AGP Cockpit {version}"
+  # AGP_RELEASE_RUN_AUTONOMY_V1 (owner 2026-10-08 „vollautonom“, 2026-10-13 „1b“): the Release task
+  # runs `agentic-kit release run`; the start click is the consent the Kit records once at gate B4
+  # (KIT-GF-061), later gates pass only while version, tag and target commit match. Release branches
+  # keep the Cockpit's name release/<version> (KIT-GF-065, Kit 1.0.22).
+  approval: upfront
+  branch_prefix: release/
   # AGP_VERSION_MAP_V2 (owner 2026-10-04, KIT-GF-037 fixed in Kit 1.0.16):
   # `release prepare --write` updates these anchors; release-check and the
   # release commit integrity check verify them.
