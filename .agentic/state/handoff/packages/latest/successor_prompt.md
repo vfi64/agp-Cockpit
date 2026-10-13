@@ -37,7 +37,7 @@ Critical rule IDs:
 
 ## Current continuation state
 
-- branch: `docs/post-pr340-successor-package-refresh`
+- branch: `docs/post-pr342-successor-package-refresh`
 - head_matches_origin_main: `True`
 - worktree_clean: `True`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
@@ -154,14 +154,14 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
     "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
   ],
   "repo": {
-    "branch": "docs/post-pr340-successor-package-refresh",
+    "branch": "docs/post-pr342-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "4a2f2a6db3beb2992455b77716678d84b3f2ce5e",
+    "head": "c09ef2c07621ecf3e1c1ac96358e03656d45d77e",
     "head_matches_origin_main": true,
-    "head_short": "4a2f2a6d",
+    "head_short": "c09ef2c0",
     "local_path": "cd /path/to/",
-    "origin_main": "4a2f2a6db3beb2992455b77716678d84b3f2ce5e",
-    "origin_main_short": "4a2f2a6d",
+    "origin_main": "c09ef2c07621ecf3e1c1ac96358e03656d45d77e",
+    "origin_main_short": "c09ef2c0",
     "worktree_clean": true
   }
 }
