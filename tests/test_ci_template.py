@@ -74,9 +74,14 @@ def test_refresh_pull_requests_take_the_kits_light_path_and_everything_else_runs
     pytest_step = next(step for step in python["steps"] if "pytest" in str(step.get("run", "")))
     kit_step = next(step for step in python["steps"] if "agentic-kit check" in str(step.get("run", "")))
     assert pytest_step["if"] == "steps.plan.outputs.mode != 'light'" and "if" not in kit_step
-    assert browser["needs"] == "python" and browser["if"] == "always() && needs.python.outputs.mode != 'light'"
+    # AGP_CI_LIGHT_NO_SKIP_V1 (KIT-GF-073): the browser job always runs, so no required check reads SKIPPED;
+    # on the light path only its note step runs, every other step is conditional on the full path.
+    assert browser["needs"] == "python" and browser["if"] == "always()"
+    steps = browser["steps"]
+    assert steps[0]["if"] == "needs.python.outputs.mode == 'light'" and "run" in steps[0]
+    assert all(str(step.get("if", "")).startswith("needs.python.outputs.mode != 'light'") for step in steps[1:])
     gate = jobs["agentic-gate"]["steps"][0]["run"]
-    assert 'needs.python.outputs.mode }}" = "light"' in gate and '= "skipped"' in gate
+    assert 'needs.browser.result }}" = "success"' in gate and "skipped" not in gate
     text = SOURCE.read_text(encoding="utf-8")
     assert text.count("agentic-project-kit") == 1                              # kit update keeps one pin
 
