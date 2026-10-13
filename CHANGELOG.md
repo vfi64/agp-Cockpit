@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+## v0.2.4 - 2026-10-13
+
 - Kit 1.0.24 adopted (CI pins, command manifest bf05db61066e): KIT-GF-023/035/064/065 fixed in 1.0.22 and KIT-GF-017/021/027/051/062/063 fixed in 1.0.23 are recorded; checks that never ran are re-run through the Kit's `pr rerun-checks` (its plan is free, its signed run asks the owner); no rebuild needed.
 - Protocol lesson recorded: a format change must stay readable by the build that is still running (the r2 app offered no rebuild after #324); no rebuild needed.
 - KIT-GF-065 recorded: the Kit's release run gives a GitHub-only release the PyPI and DOI steps, so the fully autonomous Release waits for the Kit fix; no rebuild needed.
@@ -14,6 +16,21 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 - When every failed check of a pull request ended without running (no log, no start or done within 3 s — GitHub's Actions quota on PR #319), the Lage says „CI nicht gestartet“ and names „Re-run all jobs“ on GitHub instead of a code failure, the recovery offer disappears as soon as the CI is no longer red, and every task prompt stops with NEEDS_HUMAN instead of asking for raw gh authority; the repository is public, release titles drop „(privat)“; KIT-GF-062 (no Kit route to re-run checks) and KIT-GF-063 (CI light mode only for the Kit's own layout) recorded; build `release-0.2.3-r2`.
 - Owner rule recorded: a release runs fully autonomously after the owner's go, also for irreversible publication, and stops on FAIL, BLOCKED or any difference from the consented release (COMMUNICATION_PROTOCOL 81, release_policy.json `approval`); KIT-GF-061 recorded (the Kit's release run has no approval policy and no approver record).
 - A release no longer edits the changelog by hand: on a release branch only the Kit's release preparation writes CHANGELOG.md, pyproject.toml and docs/releases/versions.json, the release pull request needs exactly one version section, and the former rule „Unreleased empty“ is withdrawn; KIT-GF-060 recorded; the rule „the Kit is the law, the Cockpit steers“ is written into the architecture, the protocol and CLAUDE.md; build `release-0.2.3-r1`.
+- Fix release changelog ownership (#318)
+- Refresh successor package after PR318 (#319)
+- Recognise CI that never ran; public repository; KIT-GF-062/063 (#320)
+- Refresh successor package after PR320 (#321)
+- chore(kit): adopt agentic-project-kit 1.0.21 (#322)
+- Refresh successor package after PR322 (#323)
+- Derive the build id from the version; verify KIT-GF-049/060 (#324)
+- Refresh successor package after PR324 (#325)
+- Record KIT-GF-065: release run ignores the publication policy (#326)
+- Refresh successor package after PR326 (#327)
+- Record the r3 rebuild lesson in the protocol log (#328)
+- Refresh successor package after PR328 (#329)
+- chore(kit): adopt agentic-project-kit 1.0.24 (#330)
+- Refresh successor package after PR330 (#331)
+
 ## v0.2.3 - 2026-10-08
 
 - Releases create the GitHub Release entry of the private repository through the Kit's signed release run (`publication: github`, P11c); the Kit's Kit-repository reference check is switched off for this workspace (`release.publish_checks: none`, KIT-GF-049 reproduced in Kit 1.0.20); no rebuild needed.
