@@ -692,6 +692,13 @@
       "historical_id": "release-run rehearsal 0.2.5, step A2",
       "canonical_family": "KIT-GF-068",
       "summary": "audit-ns-legacy-references blocks the release on a line of the Cockpit's findings ledger that quotes ./ns; its context lists know only the Kit repository's paths"
+    },
+    {
+      "date": "2026-10-13",
+      "event_id": "GF-E095",
+      "historical_id": "release 0.2.5, release run step C1",
+      "canonical_family": "KIT-GF-069",
+      "summary": "release run stops at C1 (blocker release-publish) although release-publish --dry-run is PASS with blocker_count 0; the two SKIP checks count as failures in release_run._release_publish_ok"
     }
   ],
   "families": [
@@ -2662,6 +2669,34 @@
         "fixed_in": "",
         "kit_state": "OPEN",
         "raw": "not addressed on Kit main 52e4cb3a; Codex package 5",
+        "report": ""
+      }
+    },
+    {
+      "id": "KIT-GF-069",
+      "title": "release run blocks at C1 when release-publish skips checks outside the Kit repository",
+      "first_observed": "2026-10-13",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "C1 and C2 of release run judge release-publish by its own verdict (status and blocker_count; SKIP does not block, as in release_publish_orchestration._check_blocks).",
+      "observed": "Kit 1.0.24, agp-Cockpit release 0.2.5 under release.approval: upfront: A1–B4 PASS and the release PR #340 merged; C1 ran release-publish --dry-run (rc 0, status PASS, blocker_count 0, docs audit and command reference check SKIP since KIT-GF-049) and was BLOCKED with blocker release-publish, because release_run._release_publish_ok demands every check to be PASS. C2 never ran.",
+      "impact": "In every external workspace the release run cannot publish; the up-front consent ends in a stop after the release branch is already merged.",
+      "workaround": "The owner publishes with release-publish --execute --allow-execute --expected-signature (release 0.2.5: PASS, annotated tag v0.2.5 at 95448ab1, GitHub Release, post-release-check PASS).",
+      "repair": "Codex addendum to package 5, slice G (priority), for Kit 1.0.25.",
+      "regression": "A release-publish payload with PASS and SKIP checks passes C1; a FAIL check still blocks; an external fixture runs C1 to C2.",
+      "evidence": [
+        "agentic_project_kit/release_run.py (1.0.24): _release_publish_ok",
+        "agentic_project_kit/release_publish_orchestration.py (1.0.24): _check_blocks",
+        ".agentic/tmp/release-run-0.2.5-steps/C1.json (owner workspace, not committed)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-13",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "not addressed on Kit main 52e4cb3a; Codex package 5 addendum, slice G",
         "report": ""
       }
     }
