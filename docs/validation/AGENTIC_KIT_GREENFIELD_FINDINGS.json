@@ -699,6 +699,13 @@
       "historical_id": "release 0.2.5, release run step C1",
       "canonical_family": "KIT-GF-069",
       "summary": "release run stops at C1 (blocker release-publish) although release-publish --dry-run is PASS with blocker_count 0; the two SKIP checks count as failures in release_run._release_publish_ok"
+    },
+    {
+      "date": "2026-10-13",
+      "event_id": "GF-E096",
+      "historical_id": "release 0.2.5, release run A1–B4",
+      "canonical_family": "KIT-GF-061",
+      "summary": "first live release run: B4 approval recorded with approver and consent source (061), github publication planned without C3/D and branch release/0.2.5 (065); end to end (047) blocked by KIT-GF-069"
     }
   ],
   "families": [
@@ -2051,7 +2058,8 @@
       "evidence": [
         "owner's 1.0.17 result files kit_1017_*.json (2026-10-05)",
         "kit_release_1.0.18.log and kit_release_1.0.18.state.json (2026-10-05): A1 to D5 PASS, DOI 10.5281/zenodo.23166532",
-        "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2405 (agentic-kit release run); first live use for Kit 1.0.19 found KIT-GF-055 and KIT-GF-056"
+        "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2405 (agentic-kit release run); first live use for Kit 1.0.19 found KIT-GF-055 and KIT-GF-056",
+        "2026-10-13 release 0.2.5: the release run stopped at C1 (KIT-GF-069), so the end-to-end retest is still open (docs/validation/evidence/release-run-0.2.5.json)"
       ],
       "kit_repo_status": {
         "date": "2026-10-06",
@@ -2462,7 +2470,7 @@
       "id": "KIT-GF-061",
       "title": "release run has no declared approval policy and does not record who approved a gate",
       "first_observed": "2026-10-08",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-release-governance",
       "aliases": [],
@@ -2483,7 +2491,8 @@
         "kit_state": "CLOSED",
         "raw": "Kit #2438, released in agentic-project-kit 1.0.21 (PyPI, tag v1.0.21, #2442)",
         "report": "docs/reports/greenfield/KIT-GF-061-release-consent-2026-10-09.md"
-      }
+      },
+      "verified_by": "2026-10-13 release 0.2.5 with Kit 1.0.24 (docs/validation/evidence/release-run-0.2.5.json): under release.approval: upfront the release run recorded at gate B4 approved_by vfi64 and the consent source „AGP Cockpit start click: Release 0.2.5 (2026-10-13 16:38)“, once, for the plan's version, tag and target commit."
     },
     {
       "id": "KIT-GF-062",
@@ -2570,7 +2579,7 @@
       "id": "KIT-GF-065",
       "title": "release run treats publication: github like a package and DOI publication",
       "first_observed": "2026-10-09",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit-release-governance",
       "aliases": [],
@@ -2591,7 +2600,8 @@
         "kit_state": "CLOSED",
         "raw": "Kit #2450, released in agentic-project-kit 1.0.22 (PyPI, tag v1.0.22, #2454)",
         "report": "docs/reports/greenfield/KIT-GF-065-release-publication-policy-2026-10-09.md"
-      }
+      },
+      "verified_by": "2026-10-13 release 0.2.5 with Kit 1.0.24 (docs/validation/evidence/release-run-0.2.5.json): publication: github planned A1–C2 plus C4, no C3 package index and no D DOI steps, and the release branch was release/0.2.5."
     },
     {
       "id": "KIT-GF-066",

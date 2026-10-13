@@ -1627,3 +1627,8 @@ repeat once.
 - The owner rejected the stop and published with the Kit's own route, owner-executed (`release-publish --execute --allow-execute --expected-signature`, runner with dry run first): PASS, annotated tag v0.2.5 at 95448ab1, GitHub Release „AGP Cockpit 0.2.5“, post-release-check PASS. KIT-GF-060 live again (Unreleased empty after the release).
 - AGP_RELEASE_GATE_PATHS_V1: `standard_tasks.release_gate_files` (changelog, pyproject and every declared version anchor) and `release_gate_differences` (anything else outside `.agentic/state/`) are the rule; the release prompt is generated from it and the owner's rehearsal checks the B4 paths with the same function.
 - Codex: addendum to package 5 with slice G (KIT-GF-069, priority), E and F; release 1.0.25 only after them. Until 1.0.25 is adopted every release run here stops at C1; the owner then publishes as for 0.2.5.
+
+## 2026-10-13 — Retest evidence from release 0.2.5 (no rebuild)
+
+- AGP_FINDINGS_VERIFIED_EVIDENCE_V1: `docs/validation/evidence/release-run-0.2.5.json` is extracted from the owner workspace's release-run state, its C1 step file and the release-publish runner log (none of them committed). It verifies KIT-GF-061 (B4 approval recorded with approved_by vfi64 and the start-click consent source) and KIT-GF-065 (github publication planned A1–C2 plus C4, branch release/0.2.5); KIT-GF-047 stays FIXED because the run stopped at C1 (KIT-GF-069). GF-E096.
+- tests/test_findings_verification_evidence.py: every VERIFIED_FIXED family has a dated verified_by; a cited evidence file exists, names the family and used a Kit at or above fixed_in; every evidence file's families are VERIFIED_FIXED and cite it. First step of P1.2 (the retest runner will write such files).
