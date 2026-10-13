@@ -128,9 +128,12 @@ result completely before the next work order. Use the Cockpit-verified repositor
 continuation instead of re-running commands to check a result.
 CI that never ran (AGP_CI_NOT_STARTED_V1): when every failed check of a pull request ended
 without running — no job log ("log not found"), zero duration, cancelled or never acquired by a
-runner — the cause is GitHub (runner, Actions quota or billing), not the code. There is no Kit
-route to re-run checks (KIT-GF-062) and raw gh stays forbidden: stop with NEEDS_HUMAN that names
-the pull request, the run and „Re-run all jobs“ on GitHub, and never ask for more tool authority.
+runner — the cause is GitHub (runner, Actions quota or billing), not the code. Re-run them only
+through the Kit (AGP_CI_RERUN_ROUTE_V1, Kit 1.0.23, KIT-GF-062): `agentic-kit pr rerun-checks --pr
+<n>` plans for free and refuses real test failures; its signed --execute re-runs workflows and
+needs the owner's approval. Raw gh stays forbidden: if the Kit refuses or no approval is open, stop
+with NEEDS_HUMAN that names the pull request, the run and „Re-run all jobs“ on GitHub;
+never ask for more tool authority.
 """
 
 

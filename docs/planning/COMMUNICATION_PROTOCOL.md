@@ -859,8 +859,10 @@ This section is normative for the file loop after local execution.
    every failed check of a pull request has no start or ended within 3 seconds, the cause is
    GitHub (runner, Actions quota, billing), not the code. The Lage shows „CI nicht gestartet“ with
    „Re-run all jobs“ on GitHub; the recovery offer expires as soon as the CI is no longer red.
-   A work order never re-runs checks: there is no Kit route (KIT-GF-062) and raw gh stays
-   forbidden, so the remote side stops with NEEDS_HUMAN and never asks for more tool authority.
+   Since Kit 1.0.23 (KIT-GF-062, AGP_CI_RERUN_ROUTE_V1) a work order re-runs never-started checks
+   only through `agentic-kit pr rerun-checks` (plan free, signed execute with the owner's approval);
+   raw gh stays forbidden, and without the route or an approval the remote side stops with
+   NEEDS_HUMAN and never asks for more tool authority.
    A lighter CI for refresh pull requests comes only from the Kit's deterministic classifier
    (KIT-GF-063), never from a Cockpit-local rule. The repository is public since 2026-10-09
    (owner), without PyPI and Zenodo.

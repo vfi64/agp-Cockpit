@@ -92,7 +92,9 @@ EXECUTE_FLAG = "--execute"
 # signature). Only an invocation that may execute needs an open approval; when the
 # work order mentions an execute flag anywhere, every invocation counts as one
 # (fail closed against flags appended at run time).
-EXECUTE_GATED_REMOTE_COMMANDS = frozenset({"release-publish"})
+# Kit 1.0.23 (KIT-GF-062): ``pr rerun-checks`` plans a rerun of never-started checks for free; only
+# its signed --execute re-runs workflows (AGP_CI_RERUN_ROUTE_V1).
+EXECUTE_GATED_REMOTE_COMMANDS = frozenset({"release-publish", "pr rerun-checks"})
 EXECUTE_FLAGS = ("--execute", "--no-dry-run", "--allow-execute", "--expected-signature")
 COMMAND_RULES = (
     "Command authority (standing rules for every work order): "

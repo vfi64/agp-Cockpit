@@ -3236,6 +3236,20 @@
           "param_type": "TyperOption",
           "required": false,
           "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print one JSON audit result.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
         }
       ],
       "path": [
@@ -6914,7 +6928,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.21",
+          "default": "1.0.24",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -7498,6 +7512,152 @@
         "read-only"
       ],
       "when_to_use": "Lint instruction text against the current command manifest."
+    },
+    {
+      "dry_run_available": false,
+      "group": "kit",
+      "help": "Verify the workspace-owned Kit interpreter and installation without global PATH guesses.",
+      "name": "status",
+      "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "Workspace root.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Emit one JSON document.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "kit",
+        "status"
+      ],
+      "qualified_name": "agentic-kit kit status",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "READ_ONLY",
+      "surface": "diagnostic",
+      "task_tags": [
+        "kit",
+        "read-only"
+      ],
+      "when_to_use": "Verify the workspace-owned Kit interpreter and installation without global PATH guesses."
+    },
+    {
+      "dry_run_available": true,
+      "group": "kit",
+      "help": "Plan a released Kit update; signed execution installs locally, updates CI pins and checks the workspace.",
+      "name": "update",
+      "params": [
+        {
+          "default": null,
+          "help": "Exact released stable Kit version (X.Y.Z).",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "version",
+          "opts": [
+            "--version"
+          ],
+          "param_type": "TyperOption",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": "PosixPath('.')",
+          "help": "External workspace on a work branch.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Execute the exactly signed update plan.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "execute",
+          "opts": [
+            "--execute"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "Approval signature from the current dry run.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "expected_signature",
+          "opts": [
+            "--expected-signature"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Emit one JSON document.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "kit",
+        "update"
+      ],
+      "qualified_name": "agentic-kit kit update",
+      "remote_effects": [
+        "network_read"
+      ],
+      "replaces_raw": [],
+      "safety": "BOUNDED",
+      "surface": "orchestrator",
+      "task_tags": [
+        "bounded",
+        "kit"
+      ],
+      "when_to_use": "Plan a released Kit update; signed execution installs locally, updates CI pins and checks the workspace."
     },
     {
       "dry_run_available": false,
@@ -8346,6 +8506,87 @@
         "pr"
       ],
       "when_to_use": "Merge only when PR checks are green, refs match, and merge state is clean."
+    },
+    {
+      "dry_run_available": true,
+      "group": "pr",
+      "help": "Plan or execute a signed rerun; real test failures are refused.",
+      "name": "rerun-checks",
+      "params": [
+        {
+          "default": null,
+          "help": "PR whose never-started failed jobs may be retried.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "pr_number",
+          "opts": [
+            "--pr"
+          ],
+          "param_type": "TyperOption",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Execute only the freshly signed rerun plan.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "execute",
+          "opts": [
+            "--execute"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "Exact dry-run approval signature.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "expected_signature",
+          "opts": [
+            "--expected-signature"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print one JSON result.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "pr",
+        "rerun-checks"
+      ],
+      "qualified_name": "agentic-kit pr rerun-checks",
+      "remote_effects": [
+        "network_read",
+        "workflow_rerun"
+      ],
+      "replaces_raw": [],
+      "safety": "BOUNDED",
+      "surface": "diagnostic",
+      "task_tags": [
+        "bounded",
+        "pr"
+      ],
+      "when_to_use": "Plan or execute a signed rerun; real test failures are refused."
     },
     {
       "dry_run_available": false,
@@ -9592,7 +9833,7 @@
       "name": "release-publish",
       "params": [
         {
-          "default": "1.0.21",
+          "default": "1.0.24",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -11081,7 +11322,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.21",
+          "default": "1.0.24",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -14503,6 +14744,20 @@
         },
         {
           "default": false,
+          "help": "Print bounded JSON with a full local evidence file.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "summary",
+          "opts": [
+            "--summary"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
           "help": "Print JSON instead of text.",
           "is_flag": true,
           "metavar": null,
@@ -14632,6 +14887,20 @@
           "opts": [
             "--interval-seconds",
             "--poll-seconds"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print a bounded projection; save full step evidence locally.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "summary",
+          "opts": [
+            "--summary"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -14922,6 +15191,20 @@
           "name": "post_merge_complete",
           "opts": [
             "--post-merge-complete"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print a bounded projection; save full step evidence locally.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "summary",
+          "opts": [
+            "--summary"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -19242,7 +19525,7 @@
   "kind": "agentic_kit_command_reference",
   "meta": {
     "generated_md": "docs/reference/AGENTIC_KIT_COMMANDS.md",
-    "manifest_sha": "6d76959d314e",
+    "manifest_sha": "bf05db61066e",
     "schema_version": 1
   },
   "schema_version": 2,
