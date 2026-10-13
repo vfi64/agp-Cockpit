@@ -18,22 +18,45 @@ jobs:
   python:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    # AGP_CI_LIGHT_REFRESH_V1 (Kit 1.0.25, KIT-GF-063): the Kit classifies the pull request. A refresh
+    # pull request whose diff stays inside the Kit's own administrative paths runs light: Kit check and
+    # doctor only, no pytest and no browser job. Any other branch, path, event or a failed
+    # classification runs full. The classifier lives in this job because kit update keeps exactly one
+    # Kit pin per workflow (KIT-GF-071), so the browser job waits for it.
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
       - run: python -m pip install --upgrade pip
       # Pinned: CI checks with the same Kit version as the developer machine (KIT-GF-042: no ci-update here).
-      - run: python -m pip install "agentic-project-kit==1.0.24"
-      - run: |
+      - run: python -m pip install "agentic-project-kit==1.0.25"
+      - id: plan
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.sha }}
+          BRANCH: ${{ github.head_ref }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          agentic-kit ci runtime-plan --base "$BASE" --head "$HEAD" --branch "$BRANCH" --event-name "$EVENT" --json > "$RUNNER_TEMP/runtime-plan.json" || true
+          python -c 'import json,os; p=json.load(open(os.environ["RUNNER_TEMP"]+"/runtime-plan.json")); print("mode="+("light" if p.get("mode")=="light" else "full"),file=open(os.environ["GITHUB_OUTPUT"],"a")); print("runtime plan:",p.get("mode"),p.get("reason"))' || echo "mode=full" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.mode != 'light'
+        run: |
           python -m pip install -e . pytest
           python -m pytest -q
+      - run: |
           agentic-kit check --root .
           agentic-kit doctor --root .
 
   browser:
+    needs: python
+    if: always() && needs.python.outputs.mode != 'light'
     runs-on: ubuntu-24.04
     # AGP_CI_TIMEOUTS_V1 (live 2026-10-07, main run of #299): apt hung 23 min on the
     # azure.archive.ubuntu.com mirror inside "playwright install-deps" (GitHub's default job
@@ -66,8 +89,8 @@ jobs:
       - run: npx playwright test
         timeout-minutes: 15
 
-  # Stable required check: the name stays "agentic-gate" and is green only if
-  # both parallel jobs are green.
+  # Stable required check: the name stays "agentic-gate" and is green only if both jobs are green,
+  # or, on the light path, the python job is green and the browser job was skipped.
   agentic-gate:
     needs: [python, browser]
     if: always()
@@ -75,4 +98,8 @@ jobs:
     steps:
       - run: |
           test "${{ needs.python.result }}" = "success"
-          test "${{ needs.browser.result }}" = "success"
+          if [ "${{ needs.python.outputs.mode }}" = "light" ]; then
+            test "${{ needs.browser.result }}" = "skipped"
+          else
+            test "${{ needs.browser.result }}" = "success"
+          fi

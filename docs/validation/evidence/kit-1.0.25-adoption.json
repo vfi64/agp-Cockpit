@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "kind": "agp_kit_retest_evidence",
+  "id": "kit-1.0.25-adoption",
+  "date": "2026-10-13",
+  "kit_version": "1.0.25",
+  "source": "Claude's work clone of agp-Cockpit on branch chore/kit-1.0.25 (base main 0fa5b4e2), Cowork VM, workspace .venv; Kit 1.0.25 from PyPI",
+  "kit_update": {
+    "plan": {
+      "result_status": "AWAITING_APPROVAL",
+      "approval_signature": "628ccdb1d9208cc1c199238d",
+      "changed_paths": [
+        ".agentic/ci/agentic-gate.yaml",
+        ".github/workflows/agentic-gate.yaml",
+        "AGENTS.md",
+        "docs/reference/AGENTIC_KIT_COMMANDS.md",
+        "docs/reference/agentic-kit-commands.json"
+      ],
+      "manifest_ack": "d1604f13011e"
+    },
+    "execute": {
+      "result_status": "PASS",
+      "completed_steps": [
+        "install",
+        "ci_pins",
+        "entrypoints",
+        "check",
+        "doctor"
+      ],
+      "installed_version": "1.0.25",
+      "manifest_ack": "d1604f13011e"
+    },
+    "installation_found": {
+      "status": "FOUND",
+      "source": "workspace_venv",
+      "version_before": "1.0.24"
+    }
+  },
+  "rule_registry": {
+    "bootstrap": "PASS (signed execute wrote .agentic/rule_mechanism_inventory.yaml)",
+    "check": "PASS evidence-verified",
+    "check_after_unrelated_config_edit": "BLOCKED (KIT-GF-072)"
+  },
+  "ns_legacy_audit": {
+    "fixture": "copy of the work clone; the ledger gains an observation quoting './ns finish' without a historical marker",
+    "declared_ledger": "PASS",
+    "undeclared_ledger": "BLOCK",
+    "declared_ledger_plus_active_script": "BLOCK"
+  },
+  "ci_runtime_plan": {
+    "refresh_pr_345 (573db32..0fa5b4e, docs/post-pr344-successor-package-refresh, pull_request)": "light workspace_refresh_paths_only",
+    "product_pr_344 (ed018e2..573db32, fix/verify-release-run-findings, pull_request)": "full administrative_refresh_branch_required,non_refresh_paths",
+    "refresh_pr_345 as push": "full pull_request_required"
+  },
+  "verifies": {
+    "KIT-GF-051": "kit update planned and, with the signature, installed 1.0.25 into the workspace .venv, raised both CI pins, synchronized the entrypoints (manifest d1604f13011e) and ran check and doctor: PASS",
+    "KIT-GF-021": "kit update found the intact workspace-owned installation (.venv, status FOUND, version 1.0.24) before updating it",
+    "KIT-GF-068": "with audit.ns_legacy.evidence_paths the unmarked ./ns quote in the ledger passes, undeclared it blocks, an active script still blocks",
+    "KIT-GF-RULE-REGISTRY-BOOTSTRAP": "rule-registry bootstrap planned and wrote the external inventory with its signature; rule-registry check PASS"
+  },
+  "not_verified": {
+    "KIT-GF-063": "runtime-plan classifies locally as expected; the live light CI run of a refresh pull request is still to come",
+    "KIT-GF-067": "needs the owner's release rehearsal without the .venv link",
+    "KIT-GF-069": "needs a real release run (0.2.6)",
+    "KIT-GF-066": "status catalog present, but its retests are not executable (KIT-GF-070)"
+  }
+}

@@ -1329,6 +1329,114 @@
     {
       "dry_run_available": false,
       "group": "ci",
+      "help": "Classify a custom CI diff; unknown input always requests full tests.",
+      "name": "runtime-plan",
+      "params": [
+        {
+          "default": null,
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "base",
+          "opts": [
+            "--base"
+          ],
+          "param_type": "TyperOption",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": null,
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "head",
+          "opts": [
+            "--head"
+          ],
+          "param_type": "TyperOption",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "branch",
+          "opts": [
+            "--branch"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "event_name",
+          "opts": [
+            "--event-name"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "PosixPath('.')",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "ci",
+        "runtime-plan"
+      ],
+      "qualified_name": "agentic-kit ci runtime-plan",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "BOUNDED",
+      "surface": "diagnostic",
+      "task_tags": [
+        "bounded",
+        "ci"
+      ],
+      "when_to_use": "Classify a custom CI diff; unknown input always requests full tests."
+    },
+    {
+      "dry_run_available": false,
+      "group": "ci",
       "help": "Report the CI verdict for a commit or branch without requiring a pull request.",
       "name": "status",
       "params": [
@@ -6856,6 +6964,138 @@
       "when_to_use": "Run agentic-kit governance check."
     },
     {
+      "dry_run_available": true,
+      "group": "greenfield",
+      "help": "Plan or sign the Kit maintainer's deterministic local status projections.",
+      "name": "export",
+      "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "execute",
+          "opts": [
+            "--execute"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "expected_signature",
+          "opts": [
+            "--expected-signature"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "greenfield",
+        "export"
+      ],
+      "qualified_name": "agentic-kit greenfield export",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "BOUNDED",
+      "surface": "primitive",
+      "task_tags": [
+        "bounded",
+        "greenfield"
+      ],
+      "when_to_use": "Plan or sign the Kit maintainer's deterministic local status projections."
+    },
+    {
+      "dry_run_available": false,
+      "group": "greenfield",
+      "help": "Read the installed Kit's public adjudications; never change a consumer ledger.",
+      "name": "status",
+      "params": [
+        {
+          "default": "",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "finding_id",
+          "opts": [
+            "--id"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "greenfield",
+        "status"
+      ],
+      "qualified_name": "agentic-kit greenfield status",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "READ_ONLY",
+      "surface": "diagnostic",
+      "task_tags": [
+        "greenfield",
+        "read-only"
+      ],
+      "when_to_use": "Read the installed Kit's public adjudications; never change a consumer ledger."
+    },
+    {
       "dry_run_available": false,
       "group": "gui",
       "help": "",
@@ -6928,7 +7168,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.24",
+          "default": "1.0.25",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -6978,7 +7218,7 @@
       "name": "check",
       "params": [
         {
-          "default": ".agentic/handoff_state.yaml",
+          "default": "",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -7039,7 +7279,7 @@
       "name": "prompt",
       "params": [
         {
-          "default": ".agentic/handoff_state.yaml",
+          "default": "",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -7091,7 +7331,7 @@
       "name": "refresh",
       "params": [
         {
-          "default": ".agentic/handoff_state.yaml",
+          "default": "",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -7143,7 +7383,7 @@
       "name": "show",
       "params": [
         {
-          "default": ".agentic/handoff_state.yaml",
+          "default": "",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -9833,7 +10073,7 @@
       "name": "release-publish",
       "params": [
         {
-          "default": "1.0.24",
+          "default": "1.0.25",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -10385,11 +10625,120 @@
       "when_to_use": "Run agentic-kit rnc."
     },
     {
+      "dry_run_available": true,
+      "group": "rule-registry",
+      "help": "Plan or sign a local evidence-derived external Kit inventory write.",
+      "name": "bootstrap",
+      "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "execute",
+          "opts": [
+            "--execute"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "expected_signature",
+          "opts": [
+            "--expected-signature"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "rule-registry",
+        "bootstrap"
+      ],
+      "qualified_name": "agentic-kit rule-registry bootstrap",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "BOUNDED",
+      "surface": "primitive",
+      "task_tags": [
+        "bounded",
+        "rule-registry"
+      ],
+      "when_to_use": "Plan or sign a local evidence-derived external Kit inventory write."
+    },
+    {
       "dry_run_available": false,
       "group": "rule-registry",
       "help": "",
       "name": "check",
-      "params": [],
+      "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
       "path": [
         "rule-registry",
         "check"
@@ -10647,6 +10996,20 @@
       "help": "",
       "name": "report",
       "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
         {
           "default": false,
           "help": "Emit machine-readable JSON.",
@@ -11322,7 +11685,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.24",
+          "default": "1.0.25",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -19525,7 +19888,7 @@
   "kind": "agentic_kit_command_reference",
   "meta": {
     "generated_md": "docs/reference/AGENTIC_KIT_COMMANDS.md",
-    "manifest_sha": "bf05db61066e",
+    "manifest_sha": "d1604f13011e",
     "schema_version": 1
   },
   "schema_version": 2,

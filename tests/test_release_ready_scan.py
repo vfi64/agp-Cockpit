@@ -1,20 +1,34 @@
 """KIT-GF-068 (2026-10-13): the Kit's ./ns legacy-reference audit runs inside `release ready` (step A2 of
-the release run) and blocked release 0.2.5 on one line of the Cockpit's own findings ledger. The ledger
-quotes Kit findings; every such quote must classify as historical/evidence for the Kit's audit."""
+the release run) and blocked release 0.2.5 on one line of the Cockpit's own findings ledger. Since Kit 1.0.25
+the workspace declares its evidence files (AGP_NS_LEGACY_EVIDENCE_V1, audit.ns_legacy.evidence_paths); the
+audit then classifies quotes there as declared evidence, and everything else as before."""
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+LEDGER = "docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json"
+
+
+def _declared() -> tuple[str, ...]:
+    config = yaml.safe_load((ROOT / ".agentic/config.yaml").read_text(encoding="utf-8"))
+    return tuple(config["audit"]["ns_legacy"]["evidence_paths"])
+
+
+def test_only_evidence_files_are_declared():
+    declared = _declared()
+    assert LEDGER in declared and "docs/validation/evidence/*.json" in declared
+    assert all(path.startswith("docs/validation/") for path in declared)         # never scripts or instructions
 
 
 def test_the_findings_ledger_passes_the_kits_legacy_reference_audit():
     audit = pytest.importorskip("agentic_project_kit.ns_legacy_reference_audit")
-    rel = "docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json"
-    lines = (ROOT / rel).read_text(encoding="utf-8").splitlines()
+    lines = (ROOT / LEDGER).read_text(encoding="utf-8").splitlines()
     blocking = [(number, line.strip()[:120]) for number, line in enumerate(lines, 1)
                 if audit._has_legacy_reference(line)
-                and audit.classify_legacy_reference(rel, line)[0] in {"needs_review", "current_instruction_blocker"}]
+                and audit.classify_legacy_reference(LEDGER, line, evidence_paths=_declared())[0]
+                in {"needs_review", "current_instruction_blocker"}]
     assert blocking == [], blocking
 
 

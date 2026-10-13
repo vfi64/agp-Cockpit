@@ -1,0 +1,44 @@
+schema_version: 1
+kind: external_kit_rule_mechanism_inventory
+kit_version: 1.0.25
+mechanisms:
+- id: workspace-contract
+  status: active
+  evidence_scope: installed-kit-source-and-workspace-surface
+  source:
+    package: agentic_project_kit
+    module: workspace.py
+    symbol: load_workspace
+    sha256: 2d342dfe94d9f1271949fe9c824ff44a1cc9e22ace2818023c774898f61d4d85
+  surface:
+    path: .agentic/config.yaml
+    required_anchor: kit_schema_version
+    sha256: de9d02588a7a92d832cfa9c9080d62c0b2236bc769f4707339893ea62159349c
+- id: rule-acknowledgement
+  status: active
+  evidence_scope: installed-kit-source-and-workspace-surface
+  source:
+    package: agentic_project_kit
+    module: rule_ack.py
+    symbol: validate_rule_acknowledgement
+    sha256: ef174bcfb4b179717010097310a2838b5c00ecc04cf360bbe62dc0bc92e8b1ab
+  surface:
+    path: .agentic/rules/README.md
+    required_anchor: Workspace Rules
+    sha256: 991fdf5e0a81085f13e7c867321c5b5ed71e338383cc91aec1aea90852e5b8db
+- id: command-authority
+  status: active
+  evidence_scope: installed-kit-source-and-workspace-surface
+  source:
+    package: agentic_project_kit
+    module: command_manifest.py
+    symbol: evaluate_command_manifest
+    sha256: 3b2b2b25c0967d419daa33bf5ef3511041f0d3e7f812c2510528e06ed516c093
+  surface:
+    path: docs/reference/agentic-kit-commands.json
+    required_anchor: agentic_kit_command_reference
+    sha256: f8adf1bf80bb53ed13d0477950504c7406003982a5c17d2401e5084ff7b9ad1e
+excluded:
+- id: project-rule-capsules
+  reason: no-project-registration-semantics-inferred-from-prose-or-empty-registry
+projection_sha256: ddf51eb9d83880138973f01113cae5d1d028b4639d69ef8671d8792a4f535de0
