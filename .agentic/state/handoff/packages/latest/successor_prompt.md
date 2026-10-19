@@ -37,9 +37,9 @@ Critical rule IDs:
 
 ## Current continuation state
 
-- branch: `chore/untrack-egg-info`
+- branch: `docs/post-pr354-successor-package-refresh`
 - head_matches_origin_main: `True`
-- worktree_clean: `False`
+- worktree_clean: `True`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
 - document_registry_source: `.agentic/registries/documentation.yaml`
 - Current state is volatile continuation data, not a durable rule source.
@@ -74,7 +74,7 @@ Forbidden local-command patterns: loose command fragments, manual editor instruc
 
 # Successor Chat Prompt
 
-Du bist ein neuer LLM-/Coding-Chat für das Repo `vfi64/agp-cockpit`.
+Du bist ein neuer LLM-/Coding-Chat für das Repo `vfi64/agp-Cockpit`.
 
 Arbeite nicht aus Chat-Erinnerung. Quelle der Wahrheit ist der aktuelle Remote-Stand von `main`, der lokale Repo-Zustand, repo-/log-backed Evidenz und das maschinenlesbare Successor-Paket.
 
@@ -154,15 +154,15 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
     "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
   ],
   "repo": {
-    "branch": "chore/untrack-egg-info",
-    "full_name": "vfi64/agp-cockpit",
-    "head": "f10e4df54e964fa73d7942a47a85d3467091ac4e",
+    "branch": "docs/post-pr354-successor-package-refresh",
+    "full_name": "vfi64/agp-Cockpit",
+    "head": "46608ab48310214e29e1a68944c8c0afca73967e",
     "head_matches_origin_main": true,
-    "head_short": "f10e4df5",
+    "head_short": "46608ab4",
     "local_path": "cd /path/to/",
-    "origin_main": "f10e4df54e964fa73d7942a47a85d3467091ac4e",
-    "origin_main_short": "f10e4df5",
-    "worktree_clean": false
+    "origin_main": "46608ab48310214e29e1a68944c8c0afca73967e",
+    "origin_main_short": "46608ab4",
+    "worktree_clean": true
   }
 }
 ```
