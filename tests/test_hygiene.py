@@ -94,3 +94,14 @@ def test_known_manifest_understatements_are_exactly_these():
     for name in ("pr-closeout", "transfer publish-last-report"):   # local only (Kit 1.0.20)
         command = catalog.command("agentic-kit " + name)
         assert catalog.declared_effects(command) == () and not catalog.has_remote_effect(command)
+
+
+def test_no_build_metadata_is_tracked():
+    """AGP_NO_TRACKED_EGG_INFO_V1: a tracked src/agp_cockpit.egg-info was rewritten by every
+    `pip install -e .` and blocked the Kit's clean-worktree merge preflight (PR 352)."""
+    import subprocess
+
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, text=True, capture_output=True, check=True).stdout.split()
+    assert [path for path in tracked if ".egg-info/" in path] == []
+    assert "*.egg-info/" in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+
