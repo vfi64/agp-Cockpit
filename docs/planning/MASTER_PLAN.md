@@ -675,7 +675,10 @@ P1 — next:
    Done 2026-10-13 through `kit update` (AGP_CI_LIGHT_REFRESH_V1, rule-registry bootstrap, KIT-GF-068
    declaration); executable retests follow with Codex package 6 (KIT-GF-070, Kit 1.0.26).
    Kit 1.1.1 adopted 2026-10-19 through `kit update` (AGP_CHANGELOG_CURATED_V1); KIT-GF-070 stays open
-   (1.1.1 ships retest commands but no runner); a live FILE_TRANSFER run under 1.1.1 is outstanding.
+   (1.1.1 ships retest commands but no runner). The first live FILE_TRANSFER run under 1.1.1 passed on
+   2026-10-19 (evidence file-transfer-live-2026-10-19.json; KIT-GF-074 to 076 recorded); the complete
+   run with a command counter-check follows after Kit 1.1.2 is adopted. Open Cockpit slice: an
+   exact-command approval scope with `--allow-unlisted` shown, and origin branches in the remote facts.
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults.
