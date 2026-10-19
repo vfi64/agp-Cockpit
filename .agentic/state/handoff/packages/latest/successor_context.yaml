@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-19T19:20:40.129871+00:00",
+  "generated_at_utc": "2026-10-19T19:32:32.628594+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,15 +38,15 @@
     "package_version": "1.1.1"
   },
   "repo": {
-    "branch": "chore/untrack-egg-info",
-    "full_name": "vfi64/agp-cockpit",
-    "head": "f10e4df54e964fa73d7942a47a85d3467091ac4e",
+    "branch": "docs/post-pr354-successor-package-refresh",
+    "full_name": "vfi64/agp-Cockpit",
+    "head": "46608ab48310214e29e1a68944c8c0afca73967e",
     "head_matches_origin_main": true,
-    "head_short": "f10e4df5",
+    "head_short": "46608ab4",
     "local_path": "cd /path/to/",
-    "origin_main": "f10e4df54e964fa73d7942a47a85d3467091ac4e",
-    "origin_main_short": "f10e4df5",
-    "worktree_clean": false
+    "origin_main": "46608ab48310214e29e1a68944c8c0afca73967e",
+    "origin_main_short": "46608ab4",
+    "worktree_clean": true
   },
   "schema_version": 1,
   "short_term_memory": {

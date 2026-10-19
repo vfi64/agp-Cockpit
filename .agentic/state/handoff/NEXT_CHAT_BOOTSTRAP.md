@@ -5,11 +5,11 @@ Do not start from chat memory. Read the Successor Handoff Package first.
 
 ## Current verified repository state
 
-- Repo: `vfi64/agp-cockpit`
-- HEAD: `f10e4df54e964fa73d7942a47a85d3467091ac4e` (`f10e4df5`)
-- Handoff freshness marker: `f10e4df5`
-- Branch at generation: `chore/untrack-egg-info`
-- Worktree clean at generation: `False`
+- Repo: `vfi64/agp-Cockpit`
+- HEAD: `46608ab48310214e29e1a68944c8c0afca73967e` (`46608ab4`)
+- Handoff freshness marker: `46608ab4`
+- Branch at generation: `docs/post-pr354-successor-package-refresh`
+- Worktree clean at generation: `True`
 
 ## Successor handoff package
 
