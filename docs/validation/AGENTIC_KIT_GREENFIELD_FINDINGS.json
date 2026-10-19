@@ -748,6 +748,27 @@
       "historical_id": "refresh PR #347, steps 2070/2072",
       "canonical_family": "KIT-GF-073",
       "summary": "post-merge-settle BLOCKED: pr-wait-ci rejects the browser check skipped by the light path"
+    },
+    {
+      "date": "2026-10-19",
+      "event_id": "GF-E103",
+      "historical_id": "live FILE_TRANSFER preparation 2026-10-19",
+      "canonical_family": "KIT-GF-074",
+      "summary": "order-create offers only write actions; a command counter-check order cannot be generated"
+    },
+    {
+      "date": "2026-10-19",
+      "event_id": "GF-E104",
+      "historical_id": "live FILE_TRANSFER, Cockpit step 2100",
+      "canonical_family": "KIT-GF-075",
+      "summary": "remote-next PASS left the written file, the order report and LATEST_COMMAND_RUN.txt untracked on the transfer branch"
+    },
+    {
+      "date": "2026-10-19",
+      "event_id": "GF-E105",
+      "historical_id": "Kit regression fixture 2026-10-19",
+      "canonical_family": "KIT-GF-076",
+      "summary": "workspace init's inbox .gitkeep blocks remote-next as an obsolete transfer file"
     }
   ],
   "families": [
@@ -2843,11 +2864,11 @@
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-19",
         "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "recorded by the Cockpit on Kit 1.0.25",
-        "report": ""
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       }
     },
     {
@@ -2867,11 +2888,11 @@
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-19",
         "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "recorded by the Cockpit on Kit 1.0.25",
-        "report": ""
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       }
     },
     {
@@ -2894,11 +2915,89 @@
         "agp-Cockpit PR #347, Cockpit steps 2070 and 2072"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-19",
         "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "recorded by the Cockpit on Kit 1.0.25",
-        "report": ""
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
+      }
+    },
+    {
+      "id": "KIT-GF-074",
+      "title": "transfer order-create cannot generate command orders",
+      "first_observed": "2026-10-19",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "order-create writes run_command actions, checks each command against the command manifest when the order is created and says whether it needs --allow-unlisted.",
+      "observed": "Kit 1.1.1, live FILE_TRANSFER preparation 2026-10-19: `transfer order-create` accepts only --write-action (write_text_file), although the transfer runner executes run_command actions; the planned counter-check with a BOUNDED command without --allow-unlisted could not be generated through a Kit route.",
+      "impact": "Command orders can only be written by hand, which the Kit law forbids; the --allow-unlisted refusal cannot be retested live.",
+      "workaround": "The live run used a write-only order; the counter-check waits for the Kit fix.",
+      "repair": "Kit PR #2561 (planned 1.1.2).",
+      "regression": "Installed-wheel fixture: command orders with their authority; refused commands write no order.",
+      "evidence": [
+        "docs/validation/evidence/file-transfer-live-2026-10-19.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-19",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
+      }
+    },
+    {
+      "id": "KIT-GF-075",
+      "title": "transfer remote-next leaves the order's products untracked on the transfer branch",
+      "first_observed": "2026-10-19",
+      "status": "OPEN",
+      "severity": "high",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "After PASS the files the order wrote, its command-run report and LATEST_COMMAND_RUN.txt are published with the report, and the checkout ends clean; anything else blocks.",
+      "observed": "Kit 1.1.1, live FILE_TRANSFER 2026-10-19 (Cockpit step 2100): remote-next PASS and both report commits pushed, but the checkout stayed on transfer/file-transfer-live-20261019 with the written docs/validation/evidence/file_transfer_live/probe-20261019.txt, the order report and LATEST_COMMAND_RUN.txt untracked; the transferred file never reached the branch. The Kit's own protocol header names accumulated_untracked_transfer_or_report_files as a failure class.",
+      "impact": "The transfer's actual result is lost unless committed by hand, and the next Kit route meets a dirty checkout; the Cockpit shows open work on the transfer branch.",
+      "workaround": "Download/agp_file_transfer_live_cleanup_20261019.py (local): checks the exact untracked set, moves it to Download/ and switches back to main.",
+      "repair": "Kit PR #2561 (planned 1.1.2).",
+      "regression": "Installed-wheel fixture with a bare origin: the target, report and pointer reach the origin branch and the checkout ends clean; an undeclared change blocks unpublished.",
+      "evidence": [
+        "docs/validation/evidence/file-transfer-live-2026-10-19.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-19",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
+      }
+    },
+    {
+      "id": "KIT-GF-076",
+      "title": "transfer .gitkeep carriers block remote-next in a freshly initialized workspace",
+      "first_observed": "2026-10-19",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "The .gitkeep carriers that workspace init writes into the transfer inbox and outbox are not obsolete transfer files.",
+      "observed": "Found 2026-10-19 by the Kit's own regression fixture for KIT-GF-074/075, not in this workspace (its inbox has no .gitkeep): `workspace init` writes .agentic/transfer/inbox/.gitkeep, the transfer state counts it as duplicate_or_obsolete_active_transfer_files, and remote-next stops with run_next_command false.",
+      "impact": "Every remote-next in a workspace created with workspace init blocks.",
+      "workaround": "none needed here",
+      "repair": "Kit PR #2561 (planned 1.1.2).",
+      "regression": "Installed-wheel fixture: .gitkeep accepted, another inbox file still conflicts.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-19",
+        "fixed_in": "",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       }
     }
   ],
