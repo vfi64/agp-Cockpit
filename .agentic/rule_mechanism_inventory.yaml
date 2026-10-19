@@ -1,6 +1,6 @@
 schema_version: 1
 kind: external_kit_rule_mechanism_inventory
-kit_version: 1.0.25
+kit_version: 1.1.1
 mechanisms:
 - id: workspace-contract
   status: active
@@ -13,7 +13,7 @@ mechanisms:
   surface:
     path: .agentic/config.yaml
     required_anchor: kit_schema_version
-    sha256: de9d02588a7a92d832cfa9c9080d62c0b2236bc769f4707339893ea62159349c
+    sha256: 96cae1787804cda18375915b7dc3bdfbd95801e83ca28f4cca66c43fc5e7e3e0
 - id: rule-acknowledgement
   status: active
   evidence_scope: installed-kit-source-and-workspace-surface
@@ -33,12 +33,12 @@ mechanisms:
     package: agentic_project_kit
     module: command_manifest.py
     symbol: evaluate_command_manifest
-    sha256: 3b2b2b25c0967d419daa33bf5ef3511041f0d3e7f812c2510528e06ed516c093
+    sha256: 66c0a790b9a2510e8a2f4fbc0cb90903645580f00d988736689cf7f7f329763d
   surface:
     path: docs/reference/agentic-kit-commands.json
     required_anchor: agentic_kit_command_reference
-    sha256: f8adf1bf80bb53ed13d0477950504c7406003982a5c17d2401e5084ff7b9ad1e
+    sha256: cf5e3a8abb965f9dc1ca0deef1775ccc8f815c2c4d6aa4cc2c54c0b1265c25e4
 excluded:
 - id: project-rule-capsules
   reason: no-project-registration-semantics-inferred-from-prose-or-empty-registry
-projection_sha256: ddf51eb9d83880138973f01113cae5d1d028b4639d69ef8671d8792a4f535de0
+projection_sha256: 5f46bab21f80f5857db1e6ade4fa0cbc03c8a720389479a7cc241d441df6f052

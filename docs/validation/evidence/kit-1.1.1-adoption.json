@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "kind": "agp_kit_retest_evidence",
+  "id": "kit-1.1.1-adoption",
+  "date": "2026-10-19",
+  "kit_version": "1.1.1",
+  "source": "Claude's work clone of agp-Cockpit on branch chore/kit-1.1.1 (base main 447c48d9), cloud session, workspace .venv; Kit 1.1.1 from PyPI",
+  "kit_update": {
+    "plan": {
+      "result_status": "AWAITING_APPROVAL",
+      "approval_signature": "e7f303d99c564d31cf4bb3dd",
+      "changed_paths": [
+        ".agentic/ci/agentic-gate.yaml",
+        ".github/workflows/agentic-gate.yaml",
+        "AGENTS.md",
+        "docs/reference/AGENTIC_KIT_COMMANDS.md",
+        "docs/reference/agentic-kit-commands.json"
+      ],
+      "manifest_ack": "5a8184255246"
+    },
+    "execute": {
+      "result_status": "PASS",
+      "completed_steps": [
+        "install",
+        "ci_pins",
+        "entrypoints",
+        "check",
+        "doctor"
+      ],
+      "installed_version": "1.1.1",
+      "manifest_ack": "5a8184255246"
+    },
+    "installation_found": {
+      "status": "FOUND",
+      "source": "workspace_venv",
+      "version_before": "1.0.25"
+    }
+  },
+  "rule_registry": {
+    "check_after_kit_update": "BLOCKED (inventory differs from the installed Kit projection); signed bootstrap rewrote it, check PASS",
+    "check_after_changelog_summary_config_edit": "BLOCKED again (KIT-GF-072, the inventory pins the whole .agentic/config.yaml); signed bootstrap, check PASS"
+  },
+  "cockpit_tests": {
+    "candidate_vs_pinned": "Download-style adaptation check in temporary clones and venvs, Kit 1.0.25 against 1.1.1: 19 failing tests with both, 0 new; agentic-kit check and doctor PASS with both",
+    "on_branch": "19 failing tests, all from the missing tkinter module in the cloud session (8 collection errors, 11 failures), the same set as the baseline"
+  },
+  "verifies": {},
+  "behaviour_changes_since_1_0_25": [
+    "Transfer and typed orders run BOUNDED Kit commands, BOUNDED cockpit actions and unlisted commands only with the local --allow-unlisted flag; DESTRUCTIVE commands, raw git/gh mutations and interpreters are refused (Kit #2518)",
+    "A transfer order's expected_current_head must be the full 40-character hash it was written on; transfer remote-next and continue re-check it after switch and pull and stop as STALE_ORDER otherwise (Kit #2520)",
+    "transfer remote-next and continue accept orders that start with the COMMAND_MANIFEST_ACK line; under 1.0.25 they crashed with a ScannerError (Kit #2528)",
+    "work-order run --execute, the next-turn.py slot and current.sh report BLOCKED_RETIRED_LANE; the Cockpit uses none of them (Kit #2522)",
+    "release-status no longer reports a published GitHub release as missing when gh release view fails; the Cockpit publishes to GitHub (Kit #2545)",
+    "release.changelog_summary: curated keeps one list per release section (Kit #2549); adopted here as AGP_CHANGELOG_CURATED_V1"
+  ],
+  "not_verified_here": [
+    "A live FILE_TRANSFER run through transfer remote-next under 1.1.1 (needs the owner's browser session)",
+    "The CI light path on the first refresh pull request after this adoption"
+  ]
+}
