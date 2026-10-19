@@ -11,6 +11,9 @@
 /.venv/
 __pycache__/
 *.py[cod]
+# Build metadata from `pip install -e .`; tracked copies were rewritten by every install and
+# blocked the Kit's clean-worktree preflights (Kit 1.1.1 adoption, PR 352).
+*.egg-info/
 
 # macOS metadata.
 .DS_Store

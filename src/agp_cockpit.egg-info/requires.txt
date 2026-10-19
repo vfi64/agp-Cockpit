@@ -1,7 +1,0 @@
-PyYAML>=6.0
-
-[packaging]
-pyinstaller<7,>=6.10
-
-[test]
-pytest>=8
