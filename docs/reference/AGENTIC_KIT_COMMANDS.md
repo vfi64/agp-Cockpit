@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: d1604f13011e
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 5a8184255246
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
 - Schema version: `2`
 - Source: `generated_from_typer_click_registry`
-- Command count: `266`
+- Command count: `270`
 
 ## Commands
 
@@ -129,6 +129,22 @@ Report registered documents without incoming repository references.
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `report_path` | `TyperOption` | --report | `False` |  |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print JSON instead of text. |
+
+### `agentic-kit audit-drift-signals`
+
+- Safety: `READ_ONLY`
+- Surface: `diagnostic`
+- When to use: Measure known drift classes, each with its denominator (report-only, never blocks).
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Measure known drift classes, each with its denominator (report-only, never blocks).
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root. |
+| `consumer_ledger` | `TyperOption` | --consumer-ledger | `False` |  | Consumer findings ledger (JSON) for the Kit/consumer status signal. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
 
 ### `agentic-kit audit-mutation-lock-coverage`
 
@@ -530,6 +546,37 @@ Synchronize command reference files and command-manifest entrypoint headers.
 | `execute` | `TyperOption` | --execute | `False` | `False` | Write synchronized entrypoint files. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
 
+### `agentic-kit context render`
+
+- Safety: `BOUNDED`
+- Surface: `diagnostic`
+- When to use: Render a deterministic task-specific context packet from repository authorities.
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Render a deterministic task-specific context packet from repository authorities.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `profile` | `TyperOption` | --profile | `True` |  | Task profile: handoff, planning, release, slice. |
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root. |
+| `write` | `TyperOption` | --write | `False` | `False` | Also write the packet to .agentic/tmp/context/<profile>.md (git-ignored). |
+
+### `agentic-kit context report`
+
+- Safety: `READ_ONLY`
+- Surface: `diagnostic`
+- When to use: Measure the successor's required reads (baseline) and each task packet, read-only.
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Measure the successor's required reads (baseline) and each task packet, read-only.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
+
 ### `agentic-kit dev local-feature-gate`
 
 - Safety: `BOUNDED`
@@ -689,6 +736,9 @@ Add one reviewed document entry to the documentation registry.
 | `document_path` | `TyperOption` | --path | `True` |  | Repository-relative document path. |
 | `document_class` | `TyperOption` | --class | `True` |  | Allowed documentation registry class. |
 | `owner` | `TyperOption` | --owner | `False` | `maintainers` | Document owner recorded in the registry. |
+| `status` | `TyperOption` | --status | `False` | `` | Optional registry status: active, superseded or archived. |
+| `review_policy` | `TyperOption` | --review-policy | `False` | `` | Optional review policy: required. |
+| `summary` | `TyperOption` | --summary | `False` | `` | Optional one-line summary. |
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Project root. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Emit machine-readable JSON. |
 
@@ -1527,7 +1577,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.25` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.1` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1668,6 +1718,23 @@ Plan a released Kit update; signed execution installs locally, updates CI pins a
 | `execute` | `TyperOption` | --execute | `False` | `False` | Execute the exactly signed update plan. |
 | `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature from the current dry run. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Emit one JSON document. |
+
+### `agentic-kit ledger report`
+
+- Safety: `READ_ONLY`
+- Surface: `diagnostic`
+- When to use: Summarise the local invocation ledger: counts, nesting, failures, work cycles and repeated failures.
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Summarise the local invocation ledger: counts, nesting, failures, work cycles and repeated failures.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root or a path inside it. |
+| `days` | `TyperOption` | --days | `False` | `0` | Only records of the last N days; 0 reads all. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
+| `write_finding_drafts_flag` | `TyperOption` | --write-finding-drafts | `False` | `False` | Write a local finding draft per new repeated-failure fingerprint; existing drafts are kept. |
 
 ### `agentic-kit onboarding measure`
 
@@ -2132,7 +2199,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.0.25` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.1` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2218,6 +2285,7 @@ Write a K3 remote branch hygiene evidence report only with --execute.
 |---|---:|---|---:|---|---|
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON result. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit rn`
 
@@ -2231,6 +2299,7 @@ Write a K3 remote branch hygiene evidence report only with --execute.
 |---|---:|---|---:|---|---|
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON result. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit rnc`
 
@@ -2457,7 +2526,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.0.25` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.1` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -2569,6 +2638,7 @@ Create or recover the administrative handoff refresh PR after a merged PR.
 |---|---:|---|---:|---|---|
 | `path` | `TyperOption` | --path | `False` | `PosixPath('.agentic/transfer/inbox/current.yaml')` | Transfer order path. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit transfer branch-create`
 
@@ -2782,6 +2852,7 @@ Continue chat/local transfer communication through the safest available wrapper 
 | `branch` | `TyperArgument` | branch | `False` |  | Optional target branch. If omitted, infer a single active transfer order. |
 | `json_output` | `TyperOption` | --json, --no-json | `False` | `False` | Print machine-readable JSON. |
 | `skip_llm_context_gate` | `TyperOption` | --skip-llm-context-gate | `False` | `False` | Recovery-only: continue without requiring fresh generated LLM context. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit transfer delete-merged-work-branch`
 
@@ -3242,6 +3313,7 @@ Create, validate, merge, and optionally close out a PR without manual PR/SHA cop
 | `summary` | `TyperOption` | --summary | `False` | `False` | Print a bounded projection; save full step evidence locally. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print JSON instead of text. |
 | `skip_llm_context_gate` | `TyperOption` | --skip-llm-context-gate | `False` | `False` | Recovery-only: run PR create/complete without requiring fresh generated LLM context. |
+| `release_note_category` | `TyperOption` | --release-note-category | `False` | `` | Release-note category written into the PR body, for example Fixed; validated before any action. |
 
 ### `agentic-kit transfer pr-existing-for-branch`
 
@@ -3440,6 +3512,7 @@ Run the next repo-backed transfer order for local or remote work handoff.
 |---|---:|---|---:|---|---|
 | `branch` | `TyperArgument` | branch | `False` |  | Optional remote transfer branch. If omitted, read branch from the transfer order. |
 | `json_output` | `TyperOption` | --json, --no-json | `False` | `False` | Print machine-readable JSON. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit transfer remote-work-start`
 
@@ -3552,6 +3625,7 @@ Restore the canonical known volatile transfer files.
 |---|---:|---|---:|---|---|
 | `path` | `TyperOption` | --path | `False` | `PosixPath('.agentic/transfer/inbox/current.yaml')` | Transfer order path. |
 | `json_output` | `TyperOption` | --json, --no-json | `False` | `True` | Print machine-readable JSON. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit transfer run-sequence-and-log`
 
@@ -3889,14 +3963,16 @@ _No parameters._
 
 - Safety: `BOUNDED`
 - Surface: `primitive`
-- When to use: Run agentic-kit work-order run.
+- When to use: Show a shell work order; executing it is retired (WOTB-04).
 - Dry-run available: `True`
 - Remote effects: `none`
+
+Show a shell work order; executing it is retired (WOTB-04).
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `work_order_id` | `TyperArgument` | work_order_id | `True` |  |  |
-| `execute` | `TyperOption` | --execute | `False` | `False` | Actually run the work order. Omit for dry-run. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Retired (WOTB-04): refuses with BLOCKED_RETIRED_LANE instead of running bash. Omit for dry-run. |
 
 ### `agentic-kit work-order show`
 
@@ -3931,6 +4007,7 @@ _No parameters._
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON result. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit work-order typed-queue-status`
 
@@ -3958,6 +4035,7 @@ _No parameters._
 | `work_order_path` | `TyperArgument` | work_order_path | `True` |  |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` | Actually run the typed work order. Omit for dry-run. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON result. |
+| `allow_unlisted` | `TyperOption` | --allow-unlisted | `False` | `False` | Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused. |
 
 ### `agentic-kit work-order upload`
 
@@ -3982,7 +4060,7 @@ _No parameters._
 - Surface: `primitive`
 - When to use: Cleanup completed or stale temporary workflow evidence branches.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `delete_remote`, `fetch`, `network_read`, `push`
 
 Cleanup completed or stale temporary workflow evidence branches.
 
@@ -3996,7 +4074,7 @@ Cleanup completed or stale temporary workflow evidence branches.
 - Surface: `diagnostic`
 - When to use: Upload preserved FAILED workflow evidence without cleanup or retry.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `network_read`, `push`
 
 Upload preserved FAILED workflow evidence without cleanup or retry.
 
@@ -4010,7 +4088,7 @@ Upload preserved FAILED workflow evidence without cleanup or retry.
 - Surface: `orchestrator`
 - When to use: Request the configured workflow and run one bounded step.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `fetch`, `network_read`, `push`
 
 Request the configured workflow and run one bounded step.
 
@@ -4052,7 +4130,7 @@ Request the configured declarative workflow without running it.
 - Surface: `primitive`
 - When to use: Run the current workflow, or set a stored workflow item and run it.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `fetch`, `network_read`, `push`
 
 Run the current workflow, or set a stored workflow item and run it.
 
@@ -4111,7 +4189,7 @@ Print the current workflow state and bounded evidence pointers.
 - Surface: `primitive`
 - When to use: Alias for upload-output.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `network_read`, `push`
 
 Alias for upload-output.
 
@@ -4125,7 +4203,7 @@ Alias for upload-output.
 - Surface: `primitive`
 - When to use: Alias for upload-output.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `network_read`, `push`
 
 Alias for upload-output.
 

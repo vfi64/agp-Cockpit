@@ -477,6 +477,70 @@
     {
       "dry_run_available": false,
       "group": "root",
+      "help": "Measure known drift classes, each with its denominator (report-only, never blocks).",
+      "name": "audit-drift-signals",
+      "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "Repository root.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "project_root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": null,
+          "help": "Consumer findings ledger (JSON) for the Kit/consumer status signal.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "consumer_ledger",
+          "opts": [
+            "--consumer-ledger"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print machine-readable JSON.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "audit-drift-signals"
+      ],
+      "qualified_name": "agentic-kit audit-drift-signals",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "READ_ONLY",
+      "surface": "diagnostic",
+      "task_tags": [
+        "read-only"
+      ],
+      "when_to_use": "Measure known drift classes, each with its denominator (report-only, never blocks)."
+    },
+    {
+      "dry_run_available": false,
+      "group": "root",
       "help": "Audit mutating entrypoints for workspace mutation-lock coverage.",
       "name": "audit-mutation-lock-coverage",
       "params": [
@@ -2007,6 +2071,124 @@
     },
     {
       "dry_run_available": false,
+      "group": "context",
+      "help": "Render a deterministic task-specific context packet from repository authorities.",
+      "name": "render",
+      "params": [
+        {
+          "default": null,
+          "help": "Task profile: handoff, planning, release, slice.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "profile",
+          "opts": [
+            "--profile"
+          ],
+          "param_type": "TyperOption",
+          "required": true,
+          "secondary_opts": []
+        },
+        {
+          "default": "PosixPath('.')",
+          "help": "Repository root.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Also write the packet to .agentic/tmp/context/<profile>.md (git-ignored).",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "write",
+          "opts": [
+            "--write"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "context",
+        "render"
+      ],
+      "qualified_name": "agentic-kit context render",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "BOUNDED",
+      "surface": "diagnostic",
+      "task_tags": [
+        "bounded",
+        "context"
+      ],
+      "when_to_use": "Render a deterministic task-specific context packet from repository authorities."
+    },
+    {
+      "dry_run_available": false,
+      "group": "context",
+      "help": "Measure the successor's required reads (baseline) and each task packet, read-only.",
+      "name": "report",
+      "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "Repository root.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print machine-readable JSON.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "context",
+        "report"
+      ],
+      "qualified_name": "agentic-kit context report",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "READ_ONLY",
+      "surface": "diagnostic",
+      "task_tags": [
+        "context",
+        "read-only"
+      ],
+      "when_to_use": "Measure the successor's required reads (baseline) and each task packet, read-only."
+    },
+    {
+      "dry_run_available": false,
       "group": "dev",
       "help": "Run the local feature gate through the supported agentic-kit CLI.",
       "name": "local-feature-gate",
@@ -2636,6 +2818,48 @@
           "name": "owner",
           "opts": [
             "--owner"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "Optional registry status: active, superseded or archived.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "status",
+          "opts": [
+            "--status"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "Optional review policy: required.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "review_policy",
+          "opts": [
+            "--review-policy"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "Optional one-line summary.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "summary",
+          "opts": [
+            "--summary"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -7168,7 +7392,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.25",
+          "default": "1.1.1",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -7898,6 +8122,86 @@
         "kit"
       ],
       "when_to_use": "Plan a released Kit update; signed execution installs locally, updates CI pins and checks the workspace."
+    },
+    {
+      "dry_run_available": false,
+      "group": "ledger",
+      "help": "Summarise the local invocation ledger: counts, nesting, failures, work cycles and repeated failures.",
+      "name": "report",
+      "params": [
+        {
+          "default": "PosixPath('.')",
+          "help": "Repository root or a path inside it.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "root",
+          "opts": [
+            "--root"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": 0,
+          "help": "Only records of the last N days; 0 reads all.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "days",
+          "opts": [
+            "--days"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Print machine-readable JSON.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Write a local finding draft per new repeated-failure fingerprint; existing drafts are kept.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "write_finding_drafts_flag",
+          "opts": [
+            "--write-finding-drafts"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "ledger",
+        "report"
+      ],
+      "qualified_name": "agentic-kit ledger report",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "READ_ONLY",
+      "surface": "diagnostic",
+      "task_tags": [
+        "ledger",
+        "read-only"
+      ],
+      "when_to_use": "Summarise the local invocation ledger: counts, nesting, failures, work cycles and repeated failures."
     },
     {
       "dry_run_available": false,
@@ -10073,7 +10377,7 @@
       "name": "release-publish",
       "params": [
         {
-          "default": "1.0.25",
+          "default": "1.1.1",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -10507,6 +10811,20 @@
           "param_type": "TyperOption",
           "required": false,
           "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
         }
       ],
       "path": [
@@ -10553,6 +10871,20 @@
           "name": "json_output",
           "opts": [
             "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -11685,7 +12017,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.0.25",
+          "default": "1.1.1",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -12122,6 +12454,20 @@
           "name": "json_output",
           "opts": [
             "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -13022,6 +13368,20 @@
           "name": "skip_llm_context_gate",
           "opts": [
             "--skip-llm-context-gate"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -15600,6 +15960,20 @@
           "param_type": "TyperOption",
           "required": false,
           "secondary_opts": []
+        },
+        {
+          "default": "",
+          "help": "Release-note category written into the PR body, for example Fixed; validated before any action.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "release_note_category",
+          "opts": [
+            "--release-note-category"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
         }
       ],
       "path": [
@@ -16527,6 +16901,20 @@
           "secondary_opts": [
             "--no-json"
           ]
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
         }
       ],
       "path": [
@@ -16977,6 +17365,20 @@
           "secondary_opts": [
             "--no-json"
           ]
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
         }
       ],
       "path": [
@@ -18459,7 +18861,7 @@
     {
       "dry_run_available": true,
       "group": "work-order",
-      "help": "",
+      "help": "Show a shell work order; executing it is retired (WOTB-04).",
       "name": "run",
       "params": [
         {
@@ -18478,7 +18880,7 @@
         },
         {
           "default": false,
-          "help": "Actually run the work order. Omit for dry-run.",
+          "help": "Retired (WOTB-04): refuses with BLOCKED_RETIRED_LANE instead of running bash. Omit for dry-run.",
           "is_flag": true,
           "metavar": null,
           "multiple": false,
@@ -18506,7 +18908,7 @@
         "bounded",
         "work-order"
       ],
-      "when_to_use": "Run agentic-kit work-order run."
+      "when_to_use": "Show a shell work order; executing it is retired (WOTB-04)."
     },
     {
       "dry_run_available": false,
@@ -18584,6 +18986,20 @@
           "name": "json_output",
           "opts": [
             "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -18702,6 +19118,20 @@
           "name": "json_output",
           "opts": [
             "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Allow work-order commands beyond READ_ONLY Kit commands and read-only git/gh queries: BOUNDED Kit commands, BOUNDED cockpit actions and commands outside the manifest. DESTRUCTIVE Kit commands, raw git/gh mutations and interpreters stay refused.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "allow_unlisted",
+          "opts": [
+            "--allow-unlisted"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -18860,7 +19290,10 @@
       ],
       "qualified_name": "agentic-kit workflow cleanup",
       "remote_effects": [
-        "none"
+        "delete_remote",
+        "fetch",
+        "network_read",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -18898,7 +19331,8 @@
       ],
       "qualified_name": "agentic-kit workflow fail-report",
       "remote_effects": [
-        "none"
+        "network_read",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -18937,7 +19371,9 @@
       ],
       "qualified_name": "agentic-kit workflow go",
       "remote_effects": [
-        "none"
+        "fetch",
+        "network_read",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -19065,7 +19501,9 @@
       ],
       "qualified_name": "agentic-kit workflow run",
       "remote_effects": [
-        "none"
+        "fetch",
+        "network_read",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -19245,7 +19683,8 @@
       ],
       "qualified_name": "agentic-kit workflow upload",
       "remote_effects": [
-        "none"
+        "network_read",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -19283,7 +19722,8 @@
       ],
       "qualified_name": "agentic-kit workflow upload-output",
       "remote_effects": [
-        "none"
+        "network_read",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -19888,7 +20328,7 @@
   "kind": "agentic_kit_command_reference",
   "meta": {
     "generated_md": "docs/reference/AGENTIC_KIT_COMMANDS.md",
-    "manifest_sha": "d1604f13011e",
+    "manifest_sha": "5a8184255246",
     "schema_version": 1
   },
   "schema_version": 2,

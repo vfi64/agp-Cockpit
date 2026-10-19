@@ -6,6 +6,9 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.1.1 adopted through the Kit's own `kit update` (manifest 5a8184255246, signature e7f303d99c564d31cf4bb3dd). For FILE_TRANSFER this is stricter: an order that runs BOUNDED Kit commands or commands outside the Kit manifest needs the local `--allow-unlisted` flag, raw git/gh mutations are always refused, and `expected_current_head` must be the full 40-character commit the order was written on, otherwise `transfer remote-next` stops as STALE_ORDER. Orders that start with the required COMMAND_MANIFEST_ACK line now complete instead of crashing. Evidence: docs/validation/evidence/kit-1.1.1-adoption.json.
+- Release changelog sections list each change once: `release.changelog_summary: curated` (AGP_CHANGELOG_CURATED_V1) writes the Unreleased entries instead of also every PR title, and release preparation blocks while an Unreleased entry would stay behind.
+
 ## v0.2.6 - 2026-10-13
 
 - On the light CI path the browser job now runs and succeeds without browser tests instead of being skipped: the Kit's CI policy counts a skipped check as not green and blocked the closeout of refresh PR #347 (KIT-GF-073 recorded); no rebuild needed.
