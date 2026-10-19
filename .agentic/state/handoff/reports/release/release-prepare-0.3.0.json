@@ -1,0 +1,175 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-19",
+  "explicit_summary_lines": [
+    "Kit 1.1.1 adopted through the Kit's own `kit update` (manifest 5a8184255246, signature e7f303d99c564d31cf4bb3dd). For FILE_TRANSFER this is stricter: an order that runs BOUNDED Kit commands or commands outside the Kit manifest needs the local `--allow-unlisted` flag, raw git/gh mutations are always refused, and `expected_current_head` must be the full 40-character commit the order was written on, otherwise `transfer remote-next` stops as STALE_ORDER. Orders that start with the required COMMAND_MANIFEST_ACK line now complete instead of crashing. Evidence: docs/validation/evidence/kit-1.1.1-adoption.json.",
+    "Release changelog sections list each change once: `release.changelog_summary: curated` (AGP_CHANGELOG_CURATED_V1) writes the Unreleased entries instead of also every PR title, and release preparation blocks while an Unreleased entry would stay behind.",
+    "The build metadata `src/agp_cockpit.egg-info/` is no longer tracked (AGP_NO_TRACKED_EGG_INFO_V1): every `pip install -e .` rewrote it and blocked the Kit's clean-worktree merge preflight."
+  ],
+  "from_tag": "v0.2.6",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.0",
+        "--from-tag",
+        "v0.2.6",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-030-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 7015,
+      "stdout_sha256": "b6835332141c6f286d9efbbfa266d80e51ef5803dd70c3fe79e40ba4ca96b3ce"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.0",
+        "--date",
+        "2026-10-19",
+        "--summary-line",
+        "Kit 1.1.1 adopted through the Kit's own `kit update` (manifest 5a8184255246, signature e7f303d99c564d31cf4bb3dd). For FILE_TRANSFER this is stricter: an order that runs BOUNDED Kit commands or commands outside the Kit manifest needs the local `--allow-unlisted` flag, raw git/gh mutations are always refused, and `expected_current_head` must be the full 40-character commit the order was written on, otherwise `transfer remote-next` stops as STALE_ORDER. Orders that start with the required COMMAND_MANIFEST_ACK line now complete instead of crashing. Evidence: docs/validation/evidence/kit-1.1.1-adoption.json.",
+        "--summary-line",
+        "Release changelog sections list each change once: `release.changelog_summary: curated` (AGP_CHANGELOG_CURATED_V1) writes the Unreleased entries instead of also every PR title, and release preparation blocks while an Unreleased entry would stay behind.",
+        "--summary-line",
+        "The build metadata `src/agp_cockpit.egg-info/` is no longer tracked (AGP_NO_TRACKED_EGG_INFO_V1): every `pip install -e .` rewrote it and blocked the Kit's clean-worktree merge preflight.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-030-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "6195e6aff958bf6a141b6f5e5d7654228937b11fb8fec6f52e614de22f51f96f"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "81f328609402a3a60fc3e46192e77dd93fa1fb6a5ba1c5c7a0bf70b52927ae15"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "b14c1f9b01d3126779f3d7aaf982f568978d931f64fa59d303af49079a422541"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-030-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.0"
+}
