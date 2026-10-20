@@ -25,6 +25,10 @@ gates:
   # job is skipped; the Kit accepts this SKIPPED check only when it re-derives the pull request as light
   # (ci runtime-plan), so a skipped browser job on a full pull request still blocks.
   light_path_skipped_checks: [browser]
+  # AGP_CI_REQUIRED_CHECKS_DECLARED_V1 (Kit 1.1.4, KIT-GF-079): the required check agentic-gate needs python
+  # and browser, so GitHub creates it only after both; `pr wait-ci` (and every Kit merge route over it) waits
+  # until a declared check exists and passed instead of reporting READY while it is still missing.
+  required_checks: [agentic-gate]
 # P11c (owner 2026-10-05, AGP_KIT_GITHUB_RELEASE_V1): the Kit's signed release run creates the
 # annotated tag and the GitHub Release entry of the repository (publication: github); switched on
 # 2026-10-08 with Kit 1.0.20. Since Kit 1.0.21 (KIT-GF-049) the Kit-repository checks skip

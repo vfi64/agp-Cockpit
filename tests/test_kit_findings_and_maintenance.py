@@ -135,8 +135,21 @@ def test_the_real_register_tracks_the_kit_1_0_25_adoption():
         assert by_id[fid].effective_status("1.0.25") == kf.VERIFIED, fid
     for fid in ("KIT-GF-066", "KIT-GF-067", "KIT-GF-069"):
         assert by_id[fid].effective_status("1.0.25") == kf.FIXED_UNVERIFIED, fid
-    for fid in ("KIT-GF-070", "KIT-GF-071", "KIT-GF-072"):
+    for fid in ("KIT-GF-070", "KIT-GF-071"):        # KIT-GF-072 was verified later, with Kit 1.1.4 (test below)
         assert by_id[fid].effective_status("1.0.25") not in (kf.VERIFIED, kf.FIXED_UNVERIFIED), fid
+
+
+def test_the_real_register_tracks_the_kit_1_1_4_adoption():
+    """Kit 1.1.4 (2026-10-20, GF-E106..E110, evidence kit-1.1.4-adoption.json; covers 1.1.3)."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    for fid in ("KIT-GF-072", "KIT-GF-076", "KIT-GF-077", "KIT-GF-078"):
+        assert by_id[fid].effective_status("1.1.4") == kf.VERIFIED, fid
+    for fid in ("KIT-GF-079", "KIT-GF-080"):
+        assert by_id[fid].fixed_in == "1.1.4" and by_id[fid].effective_status("1.1.4") == kf.FIXED_UNVERIFIED, fid
+        assert by_id[fid].effective_status("1.1.3") == kf.FIXED_NOT_INSTALLED, fid
+    assert by_id["KIT-GF-070"].effective_status("1.1.4") == kf.IN_PROGRESS   # register OPEN, the Kit says PARTIAL
+    assert by_id["KIT-GF-070"].kit["kit_state"] == "PARTIAL"
+    assert by_id["KIT-GF-081"].effective_status("1.1.4") == kf.OPEN
 
 
 
