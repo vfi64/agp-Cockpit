@@ -32,7 +32,10 @@
   },
   "kit_report": {
     "published_on": "origin/transfer/file-transfer-live-20261019",
-    "report_commits": ["22f3a7ed718562f9e969d2b90e7fde4237eb7ae3", "6fbdf1a65817355781f6cc660aec6c12b9ca2600"],
+    "report_commits": [
+      "22f3a7ed718562f9e969d2b90e7fde4237eb7ae3",
+      "6fbdf1a65817355781f6cc660aec6c12b9ca2600"
+    ],
     "path": ".agentic/state/handoff/transfer_runs/latest-remote-next-report.json",
     "anchor_check": "anchor_basis order_commit_parent, anchor_expected c4fc3b8b... equals expected_current_head",
     "apply": "write_text_file docs/validation/evidence/file_transfer_live/probe-20261019.txt written: true, sha256 matches the payload"
@@ -56,8 +59,9 @@
     "The facts the Cockpit sends to the remote LLM do not list origin branches, so it took an existing transfer branch for missing"
   ],
   "verifies": {},
-  "not_verified": {
-    "KIT-GF-074": "fixed on Kit main by PR #2561 for 1.1.2 (not released); retest after adoption",
-    "KIT-GF-075": "fixed on Kit main by PR #2561 for 1.1.2 (not released); retest after adoption"
+  "not_verified": {},
+  "verified_later": {
+    "KIT-GF-074": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json",
+    "KIT-GF-075": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json"
   }
 }

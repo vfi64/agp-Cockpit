@@ -1668,3 +1668,9 @@ repeat once.
 - AGP_CI_LIGHT_SKIP_DECLARED_V1 (KIT-GF-073, replaces AGP_CI_LIGHT_NO_SKIP_V1): the browser job is skipped on the light path again (saves its runner minutes on every refresh pull request); the gate job accepts `skipped` only together with the light verdict; `.agentic/config.yaml` declares the check for the Kit, which accepts it only when it re-derives the pull request as light. The first refresh pull request after this adoption is the live retest.
 - KIT-GF-071 to 076 are FIXED (1.1.2); VERIFIED_FIXED follows from their retests (073 refresh closeout, 074/075 complete FILE_TRANSFER run, 072 next kit update).
 
+## 2026-10-20 — Complete FILE_TRANSFER run under Kit 1.1.2 (no rebuild)
+
+- Two orders generated with Kit 1.1.2 and rehearsed in a disposable clone. Counter-check (step 2103): `remote-next transfer/file-transfer-deny-20261020` with a BOUNDED `agentic-kit transfer repo-status` order ended returncode 2, FAIL, „no action ran“, report published, checkout clean. Complete run (step 2106): a write action plus `agentic-kit check --json` ended PASS; the written file, the order report and LATEST_COMMAND_RUN.txt are on the branch (25de491) and the checkout stayed clean, no cleanup script. Back to main through „Branch wechseln“ (`transfer branch-switch`). Evidence: docs/validation/evidence/file-transfer-live-2026-10-20.json.
+- KIT-GF-073 (refresh PR #361 with the browser check SKIPPED, settled and merged), KIT-GF-074 and KIT-GF-075 are VERIFIED_FIXED. Still FIXED: 071 (one pin here), 072 (the refresh inside kit update needs the next update), 076 (not reproducible here).
+- Cockpit observations, open: the Lage recommends „Abschließen“ on a transfer branch (it would open a pull request with test orders); after DONE ChatGPT still attaches a further command file (nothing runs); the approval offers only „Push und PR“ or the whole remote effect. They belong to the planned approval slice.
+
