@@ -205,10 +205,13 @@ def test_runner_puts_project_venv_first_on_child_path(tmp_path):
         "import json, os, sys\n"
         "from pathlib import Path\n"
         "n=int(sys.argv[1]); d=Path(__file__).parent\n"
-        "(d/f'{n:03d}_path_return_bundle.json').write_text(json.dumps({'path': os.environ['PATH'].split(os.pathsep)[0]}))\n",
+        "(d/f'{n:03d}_path_return_bundle.json').write_text(json.dumps({'path': os.environ['PATH'].split(os.pathsep)[:2]}))\n",
     )
     result = execute_with_run_next(tmp_path, cmd)
-    assert __import__("json").loads(result.return_bundle.read_text())["path"] == str(tmp_path / ".venv" / "bin")
+    # AGP_KIT_INVOCATION_GUARD_V1: the step's Kit guard comes first, then the project venv.
+    guard, venv = __import__("json").loads(result.return_bundle.read_text())["path"]
+    assert Path(guard).name == "1" and Path(guard).parent.name == "kit-guard"
+    assert venv == str(tmp_path / ".venv" / "bin")
 
 
 def test_runner_prefers_project_python_over_desktop_bundle(tmp_path):

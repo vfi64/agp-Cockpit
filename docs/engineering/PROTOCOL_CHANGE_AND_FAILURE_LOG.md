@@ -1681,3 +1681,11 @@ repeat once.
 - AGP_TRANSFER_BRANCH_LAGE_V1: on a clean `transfer/` branch with own commits the Lage has no recommendation; the Lösungsweg points back to main through „Branch wechseln“ and says „Abschließen“ only when the transfer belongs in main.
 - Not changed: ChatGPT's extra command file after DONE (nothing runs).
 
+
+## 2026-10-20 — Kit calls checked when they run; literal arguments for approvals (build release-0.3.0-r3)
+
+- Cause: the approval (rule 84, AGP_EXACT_COMMAND_APPROVAL_V1) is decided on the work order's source. The source analysis reads only literal argv lists and command strings; a call assembled at run time (`[*BASE, "transfer", "push-current"]`, a computed program name) was invisible and ran without an approval, and a computed argument (`<expr>`) could never match an exact approval. Found while closing the exact-approval slice, not in a live run.
+- AGP_LITERAL_APPROVAL_ARGUMENTS_V1 (owner option b): an approval-required agentic-kit call with a computed argument is a correctable rejection; module-level string constants bound exactly once count as literal (`module_string_constants`), so `BRANCH = "feat/x"` stays readable.
+- AGP_KIT_INVOCATION_GUARD_V1 (owner option a): `execute_with_run_next` installs `<runtime>/kit-guard/<step>/agentic-kit` (a POSIX launcher plus a standard-library guard script run with the Kit's own interpreter) first on PATH. Its decision table is derived from the catalog with the source analysis's rules; a test checks for every manifest command, with and without `--execute`, that the guard needs exactly what `approval_required_commands` asks. The bridge passes the admitting approval (`_kit_approvals`: the covered command names and, for an exact approval, its lines); without one every approval-required call is refused. Nested calls of an approved Kit process pass by a per-run token; decisions go to `invocations.jsonl`.
+- Source rules against bypassing the guard: a path to `agentic-kit`, `agentic_project_kit` as module or import, and the guard's names are rejected (correctable). Limitation: the work order is Python; the guard is no sandbox.
+- Tests: `tests/test_kit_invocation_guard.py`; `test_exact_command_approval.py` (a once-bound constant is literal, a rebound one is not), `test_k07_file_loop_runner.py` (guard first on PATH, then the venv).

@@ -882,6 +882,23 @@ This section is normative for the file loop after local execution.
    keeps release branches named `release/<v>` (KIT-GF-065). A live release run without signature,
    approver or consent source is rejected before it runs. Workspaces without the declaration keep the
    two-phase release whose tag push asks.
+85. Every real Kit call is checked against the approval (`AGP_KIT_INVOCATION_GUARD_V1` and
+   `AGP_LITERAL_APPROVAL_ARGUMENTS_V1`, build release-0.3.0-r3, owner 2026-10-20 „a und b“): the
+   approval is decided on the work order's source, which cannot read a call assembled at run time
+   (`[*BASE, "push-current"]`) or a computed argument. (b) An agentic-kit call that needs an
+   approval must name every argument as a string literal or a module-level string constant bound
+   once; a computed argument is a correctable rejection, so the question shows the exact line.
+   (a) While `Download/run_next.py` runs a work order, a generated `agentic-kit` guard stands
+   first on PATH (`<runtime>/kit-guard/<step>/`). It resolves each call against the installed
+   manifest with the same rules as the source analysis (remote effect, execute-gated remote route
+   only with an execute flag, destructive or owner-decision `--execute`, the never-run
+   `workspace ci-update --execute`) and starts the Kit only when the admitting approval covers the
+   command name and, for an exact approval, the exact line; otherwise it prints
+   `AGP_KIT_GUARD_REFUSED` and exits 126. Calls of an approved Kit process pass; every decision is
+   logged in `invocations.jsonl`. Work orders call the Kit as plain `agentic-kit`: a path to the
+   Kit, `python -m agentic_project_kit`, an import of the package or the guard's names are
+   refused in the source. The guard is not a sandbox; it closes the dynamic gap of rule 84's
+   approvals, and the Cockpit still selects no Kit command.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

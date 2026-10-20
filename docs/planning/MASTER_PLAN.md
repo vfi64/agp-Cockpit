@@ -690,7 +690,12 @@ P2 — then:
 6. Closeout record per task (intent → approvals → steps → Kit evidence SHAs → result), committed.
 7. One start path for standard and free tasks with a common repository/Kit/contract check.
 8. First-run assistant (installer stage B): installed mode without source, pairing code instead of a
-   token, gh login, adoption through Kit routes, honest readiness.
+   token, gh login, adoption through Kit routes, honest readiness. Extended (owner 2026-10-20) to a
+   check and setup assistant: it checks each component on its own and reports PASS, MISSING or
+   OPTIONAL — Python with Tk, `gh` with login, the Kit installation and workspace, Chrome, the Chrome
+   extension with the matching build id, and optionally Ollama, a local model and Hermes (optional
+   per Phase 20; missing is not a failure). It installs or sets up only after the owner's approval of
+   exactly that step, and Kit work always runs through Kit routes.
 9. Patch: read-only view in the Kit findings window, then the task „Patch“ (one finding = one run in its
    target repository).
 10. DPA adoption adjudication of agp-Cockpit.
