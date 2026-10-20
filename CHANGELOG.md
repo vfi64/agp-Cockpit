@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.1.2 adopted through the Kit's own `kit update` (manifest 390ff4b84aa2, signature 665f6a21a140daebae269848). The browser job is skipped again on the light CI path of refresh pull requests (AGP_CI_LIGHT_SKIP_DECLARED_V1, replaces AGP_CI_LIGHT_NO_SKIP_V1): `.agentic/config.yaml` declares `gates.light_path_skipped_checks: [browser]`, the Kit accepts that skip only when it re-derives the pull request as light, and the gate job accepts it only with the light verdict. FILE_TRANSFER under 1.1.2: `transfer order-create --run-command` writes command orders, and `transfer remote-next` publishes the files an order wrote and ends with a clean checkout. KIT-GF-071 to 076 are FIXED; evidence: docs/validation/evidence/kit-1.1.2-adoption.json; no rebuild needed.
+
 ## v0.3.0 - 2026-10-19
 
 - Kit 1.1.1 adopted through the Kit's own `kit update` (manifest 5a8184255246, signature e7f303d99c564d31cf4bb3dd). For FILE_TRANSFER this is stricter: an order that runs BOUNDED Kit commands or commands outside the Kit manifest needs the local `--allow-unlisted` flag, raw git/gh mutations are always refused, and `expected_current_head` must be the full 40-character commit the order was written on, otherwise `transfer remote-next` stops as STALE_ORDER. Orders that start with the required COMMAND_MANIFEST_ACK line now complete instead of crashing. Evidence: docs/validation/evidence/kit-1.1.1-adoption.json.

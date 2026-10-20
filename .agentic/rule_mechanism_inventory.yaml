@@ -1,6 +1,6 @@
-schema_version: 1
+schema_version: 2
 kind: external_kit_rule_mechanism_inventory
-kit_version: 1.1.1
+kit_version: 1.1.2
 mechanisms:
 - id: workspace-contract
   status: active
@@ -9,11 +9,11 @@ mechanisms:
     package: agentic_project_kit
     module: workspace.py
     symbol: load_workspace
-    sha256: 2d342dfe94d9f1271949fe9c824ff44a1cc9e22ace2818023c774898f61d4d85
+    sha256: 396547140fc37058dbe6a771177f74a8d5c53a4d51bec3cafc34833c89eb1d83
   surface:
     path: .agentic/config.yaml
     required_anchor: kit_schema_version
-    sha256: 96cae1787804cda18375915b7dc3bdfbd95801e83ca28f4cca66c43fc5e7e3e0
+    anchor_sha256: 9c0044344b7023bdfa9ce5b1d5d1dff4bdd2682219ddb8e7e7a3ef05625e17fe
 - id: rule-acknowledgement
   status: active
   evidence_scope: installed-kit-source-and-workspace-surface
@@ -25,7 +25,7 @@ mechanisms:
   surface:
     path: .agentic/rules/README.md
     required_anchor: Workspace Rules
-    sha256: 991fdf5e0a81085f13e7c867321c5b5ed71e338383cc91aec1aea90852e5b8db
+    anchor_sha256: 1eaeec154065c8dceb552a0b35ad55e28de66dc2631574ada977f6d96a0b8949
 - id: command-authority
   status: active
   evidence_scope: installed-kit-source-and-workspace-surface
@@ -37,8 +37,8 @@ mechanisms:
   surface:
     path: docs/reference/agentic-kit-commands.json
     required_anchor: agentic_kit_command_reference
-    sha256: cf5e3a8abb965f9dc1ca0deef1775ccc8f815c2c4d6aa4cc2c54c0b1265c25e4
+    anchor_sha256: 28dadecd42d69859f1e275f6f53f131af23ebf379a036832a053eb015c2ed8df
 excluded:
 - id: project-rule-capsules
   reason: no-project-registration-semantics-inferred-from-prose-or-empty-registry
-projection_sha256: 5f46bab21f80f5857db1e6ade4fa0cbc03c8a720389479a7cc241d441df6f052
+projection_sha256: 83d89828c6252cbde3c699a3cf93632ebc430c57b11c281a020c286aa2456645

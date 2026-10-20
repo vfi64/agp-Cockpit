@@ -7392,7 +7392,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.1.1",
+          "default": "1.1.2",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -10377,7 +10377,7 @@
       "name": "release-publish",
       "params": [
         {
-          "default": "1.1.1",
+          "default": "1.1.2",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -12017,7 +12017,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.1.1",
+          "default": "1.1.2",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -14625,6 +14625,20 @@
           "name": "write_actions",
           "opts": [
             "--write-action"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": [],
+          "help": "Command action, one shell-quoted argv such as 'agentic-kit check --json'. Checked against the command manifest; repeatable.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": true,
+          "name": "run_commands",
+          "opts": [
+            "--run-command"
           ],
           "param_type": "TyperOption",
           "required": false,
@@ -20328,7 +20342,7 @@
   "kind": "agentic_kit_command_reference",
   "meta": {
     "generated_md": "docs/reference/AGENTIC_KIT_COMMANDS.md",
-    "manifest_sha": "5a8184255246",
+    "manifest_sha": "390ff4b84aa2",
     "schema_version": 1
   },
   "schema_version": 2,

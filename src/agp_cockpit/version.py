@@ -11,7 +11,7 @@ BRIDGE_PROTOCOL_VERSION = 1
 # chrome_extension/build_identity.js. The Kit's release preparation raises APP_VERSION here and
 # AGP_APP_VERSION there (version anchors in .agentic/config.yaml); the revision then names an
 # older version and the build id is plain release-<version>.
-BUILD_REVISION = ("0.2.6", 1)
+BUILD_REVISION = ("0.3.0", 1)
 
 
 def build_id(app_version: str, revision: tuple[str, int]) -> str:

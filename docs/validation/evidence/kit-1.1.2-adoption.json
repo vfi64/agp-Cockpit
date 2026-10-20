@@ -1,0 +1,62 @@
+{
+    "schema_version": 1,
+    "kind": "agp_kit_retest_evidence",
+    "id": "kit-1.1.2-adoption",
+    "date": "2026-10-20",
+    "kit_version": "1.1.2",
+    "source": "Claude's work clone of agp-Cockpit on branch chore/kit-1.1.2 (base main 4ed5393e), cloud session, workspace .venv; Kit 1.1.2 from PyPI",
+    "kit_update": {
+        "controller": "installed Kit 1.1.1 planned and executed the update",
+        "plan": {
+            "result_status": "AWAITING_APPROVAL",
+            "approval_signature": "665f6a21a140daebae269848",
+            "changed_paths": [
+                ".agentic/ci/agentic-gate.yaml",
+                ".github/workflows/agentic-gate.yaml",
+                "AGENTS.md",
+                "docs/reference/AGENTIC_KIT_COMMANDS.md",
+                "docs/reference/agentic-kit-commands.json"
+            ],
+            "manifest_ack": "390ff4b84aa2",
+            "actions": [
+                "install_released_wheels",
+                "update_ci_pins",
+                "sync_entrypoints",
+                "check",
+                "doctor"
+            ]
+        },
+        "execute": {
+            "result_status": "PASS",
+            "completed_steps": [
+                "install",
+                "ci_pins",
+                "entrypoints",
+                "check",
+                "doctor"
+            ],
+            "installed_version": "1.1.2"
+        }
+    },
+    "rule_registry": {
+        "check_before_update": "PASS",
+        "check_after_update": "BLOCKED (inventory differs from the installed 1.1.2 projection); the 1.1.1 controller has no refresh_rule_inventory action, so one signed bootstrap rewrote it (schema 2, anchor_sha256), check PASS",
+        "check_after_config_edit": "PASS after adding gates.light_path_skipped_checks to .agentic/config.yaml (under 1.1.1 the same kind of edit turned it BLOCKED, KIT-GF-072)"
+    },
+    "ci": {
+        "marker": "AGP_CI_LIGHT_SKIP_DECLARED_V1",
+        "replaces": "AGP_CI_LIGHT_NO_SKIP_V1",
+        "change": "browser job if: always() && needs.python.outputs.mode != 'light'; the gate accepts browser=skipped only with mode light; .agentic/config.yaml gates.light_path_skipped_checks: [browser]",
+        "dry_check_on_refresh_pr_359": "Kit 1.1.2 with this branch's config: ci runtime-plan over 8fb89506..d93be7d1 (refresh PR #359, branch docs/post-pr358-successor-package-refresh) is light and light_path_skip_allowance returns {browser}; with a product branch name it returns nothing"
+    },
+    "cockpit_tests": "same 19 failures as on main, all from the missing tkinter module in the cloud session; agentic-kit check and doctor PASS",
+    "verifies": {},
+    "not_verified": {
+        "KIT-GF-071": "one pin here; multiple pins are not exercised",
+        "KIT-GF-072": "anchor-scoped evidence verified (config edit kept PASS); the refresh inside kit update needs an update run by a 1.1.2 controller",
+        "KIT-GF-073": "needs the first refresh pull request after this adoption to settle with the skipped browser check",
+        "KIT-GF-074": "needs the complete FILE_TRANSFER run under 1.1.2",
+        "KIT-GF-075": "needs the complete FILE_TRANSFER run under 1.1.2",
+        "KIT-GF-076": "not reproducible here; Kit fixture evidence only"
+    }
+}

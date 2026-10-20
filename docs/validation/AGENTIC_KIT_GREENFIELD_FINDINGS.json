@@ -2851,11 +2851,11 @@
       "id": "KIT-GF-071",
       "title": "kit update allows exactly one Kit pin per managed CI file, so a separate classify job cannot be kept current",
       "first_observed": "2026-10-13",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "low",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.2",
       "expected": "kit update maintains every Kit pin of a declared CI set (or a requirements file such as the requirements-kit.txt the KIT-GF-063 fragment uses), so a customized workflow can classify in its own job.",
       "observed": "Kit 1.0.25 `kit_update_pins.plan_ci_pins` rejects a managed CI source with more than one 'agentic-project-kit' occurrence (ambiguous_ci_pin), while the documented KIT-GF-063 custom-CI fragment installs the Kit in a separate classify job from requirements-kit.txt, which kit update does not manage.",
       "impact": "agp-Cockpit classifies inside its python job and the browser job waits for it: a full run's wall-clock time grows by the python job (billed minutes unchanged).",
@@ -2864,22 +2864,23 @@
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [],
       "kit_repo_status": {
-        "date": "2026-10-19",
-        "fixed_in": "",
+        "date": "2026-10-20",
+        "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
-      }
+      },
+      "retest": "Retest pending: this workspace keeps one pin; a second classify-job pin is not exercised here."
     },
     {
       "id": "KIT-GF-072",
       "title": "the rule-mechanism inventory pins whole surface files, so any unrelated edit blocks rule-registry check",
       "first_observed": "2026-10-13",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "low",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.2",
       "expected": "The inventory's direct evidence covers the anchor it needs (for example the kit_schema_version key), so unrelated edits of .agentic/config.yaml keep rule-registry check PASS; kit update refreshes or re-plans the inventory itself.",
       "observed": "Kit 1.0.25: after the signed bootstrap, appending one comment line to .agentic/config.yaml turned `rule-registry check` from PASS to BLOCKED („Inventory lacks current direct evidence“); the inventory stores the sha256 of the whole config.yaml, .agentic/rules/README.md and the command reference, which change with ordinary work and every Kit update.",
       "impact": "Every config or reference change needs a signed re-bootstrap; otherwise the inventory reads as stale.",
@@ -2888,22 +2889,23 @@
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [],
       "kit_repo_status": {
-        "date": "2026-10-19",
-        "fixed_in": "",
+        "date": "2026-10-20",
+        "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
-      }
+      },
+      "retest": "Half verified 2026-10-20 (evidence kit-1.1.2-adoption.json): after the bootstrap with 1.1.2 a config.yaml edit kept rule-registry check PASS. The refresh inside kit update needs the next update, run by a 1.1.2 controller."
     },
     {
       "id": "KIT-GF-073",
       "title": "the Kit's CI policy blocks a consumer's light path because skipped checks count as not green",
       "first_observed": "2026-10-13",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.2",
       "expected": "When `ci runtime-plan` classified a pull request as light, the jobs the light path skips are accepted by pr-wait-ci, ci readiness and post-merge-settle (or the Kit's documented fragment avoids SKIPPED required checks).",
       "observed": "Kit 1.0.25, agp-Cockpit refresh PR #347 after #346: the light path ran (python job 54 s, browser job SKIPPED, agentic-gate green), but `transfer post-merge-settle` ended BLOCKED (SUCCESSOR_PACKAGE_REFRESH_CI_BLOCKED) because pr-wait-ci treats SKIPPED as blocking; github_check_policy.OPTIONAL_SKIPPED_CHECK_NAMES only holds the Kit repository's own pytest-parallel-shadow. The documented KIT-GF-063 fragment skips its heavy jobs on the light path, so every consumer that follows it blocks the same way.",
       "impact": "The post-merge closeout of every refresh pull request blocks; the remote side asks again and again for a CI re-run, which would skip again.",
@@ -2915,22 +2917,23 @@
         "agp-Cockpit PR #347, Cockpit steps 2070 and 2072"
       ],
       "kit_repo_status": {
-        "date": "2026-10-19",
-        "fixed_in": "",
+        "date": "2026-10-20",
+        "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
-      }
+      },
+      "retest": "Retest with the first refresh pull request after this adoption: the skipped browser check must pass pr-wait-ci and post-merge-settle."
     },
     {
       "id": "KIT-GF-074",
       "title": "transfer order-create cannot generate command orders",
       "first_observed": "2026-10-19",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.2",
       "expected": "order-create writes run_command actions, checks each command against the command manifest when the order is created and says whether it needs --allow-unlisted.",
       "observed": "Kit 1.1.1, live FILE_TRANSFER preparation 2026-10-19: `transfer order-create` accepts only --write-action (write_text_file), although the transfer runner executes run_command actions; the planned counter-check with a BOUNDED command without --allow-unlisted could not be generated through a Kit route.",
       "impact": "Command orders can only be written by hand, which the Kit law forbids; the --allow-unlisted refusal cannot be retested live.",
@@ -2941,22 +2944,23 @@
         "docs/validation/evidence/file-transfer-live-2026-10-19.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-19",
-        "fixed_in": "",
+        "date": "2026-10-20",
+        "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
-      }
+      },
+      "retest": "Retest with the complete FILE_TRANSFER run under 1.1.2."
     },
     {
       "id": "KIT-GF-075",
       "title": "transfer remote-next leaves the order's products untracked on the transfer branch",
       "first_observed": "2026-10-19",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.2",
       "expected": "After PASS the files the order wrote, its command-run report and LATEST_COMMAND_RUN.txt are published with the report, and the checkout ends clean; anything else blocks.",
       "observed": "Kit 1.1.1, live FILE_TRANSFER 2026-10-19 (Cockpit step 2100): remote-next PASS and both report commits pushed, but the checkout stayed on transfer/file-transfer-live-20261019 with the written docs/validation/evidence/file_transfer_live/probe-20261019.txt, the order report and LATEST_COMMAND_RUN.txt untracked; the transferred file never reached the branch. The Kit's own protocol header names accumulated_untracked_transfer_or_report_files as a failure class.",
       "impact": "The transfer's actual result is lost unless committed by hand, and the next Kit route meets a dirty checkout; the Cockpit shows open work on the transfer branch.",
@@ -2967,22 +2971,23 @@
         "docs/validation/evidence/file-transfer-live-2026-10-19.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-19",
-        "fixed_in": "",
+        "date": "2026-10-20",
+        "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
-      }
+      },
+      "retest": "Retest with the complete FILE_TRANSFER run under 1.1.2."
     },
     {
       "id": "KIT-GF-076",
       "title": "transfer .gitkeep carriers block remote-next in a freshly initialized workspace",
       "first_observed": "2026-10-19",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.2",
       "expected": "The .gitkeep carriers that workspace init writes into the transfer inbox and outbox are not obsolete transfer files.",
       "observed": "Found 2026-10-19 by the Kit's own regression fixture for KIT-GF-074/075, not in this workspace (its inbox has no .gitkeep): `workspace init` writes .agentic/transfer/inbox/.gitkeep, the transfer state counts it as duplicate_or_obsolete_active_transfer_files, and remote-next stops with run_next_command false.",
       "impact": "Every remote-next in a workspace created with workspace init blocks.",
@@ -2993,12 +2998,13 @@
         "Kit report docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-19",
-        "fixed_in": "",
+        "date": "2026-10-20",
+        "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c), planned release 1.1.2; recorded by the Cockpit from the merged PR, not yet from greenfield status of a released Kit",
+        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
-      }
+      },
+      "retest": "Not reproducible here (no inbox .gitkeep); the Kit's installed-wheel fixture is the evidence."
     }
   ],
   "explicit_exclusions": [

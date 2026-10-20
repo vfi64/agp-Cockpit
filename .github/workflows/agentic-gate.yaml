@@ -21,10 +21,9 @@ jobs:
     timeout-minutes: 25
     # AGP_CI_LIGHT_REFRESH_V1 (Kit 1.0.25, KIT-GF-063): the Kit classifies the pull request. A refresh
     # pull request whose diff stays inside the Kit's own administrative paths runs light: Kit check and
-    # doctor only, no pytest and no browser tests (the browser job runs and succeeds without them, see
-    # AGP_CI_LIGHT_NO_SKIP_V1). Any other branch, path, event or a failed classification runs full.
-    # The classifier lives in this job because kit update keeps exactly one Kit pin per workflow
-    # (KIT-GF-071), so the browser job waits for it.
+    # doctor only, no pytest, and the browser job is skipped (AGP_CI_LIGHT_SKIP_DECLARED_V1). Any other
+    # branch, path, event or a failed classification runs full. The classifier stays in this job; since
+    # Kit 1.1.2 (KIT-GF-071) kit update could also keep a second pin in a separate classify job.
     outputs:
       mode: ${{ steps.plan.outputs.mode }}
     steps:
@@ -37,7 +36,7 @@ jobs:
           cache: "pip"
       - run: python -m pip install --upgrade pip
       # Pinned: CI checks with the same Kit version as the developer machine (KIT-GF-042: no ci-update here).
-      - run: python -m pip install "agentic-project-kit==1.1.1"
+      - run: python -m pip install "agentic-project-kit==1.1.2"
       - id: plan
         if: github.event_name == 'pull_request'
         env:
@@ -58,7 +57,11 @@ jobs:
 
   browser:
     needs: python
-    if: always()
+    # AGP_CI_LIGHT_SKIP_DECLARED_V1 (Kit 1.1.2, KIT-GF-073, replaces AGP_CI_LIGHT_NO_SKIP_V1): skipped on
+    # the light path. `.agentic/config.yaml` declares `gates.light_path_skipped_checks: [browser]`; the
+    # Kit's pr wait-ci, PR status and post-merge settlement accept the SKIPPED check only when they
+    # re-derive the pull request as light. always() keeps it running when the classifier failed (full).
+    if: always() && needs.python.outputs.mode != 'light'
     runs-on: ubuntu-24.04
     # AGP_CI_TIMEOUTS_V1 (live 2026-10-07, main run of #299): apt hung 23 min on the
     # azure.archive.ubuntu.com mirror inside "playwright install-deps" (GitHub's default job
@@ -66,49 +69,39 @@ jobs:
     # have a hard limit, so a hanging mirror ends red within minutes instead of blocking main.
     timeout-minutes: 30
     steps:
-      # AGP_CI_LIGHT_NO_SKIP_V1 (2026-10-13, KIT-GF-073): on the light path this job runs and succeeds
-      # without browser tests. A skipped job would read as SKIPPED, which the Kit's CI policy only accepts
-      # for its own check names, so the post-merge closeout of refresh PR #347 blocked.
-      - if: needs.python.outputs.mode == 'light'
-        run: echo "Light path from the Kit's ci runtime-plan - refresh pull request inside the Kit's administrative paths, no browser tests"
-      - if: needs.python.outputs.mode != 'light'
-        uses: actions/checkout@v5
-      - if: needs.python.outputs.mode != 'light'
-        uses: actions/setup-node@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
-      - if: needs.python.outputs.mode != 'light'
-        run: npm ci
-      - if: needs.python.outputs.mode != 'light'
-        id: playwright
+      - run: npm ci
+      - id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      - if: needs.python.outputs.mode != 'light'
-        id: browsers
+      - id: browsers
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - if: needs.python.outputs.mode != 'light'
-        run: |
+      - run: |
           printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' \
             | sudo tee /etc/apt/apt.conf.d/99agp-timeouts
-      - if: needs.python.outputs.mode != 'light' && (steps.browsers.outputs.cache-hit != 'true')
+      - if: steps.browsers.outputs.cache-hit != 'true'
         timeout-minutes: 10
         run: npx playwright install --with-deps chromium
-      - if: needs.python.outputs.mode != 'light' && (steps.browsers.outputs.cache-hit == 'true')
+      - if: steps.browsers.outputs.cache-hit == 'true'
         timeout-minutes: 10
         run: npx playwright install-deps chromium
-      - if: needs.python.outputs.mode != 'light'
-        run: npx playwright test
+      - run: npx playwright test
         timeout-minutes: 15
 
-  # Stable required check: the name stays "agentic-gate" and is green only if both jobs are green.
+  # Stable required check: the name stays "agentic-gate"; it is green only if the python job is green and
+  # the browser job is green, or skipped on the light path.
   agentic-gate:
     needs: [python, browser]
     if: always()
     runs-on: ubuntu-24.04
     steps:
+      # The browser job may only be skipped on the light path; a skip on a full run fails the gate.
       - run: |
           test "${{ needs.python.result }}" = "success"
-          test "${{ needs.browser.result }}" = "success"
+          test "${{ needs.browser.result }}" = "success" || { test "${{ needs.browser.result }}" = "skipped" && test "${{ needs.python.outputs.mode }}" = "light"; }
