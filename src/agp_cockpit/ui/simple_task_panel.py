@@ -185,6 +185,23 @@ class SimpleTaskPanel(ttk.Frame):
                         variable=self.decision_scope_var).grid(row=0, column=1, sticky="w")
         ttk.Radiobutton(scope_row, text="Push, PR und Merge", value="full",
                         variable=self.decision_scope_var).grid(row=0, column=2, sticky="w", padx=(8, 0))
+        # AGP_EXACT_COMMAND_APPROVAL_V1: exactly the command lines the question names; the
+        # bridge refuses any other or changed line. --allow-unlisted needs its own tick.
+        self.exact_scope_button = ttk.Radiobutton(scope_row, text="Nur diese Befehle", value="exact",
+                                                  variable=self.decision_scope_var)
+        self.exact_scope_button.grid(row=0, column=3, sticky="w", padx=(8, 0))
+        self.exact_commands_var = tk.StringVar(value="")
+        self._wrap(ttk.Label(self.decision_frame, textvariable=self.exact_commands_var,
+                             font="TkFixedFont", justify="left"), 200).grid(
+            row=4, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self.allow_unlisted_var = tk.BooleanVar(value=False)
+        self.allow_unlisted_check = ttk.Checkbutton(
+            self.decision_frame, variable=self.allow_unlisted_var,
+            text="⚠ --allow-unlisted bewusst freigeben: der Auftrag darf BOUNDED-Kit-Befehle und "
+                 "Befehle außerhalb des Kit-Manifests ausführen")
+        self.allow_unlisted_check.grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        self.allow_unlisted_check.grid_remove()
+        self._exact_view = {"commands": [], "allow_unlisted": [], "default_scope": "push_pr"}
         self.decision_frame.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         self.decision_frame.grid_remove()
 
@@ -321,6 +338,7 @@ class SimpleTaskPanel(ttk.Frame):
         self.decision_question.delete("1.0", "end")
         self.decision_question.insert("1.0", question or "Die Remote-Seite braucht eine Entscheidung.")
         self.decision_question.configure(state="disabled")
+        self._show_exact_commands(question)
         self.refresh_decision_facts()
         self.decision_note.delete("1.0", "end")
         self.decision_frame.grid()
@@ -371,6 +389,26 @@ class SimpleTaskPanel(ttk.Frame):
                                                                           padx=8, pady=6)
         self.changes_window = window
 
+    def _show_exact_commands(self, question: str) -> None:
+        """AGP_EXACT_COMMAND_APPROVAL_V1: offer exactly the named command lines."""
+        from agp_cockpit.core.human_decision import exact_approval_view
+        from agp_cockpit.core.kit_command_catalog import KitCommandCatalog
+        view = exact_approval_view(question, KitCommandCatalog.load(self.repository_root))
+        self._exact_view = view
+        self.decision_scope_var.set(view["default_scope"])
+        self.allow_unlisted_var.set(False)
+        if view["commands"]:
+            self.exact_scope_button.state(["!disabled"])
+            self.exact_commands_var.set("„Nur diese Befehle“ erlaubt genau:\n"
+                                        + "\n".join("  " + line for line in view["commands"]))
+        else:
+            self.exact_scope_button.state(["disabled"])
+            self.exact_commands_var.set("")
+        if view["allow_unlisted"]:
+            self.allow_unlisted_check.grid()
+        else:
+            self.allow_unlisted_check.grid_remove()
+
     def _hide_decision(self) -> None:
         self._decision_mission_id = ""
         self._decision_question = ""
@@ -388,8 +426,13 @@ class SimpleTaskPanel(ttk.Frame):
             return
         note = self.decision_note.get("1.0", "end-1c").strip()
         scope = self.decision_scope_var.get() if decision == "APPROVE" else "full"
+        if scope == "exact" and self._exact_view["allow_unlisted"] and not self.allow_unlisted_var.get():
+            self.state_var.set("Der Befehl enthält --allow-unlisted — erst das Warnfeld bewusst ankreuzen "
+                               "oder einen anderen Umfang wählen.")
+            return
         try:
-            record_decision(mission_id=mission_id, decision=decision, note=note, scope=scope)
+            record_decision(mission_id=mission_id, decision=decision, note=note, scope=scope,
+                            confirm_allow_unlisted=bool(self.allow_unlisted_var.get()))
             # The NEEDS_HUMAN stop left a durable STOP; the continuation of
             # the same task starts from a clean running control state.
             self.api.operator_control.request("RESUME")
@@ -403,6 +446,7 @@ class SimpleTaskPanel(ttk.Frame):
                     question=self._decision_question,
                     note=note,
                     scope=scope,
+                    exact=self._exact_view["commands"] if scope == "exact" else None,
                 ),
                 conversation_url=require_allowed_active_chat().url,
             )["mission"]
@@ -470,7 +514,14 @@ class SimpleTaskPanel(ttk.Frame):
             "for explicit human checkpoints or a genuinely strategic decision that "
             "cannot be resolved from repository authority.\n\nTASK CONTRACT:\n"
             + json.dumps(self.contract, ensure_ascii=False, indent=2)
+            + self._start_facts()
         )
+
+    def _start_facts(self) -> str:
+        """AGP_MENTIONED_BRANCH_FACTS_V1: facts at the start, incl. branches the task names."""
+        from agp_cockpit.core.merged_branch_guard import start_facts
+        line = start_facts(self.repository_root, json.dumps(self.contract, ensure_ascii=False))
+        return ("\n\n" + line) if line else ""
 
     def start_task(self) -> None:
         # AGP_STALE_APP_GUARD_V1: never start a task on an outdated app.

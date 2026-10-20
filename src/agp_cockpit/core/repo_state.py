@@ -151,6 +151,10 @@ def post_merge_check(root: Path, kit, *, runner=subprocess.run) -> tuple[str, st
 
 
 FOLLOWUP_BRANCH = __import__("re").compile(r"^docs/post-pr\d+-")
+# AGP_TRANSFER_BRANCH_LAGE_V1 (live 2026-10-19/20): after `transfer remote-next` the checkout stays on
+# the Kit's transfer branch with its published result; recommending „Abschließen“ there would open a
+# pull request with the transfer's orders into main. No recommendation; the Lösungsweg says why.
+TRANSFER_BRANCH_PREFIX = "transfer/"
 FOLLOWUP_GREEN, FOLLOWUP_PENDING, FOLLOWUP_RUNNER, FOLLOWUP_FAILED = "GREEN", "PENDING", "RUNNER", "FAILED"
 FOLLOWUP_NOT_STARTED = "NOT_STARTED"       # AGP_CI_NOT_STARTED_V1
 _NOT_STARTED_SECONDS = 3
@@ -335,6 +339,9 @@ def classify(facts: RepoFacts) -> RepoState:
         return _state(STOERUNG, f"Branch {facts.branch} enthält keine eigene Arbeit, aber offene "
                       "Änderungen (vermutlich Rest eines Abschlusses).", WIEDERHERSTELLEN,
                       ("Offene Änderungen: " + ", ".join(facts.changes[:5]),), facts)
+    if facts.branch.startswith(TRANSFER_BRANCH_PREFIX) and facts.own_commits and not facts.changes:
+        return _state(IN_ARBEIT, f"Transfer-Branch {facts.branch}: Ergebnis der Kit-Übertragung, sauber.",
+                      None, (), facts)
     if facts.own_commits and not facts.changes:
         recommended = ABSCHLIESSEN
         summary = f"Arbeit auf {facts.branch}: {facts.own_commits} Commit(s), sauber; bereit zum Abschließen."
