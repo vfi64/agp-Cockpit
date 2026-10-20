@@ -74,14 +74,16 @@ def test_refresh_pull_requests_take_the_kits_light_path_and_everything_else_runs
     pytest_step = next(step for step in python["steps"] if "pytest" in str(step.get("run", "")))
     kit_step = next(step for step in python["steps"] if "agentic-kit check" in str(step.get("run", "")))
     assert pytest_step["if"] == "steps.plan.outputs.mode != 'light'" and "if" not in kit_step
-    # AGP_CI_LIGHT_NO_SKIP_V1 (KIT-GF-073): the browser job always runs, so no required check reads SKIPPED;
-    # on the light path only its note step runs, every other step is conditional on the full path.
-    assert browser["needs"] == "python" and browser["if"] == "always()"
-    steps = browser["steps"]
-    assert steps[0]["if"] == "needs.python.outputs.mode == 'light'" and "run" in steps[0]
-    assert all(str(step.get("if", "")).startswith("needs.python.outputs.mode != 'light'") for step in steps[1:])
+    # AGP_CI_LIGHT_SKIP_DECLARED_V1 (Kit 1.1.2, KIT-GF-073; replaces AGP_CI_LIGHT_NO_SKIP_V1): the browser job is
+    # skipped on the light path only; a failed classification still runs it (always()). The gate accepts a skipped
+    # browser job only together with the light verdict, and the workspace declares the check for the Kit.
+    assert browser["needs"] == "python" and browser["if"] == "always() && needs.python.outputs.mode != 'light'"
+    assert not any("outputs.mode" in str(step.get("if", "")) for step in browser["steps"])
     gate = jobs["agentic-gate"]["steps"][0]["run"]
-    assert 'needs.browser.result }}" = "success"' in gate and "skipped" not in gate
+    assert 'needs.browser.result }}" = "success" || {' in gate
+    assert 'test "${{ needs.browser.result }}" = "skipped" && test "${{ needs.python.outputs.mode }}" = "light"' in gate
+    config = yaml.safe_load((ROOT / ".agentic/config.yaml").read_text(encoding="utf-8"))
+    assert config["gates"]["light_path_skipped_checks"] == ["browser"]
     text = SOURCE.read_text(encoding="utf-8")
     assert text.count("agentic-project-kit") == 1                              # kit update keeps one pin
 

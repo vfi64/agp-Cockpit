@@ -677,7 +677,8 @@ P1 — next:
    Kit 1.1.1 adopted 2026-10-19 through `kit update` (AGP_CHANGELOG_CURATED_V1); KIT-GF-070 stays open
    (1.1.1 ships retest commands but no runner). The first live FILE_TRANSFER run under 1.1.1 passed on
    2026-10-19 (evidence file-transfer-live-2026-10-19.json; KIT-GF-074 to 076 recorded); the complete
-   run with a command counter-check follows after Kit 1.1.2 is adopted. Open Cockpit slice: an
+   run with a command counter-check follows after Kit 1.1.2 is adopted (adopted 2026-10-20, evidence
+   kit-1.1.2-adoption.json; light CI path skips the browser job again). Open Cockpit slice: an
    exact-command approval scope with `--allow-unlisted` shown, and origin branches in the remote facts.
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
