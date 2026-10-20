@@ -55,6 +55,11 @@ def steps(state, *, block_reason: str = "", decision_pending: bool = False, reco
             return [f"Der Branch {f.branch} enthält keine Arbeit (Rest eines Ablaufs).",
                     f"Zurück auf main: {where}git switch main",
                     "Danach „Aktualisieren“ klicken."]
+        if f.own_commits and not f.changes and (f.branch or "").startswith(rs.TRANSFER_BRANCH_PREFIX):
+            # AGP_TRANSFER_BRANCH_LAGE_V1: a transfer branch carries the Kit's published result.
+            return [f"{f.branch} ist ein Transfer-Branch: das Ergebnis der Übertragung liegt auf GitHub.",
+                    "Zurück auf main: oben „Branch wechseln …“ → main.",
+                    "„Abschließen“ nur, wenn die übertragene Änderung nach main soll."]
         if f.own_commits and not f.changes:
             return ["„Abschließen“ klicken: Commit ist da; veröffentlicht, prüft die CI und mergt."]
         if task_outcome == "HUMAN_REQUIRED":

@@ -248,9 +248,10 @@ def _current_task_id(runtime_root: Path, engine) -> str:
     return str(binding.get("task_id") or "").strip()
 
 
-def _remote_effects_permitted(runtime_root: Path, engine, wanted) -> bool:
+def _remote_effects_permitted(runtime_root: Path, engine, wanted, invocations=None) -> bool:
     """AGP_HUMAN_DECISION_V1 + AGP_CI_GREEN_COMPLETION_V1: the open approval
-    of the bound task covers exactly these remote-effect commands."""
+    of the bound task covers exactly these remote-effect commands (and, for an exact
+    approval, exactly these command lines, AGP_EXACT_COMMAND_APPROVAL_V1)."""
     from agp_cockpit.core.ci_gate import CiGateStore
     from agp_cockpit.core.human_decision import HumanDecisionStore
 
@@ -258,7 +259,8 @@ def _remote_effects_permitted(runtime_root: Path, engine, wanted) -> bool:
         return False
     task_id = _current_task_id(runtime_root, engine)
     return HumanDecisionStore(runtime_root).permits(
-        task_id, wanted, ci_gate_active=CiGateStore(runtime_root).required(task_id)
+        task_id, wanted, ci_gate_active=CiGateStore(runtime_root).required(task_id),
+        invocations=invocations,
     )
 
 
@@ -505,7 +507,10 @@ class CockpitBridgeServer:
                                         if approval_grant is None
                                         else {"human_approval": {
                                             "scope": (
-                                                "the remote-effect Kit commands of this standard task: "
+                                                "exactly these command lines, byte-identical: "
+                                                + " | ".join(approval_grant["exact"])
+                                                if approval_grant.get("exact")
+                                                else "the remote-effect Kit commands of this standard task: "
                                                 + ", ".join(approval_grant["scope"])
                                                 if approval_grant.get("scope")
                                                 else "exactly one work order with a remote-effect Kit command"
@@ -582,14 +587,16 @@ class CockpitBridgeServer:
                         from agp_cockpit.core.kit_command_catalog import (
                             KitCommandCatalog,
                             approval_required_commands,
+                            approval_required_invocations,
                             destructive_execute_commands,
                             unknown_effect_commands,
                         )
                         # AGP_DESTRUCTIVE_EXECUTE_GATE_V1: remote effects and
                         # destructive local executes share the approval path.
                         wanted = approval_required_commands(content, KitCommandCatalog.load(repo_root))
+                        invocations = approval_required_invocations(content, KitCommandCatalog.load(repo_root))
                         remote_effects_allowed = bool(wanted) and _remote_effects_permitted(
-                            runtime_root, engine, wanted
+                            runtime_root, engine, wanted, invocations
                         )
                         # AGP_REMOTE_EFFECT_ASKS_HUMAN_V1 (live 1495/1496): a
                         # remote-effect work order without an open approval is
@@ -644,7 +651,11 @@ class CockpitBridgeServer:
                                    if set(wanted) - set(destructive) else "")
                                 + (f"oder eine noch nicht eingestufte Wirkung ({', '.join(unknown)}) "
                                    if unknown else "")
-                                + f"ausführen: {', '.join(wanted)}. Es liegt keine offene "
+                                + f"ausführen: {', '.join(wanted)}. "
+                                # AGP_EXACT_COMMAND_APPROVAL_V1: the literal lines, one per text
+                                # line, so the decision box can offer exactly them.
+                                + "".join(f"\nBefehl: {line}\n" for line in invocations)
+                                + "Es liegt keine offene "
                                 "Freigabe vor (keine erteilt, oder die letzte wurde von "
                                 "einem früheren Auftrag verbraucht). Der Auftrag wurde "
                                 "nicht ausgeführt. Darf er ausgeführt werden?"
@@ -1549,15 +1560,23 @@ class CockpitBridgeServer:
                         if mission.state != "NEEDS_HUMAN":
                             raise ValueError(f"mission is {mission.state}, not waiting for a human decision")
                         task_id = str(resolve_task_binding(runtime_root, mission_id).get("task_id") or "")
-                        from agp_cockpit.core.human_decision import SCOPES
+                        from agp_cockpit.core.human_decision import EXACT_SCOPE, SCOPES, exact_commands_in
                         scope_key = str(data.get("scope") or "full")
                         if scope_key not in SCOPES:
                             raise ValueError(f"unknown approval scope: {scope_key}")
+                        exact = None
+                        if scope_key == EXACT_SCOPE and str(data.get("decision") or "").upper() == "APPROVE":
+                            from agp_cockpit.core.kit_command_catalog import KitCommandCatalog
+                            exact = exact_commands_in(mission.last_summary, KitCommandCatalog.load(repo_root))
+                            if not exact:
+                                raise ValueError("the question names no agentic-kit command line; "
+                                                 "choose another approval scope")
                         record = HumanDecisionStore(runtime_root).record(
                             mission_id=mission_id, task_id=task_id,
                             decision=str(data.get("decision") or ""),
                             question=mission.last_summary, note=str(data.get("note") or ""),
-                            scope=SCOPES[scope_key],
+                            scope=SCOPES[scope_key], exact=exact,
+                            confirm_allow_unlisted=bool(data.get("confirm_allow_unlisted")),
                         )
                         record["scope_choice"] = scope_key
                         diag.event(

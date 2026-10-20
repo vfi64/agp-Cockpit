@@ -96,7 +96,8 @@ def test_editor_widget_flow(monkeypatch, tmp_path):
         panel.decision_note.insert("1.0", "ja, nach origin")
         panel.decide("APPROVE")
         assert decisions == [{"mission_id": "M1", "decision": "APPROVE", "note": "ja, nach origin",
-                              "scope": "push_pr"}]   # AGP_APPROVAL_SCOPE_CHOICE_V1: default without merge
+                              "scope": "push_pr",   # AGP_APPROVAL_SCOPE_CHOICE_V1: default without merge
+                              "confirm_allow_unlisted": False}]   # AGP_EXACT_COMMAND_APPROVAL_V1
         assert FakeAPI.operator_control.requests == ["RESUME"]
         assert "APPROVED" in sent["mission_text"] and "ja, nach origin" in sent["mission_text"]
         assert sent["title"].endswith("· Entscheidung") and sent["start"] == ("M1", "t1")

@@ -71,7 +71,10 @@ def test_the_decision_endpoint_stores_the_scope_and_refuses_unknown_ones(tmp_pat
 
 def test_the_work_tab_decision_box_offers_the_scope_and_passes_it_on():
     assert 'self.decision_scope_var = tk.StringVar(value="push_pr")' in SIMPLE
-    assert "record_decision(mission_id=mission_id, decision=decision, note=note, scope=scope)" in SIMPLE
+    assert ("record_decision(mission_id=mission_id, decision=decision, note=note, scope=scope,\n"
+            "                            confirm_allow_unlisted=bool(self.allow_unlisted_var.get()))") in SIMPLE
+    # AGP_EXACT_COMMAND_APPROVAL_V1: the third scope and its --allow-unlisted tick
+    assert 'text="Nur diese Befehle", value="exact"' in SIMPLE and "self.allow_unlisted_check" in SIMPLE
     assert "scope=scope," in SIMPLE[SIMPLE.index("mission_text=decision_mission_text("):][:400]
 
 

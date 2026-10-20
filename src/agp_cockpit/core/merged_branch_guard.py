@@ -16,6 +16,7 @@ nothing is blocked (fail-open: the Kit still decides).
 from __future__ import annotations
 
 import ast
+import re
 import subprocess
 from pathlib import Path
 
@@ -219,8 +220,41 @@ def _remote_branch_fact(root: Path, name: str, runner) -> str:
     return f"origin/{name} {remote}: local {name} is {ahead} ahead and {behind} behind"
 
 
+# AGP_MENTIONED_BRANCH_FACTS_V1 (live FILE_TRANSFER 2026-10-19): the task named
+# transfer/file-transfer-live-20261019, the facts listed only main, and the remote side took the
+# existing branch for missing and wanted to create it with push-current/pr-create. Branches the
+# task or work order names get their own fact; one the checkout has not fetched is reported as
+# "not known locally", never as absent.
+_WORK_PREFIXES = ("transfer/", "feat/", "fix/", "chore/", "codex/", "release/")
+_BRANCH_MENTION = re.compile(r"(?<![\w./-])([A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9._/-]*[A-Za-z0-9])")
+MAX_MENTIONED_BRANCHES = 5
+
+
+def mentioned_branches(root: Path, text: str | None, *, runner=subprocess.run) -> list[str]:
+    """Branch names in ``text``: a work-branch prefix, or an existing local or origin ref."""
+    found: list[str] = []
+    for name in dict.fromkeys(_BRANCH_MENTION.findall(str(text or ""))):
+        if name.startswith("origin/") or ".." in name or name.endswith((".py", ".json", ".md", ".yaml")):
+            continue
+        if name.startswith(_WORK_PREFIXES) or _short(root, runner, f"refs/heads/{name}") \
+                or _short(root, runner, f"refs/remotes/origin/{name}"):
+            found.append(name)
+        if len(found) >= MAX_MENTIONED_BRANCHES:
+            break
+    return found
+
+
+def _mentioned_branch_fact(root: Path, name: str, runner) -> str:
+    if _short(root, runner, f"refs/heads/{name}") is None and \
+            _short(root, runner, f"refs/remotes/origin/{name}") is None:
+        return (f"{name}: not known locally (not fetched here; this does not mean it is missing on "
+                "GitHub — the Kit's transfer routes fetch it themselves, do not create it)")
+    return _remote_branch_fact(root, name, runner)
+
+
 def repository_facts(root: Path, command_source: str | None = None, *,
-                     runner=subprocess.run, gh: str | None = None) -> str | None:
+                     runner=subprocess.run, gh: str | None = None,
+                     mentioned_text: str | None = None) -> str | None:
     """One line of locally verified facts, or None outside a git work tree."""
     root = Path(root)
     head = _short(root, runner, "HEAD")
@@ -253,8 +287,22 @@ def repository_facts(root: Path, command_source: str | None = None, *,
         parts.append(_remote_branch_fact(root, name, runner))
         if found == MERGED:
             merged.append(name)
+    mentioned_source = "\n".join(t for t in (mentioned_text, command_source) if t)
+    for name in mentioned_branches(root, mentioned_source, runner=runner):
+        if name in heads or name in ("main", branch):
+            continue
+        parts.append(_mentioned_branch_fact(root, name, runner))
     line = "Cockpit-verified repository facts (local git): " + "; ".join(parts) + "."
     if merged:
         line += (" A pull request for " + ", ".join(merged) + " is not needed again; "
                  "never re-run a remote-effect command to check a result.")
     return line
+
+
+def start_facts(root: Path, goal_text: str) -> str:
+    """AGP_MENTIONED_BRANCH_FACTS_V1: the facts line for a mission start, or "" (an aid only)."""
+    try:
+        from agp_cockpit.core.ci_gate import gh_binary
+        return repository_facts(root, None, gh=gh_binary(root), mentioned_text=goal_text) or ""
+    except Exception:  # noqa: BLE001 - facts never block a start
+        return ""

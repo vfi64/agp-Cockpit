@@ -387,6 +387,32 @@ def approval_required_commands(source: str, catalog: KitCommandCatalog | None) -
                   | set(destructive_execute_commands(source, catalog)))
 
 
+def approval_required_invocations(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    """AGP_EXACT_COMMAND_APPROVAL_V1: the literal command lines of every approval-relevant
+    agentic-kit invocation, ``agentic-kit`` plus its arguments joined by single spaces.
+
+    A computed argument stays ``<expr>`` and an argument with whitespace stays as it is, so
+    neither can equal an approved line: an exact approval never covers what the Cockpit
+    cannot read literally.
+    """
+    if catalog is None:
+        return []
+    needed = set(approval_required_commands(source, catalog))
+    lines = []
+    for argv in _invocations(ast.parse(source)):
+        if not argv or _program(argv[0]) != "agentic-kit":
+            continue
+        subcommands = []
+        for token in argv[1:]:
+            if token.startswith("-") or token == "<expr>":
+                break
+            subcommands.append(token)
+        command = catalog.resolve(subcommands) if subcommands else None
+        if command is not None and command["qualified_name"] in needed:
+            lines.append(" ".join(["agentic-kit", *argv[1:]]))
+    return sorted(dict.fromkeys(lines))
+
+
 def unknown_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
     return [c["qualified_name"] for c in kit_commands_used(source, catalog)
             if catalog is not None and not catalog.effect_known(c)]

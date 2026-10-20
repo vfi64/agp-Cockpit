@@ -37,6 +37,7 @@ commands so the UI can show the auto-approved effects.
 from __future__ import annotations
 
 import json
+import re
 import time
 from pathlib import Path
 
@@ -46,7 +47,13 @@ DECISIONS = frozenset({"APPROVE", "REJECT"})
 # names the scope and the bridge enforces it: "push_pr" permits exactly these commands;
 # a merging work order is not executed and asks again.
 PUSH_PR_SCOPE = ("agentic-kit transfer push-current", "agentic-kit transfer pr-create")
-SCOPES = {"push_pr": PUSH_PR_SCOPE, "full": None}
+# AGP_EXACT_COMMAND_APPROVAL_V1 (owner 2026-10-20, live FILE_TRANSFER 2026-10-19/20): a FILE_TRANSFER
+# `transfer remote-next <branch>` fits neither "push and PR" (only push-current and pr-create) nor
+# should it need "everything". "exact" approves exactly the agentic-kit command lines named in the
+# question, argument for argument; any other or changed remote-effect command asks again.
+EXACT_SCOPE = "exact"
+SCOPES = {"push_pr": PUSH_PR_SCOPE, "full": None, EXACT_SCOPE: None}
+ALLOW_UNLISTED_FLAG = "--allow-unlisted"
 GRANT_TTL_SECONDS = 24 * 3600
 
 
@@ -67,7 +74,8 @@ class HumanDecisionStore:
         temporary.replace(self.path)
 
     def record(self, *, mission_id: str, task_id: str, decision: str, question: str,
-               note: str = "", now: float | None = None, scope=None) -> dict:
+               note: str = "", now: float | None = None, scope=None, exact=None,
+               confirm_allow_unlisted: bool = False) -> dict:
         decision = str(decision or "").upper()
         if decision not in DECISIONS:
             raise ValueError("decision must be APPROVE or REJECT")
@@ -93,6 +101,13 @@ class HumanDecisionStore:
                                "repair_pushes": REPAIR_BUDGET, "consumed_by": None}
             if scope is not None:
                 record["grant"]["scope"] = sorted(scope)
+            if exact is not None:
+                exact = sorted(dict.fromkeys(str(line) for line in exact))
+                if not exact:
+                    raise ValueError("an exact approval needs at least one agentic-kit command line")
+                if any(ALLOW_UNLISTED_FLAG in line.split() for line in exact) and not confirm_allow_unlisted:
+                    raise ValueError(f"{ALLOW_UNLISTED_FLAG} needs its own confirmation")
+                record["grant"]["exact"] = exact
         self._save(record)
         return record
 
@@ -123,7 +138,7 @@ class HumanDecisionStore:
         )
 
     def permits(self, task_id: str, wanted, *, ci_gate_active: bool,
-                now: float | None = None) -> bool:
+                now: float | None = None, invocations=None) -> bool:
         """Whether the open approval covers exactly these remote-effect commands.
 
         The first executed work order may use any remote effect (the asked
@@ -139,6 +154,10 @@ class HumanDecisionStore:
         if not self.remote_effects_allowed(task_id, now=now):
             return False
         grant = self.current().get("grant") or {}
+        if grant.get("exact") is not None:
+            # Exactly the approved command lines; a line the Cockpit cannot read literally
+            # (a computed argument) never matches.
+            return bool(wanted) and bool(invocations) and set(invocations) <= set(grant["exact"])
         if grant.get("scope") is not None:
             return bool(wanted) and set(wanted) <= set(grant["scope"])
         if grant.get("remaining", 0) > 0:
@@ -191,7 +210,8 @@ class HumanDecisionStore:
         return {"effect": "remote", "remaining": grant.get("remaining", 0),
                 "repair_pushes": grant.get("repair_pushes", 0),
                 "question": record.get("question", ""), "note": record.get("note", ""),
-                "scope": list(grant.get("scope") or ())}
+                "scope": list(grant.get("scope") or ()),
+                "exact": list(grant.get("exact") or ())}
 
     def consume(self, task_id: str, command_sha256: str, used=(), step: int | None = None,
                 now: float | None = None) -> dict:
@@ -228,10 +248,23 @@ def _effects_of(record: dict) -> list[dict]:
 
 
 def decision_mission_text(*, goal_text: str, decision: str, question: str, note: str,
-                          scope: str = "full") -> str:
+                          scope: str = "full", exact=None) -> str:
     """Mission text that continues the same task after the human decision."""
     decision = str(decision).upper()
-    if decision == "APPROVE" and scope == "push_pr":
+    if decision == "APPROVE" and scope == EXACT_SCOPE:
+        lines = list(exact or ()) or exact_commands_in(question)
+        verdict = (
+            "APPROVED FOR EXACTLY THESE COMMAND LINES — nothing else:\n"
+            + "".join(f"  {line}\n" for line in lines)
+            + "- This approval supersedes any \"prepare only\" restriction of the original task for "
+            "exactly these command lines.\n"
+            "- Your next work order MUST run them byte-identical (same arguments and options, literal "
+            "strings, no computed arguments). Any other, changed or added remote-effect command, "
+            f"including an added {ALLOW_UNLISTED_FLAG}, is refused locally and asks the human again.\n"
+            "- Raw git push, git fetch, git pull and gh stay forbidden.\n"
+            "- Report the real result of the approved command lines, then finish with DONE."
+        )
+    elif decision == "APPROVE" and scope == "push_pr":
         verdict = (
             "APPROVED WITH A LIMITED SCOPE: push and pull request only — NO merge.\n"
             "- This approval supersedes any \"prepare only\" restriction of the original task "
@@ -285,3 +318,123 @@ def decision_mission_text(*, goal_text: str, decision: str, question: str, note:
         )
         + str(goal_text or "")
     )
+
+
+_OPENERS = "`'\"„“”‚‘’([{<"
+_CLOSERS = "`'\"„“”‚‘’)]}>,;"
+_ARGUMENT_LIKE = re.compile(r"[/._=:0-9-]")
+
+
+def _words(rest: str):
+    """(token, last) pairs of one text line; ``last`` marks a closing quote or sentence end."""
+    for raw in rest.split():
+        if raw[0] in _OPENERS:
+            return
+        core = raw.rstrip(_CLOSERS)
+        last = core != raw
+        if core.endswith((".", ":")):
+            core, last = core.rstrip(".:"), True
+        if not core:
+            return
+        yield core, last
+        if last:
+            return
+
+
+def _option_table(command: dict) -> tuple[dict[str, bool], int]:
+    """Option name -> takes a value, and the number of positional arguments, from the manifest."""
+    options: dict[str, bool] = {}
+    positionals = 0
+    for param in command.get("params") or ():
+        names = [*(param.get("opts") or ()), *(param.get("secondary_opts") or ())]
+        if param.get("param_type") == "TyperArgument":
+            positionals += 1
+            continue
+        for name in names:
+            if str(name).startswith("-"):
+                options[str(name)] = not bool(param.get("is_flag"))
+    return options, positionals
+
+
+def exact_commands_in(question: str, catalog=None) -> list[str]:
+    """The agentic-kit command lines a decision question names, for an exact approval.
+
+    With the command catalog (the Kit manifest) a line takes the command path, its declared
+    options (a value only where the option takes one) and its positional arguments; an
+    undeclared option or a further word ends it. Without a catalog, options count as flags and
+    only argument-like tokens (``/ . _ = : -`` or a digit) are arguments. A quote, bracket,
+    comma, semicolon, sentence end or line end always ends a line. A line with an undeclared
+    option or an option without its value is not offered at all (a shortened line would approve
+    a different command). A wrongly cut line fails closed: the work order then does not match
+    and the Cockpit asks again.
+    """
+    lines: list[str] = []
+    text = str(question or "")
+    for match in re.finditer(r"(?<![\w/.-])agentic-kit(?=[ \t])", text):
+        words = list(_words(text[match.end():].split("\n", 1)[0]))
+        path = [w for w, _ in words[:4]]
+        command = None
+        if catalog is not None:
+            plain = []
+            for word in path:
+                if not re.fullmatch(r"[a-z][a-z0-9-]*", word):
+                    break
+                plain.append(word)
+            command = catalog.resolve(plain) if plain else None
+            if command is None:
+                continue
+            depth = len(command["path"])
+        else:
+            depth = 0
+            for word, _ in words[:3]:
+                if not re.fullmatch(r"[a-z][a-z0-9-]*", word):
+                    break
+                depth += 1
+            if not depth:
+                continue
+        tokens = ["agentic-kit", *(w for w, _ in words[:depth])]
+        if words[:depth] and words[depth - 1][1]:
+            lines.append(" ".join(tokens))
+            continue
+        options, positionals = _option_table(command) if command is not None else ({}, 0)
+        rest = words[depth:]
+        index = 0
+        broken = False   # an undeclared option or a missing option value: the line is not offered
+        while index < len(rest):
+            word, last = rest[index]
+            if word.startswith("-"):
+                name = word.split("=", 1)[0]
+                if command is not None and name not in options:
+                    broken = True
+                    break
+                tokens.append(word)
+                if options.get(name) and "=" not in word:
+                    if last or index + 1 >= len(rest):
+                        broken = True
+                        break
+                    index += 1
+                    value, last = rest[index]
+                    tokens.append(value)
+            elif positionals > 0 and (index == 0 or _ARGUMENT_LIKE.search(word)):
+                tokens.append(word)
+                positionals -= 1
+            elif command is None and _ARGUMENT_LIKE.search(word):
+                tokens.append(word)
+            else:
+                break
+            if last:
+                break
+            index += 1
+        if not broken:
+            lines.append(" ".join(tokens))
+    return list(dict.fromkeys(lines))
+
+
+def exact_approval_view(question: str, catalog=None) -> dict:
+    """What the decision box shows for an exact approval (AGP_EXACT_COMMAND_APPROVAL_V1)."""
+    lines = exact_commands_in(question, catalog)
+    return {
+        "commands": lines,
+        "allow_unlisted": [line for line in lines if ALLOW_UNLISTED_FLAG in line.split()],
+        "default_scope": EXACT_SCOPE if lines else "push_pr",
+    }
