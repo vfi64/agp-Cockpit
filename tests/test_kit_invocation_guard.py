@@ -201,3 +201,15 @@ def test_run_next_puts_the_guard_first_and_refuses_a_hidden_remote_call(tmp_path
     assert json.loads(result.return_bundle.read_text())["rc"] == REFUSED_RETURNCODE, result.stdout + result.stderr
     assert _calls(record) == []
     assert read_log(kit_guard_dir(tmp_path, 1) / LOG_NAME)[0]["need"] == PUSH
+
+
+def test_the_live_evidence_says_what_was_proven_where():
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-guard-live-2026-10-20.json").read_text())
+    approved = evidence["approved_call_through_chatgpt"]
+    assert approved["step"] == 2112 and approved["result"]["returncode"] == 0
+    assert [r["decision"] for r in approved["guard_log"]] == ["RUN"]
+    probe = evidence["refused_call_local_probe"]
+    assert probe["result"] == "PASS" and probe["hidden"]["returncode"] == REFUSED_RETURNCODE
+    assert probe["hidden"]["kit_started"] is False and probe["hidden"]["guard_log"] == ["REFUSED"]
+    assert "not observable through ChatGPT" in evidence["refused_call_through_chatgpt"]["result"]
+    assert evidence["verifies"] == {}
