@@ -1,0 +1,124 @@
+{
+    "schema_version": 1,
+    "kind": "agp_kit_retest_evidence",
+    "id": "kit-1.1.4-adoption",
+    "date": "2026-10-20",
+    "kit_version": "1.1.4",
+    "source": "Claude's work clone of agp-Cockpit on branch chore/kit-1.1.4 (base main 76a272c4), cloud session, workspace .venv; Kit 1.1.4 from PyPI. Kit 1.1.3 was never adopted here; this update covers both releases.",
+    "kit_update": {
+        "controller": "installed Kit 1.1.2 planned and executed the update",
+        "plan": {
+            "result_status": "AWAITING_APPROVAL",
+            "approval_signature": "6570672ca210b366fb4976a8",
+            "changed_paths": [
+                ".agentic/ci/agentic-gate.yaml",
+                ".github/workflows/agentic-gate.yaml",
+                "AGENTS.md",
+                "docs/reference/AGENTIC_KIT_COMMANDS.md",
+                "docs/reference/agentic-kit-commands.json"
+            ],
+            "derived_paths": [
+                ".agentic/rule_mechanism_inventory.yaml"
+            ],
+            "manifest_ack": "e2563df60239",
+            "actions": [
+                "install_released_wheels",
+                "update_ci_pins",
+                "sync_entrypoints",
+                "check",
+                "doctor",
+                "refresh_rule_inventory"
+            ]
+        },
+        "execute": {
+            "result_status": "PASS",
+            "completed_steps": [
+                "install",
+                "ci_pins",
+                "entrypoints",
+                "check",
+                "doctor",
+                "rule_inventory"
+            ],
+            "installed_version": "1.1.4"
+        },
+        "owner_consent": "Claude chat 2026-10-20 20:43 CEST: \"Nun sollten wir das Kit-Release 1.1.4 ins Cockpit übernehmen.\""
+    },
+    "rule_registry": {
+        "check_before_update": "PASS",
+        "check_after_update": "PASS without a bootstrap (kit update refreshed the inventory itself)",
+        "check_after_config_edit": "PASS after adding gates.required_checks to .agentic/config.yaml"
+    },
+    "greenfield_retest": {
+        "command": "agentic-kit greenfield retest --all --json",
+        "returncode": 3,
+        "result_status": "INCOMPLETE",
+        "kit_version": "1.1.4",
+        "catalog_sha256": "42dc70b86f54747a3083ff8dbf7e83396ebb70175e248f358032ccc50fd9cc3e",
+        "counts": {
+            "FAIL": 0,
+            "NOT_RUN_LOCALLY": 37,
+            "NO_MACHINE_CONTRACT": 34,
+            "PASS": 8
+        },
+        "pass": [
+            "KIT-GF-001",
+            "KIT-GF-066",
+            "KIT-GF-070",
+            "KIT-GF-072",
+            "KIT-GF-074",
+            "KIT-GF-075",
+            "KIT-GF-076",
+            "KIT-GF-077"
+        ]
+    },
+    "ci": {
+        "marker": "AGP_CI_REQUIRED_CHECKS_DECLARED_V1",
+        "change": ".agentic/config.yaml gates.required_checks: [agentic-gate]; the Kit's pr wait-ci waits until agentic-gate exists and passed (it starts only after python and browser; main has no branch protection)",
+        "declared_required_checks": [
+            "agentic-gate"
+        ]
+    },
+    "kit_release_1_1_4": {
+        "source": "Codex report 2026-10-20 and GitHub check runs read by REST",
+        "result": "PASS",
+        "approved_gates": [
+            "B4",
+            "C2",
+            "C3",
+            "D4",
+            "E1"
+        ],
+        "d2r": "not needed",
+        "release_pr": 2585,
+        "merge_commit": "ff78ca8c121c4267cd7a96e81ea42059a9dd44c9",
+        "tag": "v1.1.4",
+        "pypi": "1.1.4",
+        "version_doi": "10.5281/zenodo.23505873",
+        "doi_closeout_pr": 2587,
+        "evidence_archive_pr": 2589,
+        "release_pr_check_runs": {
+            "last_shard_completed": "2026-10-20T16:54:40Z",
+            "test_started": "2026-10-20T16:54:43Z",
+            "test_completed": "2026-10-20T16:55:07Z",
+            "merged": "2026-10-20T16:55:26Z"
+        }
+    },
+    "cockpit_tests": "1332 passed, 2 skipped, 1 failed (the known baseline test_the_standard_tasks_rows_wrap_and_the_repo_path_has_its_own_line) under xvfb with Kit 1.1.4; agentic-kit check PASS",
+    "observations": [
+        "The first `work start` stopped in sync-main at normalize-session_failed; an immediate `transfer sync-main` passed and the repeated `work start` passed (not reproduced)."
+    ],
+    "verifies": {
+        "KIT-GF-072": "kit update 1.1.2 -> 1.1.4 refreshed .agentic/rule_mechanism_inventory.yaml itself; rule-registry check PASS before, after and after a config edit; greenfield retest PASS",
+        "KIT-GF-076": "greenfield retest KIT-GF-076 PASS with the installed Kit 1.1.4 (installed-wheel machine contract; not reproducible in this workspace itself)",
+        "KIT-GF-077": "installed manifest declares fetch and push for transfer remote-next; greenfield retest KIT-GF-077 PASS",
+        "KIT-GF-078": "the Kit's release 1.1.4 passed B4, D4 and E1 within the 900 s wait, without D2R or a hand-started pr-complete"
+    },
+    "not_verified": {
+        "KIT-GF-070": "Kit state PARTIAL: 34 local families have no machine contract",
+        "KIT-GF-071": "one pin per managed CI source here; a second install inside one source is not exercised",
+        "KIT-GF-079": "the merge of this adoption PR is the first Cockpit run with a declared required check; release PR #2585 merged after test passed, which fits but does not prove the wait",
+        "KIT-GF-080": "not observable unless a release blocks in B4 again",
+        "KIT-GF-081": "open; no Kit route yet"
+    }
+}

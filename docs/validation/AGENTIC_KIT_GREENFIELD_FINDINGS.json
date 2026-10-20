@@ -769,6 +769,41 @@
       "historical_id": "Kit regression fixture 2026-10-19",
       "canonical_family": "KIT-GF-076",
       "summary": "workspace init's inbox .gitkeep blocks remote-next as an obsolete transfer file"
+    },
+    {
+      "date": "2026-10-20",
+      "event_id": "GF-E106",
+      "historical_id": "Kit slice PR #2569",
+      "canonical_family": "KIT-GF-077",
+      "summary": "manifest declared only fetch for transfer remote-next and remote-work-start"
+    },
+    {
+      "date": "2026-10-20",
+      "event_id": "GF-E107",
+      "historical_id": "Kit release 1.1.3, D4 and E1",
+      "canonical_family": "KIT-GF-078",
+      "summary": "work finish waited a fixed 300 s for CI; D4 and E1 stopped while CI still ran"
+    },
+    {
+      "date": "2026-10-20",
+      "event_id": "GF-E108",
+      "historical_id": "Kit release 1.1.4, first attempt, B4",
+      "canonical_family": "KIT-GF-079",
+      "summary": "pr wait-ci READY before the late required test check existed; merge-if-green UNSTABLE"
+    },
+    {
+      "date": "2026-10-20",
+      "event_id": "GF-E109",
+      "historical_id": "Kit release 1.1.4, first attempt, rerun",
+      "canonical_family": "KIT-GF-080",
+      "summary": "a new run blocked with changed-paths-drift instead of finishing the open release PR #2582"
+    },
+    {
+      "date": "2026-10-20",
+      "event_id": "GF-E110",
+      "historical_id": "cleanup of the first 1.1.4 attempt",
+      "canonical_family": "KIT-GF-081",
+      "summary": "no route to abandon the release run; run state moved aside by hand"
     }
   ],
   "families": [
@@ -2836,16 +2871,19 @@
       "observed": "Kit 1.0.25 `greenfield status --json` (KIT-GF-066) lists argv templates per family, but the expected results are prose for 65 of 67 families (only KIT-GF-001 fully machine-checkable; KIT-GF-060: only returncode and JSON shape), preconditions are prose, and remote retests carry no machine marker.",
       "impact": "A consumer can only re-implement the Kit's fixtures per finding (a consumer workaround) or accept returncode 0 as proof (too weak); VERIFIED_FIXED cannot be reached systematically.",
       "workaround": "Families are verified from real runs (release 0.2.5, Kit 1.0.25 adoption) with committed evidence files.",
-      "repair": "Codex package 6, slices A–C (Kit 1.0.26).",
+      "repair": "Kit PR #2569 (1.1.3): `agentic-kit greenfield retest` with execution classes (local, owner_remote, kit_release) and machine contracts for eight families; the other families still carry prose expectations (Kit state PARTIAL).",
       "regression": "External installed-wheel fixture with positive and negative case.",
-      "evidence": [],
+      "evidence": [
+        "docs/validation/evidence/kit-1.1.4-adoption.json"
+      ],
       "kit_repo_status": {
-        "date": "2026-10-13",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "recorded by the Cockpit on Kit 1.0.25",
-        "report": ""
-      }
+        "date": "2026-10-20",
+        "fixed_in": "1.1.3",
+        "kit_state": "PARTIAL",
+        "raw": "PARTIAL on Kit main by PR #2569; released in 1.1.3 (2026-10-20); greenfield status --json of the installed Kit 1.1.4",
+        "report": "docs/reports/greenfield/KIT-GF-070-077-executable-retests-2026-10-20.md"
+      },
+      "retest": "2026-10-20 with Kit 1.1.4 here (evidence kit-1.1.4-adoption.json): `greenfield retest --all` INCOMPLETE (exit 3) with PASS 8, FAIL 0, NOT_RUN_LOCALLY 37, NO_MACHINE_CONTRACT 34; the route works and never reports an unverified family as PASS, but 34 local families have no machine contract yet, so the finding stays OPEN."
     },
     {
       "id": "KIT-GF-071",
@@ -2870,13 +2908,13 @@
         "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       },
-      "retest": "Retest pending: this workspace keeps one pin; a second classify-job pin is not exercised here."
+      "retest": "Retest pending (2026-10-20, Kit 1.1.4 update): kit update raised one pin in each of the two managed CI sources; a second Kit install inside one source (the KIT-GF-063 classify fragment) is still not exercised here."
     },
     {
       "id": "KIT-GF-072",
       "title": "the rule-mechanism inventory pins whole surface files, so any unrelated edit blocks rule-registry check",
       "first_observed": "2026-10-13",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "low",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -2895,7 +2933,8 @@
         "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       },
-      "retest": "Half verified 2026-10-20 (evidence kit-1.1.2-adoption.json): after the bootstrap with 1.1.2 a config.yaml edit kept rule-registry check PASS. The refresh inside kit update needs the next update, run by a 1.1.2 controller."
+      "retest": "Verified 2026-10-20: the update to 1.1.4, run by the 1.1.2 controller, planned refresh_rule_inventory, rewrote .agentic/rule_mechanism_inventory.yaml itself (completed step rule_inventory) and rule-registry check stayed PASS without a bootstrap; a later config.yaml edit (gates.required_checks) kept it PASS; the machine contract passes in `greenfield retest`.",
+      "verified_by": "2026-10-20 docs/validation/evidence/kit-1.1.4-adoption.json (kit update 1.1.2 -> 1.1.4 refreshed the inventory itself; rule-registry check PASS before, after and after a config edit)"
     },
     {
       "id": "KIT-GF-073",
@@ -2983,7 +3022,7 @@
       "id": "KIT-GF-076",
       "title": "transfer .gitkeep carriers block remote-next in a freshly initialized workspace",
       "first_observed": "2026-10-19",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -3004,7 +3043,142 @@
         "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       },
-      "retest": "Not reproducible here (no inbox .gitkeep); the Kit's installed-wheel fixture is the evidence."
+      "retest": "Not reproducible in this workspace (no inbox .gitkeep); verified 2026-10-20 by the Kit's installed-wheel machine contract, run from here with `greenfield retest` under Kit 1.1.4: PASS.",
+      "verified_by": "2026-10-20 docs/validation/evidence/kit-1.1.4-adoption.json (greenfield retest KIT-GF-076 PASS, installed Kit 1.1.4)"
+    },
+    {
+      "id": "KIT-GF-077",
+      "title": "the command manifest understates the push of transfer remote-next",
+      "first_observed": "2026-10-20",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace-command-authority",
+      "aliases": [],
+      "fixed_in": "1.1.3",
+      "expected": "The manifest declares every remote effect of a command; transfer remote-next and transfer remote-work-start push the transfer or work branch.",
+      "observed": "Kit 1.1.2 manifest (found while the Kit derived execution classes for KIT-GF-070): `transfer remote-next` and `transfer remote-work-start` declared only fetch.",
+      "impact": "A consumer that trusts the manifest alone treats a pushing command as read-only. The Cockpit lists both commands as remote itself (REMOTE_EFFECT_COMMANDS), so its approvals were not affected.",
+      "workaround": "none needed here (the Cockpit's own list classifies both as remote)",
+      "repair": "Kit PR #2569 (1.1.3): the manifest declares fetch and push for both commands.",
+      "regression": "Installed-wheel machine contract: the derived effects of the KIT-GF-075 retest show fetch and push.",
+      "evidence": [
+        "docs/validation/evidence/kit-1.1.4-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-20",
+        "fixed_in": "1.1.3",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2569; released in 1.1.3 (2026-10-20)",
+        "report": "docs/reports/greenfield/KIT-GF-070-077-executable-retests-2026-10-20.md"
+      },
+      "verified_by": "2026-10-20 docs/validation/evidence/kit-1.1.4-adoption.json (installed manifest 1.1.4 declares fetch and push for transfer remote-next; greenfield retest KIT-GF-077 PASS)"
+    },
+    {
+      "id": "KIT-GF-078",
+      "title": "release run waits only 300 s for CI and stops at D4 and E1",
+      "first_observed": "2026-10-20",
+      "status": "VERIFIED_FIXED",
+      "severity": "high",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": "1.1.4",
+      "expected": "The release run waits long enough for the Kit's full CI at every step that merges (B4, D4, E1).",
+      "observed": "Kit 1.1.2, the Kit's own release 1.1.3: D4 and E1 stopped after the fixed 300 s CI wait of work finish while CI was still running; the DOI closeout needed the recovery D2R and E1 a hand-started pr-complete with 900 s.",
+      "impact": "Every release whose CI takes longer than five minutes stops after publishing and needs a manual recovery.",
+      "workaround": "Kit 1.1.3 was finished with D2R and transfer pr-complete --timeout-seconds 900.",
+      "repair": "Kit PR #2578 (1.1.4): work finish --ci-timeout-seconds (default 900); the release run passes the wait to every work finish; E1 completes an existing archive PR.",
+      "regression": "Kit tests/test_release_run_ci_wait.py.",
+      "evidence": [
+        "docs/validation/evidence/kit-1.1.4-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-20",
+        "fixed_in": "1.1.4",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2578; released in 1.1.4 (2026-10-20)",
+        "report": "docs/reports/greenfield/KIT-GF-078-release-ci-wait-2026-10-20.md"
+      },
+      "verified_by": "2026-10-20 docs/validation/evidence/kit-1.1.4-adoption.json (the Kit's release 1.1.4: PASS with gates B4, C2, C3, D4, E1, no D2R, evidence archive #2589 merged by E1)"
+    },
+    {
+      "id": "KIT-GF-079",
+      "title": "pr wait-ci reports READY before a late required check exists",
+      "first_observed": "2026-10-20",
+      "status": "FIXED",
+      "severity": "high",
+      "classification": "agentic-kit-ci-governance",
+      "aliases": [],
+      "fixed_in": "1.1.4",
+      "expected": "Readiness stays WAITING until every required check exists and passed, including a check whose job starts only after other jobs (needs:).",
+      "observed": "Kit 1.1.3, the Kit's own first 1.1.4 attempt: the required test job starts after the CI shards, `pr wait-ci` saw every visible check green and reported READY_TO_MERGE before test existed, then merge-if-green saw UNSTABLE and B4 blocked.",
+      "impact": "Any workspace whose required check needs other jobs can merge too early (without branch protection) or block. The Cockpit has the same shape: agentic-gate needs python and browser, and main is not protected.",
+      "workaround": "none (the first 1.1.4 attempt was abandoned)",
+      "repair": "Kit PR #2583 (1.1.4): `gates.required_checks`; pr wait-ci always waits for the declared checks. The Cockpit declares required_checks: [agentic-gate] (AGP_CI_REQUIRED_CHECKS_DECLARED_V1).",
+      "regression": "Kit tests/test_release_b4_resume_and_required_checks.py; Cockpit tests/test_ci_template.py.",
+      "evidence": [
+        "docs/validation/evidence/kit-1.1.4-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-20",
+        "fixed_in": "1.1.4",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2583; released in 1.1.4 (2026-10-20)",
+        "report": "docs/reports/greenfield/KIT-GF-079-080-required-checks-and-b4-resume-2026-10-20.md"
+      },
+      "retest": "Pending: the merge of this adoption PR is the first Cockpit run with a declared required check. The Kit's release 1.1.4 merged its release PR only after test had passed (check runs of #2585), which fits the fix but does not prove that the wait held, because the gap between the last shard and test was about 3 s."
+    },
+    {
+      "id": "KIT-GF-080",
+      "title": "a blocked B4 cannot finish its own open release PR",
+      "first_observed": "2026-10-20",
+      "status": "FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": "1.1.4",
+      "expected": "When B4 stopped after committing, pushing and opening the release PR, a new run completes exactly that PR, provided it holds only B4's commits on the approved, unmoved base.",
+      "observed": "Kit 1.1.3, the Kit's own first 1.1.4 attempt: after the B4 stop (KIT-GF-079) a new run blocked with changed-paths-drift; there was no route to finish the open release PR.",
+      "impact": "A release that stops in B4 must be abandoned and restarted.",
+      "workaround": "The attempt was abandoned: release branch deleted (closing PR #2582), run state moved aside, new run on the fixed main.",
+      "repair": "Kit PR #2583 (1.1.4): B4 resume mode resume-existing-release-pr with exact head, commit, path and base checks.",
+      "regression": "Kit tests/test_release_b4_resume_and_required_checks.py.",
+      "evidence": [
+        "docs/validation/evidence/kit-1.1.4-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-20",
+        "fixed_in": "1.1.4",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2583; released in 1.1.4 (2026-10-20)",
+        "report": "docs/reports/greenfield/KIT-GF-079-080-required-checks-and-b4-resume-2026-10-20.md"
+      },
+      "retest": "Not observable unless a release blocks in B4 again; the Kit's regression tests are the evidence."
+    },
+    {
+      "id": "KIT-GF-081",
+      "title": "no Kit route abandons a stopped release run",
+      "first_observed": "2026-10-20",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "A Kit route abandons a stopped release run after the owner's decision: it checks that nothing was published (no tag, no package, no DOI), closes or deletes the release branch and its PR, and archives the run state so a fresh run can start.",
+      "observed": "Kit 1.1.4 cleanup of the first 1.1.4 attempt (2026-10-20): `release run` has no abandon or reset action; the release branch was deleted with transfer branch-delete and the files tmp/release-run-1.1.4* were moved aside by hand with the owner's approval.",
+      "impact": "Abandoning a release needs a hand step on Kit-written state, which the Kit law forbids except by explicit owner decision.",
+      "workaround": "Owner-approved local move of the run state (one-off, not a precedent).",
+      "repair": "Kit finding with a Codex task (planned).",
+      "regression": "An external fixture: abandon after a B4 stop removes the branch and archives the state; it refuses once a tag or package exists.",
+      "evidence": [
+        "docs/validation/evidence/kit-1.1.4-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-20",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "recorded by the Cockpit on Kit 1.1.4",
+        "report": ""
+      }
     }
   ],
   "explicit_exclusions": [

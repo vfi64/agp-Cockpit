@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 390ff4b84aa2
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: e2563df60239
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
 - Schema version: `2`
 - Source: `generated_from_typer_click_registry`
-- Command count: `270`
+- Command count: `271`
 
 ## Commands
 
@@ -1536,6 +1536,22 @@ Plan or sign the Kit maintainer's deterministic local status projections.
 | `expected_signature` | `TyperOption` | --expected-signature | `False` | `` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
+### `agentic-kit greenfield retest`
+
+- Safety: `READ_ONLY`
+- Surface: `diagnostic`
+- When to use: Run the installed Kit's machine retests in a temporary workspace; never touch this workspace.
+- Dry-run available: `False`
+- Remote effects: `none`
+
+Run the installed Kit's machine retests in a temporary workspace; never touch this workspace.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `finding_ids` | `TyperOption` | --id | `False` | `[]` | Finding id; repeatable. |
+| `run_all` | `TyperOption` | --all | `False` | `False` | Retest every finding of the installed Kit. |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
+
 ### `agentic-kit greenfield status`
 
 - Safety: `READ_ONLY`
@@ -1577,7 +1593,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.2` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.4` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -2199,7 +2215,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.1.2` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.4` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2526,7 +2542,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.2` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.4` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -3505,7 +3521,7 @@ Refresh outbox and latest handoff report with fresh generated LLM context.
 - Surface: `orchestrator`
 - When to use: Run the next repo-backed transfer order for local or remote work handoff.
 - Dry-run available: `False`
-- Remote effects: `fetch`
+- Remote effects: `fetch`, `push`
 
 Run the next repo-backed transfer order for local or remote work handoff.
 
@@ -3521,7 +3537,7 @@ Run the next repo-backed transfer order for local or remote work handoff.
 - Surface: `orchestrator`
 - When to use: Prepare a remote work branch with freshness, status, and transfer safety checks.
 - Dry-run available: `False`
-- Remote effects: `fetch`
+- Remote effects: `fetch`, `push`
 
 Prepare a remote work branch with freshness, status, and transfer safety checks.
 
@@ -3875,6 +3891,7 @@ Finish a human work slice by planning or executing commit, push, PR, merge, and 
 | `merge_method` | `TyperOption` | --merge-method | `False` | `squash` | PR merge method. |
 | `merge` | `TyperOption` | --merge, --no-merge | `False` | `True` | Run the full PR, merge, and post-merge handoff closeout by default. Use --no-merge only for an explicitly review-only PR. |
 | `dry_run` | `TyperOption` | --dry-run, --execute | `False` | `True` | Plan by default. Use --execute to commit, push, and publish. |
+| `ci_timeout_seconds` | `TyperOption` | --ci-timeout-seconds | `False` | `900` | Maximum wait for the pull request's CI (KIT-GF-078: the Kit's own full CI takes more than 300 s). |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
 
 ### `agentic-kit work recover`

@@ -7270,6 +7270,72 @@
     {
       "dry_run_available": false,
       "group": "greenfield",
+      "help": "Run the installed Kit's machine retests in a temporary workspace; never touch this workspace.",
+      "name": "retest",
+      "params": [
+        {
+          "default": [],
+          "help": "Finding id; repeatable.",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": true,
+          "name": "finding_ids",
+          "opts": [
+            "--id"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "Retest every finding of the installed Kit.",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "run_all",
+          "opts": [
+            "--all"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        },
+        {
+          "default": false,
+          "help": "",
+          "is_flag": true,
+          "metavar": null,
+          "multiple": false,
+          "name": "json_output",
+          "opts": [
+            "--json"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
+        }
+      ],
+      "path": [
+        "greenfield",
+        "retest"
+      ],
+      "qualified_name": "agentic-kit greenfield retest",
+      "remote_effects": [
+        "none"
+      ],
+      "replaces_raw": [],
+      "safety": "READ_ONLY",
+      "surface": "diagnostic",
+      "task_tags": [
+        "greenfield",
+        "read-only"
+      ],
+      "when_to_use": "Run the installed Kit's machine retests in a temporary workspace; never touch this workspace."
+    },
+    {
+      "dry_run_available": false,
+      "group": "greenfield",
       "help": "Read the installed Kit's public adjudications; never change a consumer ledger.",
       "name": "status",
       "params": [
@@ -7392,7 +7458,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.1.2",
+          "default": "1.1.4",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -10377,7 +10443,7 @@
       "name": "release-publish",
       "params": [
         {
-          "default": "1.1.2",
+          "default": "1.1.4",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -12017,7 +12083,7 @@
           "secondary_opts": []
         },
         {
-          "default": "1.1.2",
+          "default": "1.1.4",
           "help": "",
           "is_flag": false,
           "metavar": null,
@@ -16937,7 +17003,8 @@
       ],
       "qualified_name": "agentic-kit transfer remote-next",
       "remote_effects": [
-        "fetch"
+        "fetch",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -17004,7 +17071,8 @@
       ],
       "qualified_name": "agentic-kit transfer remote-work-start",
       "remote_effects": [
-        "fetch"
+        "fetch",
+        "push"
       ],
       "replaces_raw": [],
       "safety": "BOUNDED",
@@ -18496,6 +18564,20 @@
           "secondary_opts": [
             "--execute"
           ]
+        },
+        {
+          "default": 900,
+          "help": "Maximum wait for the pull request's CI (KIT-GF-078: the Kit's own full CI takes more than 300 s).",
+          "is_flag": false,
+          "metavar": null,
+          "multiple": false,
+          "name": "ci_timeout_seconds",
+          "opts": [
+            "--ci-timeout-seconds"
+          ],
+          "param_type": "TyperOption",
+          "required": false,
+          "secondary_opts": []
         },
         {
           "default": false,
@@ -20342,7 +20424,7 @@
   "kind": "agentic_kit_command_reference",
   "meta": {
     "generated_md": "docs/reference/AGENTIC_KIT_COMMANDS.md",
-    "manifest_sha": "390ff4b84aa2",
+    "manifest_sha": "e2563df60239",
     "schema_version": 1
   },
   "schema_version": 2,

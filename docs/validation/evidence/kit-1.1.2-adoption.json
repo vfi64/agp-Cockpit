@@ -52,13 +52,13 @@
     "cockpit_tests": "same 19 failures as on main, all from the missing tkinter module in the cloud session; agentic-kit check and doctor PASS",
     "verifies": {},
     "not_verified": {
-        "KIT-GF-071": "one pin here; multiple pins are not exercised",
-        "KIT-GF-072": "anchor-scoped evidence verified (config edit kept PASS); the refresh inside kit update needs an update run by a 1.1.2 controller",
-        "KIT-GF-076": "not reproducible here; Kit fixture evidence only"
+        "KIT-GF-071": "one pin here; multiple pins are not exercised"
     },
     "verified_later": {
+        "KIT-GF-072": "verified 2026-10-20 in docs/validation/evidence/kit-1.1.4-adoption.json",
         "KIT-GF-073": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json",
         "KIT-GF-074": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json",
-        "KIT-GF-075": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json"
+        "KIT-GF-075": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json",
+        "KIT-GF-076": "verified 2026-10-20 in docs/validation/evidence/kit-1.1.4-adoption.json"
     }
 }

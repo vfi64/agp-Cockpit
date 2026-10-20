@@ -682,6 +682,9 @@ P1 — next:
    2026-10-20 (counter-check FAIL as intended, complete run PASS and clean; KIT-GF-073/074/075
    VERIFIED_FIXED, evidence file-transfer-live-2026-10-20.json). Open Cockpit slice: an
    exact-command approval scope with `--allow-unlisted` shown, and origin branches in the remote facts.
+   Kit 1.1.4 adopted 2026-10-20 (covers 1.1.3; evidence kit-1.1.4-adoption.json): `greenfield retest`
+   exists, KIT-GF-070 stays open until every local family has a machine contract; the late required
+   check is declared (AGP_CI_REQUIRED_CHECKS_DECLARED_V1, KIT-GF-079).
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults.

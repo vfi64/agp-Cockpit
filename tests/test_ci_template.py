@@ -88,6 +88,16 @@ def test_refresh_pull_requests_take_the_kits_light_path_and_everything_else_runs
     assert text.count("agentic-project-kit") == 1                              # kit update keeps one pin
 
 
+def test_the_late_required_check_is_declared_for_the_kits_ci_wait():
+    """AGP_CI_REQUIRED_CHECKS_DECLARED_V1 (Kit 1.1.4, KIT-GF-079): agentic-gate starts only after python and browser,
+    so its check does not exist while they run; the Kit's CI wait must wait for it by name (main is not protected)."""
+    jobs = yaml.safe_load(SOURCE.read_text(encoding="utf-8"))["jobs"]
+    config = yaml.safe_load((ROOT / ".agentic/config.yaml").read_text(encoding="utf-8"))
+    assert config["gates"]["required_checks"] == ["agentic-gate"]
+    assert "name" not in jobs["agentic-gate"]                                   # the check is named after the job id
+    assert jobs["agentic-gate"]["needs"] == ["python", "browser"] and jobs["browser"]["needs"] == "python"
+
+
 def test_workspace_config_has_no_duplicate_keys():
     """A broken comment line once left `publication: github);` beside `publication: github` (YAML kept the last)."""
     class Strict(yaml.SafeLoader):
