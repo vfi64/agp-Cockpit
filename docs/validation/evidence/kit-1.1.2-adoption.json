@@ -54,9 +54,11 @@
     "not_verified": {
         "KIT-GF-071": "one pin here; multiple pins are not exercised",
         "KIT-GF-072": "anchor-scoped evidence verified (config edit kept PASS); the refresh inside kit update needs an update run by a 1.1.2 controller",
-        "KIT-GF-073": "needs the first refresh pull request after this adoption to settle with the skipped browser check",
-        "KIT-GF-074": "needs the complete FILE_TRANSFER run under 1.1.2",
-        "KIT-GF-075": "needs the complete FILE_TRANSFER run under 1.1.2",
         "KIT-GF-076": "not reproducible here; Kit fixture evidence only"
+    },
+    "verified_later": {
+        "KIT-GF-073": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json",
+        "KIT-GF-074": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json",
+        "KIT-GF-075": "verified 2026-10-20 in docs/validation/evidence/file-transfer-live-2026-10-20.json"
     }
 }

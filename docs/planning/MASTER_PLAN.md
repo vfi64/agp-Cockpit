@@ -678,7 +678,9 @@ P1 — next:
    (1.1.1 ships retest commands but no runner). The first live FILE_TRANSFER run under 1.1.1 passed on
    2026-10-19 (evidence file-transfer-live-2026-10-19.json; KIT-GF-074 to 076 recorded); the complete
    run with a command counter-check follows after Kit 1.1.2 is adopted (adopted 2026-10-20, evidence
-   kit-1.1.2-adoption.json; light CI path skips the browser job again). Open Cockpit slice: an
+   kit-1.1.2-adoption.json; light CI path skips the browser job again). The complete run passed on
+   2026-10-20 (counter-check FAIL as intended, complete run PASS and clean; KIT-GF-073/074/075
+   VERIFIED_FIXED, evidence file-transfer-live-2026-10-20.json). Open Cockpit slice: an
    exact-command approval scope with `--allow-unlisted` shown, and origin branches in the remote facts.
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765

@@ -2901,7 +2901,7 @@
       "id": "KIT-GF-073",
       "title": "the Kit's CI policy blocks a consumer's light path because skipped checks count as not green",
       "first_observed": "2026-10-13",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -2923,13 +2923,13 @@
         "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       },
-      "retest": "Retest with the first refresh pull request after this adoption: the skipped browser check must pass pr-wait-ci and post-merge-settle."
+      "verified_by": "2026-10-20 docs/validation/evidence/file-transfer-live-2026-10-20.json (refresh PR #361: browser SKIPPED on the light path, settled and merged by Kit 1.1.2)"
     },
     {
       "id": "KIT-GF-074",
       "title": "transfer order-create cannot generate command orders",
       "first_observed": "2026-10-19",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -2950,13 +2950,13 @@
         "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       },
-      "retest": "Retest with the complete FILE_TRANSFER run under 1.1.2."
+      "verified_by": "2026-10-20 docs/validation/evidence/file-transfer-live-2026-10-20.json (order-create --run-command orders; BOUNDED command refused without --allow-unlisted, step 2103)"
     },
     {
       "id": "KIT-GF-075",
       "title": "transfer remote-next leaves the order's products untracked on the transfer branch",
       "first_observed": "2026-10-19",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -2977,7 +2977,7 @@
         "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       },
-      "retest": "Retest with the complete FILE_TRANSFER run under 1.1.2."
+      "verified_by": "2026-10-20 docs/validation/evidence/file-transfer-live-2026-10-20.json (complete run step 2106: written file, order report and LATEST pointer published, clean checkout)"
     },
     {
       "id": "KIT-GF-076",
