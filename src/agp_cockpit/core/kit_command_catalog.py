@@ -102,6 +102,10 @@ COMMAND_RULES = (
     "(generated from the manifest of the installed Kit); never reconstruct commands from memory. "
     "Prefer the most comprehensive orchestrator command (surface \"orchestrator\") that covers the task; "
     "use diagnostic or primitive commands only when no orchestrator fits. "
+    "Call the Kit as plain `agentic-kit` (never by a path, never via python -m or an import of "
+    "its package): the Cockpit checks every real Kit call against the approval. "
+    "Write every argument of a call that needs an approval as a string literal (or a module-level "
+    "string constant assigned once); a computed argument is rejected. "
     "Never run git push, git fetch or git pull. "
     "Raw git/gh commands that have a Kit wrapper (\"replaces_raw\") are rejected; use the wrapper. "
     "Commands marked \"remote_effect\" (push, pull/fetch, PR, merge, publish) or \"effect\": \"unknown\" "
@@ -255,19 +259,60 @@ def _is_tool_list(values: list[str]) -> bool:
     return len(values) >= 2 and all(Path(v).name in TOOL_NAMES for v in values)
 
 
+def module_string_constants(tree: ast.AST) -> dict[str, str]:
+    """AGP_LITERAL_APPROVAL_ARGUMENTS_V1: module-level names bound exactly once, to a string literal.
+
+    ``BRANCH = "feat/x"`` at module level, never rebound anywhere (no other assignment, loop
+    or with target, argument, import, global or nonlocal, del), is as literal as the string
+    itself, so an invocation ``["agentic-kit", ..., BRANCH]`` reads as its literal line.
+    """
+    candidates: dict[str, str] = {}
+    body = getattr(tree, "body", [])
+    for statement in body:
+        if (isinstance(statement, ast.Assign) and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and isinstance(statement.value, ast.Constant) and isinstance(statement.value.value, str)):
+            candidates.setdefault(statement.targets[0].id, statement.value.value)
+    bindings: dict[str, int] = {}
+    for node in ast.walk(tree):
+        names: list[str] = []
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            names = [node.id]
+        elif isinstance(node, ast.arg):
+            names = [node.arg]
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            names = list(node.names) * 2   # never constant
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names = [(a.asname or a.name).split(".")[0] for a in node.names]
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names = [node.name]
+        for name in names:
+            bindings[name] = bindings.get(name, 0) + 1
+    return {name: value for name, value in candidates.items() if bindings.get(name) == 1}
+
+
+def _literal(element: ast.AST, constants: dict[str, str]) -> str | None:
+    if isinstance(element, ast.Constant) and isinstance(element.value, str):
+        return element.value
+    if isinstance(element, ast.Name) and element.id in constants:
+        return constants[element.id]
+    return None
+
+
 def _invocations(tree: ast.AST) -> list[list[str]]:
     """argv-like invocations written as string lists/tuples or command strings."""
     found: list[list[str]] = []
+    constants = module_string_constants(tree)
     for node in ast.walk(tree):
         if isinstance(node, (ast.List, ast.Tuple)) and node.elts:
-            values = [e.value for e in node.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+            literal = [_literal(e, constants) for e in node.elts]
+            values = [v for v in literal if v is not None]
             if values and len(values) == len(node.elts) and _is_tool_list(values):
                 continue
             if values and len(values) == len(node.elts):
                 found.append(values)
-            elif node.elts and isinstance(node.elts[0], ast.Constant) and isinstance(node.elts[0].value, str):
-                found.append([e.value if isinstance(e, ast.Constant) and isinstance(e.value, str) else "<expr>"
-                              for e in node.elts])
+            elif node.elts and literal[0] is not None:
+                found.append([v if v is not None else "<expr>" for v in literal])
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             text = node.value.strip()
             if text.startswith(("agentic-kit ", "git ", "gh ")):
@@ -413,6 +458,49 @@ def approval_required_invocations(source: str, catalog: KitCommandCatalog | None
     return sorted(dict.fromkeys(lines))
 
 
+def computed_argument_violations(source: str, catalog: KitCommandCatalog | None) -> list[str]:
+    """AGP_LITERAL_APPROVAL_ARGUMENTS_V1 (owner 2026-10-20, option b): an agentic-kit call that
+    needs a human approval must name every argument literally, so the question shows the exact
+    line and an exact approval can cover it. A computed argument is a correctable rejection."""
+    return [
+        f"{line} needs a human approval and has a computed argument (<expr>); write every "
+        "argument of an approval-required agentic-kit call as a string literal or a module-level "
+        "string constant assigned once"
+        for line in approval_required_invocations(source, catalog) if "<expr>" in line.split(" ")
+    ]
+
+
+# AGP_KIT_INVOCATION_GUARD_V1 (owner 2026-10-20, option a): work orders call the Kit as plain
+# ``agentic-kit`` through PATH, where the Cockpit's invocation guard checks every real call
+# against the approval. A path to the Kit, its Python package or the guard's names would pass
+# around the guard.
+KIT_GUARD_MARKER = "AGP_KIT_GUARD"
+KIT_PACKAGE = "agentic_project_kit"
+
+
+def kit_bypass_violations(source: str) -> list[str]:
+    tree = ast.parse(source)
+    violations: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            modules = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
+            if any(m.split(".")[0] == KIT_PACKAGE for m in modules):
+                violations.add(f"do not import {KIT_PACKAGE}; call the Kit as plain agentic-kit")
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            text = node.value
+            if KIT_PACKAGE in text:
+                violations.add(f"do not run {KIT_PACKAGE} as a module; call the Kit as plain agentic-kit")
+            if KIT_GUARD_MARKER in text:
+                violations.add(f"{KIT_GUARD_MARKER} belongs to the Cockpit's invocation guard")
+            for token in text.split():
+                if token != "agentic-kit" and Path(token.strip("'\"")).name == "agentic-kit":
+                    violations.add(
+                        f"call the Kit as plain agentic-kit, not by the path {token.strip()!r}: "
+                        "the Cockpit checks every Kit call on PATH against the approval"
+                    )
+    return sorted(violations)
+
+
 def unknown_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
     return [c["qualified_name"] for c in kit_commands_used(source, catalog)
             if catalog is not None and not catalog.effect_known(c)]
@@ -443,6 +531,8 @@ def command_catalog_violations(source: str, catalog: KitCommandCatalog | None,
                                require_orchestrator: bool = False) -> list[str]:
     tree = ast.parse(source)
     violations: list[str] = []
+    violations.extend(kit_bypass_violations(source))
+    violations.extend(computed_argument_violations(source, catalog))
     if require_orchestrator:
         violations.extend(orchestrator_violations(source, catalog))
     if not allow_remote_effects:

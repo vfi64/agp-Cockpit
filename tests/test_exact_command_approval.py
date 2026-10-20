@@ -97,10 +97,13 @@ def test_allow_unlisted_needs_its_own_confirmation_and_empty_is_refused(tmp_path
 
 
 def test_computed_arguments_never_match_a_literal_line():
-    source = ("import subprocess\nB = 'transfer/a-1'\n"
+    source = ("import subprocess, sys\nB = 'transfer/' + sys.argv[0]\n"
               "subprocess.run(['agentic-kit', 'transfer', 'remote-next', B, '--json'])\n")
     lines = approval_required_invocations(source, CATALOG)
     assert lines == ["agentic-kit transfer remote-next <expr> --json"]
+    rebound = ("import subprocess\nB = 'transfer/a-1'\nB = 'transfer/a-2'\n"
+               "subprocess.run(['agentic-kit', 'transfer', 'remote-next', B, '--json'])\n")
+    assert approval_required_invocations(rebound, CATALOG) == ["agentic-kit transfer remote-next <expr> --json"]
     literal = "import subprocess\nsubprocess.run(['agentic-kit', 'transfer', 'remote-next', 'transfer/a-1', '--json'])\n"
     assert approval_required_invocations(literal, CATALOG) == [LINE]
 

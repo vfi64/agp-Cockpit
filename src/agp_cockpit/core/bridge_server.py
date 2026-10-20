@@ -264,6 +264,18 @@ def _remote_effects_permitted(runtime_root: Path, engine, wanted, invocations=No
     )
 
 
+def _kit_approvals(runtime_root: Path, wanted, remote_effects_allowed: bool):
+    """AGP_KIT_INVOCATION_GUARD_V1: the approved command names (the approval-required commands
+    the source analysis found and the approval covered) and, for an exact approval, its lines."""
+    from agp_cockpit.core.human_decision import HumanDecisionStore
+    from agp_cockpit.core.kit_invocation_guard import KitApprovals
+
+    if not wanted or not remote_effects_allowed:
+        return KitApprovals()
+    exact = (HumanDecisionStore(runtime_root).current().get("grant") or {}).get("exact")
+    return KitApprovals(tuple(wanted), None if exact is None else tuple(exact))
+
+
 def _runtime_identity_payload() -> dict[str, str | int]:
     payload: dict[str, str | int] = {
         "application_version": __version__,
@@ -765,6 +777,9 @@ class CockpitBridgeServer:
                             # AGP_TASK_REPLY_POLICY_V1: a locally verified task
                             # is never offered a remote DONE.
                             reply_policy=policy_for(handoff_contract),
+                            # AGP_KIT_INVOCATION_GUARD_V1: what the approval admitted, for the
+                            # check of every real Kit call while the work order runs.
+                            kit_approvals=_kit_approvals(runtime_root, wanted, remote_effects_allowed),
                         )
                         terminal_loop = outcome.state.value in {"BLOCKED", "NEEDS_HUMAN", "DONE"}
                         # AGP_K07_POST_EXECUTION_OPERATOR_CONTROL_V1: STOP or

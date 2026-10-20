@@ -459,6 +459,36 @@ def _materialize_oversized_bundle_diagnostic(
     return result
 
 
+def kit_guard_dir(root: Path, step: int) -> Path:
+    from agp_cockpit.core.runtime_paths import runtime_dir
+    return runtime_dir(root.resolve(), "kit-guard", str(step))
+
+
+def install_kit_guard(root: Path, step: int, kit_approvals=None) -> Path:
+    """AGP_KIT_INVOCATION_GUARD_V1: the guard directory for this step, first on PATH."""
+    from agp_cockpit.core.kit_command_catalog import KitCommandCatalog
+    from agp_cockpit.core.kit_installation import find_kit_binary
+    from agp_cockpit.core.kit_invocation_guard import (
+        LOG_NAME,
+        KitApprovals,
+        build_policy,
+        guard_interpreter,
+        install,
+    )
+
+    real_kit = find_kit_binary(root)
+    if real_kit is not None and not real_kit.is_file():
+        real_kit = None
+    directory = kit_guard_dir(root, step)
+    policy = build_policy(
+        KitCommandCatalog.load(root),
+        kit_approvals if kit_approvals is not None else KitApprovals(),
+        real_kit=None if real_kit is None else real_kit.resolve() if real_kit.is_absolute() else (root / real_kit).resolve(),
+        log_path=directory / LOG_NAME,
+    )
+    return install(directory, policy, interpreter=guard_interpreter(real_kit, _run_next_interpreter(root)))
+
+
 def execute_with_run_next(
     root: Path,
     command_file: Path,
@@ -466,6 +496,7 @@ def execute_with_run_next(
     # (two CI waits of up to 300 s each plus merges) exceeds 11 minutes.
     timeout_seconds: int = 1800,
     process_controller: RunNextProcessController | None = None,
+    kit_approvals=None,
 ) -> FileLoopRun:
     download=root/"Download"; runner=download/"run_next.py"; output_log=download/"__run_next_output.txt"
     if command_file.parent.resolve()!=download.resolve(): raise ValueError("command file must be in repository Download directory")
@@ -519,6 +550,11 @@ def execute_with_run_next(
         work_tmp.mkdir(parents=True, exist_ok=True)
         for name in ("TMPDIR", "TEMP", "TMP"):
             runner_env[name] = str(work_tmp)
+        # AGP_KIT_INVOCATION_GUARD_V1: every real agentic-kit call of the work order meets the
+        # guard first; without approvals (None) it refuses every approval-required call.
+        runner_env["PATH"] = os.pathsep.join(
+            [str(install_kit_guard(root, step, kit_approvals)), runner_env.get("PATH", "")]
+        )
         execution = controller.run(
             runner_argv,
             cwd=root,

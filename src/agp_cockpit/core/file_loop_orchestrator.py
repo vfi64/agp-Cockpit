@@ -201,6 +201,7 @@ def consume_command_file(
     guard: AutomationGuard | None = None,
     process_controller: RunNextProcessController | None = None,
     reply_policy: ReplyPolicy = GENERIC,
+    kit_approvals=None,
 ) -> LoopOutcome:
     source=source.expanduser().resolve();fp=hashlib.sha256(source.read_bytes()).hexdigest();state=_load(state_file)
     if mission_id and state.get("mission_id") != mission_id:
@@ -325,7 +326,8 @@ def consume_command_file(
         {**state, "mission_id": mission_id, "command_history": (history + [running_record])[-16:]},
     )
     try:
-        run=execute_with_run_next(root,command,process_controller=process_controller)
+        run=execute_with_run_next(root,command,process_controller=process_controller,
+                                  kit_approvals=kit_approvals)
     except BaseException:
         running_record["state"] = "OUTCOME_UNKNOWN"
         _save(
