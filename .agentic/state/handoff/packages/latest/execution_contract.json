@@ -38,11 +38,11 @@
       "branch": "release/0.3.1",
       "dirty_paths": [],
       "full_name": "vfi64/agp-Cockpit",
-      "head": "523257213bc9bf3b06f17f5b48d362dbd053a92c",
-      "head_matches_origin_main": true,
+      "head": "c5370eac6209a750f1940c74e6f1f9317a5289c8",
+      "head_matches_origin_main": false,
       "local_path": "cd /path/to/",
       "origin_main": "523257213bc9bf3b06f17f5b48d362dbd053a92c",
-      "worktree_clean": false
+      "worktree_clean": true
     },
     "scope": "current-continuation-state"
   },
@@ -223,11 +223,11 @@
     "branch": "release/0.3.1",
     "dirty_paths": [],
     "full_name": "vfi64/agp-Cockpit",
-    "head": "523257213bc9bf3b06f17f5b48d362dbd053a92c",
-    "head_matches_origin_main": true,
+    "head": "c5370eac6209a750f1940c74e6f1f9317a5289c8",
+    "head_matches_origin_main": false,
     "local_path": "cd /path/to/",
     "origin_main": "523257213bc9bf3b06f17f5b48d362dbd053a92c",
-    "worktree_clean": false
+    "worktree_clean": true
   },
   "rules": [
     {
