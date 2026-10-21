@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agp-cockpit"
-version = "0.3.0"
+version = "0.3.1"
 description = "Local macOS-first cockpit for transporting work between browser LLMs and Agentic Project Kit terminals."
 requires-python = ">=3.12"
 dependencies = ["PyYAML>=6.0"]

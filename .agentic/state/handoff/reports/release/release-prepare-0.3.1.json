@@ -1,0 +1,181 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-21",
+  "explicit_summary_lines": [
+    "Kit 1.1.4 adopted through the Kit's own `kit update` (manifest e2563df60239, signature 6570672ca210b366fb4976a8); it also covers 1.1.3. The update now refreshes the rule-mechanism inventory itself (KIT-GF-072 confirmed). The Kit's CI wait waits for the late required check `agentic-gate` by name (`gates.required_checks`, AGP_CI_REQUIRED_CHECKS_DECLARED_V1, KIT-GF-079), because it starts only after python and browser. Findings: KIT-GF-076 to 078 confirmed, 079 and 080 FIXED, 070 still open (the Kit's retest runner covers eight families), KIT-GF-081 recorded; evidence docs/validation/evidence/kit-1.1.4-adoption.json; no rebuild needed.",
+    "The Kit invocation guard and the exact approval are proven on the owner's Mac (evidence docs/validation/evidence/kit-guard-live-2026-10-20.json): through ChatGPT an exact approval of `agentic-kit transfer fetch-origin --json` ran in step 2112 with the guard's RUN; ChatGPT refuses to write a hidden remote call, so the refusal (exit 126, Kit not started) was proven by a local probe through the Cockpit's own run_next path with the real Kit 1.1.2; no rebuild needed.",
+    "Every real Kit call of a work order is checked against its approval (AGP_KIT_INVOCATION_GUARD_V1): while `run_next` runs a work order, an `agentic-kit` guard stands first on PATH, resolves each call with the installed manifest and starts the Kit only when the approval that admitted the order covers it (for \u201eNur diese Befehle\u201c the exact line); a remote or destructive call the source analysis could not see stops with `AGP_KIT_GUARD_REFUSED` (exit 126) before the Kit starts. An approval-required call must name its arguments literally (string literal or a module-level constant bound once, AGP_LITERAL_APPROVAL_ARGUMENTS_V1), and a path to the Kit, `python -m agentic_project_kit` or an import of its package are refused; build `release-0.3.0-r3`.",
+    "The decision box can approve exactly the command lines a question names (AGP_EXACT_COMMAND_APPROVAL_V1): \u201eNur diese Befehle\u201c lists the `agentic-kit` lines read from the question with the Kit manifest, and the bridge then runs only a work order whose approval-relevant commands are exactly these lines, argument for argument; a changed, added or computed command asks again. A line with `--allow-unlisted` needs its own warning tick. A FILE_TRANSFER `transfer remote-next <branch>` no longer needs \u201ePush, PR und Merge\u201c. The facts for the remote side name the branches a task or work order mentions, and one not fetched here is \u201enot known locally\u201c, never absent (AGP_MENTIONED_BRANCH_FACTS_V1); the Lage no longer recommends \u201eAbschlie\u00dfen\u201c on a `transfer/` branch and points back to main (AGP_TRANSFER_BRANCH_LAGE_V1); build `release-0.3.0-r2`.",
+    "Kit 1.1.2 adopted through the Kit's own `kit update` (manifest 390ff4b84aa2, signature 665f6a21a140daebae269848). The browser job is skipped again on the light CI path of refresh pull requests (AGP_CI_LIGHT_SKIP_DECLARED_V1, replaces AGP_CI_LIGHT_NO_SKIP_V1): `.agentic/config.yaml` declares `gates.light_path_skipped_checks: [browser]`, the Kit accepts that skip only when it re-derives the pull request as light, and the gate job accepts it only with the light verdict. FILE_TRANSFER under 1.1.2: `transfer order-create --run-command` writes command orders, and `transfer remote-next` publishes the files an order wrote and ends with a clean checkout. KIT-GF-071 to 076 are FIXED; evidence: docs/validation/evidence/kit-1.1.2-adoption.json; no rebuild needed."
+  ],
+  "from_tag": "v0.3.0",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.1",
+        "--from-tag",
+        "v0.3.0",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-031-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 27565,
+      "stdout_sha256": "cad29102b259139710eb25bf9010f9c666410ddd9c263eaab17912bf58037a32"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.1",
+        "--date",
+        "2026-10-21",
+        "--summary-line",
+        "Kit 1.1.4 adopted through the Kit's own `kit update` (manifest e2563df60239, signature 6570672ca210b366fb4976a8); it also covers 1.1.3. The update now refreshes the rule-mechanism inventory itself (KIT-GF-072 confirmed). The Kit's CI wait waits for the late required check `agentic-gate` by name (`gates.required_checks`, AGP_CI_REQUIRED_CHECKS_DECLARED_V1, KIT-GF-079), because it starts only after python and browser. Findings: KIT-GF-076 to 078 confirmed, 079 and 080 FIXED, 070 still open (the Kit's retest runner covers eight families), KIT-GF-081 recorded; evidence docs/validation/evidence/kit-1.1.4-adoption.json; no rebuild needed.",
+        "--summary-line",
+        "The Kit invocation guard and the exact approval are proven on the owner's Mac (evidence docs/validation/evidence/kit-guard-live-2026-10-20.json): through ChatGPT an exact approval of `agentic-kit transfer fetch-origin --json` ran in step 2112 with the guard's RUN; ChatGPT refuses to write a hidden remote call, so the refusal (exit 126, Kit not started) was proven by a local probe through the Cockpit's own run_next path with the real Kit 1.1.2; no rebuild needed.",
+        "--summary-line",
+        "Every real Kit call of a work order is checked against its approval (AGP_KIT_INVOCATION_GUARD_V1): while `run_next` runs a work order, an `agentic-kit` guard stands first on PATH, resolves each call with the installed manifest and starts the Kit only when the approval that admitted the order covers it (for \u201eNur diese Befehle\u201c the exact line); a remote or destructive call the source analysis could not see stops with `AGP_KIT_GUARD_REFUSED` (exit 126) before the Kit starts. An approval-required call must name its arguments literally (string literal or a module-level constant bound once, AGP_LITERAL_APPROVAL_ARGUMENTS_V1), and a path to the Kit, `python -m agentic_project_kit` or an import of its package are refused; build `release-0.3.0-r3`.",
+        "--summary-line",
+        "The decision box can approve exactly the command lines a question names (AGP_EXACT_COMMAND_APPROVAL_V1): \u201eNur diese Befehle\u201c lists the `agentic-kit` lines read from the question with the Kit manifest, and the bridge then runs only a work order whose approval-relevant commands are exactly these lines, argument for argument; a changed, added or computed command asks again. A line with `--allow-unlisted` needs its own warning tick. A FILE_TRANSFER `transfer remote-next <branch>` no longer needs \u201ePush, PR und Merge\u201c. The facts for the remote side name the branches a task or work order mentions, and one not fetched here is \u201enot known locally\u201c, never absent (AGP_MENTIONED_BRANCH_FACTS_V1); the Lage no longer recommends \u201eAbschlie\u00dfen\u201c on a `transfer/` branch and points back to main (AGP_TRANSFER_BRANCH_LAGE_V1); build `release-0.3.0-r2`.",
+        "--summary-line",
+        "Kit 1.1.2 adopted through the Kit's own `kit update` (manifest 390ff4b84aa2, signature 665f6a21a140daebae269848). The browser job is skipped again on the light CI path of refresh pull requests (AGP_CI_LIGHT_SKIP_DECLARED_V1, replaces AGP_CI_LIGHT_NO_SKIP_V1): `.agentic/config.yaml` declares `gates.light_path_skipped_checks: [browser]`, the Kit accepts that skip only when it re-derives the pull request as light, and the gate job accepts it only with the light verdict. FILE_TRANSFER under 1.1.2: `transfer order-create --run-command` writes command orders, and `transfer remote-next` publishes the files an order wrote and ends with a clean checkout. KIT-GF-071 to 076 are FIXED; evidence: docs/validation/evidence/kit-1.1.2-adoption.json; no rebuild needed.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-031-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "56c0bb152f8810207156381708e49fb987d29c6e79db53996699138c0b96d891"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "0cfa9d785e8aa4dee2afec1505171c980f21817e96dd780508d3b57c38719bf7"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "d09c07acd548809c648114b53fb5ef197444bff6212cfaff29f1dbebf7f02c05"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-031-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.1"
+}
