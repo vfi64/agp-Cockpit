@@ -680,14 +680,21 @@ P1 — next:
    run with a command counter-check follows after Kit 1.1.2 is adopted (adopted 2026-10-20, evidence
    kit-1.1.2-adoption.json; light CI path skips the browser job again). The complete run passed on
    2026-10-20 (counter-check FAIL as intended, complete run PASS and clean; KIT-GF-073/074/075
-   VERIFIED_FIXED, evidence file-transfer-live-2026-10-20.json). Open Cockpit slice: an
-   exact-command approval scope with `--allow-unlisted` shown, and origin branches in the remote facts.
+   VERIFIED_FIXED, evidence file-transfer-live-2026-10-20.json). The exact-command approval
+   scope (including a separate `--allow-unlisted` approval), mentioned-branch facts and
+   transfer-branch recommendation guard were delivered in PR #364 (2026-10-20). The runtime
+   Kit invocation guard followed in PR #366; its approved path was proven through ChatGPT
+   and its refused path through the local run_next probe (PR #368,
+   `docs/validation/evidence/kit-guard-live-2026-10-20.json`). This is bounded evidence, not
+   whole-product or external-installation acceptance.
    Kit 1.1.4 adopted 2026-10-20 (covers 1.1.3; evidence kit-1.1.4-adoption.json): `greenfield retest`
    exists, KIT-GF-070 stays open until every local family has a machine contract; the late required
    check is declared (AGP_CI_REQUIRED_CHECKS_DECLARED_V1, KIT-GF-079).
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
-   bridge defaults.
+   bridge defaults. The bounded stage-A procedure is in TEST_PLAN,
+   “External installation acceptance — digital-embryo”; it remains NOT_RUN until the
+   installed-app and browser observations are recorded.
 
 P2 — then:
 6. Closeout record per task (intent → approvals → steps → Kit evidence SHAs → result), committed.
@@ -718,3 +725,24 @@ human gate, a private database as a second source of truth beside the repository
 <!-- AGP_COMMUNICATION_PROTOCOL_AUTHORITY_V1 -->
 ## Communication protocol authority
 Cross-component Cockpit communication/lifecycle semantics are governed by `docs/planning/COMMUNICATION_PROTOCOL.md` together with `docs/planning/PROTOCOL.md`. Protocol-affecting changes require synchronized authority, tests/invariants, and durable change/failure history; failure analysis follows `docs/engineering/FAILURE_META_ANALYSIS.md`.
+
+## 2026-10-21 — Evidence reconciliation and next acceptance work
+
+This update reconciles status only; it grants no new completion or runtime authority.
+
+- Release autonomy and Kit adoption are implemented (Cockpit 0.3.1, Kit 1.1.4).
+  Older roadmap paragraphs describing manual adoption or the two-phase release path
+  are historical; current communication rules 84–85 and release policy take precedence.
+- Exact-command approval and invocation-guard evidence are bounded as described in P1.4.
+- K01 closes F06 settings isolation. K06 records manual macOS usability/keyboard
+  acceptance with a known VoiceOver announcement limitation; neither implies full
+  screen-reader conformance or a source-independent installation proof.
+- K02's process/crash and dispatch-injection evidence is recorded, but remaining
+  product-path acceptance is not inferred from those controller tests. K03/K04's
+  historical “pending Kit closeout” labels require an explicit evidence-to-merge mapping;
+  they are not assertions that an old branch still needs merging.
+- K05 and K07 remain open. The previous whole-product FUNCTIONALLY_ACCEPTED claim
+  remains withdrawn. No closed-out release substitutes for that acceptance matrix.
+- Next P1 acceptance work: external installed-app test against vfi64/digital-embryo.
+  The repository was confirmed read-only as private, default branch main; no target
+  checkout, adoption, settings change or remote mutation has yet been performed.
