@@ -899,6 +899,22 @@ This section is normative for the file loop after local execution.
    Kit, `python -m agentic_project_kit`, an import of the package or the guard's names are
    refused in the source. The guard is not a sandbox; it closes the dynamic gap of rule 84's
    approvals, and the Cockpit still selects no Kit command.
+86. Signed executes are approved with their line, and an unusable approval stops
+   (`AGP_DESTRUCTIVE_EXACT_LINE_V1`, `AGP_SIGNATURE_BOUND_APPROVAL_V1`, `AGP_APPROVAL_LOOP_BRAKE_V1`,
+   owner 2026-10-22, options 1 and 2): live in the Kit repository a discard through
+   `work discard-changes --execute --expected-signature <preview signature> --json` asked the same
+   question eighteen times. The destructive execute's line was dropped from the question, which
+   named only `agentic-kit work discard-changes --execute`; „Nur diese Befehle“ approved that
+   shortened line, which no work order runs. Now a destructive or owner-decision execute keeps its
+   literal line („Befehl: …“), and the question's effect list names commands without the program,
+   so only full lines can be approved exactly. A signature is approved with the line: the preview
+   (the same command without `--execute`) runs without approval in an earlier work order, the
+   execute names its signature literally, and the Kit refuses the execute when the state changed
+   since the preview; a computed signature is a correctable rejection that says so. When a work
+   order asks for exactly the approval the owner granted after the previous identical request and
+   that grant was never used, the mission ends BLOCKED with „Freigabe-Schleife gestoppt“ and no
+   decision box, because approving once more cannot help. A used grant does not count: asking again
+   later is a new request.
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

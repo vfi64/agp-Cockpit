@@ -87,6 +87,7 @@ OWNER_DECISION_EXECUTE_COMMANDS = frozenset({"docs lifecycle sweep"})
 # guards against a Kit regression.
 FORBIDDEN_EXECUTE_COMMANDS = frozenset({"workspace ci-update"})
 EXECUTE_FLAG = "--execute"
+SIGNATURE_OPTION = "--expected-signature"
 # AGP_RELEASE_DRY_RUN_FREE_V1 (plan P11): remote-effect orchestrators whose dry run
 # only reads (``release-publish --dry-run`` prints the plan and its approval
 # signature). Only an invocation that may execute needs an open approval; when the
@@ -453,7 +454,13 @@ def approval_required_invocations(source: str, catalog: KitCommandCatalog | None
                 break
             subcommands.append(token)
         command = catalog.resolve(subcommands) if subcommands else None
-        if command is not None and command["qualified_name"] in needed:
+        # AGP_DESTRUCTIVE_EXACT_LINE_V1 (live 2026-10-22, steps 65-82): a destructive execute is
+        # needed as "<qualified name> --execute"; matching only the bare name dropped its line, so
+        # the question showed no line, the owner approved the shortened name, and no work order
+        # could ever match that approval (eighteen identical questions).
+        if command is not None and (command["qualified_name"] in needed
+                                    or f"{command['qualified_name']} {EXECUTE_FLAG}" in needed
+                                    and EXECUTE_FLAG in argv[1:]):
             lines.append(" ".join(["agentic-kit", *argv[1:]]))
     return sorted(dict.fromkeys(lines))
 
@@ -461,13 +468,28 @@ def approval_required_invocations(source: str, catalog: KitCommandCatalog | None
 def computed_argument_violations(source: str, catalog: KitCommandCatalog | None) -> list[str]:
     """AGP_LITERAL_APPROVAL_ARGUMENTS_V1 (owner 2026-10-20, option b): an agentic-kit call that
     needs a human approval must name every argument literally, so the question shows the exact
-    line and an exact approval can cover it. A computed argument is a correctable rejection."""
-    return [
-        f"{line} needs a human approval and has a computed argument (<expr>); write every "
-        "argument of an approval-required agentic-kit call as a string literal or a module-level "
-        "string constant assigned once"
-        for line in approval_required_invocations(source, catalog) if "<expr>" in line.split(" ")
-    ]
+    line and an exact approval can cover it. A computed argument is a correctable rejection.
+
+    AGP_SIGNATURE_BOUND_APPROVAL_V1 (owner 2026-10-22, option 2): a signed execute
+    (``--expected-signature``) is approved with the signature of its preview. The preview runs
+    without approval in an earlier work order; the execute then names that signature literally,
+    the question shows the full line, and the Kit refuses the execute when the state changed since
+    the preview. The rejection says so, because the signature cannot be known before the preview.
+    """
+    violations = []
+    for line in approval_required_invocations(source, catalog):
+        words = line.split(" ")
+        if "<expr>" not in words:
+            continue
+        text = (f"{line} needs a human approval and has a computed argument (<expr>); write every "
+                "argument of an approval-required agentic-kit call as a string literal or a "
+                "module-level string constant assigned once")
+        if SIGNATURE_OPTION in words and words[words.index(SIGNATURE_OPTION) + 1:][:1] == ["<expr>"]:
+            text += (f"; for {SIGNATURE_OPTION} run the preview (the same command without "
+                     f"{EXECUTE_FLAG}) in an earlier work order and write the signature it reported "
+                     "literally, so the approval question can show and bind the exact line")
+        violations.append(text)
+    return violations
 
 
 # AGP_KIT_INVOCATION_GUARD_V1 (owner 2026-10-20, option a): work orders call the Kit as plain
