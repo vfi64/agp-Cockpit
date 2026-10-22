@@ -240,6 +240,55 @@ class HumanDecisionStore:
         return record
 
 
+APPROVAL_REQUEST_FILE = "approval-request.json"
+
+
+def approval_loop_question(runtime_root: Path, task_id: str, wanted, invocations, *, filename: str,
+                           now: float | None = None) -> str:
+    """AGP_APPROVAL_LOOP_BRAKE_V1 (live 2026-10-22, steps 65-82): the stop text when a work order
+    asks for exactly the approval the owner granted after the previous identical request and that
+    grant was never used; "" otherwise. Records every request.
+
+    Eighteen work orders asked for the same approval: the decision box offered a line no work order
+    ran (AGP_DESTRUCTIVE_EXACT_LINE_V1), each approval expired unused, and the next work order asked
+    again. Approving once more cannot change that, so the mission stops (BLOCKED, no decision box).
+    A grant that a work order consumed is a used approval: asking again later is a new request.
+    """
+    root = Path(runtime_root)
+    path = root / APPROVAL_REQUEST_FILE
+    key = [*sorted(set(wanted or ())), "|", *sorted(set(invocations or ()))]
+    stamp = time.time() if now is None else now
+    try:
+        previous = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        previous = {}
+    decision = HumanDecisionStore(root).current()
+    grant = decision.get("grant") or {}
+    repeated = bool(
+        task_id
+        and previous.get("task_id") == task_id
+        and previous.get("key") == key
+        and decision.get("task_id") == task_id
+        and decision.get("decision") == "APPROVE"
+        and float(decision.get("decided_at") or 0) >= float(previous.get("asked_at") or 0)
+        and not grant.get("consumed_by")
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"task_id": task_id, "key": key, "asked_at": stamp}, indent=1) + "\n",
+                    encoding="utf-8")
+    if not repeated:
+        return ""
+    approved = grant.get("exact") or grant.get("scope") or []
+    needed = [line for line in invocations or ()] or list(wanted or ())
+    return (
+        f"Freigabe-Schleife gestoppt: {filename} verlangt genau die Freigabe noch einmal, die du "
+        "gerade erteilt hast, und die Freigabe wurde nicht genutzt. Gebraucht: "
+        + "; ".join(needed) + ". Freigegeben: " + ("; ".join(approved) or "die angefragte Wirkung")
+        + ". Erneutes Freigeben hilft nicht, der Arbeitsauftrag wurde nicht ausgeführt. "
+        "Setze den Auftrag zurück („Reset“) und formuliere ihn neu oder erledige den Schritt lokal."
+    )
+
+
 def _effects_of(record: dict) -> list[dict]:
     """Every approved effect of the record's task, also from earlier decisions."""
     if "effects" in record:

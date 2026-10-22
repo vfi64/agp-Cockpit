@@ -40,8 +40,10 @@ def test_every_evidence_file_is_used_and_consistent():
             family = FAMILIES[fid]
             assert family["status"] == "VERIFIED_FIXED", fid
             assert rel in family["verified_by"], fid
-        for fid in evidence.get("not_verified", {}):
-            assert FAMILIES[fid]["status"] != "VERIFIED_FIXED", fid
+        for key in evidence.get("not_verified", {}):
+            for fid in _ids(key):
+                # a later evidence file may verify it (Kit 1.1.5 verified KIT-GF-063 and others)
+                assert FAMILIES[fid]["status"] != "VERIFIED_FIXED" or rel not in FAMILIES[fid]["verified_by"], fid
 
 
 def test_release_025_evidence_matches_what_it_claims():
@@ -54,3 +56,11 @@ def test_release_025_evidence_matches_what_it_claims():
     assert run["planned_steps"] == ["A1", "A2", "A3", "B1", "B2", "B3", "B4", "C1", "C2", "C4"]
     assert run["c1"]["release_publish_status"] == "PASS" and "SKIP" in run["c1"]["checks"].values()   # KIT-GF-069
     assert evidence["release_publish"]["status"] == "PASS" and evidence["release_publish"]["tag"] == "v0.2.5"
+
+
+def _ids(key: str) -> list[str]:
+    """``KIT-GF-003, 009`` names KIT-GF-003 and KIT-GF-009."""
+    first, *rest = [part.strip() for part in key.split(",")]
+    prefix = first.rsplit("-", 1)[0]
+    return [first, *(f"{prefix}-{part}" for part in rest)]
+

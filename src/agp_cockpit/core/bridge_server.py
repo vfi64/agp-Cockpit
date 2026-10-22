@@ -656,14 +656,18 @@ class CockpitBridgeServer:
                             question = (
                                 f"Arbeitsauftrag {filename} will "
                                 + ("einen Schritt, der den lokalen Verlauf oder lokale Dateien verändert "
-                                   f"({', '.join(destructive)}; die Kit-Route sichert vorher alles auf einem "
+                                   f"({', '.join(w.removeprefix('agentic-kit ') for w in destructive)}; "
+                                   "die Kit-Route sichert vorher alles auf einem "
                                    "Rescue-Branch bzw. prüft die Signatur des Probelaufs), "
                                    if destructive else "")
                                 + ("eine Wirkung nach außen "
                                    if set(wanted) - set(destructive) else "")
                                 + (f"oder eine noch nicht eingestufte Wirkung ({', '.join(unknown)}) "
                                    if unknown else "")
-                                + f"ausführen: {', '.join(wanted)}. "
+                                # AGP_DESTRUCTIVE_EXACT_LINE_V1: the effect list names the commands
+                                # without the program, so only the full "Befehl:" lines can be
+                                # approved exactly (live 2026-10-22: the shortened name was offered).
+                                + f"ausführen: {', '.join(w.removeprefix('agentic-kit ') for w in wanted)}. "
                                 # AGP_EXACT_COMMAND_APPROVAL_V1: the literal lines, one per text
                                 # line, so the decision box can offer exactly them.
                                 + "".join(f"\nBefehl: {line}\n" for line in invocations)
@@ -673,6 +677,23 @@ class CockpitBridgeServer:
                                 "nicht ausgeführt. Darf er ausgeführt werden?"
                             )
                             mission = engine.runtime.state
+                            # AGP_APPROVAL_LOOP_BRAKE_V1 (live 2026-10-22, steps 65-82): the same
+                            # approval asked again right after the owner granted it cannot be
+                            # satisfied by granting it once more; the mission stops instead.
+                            from agp_cockpit.core.human_decision import approval_loop_question
+                            loop = approval_loop_question(runtime_root, _current_task_id(runtime_root, engine),
+                                                          wanted, invocations, filename=filename)
+                            if loop:
+                                if mission is not None and mission.state not in _MISSION_ENDED_STATES:
+                                    engine.runtime.final("BLOCKED", loop)
+                                _approval_grant(runtime_root, engine)
+                                diag.event("REMOTE_EFFECT_APPROVAL_LOOP_STOPPED", component="file-loop",
+                                           details={"filename": filename, "commands": wanted,
+                                                    "invocations": invocations, "cycle_id": cycle_id})
+                                self._json(200, {"state": "BLOCKED", "step": None, "result_file": None,
+                                                 "prompt": None, "terminal": True, "human_reason": loop,
+                                                 "cycle_id": cycle_id, "replayed": False})
+                                return
                             if mission is not None and mission.state not in _MISSION_ENDED_STATES:
                                 engine.runtime.final("NEEDS_HUMAN", question)
                             # A NEEDS_HUMAN ends the mission: an unused
