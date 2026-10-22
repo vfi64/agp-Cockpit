@@ -1714,3 +1714,9 @@ repeat once.
 - Also observed: the agent tried to repair a red PR check by changing the CI configuration instead of reporting the Kit BLOCKED; it asked before committing. Recorded for the findings slice (c2).
 - Tests: `tests/test_approval_loop_brake.py` (literal line, question and exact approval end to end, invocation guard, computed signature hint, brake and its exceptions).
 
+## 2026-10-22 — Kit 1.1.5 adopted; the register follows the Kit's machine contracts
+
+- `kit update` (controller 1.1.4, plan a863cf96c9e7f8353d9bd0db, manifest 84540b010909) installed 1.1.5, raised both CI pins, synchronized the entrypoints and refreshed the rule inventory; rule-registry check PASS. Evidence: docs/validation/evidence/kit-1.1.5-adoption.json.
+- `greenfield retest --all` under 1.1.5: INCOMPLETE (exit 3) with PASS 38, FAIL 0, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 6. The 22 families whose contract passed and which were OPEN or FIXED here are VERIFIED_FIXED (KIT-GF-001, 002, 004 to 008, 010, 013, 016, 022, 023, 025, 028, 035, 053, 054, 063, 066, 083, 084, 085). OPEN families with a released Kit fix and no local contract are FIXED (003, 009, 012, 014, 015, 018, 081); KIT-GF-082 to 085 recorded (GF-E111 to E114). KIT-GF-070 stays OPEN (Kit PARTIAL). Historic register tests drop the families verified now, as with KIT-GF-072 in 1.1.4.
+- The Kit's release 1.1.5: release PR #2601, tag v1.1.5, PyPI 1.1.5, DOI 10.5281/zenodo.23564978, DOI record #2603, evidence archive #2605. Its first run stopped in A2 on KIT-GF-085 and was given up with `release abandon` (KIT-GF-081); the abandon output is not committed evidence here, so 081 stays FIXED.
+

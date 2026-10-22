@@ -690,6 +690,14 @@ P1 — next:
    Kit 1.1.4 adopted 2026-10-20 (covers 1.1.3; evidence kit-1.1.4-adoption.json): `greenfield retest`
    exists, KIT-GF-070 stays open until every local family has a machine contract; the late required
    check is declared (AGP_CI_REQUIRED_CHECKS_DECLARED_V1, KIT-GF-079).
+   Kit 1.1.5 adopted 2026-10-22 (evidence kit-1.1.5-adoption.json): 38 machine contracts pass here,
+   22 families VERIFIED_FIXED by them; no numbered family stays OPEN except KIT-GF-070 (six local
+   families still without a contract, planned for Kit 1.1.6). Open Cockpit observations (2026-10-21/22):
+   the PR category rule does not fire in a repository whose config has no `publication:` key;
+   „Branch wechseln“ lists only local branches; a free task without changes does not finish itself;
+   free tasks run only `agentic-kit` and `git` (no ruff, no pip); a free-task agent changed the CI
+   configuration to turn a red check green instead of reporting the Kit BLOCKED (it asked before
+   committing). The approval loop of a signed discard is fixed (rule 86).
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults. The bounded stage-A procedure is in TEST_PLAN,

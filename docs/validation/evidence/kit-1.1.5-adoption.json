@@ -1,0 +1,147 @@
+{
+    "schema_version": 1,
+    "kind": "agp_kit_retest_evidence",
+    "id": "kit-1.1.5-adoption",
+    "date": "2026-10-22",
+    "kit_version": "1.1.5",
+    "source": "Claude's work clone of agp-Cockpit on branch chore/kit-1.1.5 (base main 7157b8e9 plus the approval-loop fix 17925d4), cloud session, workspace .venv; Kit 1.1.5 from PyPI.",
+    "kit_update": {
+        "controller": "installed Kit 1.1.4 planned and executed the update",
+        "plan": {
+            "result_status": "AWAITING_APPROVAL",
+            "approval_signature": "a863cf96c9e7f8353d9bd0db",
+            "changed_paths": [
+                ".agentic/ci/agentic-gate.yaml",
+                ".github/workflows/agentic-gate.yaml",
+                "AGENTS.md",
+                "docs/reference/AGENTIC_KIT_COMMANDS.md",
+                "docs/reference/agentic-kit-commands.json"
+            ],
+            "derived_paths": [
+                ".agentic/rule_mechanism_inventory.yaml"
+            ],
+            "manifest_ack": "84540b010909",
+            "actions": [
+                "install_released_wheels",
+                "update_ci_pins",
+                "sync_entrypoints",
+                "check",
+                "doctor",
+                "refresh_rule_inventory"
+            ]
+        },
+        "execute": {
+            "result_status": "PASS",
+            "installed_version": "1.1.5"
+        },
+        "owner_consent": "Claude chat 2026-10-22 15:37 CEST: \"Jetzt die Übernahme des Kit-Releases 1.1.5 ins Cockpit und danach ein neues Cockpit 0.3.2. Aber alle mit dem Cockpit, nicht mit Codex.\""
+    },
+    "rule_registry": {
+        "check_after_update": "PASS (kit update refreshed the inventory itself)"
+    },
+    "greenfield_retest": {
+        "command": "agentic-kit greenfield retest --all --json",
+        "returncode": 3,
+        "result_status": "INCOMPLETE",
+        "kit_version": "1.1.5",
+        "catalog_sha256": "7698139b2dc66e96be16020110f1017e98a81e970b51f569fe1cd0c331b4bd09",
+        "counts": {
+            "FAIL": 0,
+            "NOT_RUN_LOCALLY": 40,
+            "NO_MACHINE_CONTRACT": 6,
+            "PASS": 38
+        },
+        "pass": [
+            "KIT-GF-001",
+            "KIT-GF-002",
+            "KIT-GF-004",
+            "KIT-GF-005",
+            "KIT-GF-006",
+            "KIT-GF-007",
+            "KIT-GF-008",
+            "KIT-GF-010",
+            "KIT-GF-013",
+            "KIT-GF-016",
+            "KIT-GF-022",
+            "KIT-GF-023",
+            "KIT-GF-025",
+            "KIT-GF-026",
+            "KIT-GF-028",
+            "KIT-GF-033",
+            "KIT-GF-035",
+            "KIT-GF-036",
+            "KIT-GF-037",
+            "KIT-GF-042",
+            "KIT-GF-044",
+            "KIT-GF-053",
+            "KIT-GF-054",
+            "KIT-GF-057",
+            "KIT-GF-060",
+            "KIT-GF-063",
+            "KIT-GF-066",
+            "KIT-GF-068",
+            "KIT-GF-070",
+            "KIT-GF-072",
+            "KIT-GF-074",
+            "KIT-GF-075",
+            "KIT-GF-076",
+            "KIT-GF-077",
+            "KIT-GF-083",
+            "KIT-GF-084",
+            "KIT-GF-085",
+            "KIT-GF-RULE-REGISTRY-BOOTSTRAP"
+        ],
+        "no_machine_contract": [
+            "KIT-GF-014",
+            "KIT-GF-015",
+            "KIT-GF-021",
+            "KIT-GF-032",
+            "KIT-GF-045",
+            "KIT-GF-067"
+        ]
+    },
+    "kit_release_1_1_5": {
+        "source": "Kit main history and tag read with git (52f469f1), PyPI and Zenodo pages seen by the owner 2026-10-22; the Codex report of the run was not read here",
+        "release_pr": 2601,
+        "merge_commit": "4e6701a0dab5ac8b71a3b19cf21fff7a3b49719c",
+        "tag": "v1.1.5",
+        "tag_commit": "d736f10b4ebfa8218f3b3eab987027d238a45b23",
+        "pypi": "1.1.5",
+        "version_doi": "10.5281/zenodo.23564978",
+        "doi_closeout_pr": 2603,
+        "evidence_archive_pr": 2605,
+        "first_run": "stopped in A2 (release ready) on KIT-GF-085; fixed by PR #2599, the stopped run was given up with release abandon and a fresh run completed"
+    },
+    "cockpit_tests": "1300 passed, 41 skipped (cloud, tkinter venv) on the approval-loop fix; rerun on this branch recorded in the slice",
+    "verifies": {
+        "KIT-GF-001": "greenfield retest KIT-GF-001 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-002": "greenfield retest KIT-GF-002 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-004": "greenfield retest KIT-GF-004 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-005": "greenfield retest KIT-GF-005 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-006": "greenfield retest KIT-GF-006 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-007": "greenfield retest KIT-GF-007 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-008": "greenfield retest KIT-GF-008 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-010": "greenfield retest KIT-GF-010 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-013": "greenfield retest KIT-GF-013 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-016": "greenfield retest KIT-GF-016 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-022": "greenfield retest KIT-GF-022 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-023": "greenfield retest KIT-GF-023 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-025": "greenfield retest KIT-GF-025 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-028": "greenfield retest KIT-GF-028 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-035": "greenfield retest KIT-GF-035 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-053": "greenfield retest KIT-GF-053 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-054": "greenfield retest KIT-GF-054 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-063": "greenfield retest KIT-GF-063 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-066": "greenfield retest KIT-GF-066 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-083": "greenfield retest KIT-GF-083 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-084": "greenfield retest KIT-GF-084 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)",
+        "KIT-GF-085": "greenfield retest KIT-GF-085 PASS with the installed Kit 1.1.5 (installed-wheel machine contract)"
+    },
+    "not_verified": {
+        "KIT-GF-070": "Kit state PARTIAL: six local families have no machine contract (014, 015, 021, 032, 045, 067); planned for 1.1.6",
+        "KIT-GF-081": "the release driver required release abandon to pass before the fresh 1.1.5 run, and that run completed; the abandon output itself is not in committed evidence here",
+        "KIT-GF-082": "owner_remote: needs a slow or failing wheel download on the owner's Mac",
+        "KIT-GF-003, 009, 012, 018": "owner_remote retests not run here; Kit CLOSED, register FIXED",
+        "KIT-GF-014, 015": "no machine contract yet; Kit CLOSED, register FIXED"
+    }
+}

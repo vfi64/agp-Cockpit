@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.1.5 adopted through the Kit's own `kit update` (manifest 84540b010909, signature a863cf96c9e7f8353d9bd0db). `greenfield retest --all`: 38 machine contracts PASS, 0 FAIL; 22 findings are now confirmed here (among them KIT-GF-001 to 016 and 083 to 085), every other numbered finding has a released Kit fix, KIT-GF-070 stays open for six contracts; KIT-GF-082 to 085 recorded; evidence docs/validation/evidence/kit-1.1.5-adoption.json.
 - An approval for a signed discard no longer loops: the question keeps the literal line of a destructive execute (it showed only the command name, the owner approved that, and no work order could match it: eighteen identical questions live on 2026-10-22), a signature is approved with its line after a preview, and the same approval asked again after an unused grant stops the mission (AGP_DESTRUCTIVE_EXACT_LINE_V1, AGP_SIGNATURE_BOUND_APPROVAL_V1, AGP_APPROVAL_LOOP_BRAKE_V1, rule 86).
 
 ## v0.3.1 - 2026-10-21

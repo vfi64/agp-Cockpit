@@ -804,6 +804,34 @@
       "historical_id": "cleanup of the first 1.1.4 attempt",
       "canonical_family": "KIT-GF-081",
       "summary": "no route to abandon the release run; run state moved aside by hand"
+    },
+    {
+      "date": "2026-10-20",
+      "event_id": "GF-E111",
+      "historical_id": "Cockpit adoption of Kit 1.1.4 on the owner's Mac",
+      "canonical_family": "KIT-GF-082",
+      "summary": "kit update stopped with a bare download blocker; the log ended before the downloads"
+    },
+    {
+      "date": "2026-10-21",
+      "event_id": "GF-E112",
+      "historical_id": "Kit machine contracts c1a",
+      "canonical_family": "KIT-GF-083",
+      "summary": "command-reference-check ran the Kit's own test file in an external workspace (returncode 4)"
+    },
+    {
+      "date": "2026-10-21",
+      "event_id": "GF-E113",
+      "historical_id": "Kit machine contracts c1a",
+      "canonical_family": "KIT-GF-084",
+      "summary": "docs-audit counted the empty successor package directory of a fresh workspace as incomplete"
+    },
+    {
+      "date": "2026-10-22",
+      "event_id": "GF-E114",
+      "historical_id": "Kit release 1.1.5, first run, A2",
+      "canonical_family": "KIT-GF-085",
+      "summary": "release ready blocked on quoted ./ns fixture lines in the finding catalog; no PR check had run the audit suite"
     }
   ],
   "families": [
@@ -811,7 +839,7 @@
       "id": "KIT-GF-001",
       "title": "Workspace lifecycle bootstrap is not closed after successful external workspace init",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [
@@ -828,18 +856,21 @@
         "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.24",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-001-lifecycle-bootstrap-retest-2026-10-13.md"
-      }
+      },
+      "fixed_in": "1.0.24",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-001 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-002",
       "title": "Planning-document slice gate leaks Kit self-hosting assumptions into external workspaces",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [
@@ -856,18 +887,21 @@
         "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.9",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json"
-      }
+      },
+      "fixed_in": "1.0.9",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-002 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-003",
       "title": "Handoff-state paths and fresh bootstrap state are inconsistent",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [
@@ -884,18 +918,19 @@
         "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-003-canonical-handoff-applicability-2026-10-13.md"
-      }
+      },
+      "fixed_in": "1.0.25"
     },
     {
       "id": "KIT-GF-004",
       "title": "governance check is not external-workspace aware",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [
@@ -912,18 +947,21 @@
         "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.9",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json"
-      }
+      },
+      "fixed_in": "1.0.9",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-004 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-005",
       "title": "Fresh external workspace work start is blocked by predecessor/post-merge state",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [
@@ -941,18 +979,21 @@
         "AGP_Cockpit_Greenfield_Kit_Defect_Report_2026-09-03.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.24",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-005-first-work-start-retest-2026-10-13.md"
-      }
+      },
+      "fixed_in": "1.0.24",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-005 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-006",
       "title": "transfer status treats an empty inbox as a file error",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [
@@ -969,18 +1010,21 @@
         "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.9",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json"
-      }
+      },
+      "fixed_in": "1.0.9",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-006 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-007",
       "title": "workspace adopt reclassifies Kit-generated init files as new manual/adjudication surfaces",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium-high",
       "classification": "agentic-kit",
       "aliases": [
@@ -997,18 +1041,21 @@
         "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.13",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_12_GREENFIELD_PROVENANCE_RETEST_20260915.json"
-      }
+      },
+      "fixed_in": "1.0.13",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-007 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-008",
       "title": "Bootstrap-generated external-workspace CI uses a self-hosting/internal gate",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [
@@ -1033,18 +1080,21 @@
         "remote GitHub Actions run 33768245355 (success after repaired external contract)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.9",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json"
-      }
+      },
+      "fixed_in": "1.0.9",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-008 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-009",
       "title": "work finish first-push lifecycle can generate its own blocking dirty state",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [
@@ -1060,18 +1110,19 @@
         "agentic_project_kit_greenfield_external_workspace_error_protocol_2026-08-31-2.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.13",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_13_GF009_PRIVATE_RELEASED_PACKAGE_RETEST_20260916.json"
-      }
+      },
+      "fixed_in": "1.0.13"
     },
     {
       "id": "KIT-GF-010",
       "title": "Rule acknowledgement is self-invalidating across the Kit-owned commit it authorizes",
       "first_observed": "2026-08-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "critical",
       "classification": "agentic-kit",
       "aliases": [
@@ -1116,12 +1167,15 @@
         }
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.9",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json"
-      }
+      },
+      "fixed_in": "1.0.9",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-010 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-011",
@@ -1163,10 +1217,10 @@
         }
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.16",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-011-successor-final-head-identity-2026-10-04.md"
       },
       "fixed_in": "1.0.16",
@@ -1176,7 +1230,7 @@
       "id": "KIT-GF-012",
       "title": "work finish dry-run may pass while execute blocks in the same bounded closeout",
       "first_observed": "2026-09-03",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [
@@ -1192,18 +1246,19 @@
         "Step 071 terminal evidence"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.9",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json"
-      }
+      },
+      "fixed_in": "1.0.9"
     },
     {
       "id": "KIT-GF-013",
       "title": "No automatic escalation from repeated local repair to systemic/root-cause review",
       "first_observed": "2026-09-03",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [
@@ -1221,18 +1276,21 @@
         "docs/planning/SYSTEMIC_FAILURE_ESCALATION.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-013-workspace-repair-escalation-2026-10-13.md"
-      }
+      },
+      "fixed_in": "1.0.25",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-013 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-014",
       "title": "External-workspace governance does not detect stale or ambiguous continuation authority",
       "first_observed": "2026-09-05",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -1247,18 +1305,19 @@
         "Cockpit Steps 193, 194, 194D1"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.13",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_12_GREENFIELD_REMAINING_CLOSEOUT_20260915.json"
-      }
+      },
+      "fixed_in": "1.0.13"
     },
     {
       "id": "KIT-GF-015",
       "title": "Canonical document facts are not propagated across registered documents",
       "first_observed": "2026-09-05",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium-high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -1273,18 +1332,19 @@
         "Cockpit Steps 193, 194, 194D1"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.13",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_12_GREENFIELD_REMAINING_CLOSEOUT_20260915.json"
-      }
+      },
+      "fixed_in": "1.0.13"
     },
     {
       "id": "KIT-GF-016",
       "title": "High-level external-workspace workflows should support contract-first guided execution",
       "first_observed": "2026-09-05",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-ux-contract",
       "aliases": [],
@@ -1299,12 +1359,15 @@
         "Cockpit Steps 195, 195D1, 195R1, 195R2, 195D2"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.13",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-016-contract-first-executor-retest-2026-10-13.md"
-      }
+      },
+      "fixed_in": "1.0.13",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-016 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-017",
@@ -1339,10 +1402,10 @@
         }
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.23",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-017-released-external-merge-retest-2026-10-10.md"
       },
       "fixed_in": "1.0.23"
@@ -1351,7 +1414,7 @@
       "id": "KIT-GF-018",
       "title": "Merged-work-branch cleanup is not idempotent when the authoritative remote ref is already absent",
       "first_observed": "2026-09-07",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit-ux-contract",
       "aliases": [],
@@ -1369,12 +1432,13 @@
       ],
       "current_repair_status": "Kit 1.0.9 NOT_PROVEN_FIXED: Step 347 found the direct `git push origin --delete <branch>` plus `remote_delete_failed` path and no proven already-absent success path.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.10",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_10_GREENFIELD_REMAINING_FINDINGS_20260908.json"
-      }
+      },
+      "fixed_in": "1.0.10"
     },
     {
       "id": "KIT-GF-RULE-REGISTRY-BOOTSTRAP",
@@ -1388,10 +1452,10 @@
       ],
       "required_action": "Provide deterministic Kit-owned bootstrap/adoption or explicit gate applicability; never fabricate registration semantics or hand-create inventory.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-RULE-REGISTRY-BOOTSTRAP-external-inventory-2026-10-13.md"
       },
       "fixed_in": "1.0.25",
@@ -1416,10 +1480,10 @@
       ],
       "fixed_in": "1.0.23",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.23",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-021-workspace-kit-discovery-2026-10-10.md"
       },
       "verified_by": "2026-10-13 adoption of Kit 1.0.25 in a work clone (docs/validation/evidence/kit-1.0.25-adoption.json): kit update found the intact workspace-owned installation (.venv, status FOUND, version 1.0.24) before updating it."
@@ -1427,7 +1491,7 @@
     {
       "id": "KIT-GF-022",
       "title": "command-reference-refresh is not closed for packaged Kit use in an external workspace",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit-external-workspace-command-authority",
       "expected": "When command-reference-check detects drift, Kit-owned refresh works from packaged authority or returns one exact executable supported remediation.",
@@ -1444,13 +1508,15 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2415, report docs/reports/greenfield/KIT-GF-022-packaged-command-reference-refresh-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-022-packaged-command-reference-refresh-2026-10-07.md"
       },
-      "fixed_in": "1.0.20"
+      "fixed_in": "1.0.20",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-022 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-023",
@@ -1467,17 +1533,19 @@
         "tests/test_ci_gate.py::test_run_pr_status_calls_the_kit_and_tolerates_trailing_lines"
       ],
       "first_observed": "2026-10-01",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "classification": "agentic-kit",
       "aliases": [],
       "fixed_in": "1.0.22",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.22",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-023-pure-json-stdout-2026-10-09.md"
-      }
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-023 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-024",
@@ -1500,10 +1568,10 @@
       "aliases": [],
       "fixed_in": "1.0.19",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-024-025-ci-status-manifest-effects-2026-10-05.md"
       },
       "verified_by": "2026-10-06 GF-E076, agp-Cockpit with Kit 1.0.19 installed (adoption runner kit_adopt_1019.py): `agentic-kit ci status --commit ab03e8056d09 --branch main --json` returned result_status PASS with the Agentic Gate run (conclusion SUCCESS) for a commit without a pull request; no raw gh call."
@@ -1524,17 +1592,19 @@
         "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2407 (remote_effects for every manifest command)"
       ],
       "first_observed": "2026-10-01",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "classification": "agentic-kit",
       "aliases": [],
       "fixed_in": "1.0.19",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-024-025-ci-status-manifest-effects-2026-10-05.md"
-      }
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-025 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-026",
@@ -1565,10 +1635,10 @@
       "fixed_in": "1.0.16",
       "verified_by": "2026-10-04 GF-E048, Kit 1.0.16 (PyPI) in disposable clones, 2026-10-04: `workspace ci-update` (dry run) in a clone of agp-Cockpit main 3ffa74a plans .agentic/ci/agentic-gate.yaml and .github/workflows/agentic-gate.yaml; the managed template pins agentic-project-kit==1.0.16, runs on pull_request and push to main only, has PR concurrency and a Playwright cache. All four observed defects are gone. The update path has a new defect of its own: it replaces a customized managed workflow without notice (KIT-GF-042); the Cockpit keeps its own template (AGP_CI_GATE_V2) and pins the Kit by hand. Kit fix #2366.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.16",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-026-managed-ci-template-2026-10-04.md"
       }
     },
@@ -1606,10 +1676,10 @@
         }
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.23",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-027-bounded-pr-ci-findings-2026-10-09.md"
       }
     },
@@ -1629,17 +1699,19 @@
         "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2403 (TMPDIR-aware temp artifacts)"
       ],
       "first_observed": "2026-10-01",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "classification": "agentic-kit",
       "aliases": [],
       "fixed_in": "1.0.19",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-028-tempdir-artifacts-2026-10-05.md"
-      }
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-028 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-029",
@@ -1671,10 +1743,10 @@
       ],
       "verified_by": "2026-10-03 GF-E036, Kit 1.0.14 (PyPI) in a sandbox clone of agp-Cockpit main 81b2dfb with `publication: none` in .agentic/config.yaml, gh/curl replaced by failing shims and an unreachable proxy: release-plan renders only local tag steps; post-release-check PASS (publication policy, GitHub Release/PyPI/Zenodo skipped); post-release-doi-closeout --json PASS no-op without Zenodo query; release-publish dry-run and --execute --allow-execute PASS with 'publication policy none disables release publishing'; release-check reports the policy PASS for remote tag and GitHub Release; no gh/curl call, no tag created. The remaining release-check failures (Kit package path, CITATION.cff, docs/STATUS.md, CURRENT_HANDOFF) belong to KIT-GF-032.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.14",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-029-publication-none-2026-10-03.md"
       }
     },
@@ -1707,10 +1779,10 @@
         }
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-030-031-pr-lifecycle-2026-10-05.md"
       }
     },
@@ -1735,10 +1807,10 @@
         "Download/1580_agp_refresh_llm_context_carriers_return_bundle.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-030-031-pr-lifecycle-2026-10-05.md"
       }
     },
@@ -1765,10 +1837,10 @@
       ],
       "verified_by": "2026-10-03 GF-E042, Kit 1.0.15 (PyPI) in a sandbox clone of agp-Cockpit main 5e9c26c with `publication: none` added through a simulated PR and successor refresh: `release ready --version 0.1.1 --json` PASS (sync-main, refresh-llm-context-carriers, standard-error-scan, doc-lifecycle-release-review, release-status); `release prepare --version 0.1.1 --write --json` PASS (pyproject.toml 0.1.1, CHANGELOG section v0.1.1, docs-pages fallback skipped); `agentic-kit check` and `doctor` PASS. The private tag route (`release-publish --execute --allow-execute` creating and pushing only the annotated tag, idempotent rerun) was verified on the same Kit code (main fa293dd) in the GF-E041 sandbox. Kit fixes: #2350 (slice A), #2352 (B), #2354 (C), #2356 (D), #2358 (E). Remaining Cockpit-side prerequisite for P11, not a Kit defect: the Cockpit's own version map (AGP_VERSION_MAP_V1: src/agp_cockpit/version.py APP_VERSION, docs/releases/versions.json) is not a Kit version anchor, so tests/test_release_versions.py fails after `release prepare --write` (pyproject 0.1.1, APP_VERSION 0.1.0).",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.15",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-032-external-release-ready-2026-10-03.md"
       }
     },
@@ -1796,10 +1868,10 @@
       ],
       "verified_by": "2026-10-03 GF-E037, Kit 1.0.14 (PyPI) in a sandbox clone of agp-Cockpit main 81b2dfb with a local bare origin: `work rescue --json` on dirty main (modified + untracked file) plans create-rescue-branch, commit-local-changes-on-rescue-branch, realign-main-to-base with a signature; --execute with the signature ends with main == origin/main, a clean worktree and rescue/main-81b2dfb0-… carrying both files; main two commits ahead: wrong signature BLOCKED (signature-mismatch, HEAD unchanged), matching signature ends with main == origin/main and rescue/main-5ae8d0ca containing both commits; repeated runs PASS with rescue_required false; remote_effect none, no gh call, no branch on origin.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.14",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-033-work-rescue-2026-10-02.md"
       }
     },
@@ -1823,10 +1895,10 @@
       "fixed_in": "1.0.16",
       "verified_by": "2026-10-04 GF-E049: Kit release 1.0.16 — the DOI closeout PR #2376 carries docs/site/index.html and docs/site/site.json (v1.0.16, DOI 10.5281/zenodo.23137179) without a manual rebuild; tests/test_site_fallback_staleness.py passes on Kit main 766421b. Kit fix #2370.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.16",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-034-036-release-closeout-quality-2026-10-04.md"
       }
     },
@@ -1834,7 +1906,7 @@
       "id": "KIT-GF-035",
       "title": "docs-audit checks the Kit's own document set in an external workspace",
       "first_observed": "2026-10-03",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -1849,13 +1921,15 @@
         "agentic-kit doc-lifecycle-audit --json: rc 1, 21 findings (missing-review-policy, invalid-status, missing-decision-status, missing-status)."
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.22",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-035-external-documentation-audit-2026-10-09.md"
       },
-      "fixed_in": "1.0.22"
+      "fixed_in": "1.0.22",
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-035 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-036",
@@ -1878,10 +1952,10 @@
       ],
       "verified_by": "2026-10-04 GF-E050, Kit 1.0.16 (PyPI) in disposable clones, 2026-10-04: in a clone of Kit main 766421b, `release-prep --version 1.0.17 --summary-line 'Fix the finish prompt'` stops with 'v1.0.17 lacks enough release-quality categories (found: release-evidence)' and writes nothing (clean worktree); four explicit lines from different categories pass the dry run. The Kit's own release PR #2374 for 1.0.16 went through without a CHANGELOG rewrite. Kit fix #2370.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.16",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-034-036-release-closeout-quality-2026-10-04.md"
       }
     },
@@ -1906,10 +1980,10 @@
       ],
       "verified_by": "2026-10-04 GF-E051, Kit 1.0.16 (PyPI) in disposable clones, 2026-10-04: sandbox clone of agp-Cockpit main 3ffa74a with `release.version_anchors` in .agentic/config.yaml (source_constant APP_VERSION in src/agp_cockpit/version.py; json_table docs/releases/versions.json, list releases, version_field app): `release prepare --version 0.1.1 --write` PASS and updates pyproject.toml, APP_VERSION and a new versions.json row; `release-check --version 0.1.1` FAILs when APP_VERSION or the row's app value is reset to 0.1.0. Remaining Cockpit-side work for P11, not a Kit defect: the row template has static values, so the Cockpit's own consistency test (tests/test_release_versions.py: newest row last, extension equal to the Chrome manifest version, build_id equal to BRIDGE_BUILD_ID) still fails — P11 must align the version map with the anchor (append position, and a decision on extension/build_id). Kit fix #2368.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.16",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-037-038-release-button-foundation-2026-10-04.md"
       }
     },
@@ -1934,10 +2008,10 @@
       ],
       "verified_by": "2026-10-04 GF-E052, Kit 1.0.16 (PyPI) in disposable clones, 2026-10-04: sandbox clone of agp-Cockpit with a bare origin and a prepared 0.1.1: `release-publish --version 0.1.1 --dry-run` prints approval_signature 4a080dd2175802a47217b9a3 over version, tag, target commit 25e9a27, publication policy none and the planned actions; `--execute --allow-execute --expected-signature <wrong>` FAILs ('expected signature does not match'); with the matching signature it creates and pushes the annotated tag v0.1.1 to origin without any .agentic/release/ENABLE_LIVE_PUBLISH commit. Note: a live run needs a clean worktree (an untracked file blocks). Kit fix #2368.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.16",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-037-038-release-button-foundation-2026-10-04.md"
       }
     },
@@ -1961,10 +2035,10 @@
         "sandbox: pr-create-complete BLOCK 'Commit and publish the rule capsule before sending d2' with the pending file present; PASSES the rule gate without it after untracking .agentic/rule_ack/current.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-039-communication-refresh-branch-publish-2026-10-04.md"
       }
     },
@@ -1989,10 +2063,10 @@
         "agentic_project_kit/transfer_repo_actions.py ensure_remote_head (1.0.16 unchanged)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-040-041-work-finish-pr-flow-2026-10-04.md"
       }
     },
@@ -2015,10 +2089,10 @@
         "agp-Cockpit Download/1678, 1681, 1684 return bundles (dry_run true, result_status PASS, 'Workflow completed.')"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-040-041-work-finish-pr-flow-2026-10-04.md"
       },
       "verified_by": "2026-10-05 GF-E059, Kit 1.0.17 (PyPI) in a disposable clone of agp-Cockpit main de477b4: `work finish --branch chore/rt41 --path docs/notes_rt41.md --json` without --execute (clone with a bare origin) returns rc 0, result_status PLANNED, dry_run true, next_action 'Dry run completed; rerun work finish with --execute to commit, push, create the PR, merge, and close out.'"
@@ -2046,10 +2120,10 @@
         "Kit #2395 (a0eb51c0), patched by Claude: hash registry of every Kit-written source template; regression test test_workspace_ci_update_blocks_a_customized_source_template_and_its_projection (the agp-Cockpit case)."
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.18",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-042-ci-update-customized-source-2026-10-05.md"
       },
       "cockpit_mitigation": [
@@ -2092,10 +2166,10 @@
         "Kit's own live release-publish 1.0.17 (publication github+pypi+zenodo, 2026-10-05) created the annotated tag v1.0.17 (tagger vfi64, message 'Release v1.0.17'); release.github_release_title_template is read from .agentic/config.yaml. The Cockpit publishes with publication none, so it cannot retest this path itself."
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-043-044-release-publish-doc-lifecycle-2026-10-05.md"
       }
     },
@@ -2119,10 +2193,10 @@
         "Kit #2387 (7e783920): cause confirmed in doc_lifecycle.py, tests test_doc_lifecycle_ignores_lifecycle_headers_after_first_section and test_doc_lifecycle_requires_review_policy_in_header_block"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-043-044-release-publish-doc-lifecycle-2026-10-05.md"
       },
       "verified_by": "2026-10-05 GF-E060, Kit 1.0.17 (PyPI) in a disposable clone of agp-Cockpit main de477b4: `doc-lifecycle-audit --json` on main: ok, 0 findings; after moving the Review policy line of docs/planning/ULTRA_REVIEW_REMEDIATION.md below the first ## section: rc 1, missing-review-policy FAIL for that file."
@@ -2148,10 +2222,10 @@
       ],
       "verified_by": "2026-10-05 GF-E061, Kit 1.0.17 (PyPI) in a disposable clone of agp-Cockpit main de477b4: `release ready --version 0.1.2 --summary-line 'Retest summary line for KIT-GF-045' --json` reports explicit_summary_lines with that line, and the standard-error-scan step (PASS) calls release-prep with --summary-line 'Retest summary line for KIT-GF-045'.",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.17",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-045-release-summary-line-passthrough-2026-10-05.md"
       }
     },
@@ -2177,10 +2251,10 @@
       ],
       "verified_by": "2026-10-05 GF-E064, Kit release 1.0.18 (owner's run, step B4): `release prepare --write` changed the command manifest, and `work finish --execute --branch codex/release-1.0.18` passed in one run: handoff-refresh, rules-acknowledge-post-handoff-refresh, handoff-commit, push-current and pr-create-complete all rc 0 (PR #2399). Kit fix #2397 (eec04ddf). Reproduced and checked before in a disposable Kit clone (report KIT-GF-046-work-finish-handoff-rule-ack-2026-10-05.md).",
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.18",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-046-work-finish-handoff-rule-ack-2026-10-05.md"
       }
     },
@@ -2206,10 +2280,10 @@
         "2026-10-13 release 0.2.5: the release run stopped at C1 (KIT-GF-069), so the end-to-end retest is still open (docs/validation/evidence/release-run-0.2.5.json)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-047-release-run-orchestrator-2026-10-05.md"
       }
     },
@@ -2235,10 +2309,10 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2428, report docs/reports/greenfield/KIT-GF-048-work-finish-pr-metadata-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-048-work-finish-pr-metadata-2026-10-07.md"
       }
     },
@@ -2267,10 +2341,10 @@
         "2026-10-08 P11c rehearsal (Kit 1.0.20): run before the merge, release-metadata-authority-gate looks for release-prep evidence only under tmp/*release-prep* and docs/reports/**, while release prepare writes it to .agentic/state/handoff/reports/release/ in an external workspace; the Release button runs the dry run after the merge, where the gate passes without evidence (low)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.21",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-049-generated-reference-followup-2026-10-09.md"
       },
       "related": [
@@ -2310,10 +2384,10 @@
         "agentic-project-kit 1.0.19 (PyPI, tag v1.0.19 at 28428d8f): Kit #2409 (part A: CI budget, PENDING) and #2411 (part B: workspace handoff path, SKIP without state, fallback cleanup), both driven through the Cockpit in the Kit repository (P4)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.19",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-050-B-fallback-handoff-path-2026-10-06.md"
       },
       "cockpit_mitigation": [
@@ -2345,10 +2419,10 @@
         "docs/planning/SCOPE_BOUNDARY.md §4, §6"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.23",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-051-signed-workspace-kit-update-2026-10-10.md"
       },
       "verified_by": "2026-10-13 adoption of Kit 1.0.25 in a work clone (docs/validation/evidence/kit-1.0.25-adoption.json): kit update planned and, with the signature, installed 1.0.25 into the workspace .venv, raised both CI pins, synchronized the entrypoints (manifest d1604f13011e) and ran check and doctor: PASS."
@@ -2374,10 +2448,10 @@
         "agentic_project_kit/release_publish_orchestration.py _current_changelog_release_metadata (Kit 1.0.18)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.21",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-052-changelog-layout-diagnostics-2026-10-09.md"
       }
     },
@@ -2385,7 +2459,7 @@
       "id": "KIT-GF-053",
       "title": "work recover deletes the rule acknowledgement that transfer commit requires",
       "first_observed": "2026-10-06",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
@@ -2402,18 +2476,20 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2428, report docs/reports/greenfield/KIT-GF-053-recover-rule-ack-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-053-recover-rule-ack-2026-10-07.md"
-      }
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-053 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-054",
       "title": "Release audits walk git-ignored folders; one exhausts memory",
       "first_observed": "2026-10-06",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit",
       "aliases": [],
@@ -2430,12 +2506,14 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2415, report docs/reports/greenfield/KIT-GF-054-gitignored-audit-scan-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-054-gitignored-audit-scan-2026-10-07.md"
-      }
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-054 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-055",
@@ -2458,10 +2536,10 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2417, report docs/reports/greenfield/KIT-GF-055-056-release-run-c3-c4-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-055-dispatch-resume-followup-2026-10-09.md"
       }
     },
@@ -2485,10 +2563,10 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2417, report docs/reports/greenfield/KIT-GF-055-056-release-run-c3-c4-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-055-056-release-run-c3-c4-2026-10-07.md"
       }
     },
@@ -2512,10 +2590,10 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2426, report docs/reports/greenfield/KIT-GF-057-manifest-remote-effects-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-057-manifest-remote-effects-2026-10-07.md"
       },
       "verified_by": "2026-10-08 adoption of Kit 1.0.20 (manifest 43b81efb137f): pr merge-if-green, remote-branch-hygiene-apply and transfer pull-current declare their remote effects; pr-closeout (evaluates a JSON file) and transfer publish-last-report (writes the local outbox) were checked in the 1.0.20 package and are local only, so the Cockpit removed them from its own remote list; tests/test_hygiene.py::test_known_manifest_understatements_are_exactly_these now requires no understatement."
@@ -2540,10 +2618,10 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2422, report docs/reports/greenfield/KIT-GF-058-doi-changelog-section-2026-10-07.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-058-doi-changelog-section-2026-10-07.md"
       }
     },
@@ -2567,10 +2645,10 @@
         "agentic-project-kit 1.0.20 (PyPI): Kit #2424, report docs/reports/greenfield/KIT-GF-059-doi-closeout-recovery-2026-10-07.md; 1.0.19 closeout finished through it (#2432)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.20",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-059-doi-closeout-recovery-2026-10-07.md"
       }
     },
@@ -2596,10 +2674,10 @@
         "agp-Cockpit PR #316 fix(release): canonicalize 0.2.3 changelog spacing"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.21",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-060-consume-unreleased-2026-10-09.md"
       },
       "cockpit_mitigation": [
@@ -2631,10 +2709,10 @@
         "agp-Cockpit owner decision 2026-10-08 (release autonomy, COMMUNICATION_PROTOCOL 81)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.21",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-061-release-consent-2026-10-09.md"
       },
       "verified_by": "2026-10-13 release 0.2.5 with Kit 1.0.24 (docs/validation/evidence/release-run-0.2.5.json): under release.approval: upfront the release run recorded at gate B4 approved_by vfi64 and the consent source „AGP Cockpit start click: Release 0.2.5 (2026-10-13 16:38)“, once, for the plan's version, tag and target commit."
@@ -2659,10 +2737,10 @@
         "agp-Cockpit PR #319, Actions runs 860/861 (2026-10-09)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.23",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-062-signed-ci-rerun-2026-10-09.md"
       }
     },
@@ -2670,7 +2748,7 @@
       "id": "KIT-GF-063",
       "title": "CI light mode for refresh pull requests only knows the Kit-repo layout",
       "first_observed": "2026-10-09",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "low",
       "classification": "agentic-kit-ci-governance",
       "aliases": [],
@@ -2688,12 +2766,14 @@
         "2026-10-13 live: refresh PR #347 was classified light (python job 54 s, browser skipped), but the closeout blocked on the skipped check (KIT-GF-073); not verified"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-063-custom-ci-runtime-plan-2026-10-13.md"
-      }
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-063 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-064",
@@ -2715,10 +2795,10 @@
         "docs/reports/greenfield/KIT-GF-060-consume-unreleased-2026-10-09.md (scope: external workspaces)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.22",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-064-kit-changelog-consumption-2026-10-09.md"
       }
     },
@@ -2742,10 +2822,10 @@
         "agentic_project_kit/publication_policy.py (1.0.21): publishes_anywhere"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.22",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-065-release-publication-policy-2026-10-09.md"
       },
       "verified_by": "2026-10-13 release 0.2.5 with Kit 1.0.24 (docs/validation/evidence/release-run-0.2.5.json): publication: github planned A1–C2 plus C4, no C3 package index and no D DOI steps, and the release branch was release/0.2.5."
@@ -2754,7 +2834,7 @@
       "id": "KIT-GF-066",
       "title": "the Kit's adjudication of external findings is not machine-readable",
       "first_observed": "2026-10-13",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -2770,12 +2850,14 @@
         "agp-Cockpit src/agp_cockpit/core/kit_findings_sync.py reads only docs/reports/*.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-066-machine-readable-evidence-2026-10-13.md"
-      }
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-066 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     },
     {
       "id": "KIT-GF-067",
@@ -2796,10 +2878,10 @@
         "agentic_project_kit/cli_commands/transfer_diagnostics.py (1.0.24): standard-error-scan steps call ./.venv/bin/agentic-kit"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-067-owned-kit-subprocess-resolution-2026-10-13.md"
       }
     },
@@ -2822,10 +2904,10 @@
         "agentic_project_kit/ns_legacy_reference_audit.py (1.0.24): classify_legacy_reference path lists"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-068-declared-external-evidence-2026-10-13.md"
       },
       "verified_by": "2026-10-13 adoption of Kit 1.0.25 in a work clone (docs/validation/evidence/kit-1.0.25-adoption.json): with audit.ns_legacy.evidence_paths the unmarked ./ns quote in the ledger passes, undeclared it blocks, an active script still blocks."
@@ -2851,10 +2933,10 @@
         ".agentic/tmp/release-run-0.2.5-steps/C1.json (owner workspace, not committed)"
       ],
       "kit_repo_status": {
-        "date": "2026-10-13",
+        "date": "2026-10-22",
         "fixed_in": "1.0.25",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.0.25, Kit main 4e784b6a)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-069-release-publish-verdict-2026-10-13.md"
       }
     },
@@ -2877,10 +2959,10 @@
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
-        "fixed_in": "1.1.3",
+        "date": "2026-10-22",
+        "fixed_in": "",
         "kit_state": "PARTIAL",
-        "raw": "PARTIAL on Kit main by PR #2569; released in 1.1.3 (2026-10-20); greenfield status --json of the installed Kit 1.1.4",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-070-077-executable-retests-2026-10-20.md"
       },
       "retest": "2026-10-20 with Kit 1.1.4 here (evidence kit-1.1.4-adoption.json): `greenfield retest --all` INCOMPLETE (exit 3) with PASS 8, FAIL 0, NOT_RUN_LOCALLY 37, NO_MACHINE_CONTRACT 34; the route works and never reports an unverified family as PASS, but 34 local families have no machine contract yet, so the finding stays OPEN."
@@ -2902,10 +2984,10 @@
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       },
       "retest": "Retest pending (2026-10-20, Kit 1.1.4 update): kit update raised one pin in each of the two managed CI sources; a second Kit install inside one source (the KIT-GF-063 classify fragment) is still not exercised here."
@@ -2927,10 +3009,10 @@
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       },
       "retest": "Verified 2026-10-20: the update to 1.1.4, run by the 1.1.2 controller, planned refresh_rule_inventory, rewrote .agentic/rule_mechanism_inventory.yaml itself (completed step rule_inventory) and rule-registry check stayed PASS without a bootstrap; a later config.yaml edit (gates.required_checks) kept it PASS; the machine contract passes in `greenfield retest`.",
@@ -2956,10 +3038,10 @@
         "agp-Cockpit PR #347, Cockpit steps 2070 and 2072"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2559 (merge 0ba5097c); released in 1.1.2 (2026-10-19)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-071-073-consumer-ci-and-inventory-2026-10-19.md"
       },
       "verified_by": "2026-10-20 docs/validation/evidence/file-transfer-live-2026-10-20.json (refresh PR #361: browser SKIPPED on the light path, settled and merged by Kit 1.1.2)"
@@ -2983,10 +3065,10 @@
         "docs/validation/evidence/file-transfer-live-2026-10-19.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       },
       "verified_by": "2026-10-20 docs/validation/evidence/file-transfer-live-2026-10-20.json (order-create --run-command orders; BOUNDED command refused without --allow-unlisted, step 2103)"
@@ -3010,10 +3092,10 @@
         "docs/validation/evidence/file-transfer-live-2026-10-19.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       },
       "verified_by": "2026-10-20 docs/validation/evidence/file-transfer-live-2026-10-20.json (complete run step 2106: written file, order report and LATEST pointer published, clean checkout)"
@@ -3037,10 +3119,10 @@
         "Kit report docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.2",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2561 (merge 3e8dc27c); released in 1.1.2 (2026-10-19)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-074-076-transfer-orders-and-results-2026-10-19.md"
       },
       "retest": "Not reproducible in this workspace (no inbox .gitkeep); verified 2026-10-20 by the Kit's installed-wheel machine contract, run from here with `greenfield retest` under Kit 1.1.4: PASS.",
@@ -3065,10 +3147,10 @@
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.3",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2569; released in 1.1.3 (2026-10-20)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-070-077-executable-retests-2026-10-20.md"
       },
       "verified_by": "2026-10-20 docs/validation/evidence/kit-1.1.4-adoption.json (installed manifest 1.1.4 declares fetch and push for transfer remote-next; greenfield retest KIT-GF-077 PASS)"
@@ -3092,10 +3174,10 @@
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.4",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2578; released in 1.1.4 (2026-10-20)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-078-release-ci-wait-2026-10-20.md"
       },
       "verified_by": "2026-10-20 docs/validation/evidence/kit-1.1.4-adoption.json (the Kit's release 1.1.4: PASS with gates B4, C2, C3, D4, E1, no D2R, evidence archive #2589 merged by E1)"
@@ -3119,10 +3201,10 @@
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.4",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2583; released in 1.1.4 (2026-10-20)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-079-080-required-checks-and-b4-resume-2026-10-20.md"
       },
       "retest": "Pending: the merge of this adoption PR is the first Cockpit run with a declared required check. The Kit's release 1.1.4 merged its release PR only after test had passed (check runs of #2585), which fits the fix but does not prove that the wait held, because the gap between the last shard and test was about 3 s."
@@ -3146,10 +3228,10 @@
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
+        "date": "2026-10-22",
         "fixed_in": "1.1.4",
         "kit_state": "CLOSED",
-        "raw": "CLOSED on Kit main by PR #2583; released in 1.1.4 (2026-10-20)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-079-080-required-checks-and-b4-resume-2026-10-20.md"
       },
       "retest": "Not observable unless a release blocks in B4 again; the Kit's regression tests are the evidence."
@@ -3158,11 +3240,11 @@
       "id": "KIT-GF-081",
       "title": "no Kit route abandons a stopped release run",
       "first_observed": "2026-10-20",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit-release-governance",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.5",
       "expected": "A Kit route abandons a stopped release run after the owner's decision: it checks that nothing was published (no tag, no package, no DOI), closes or deletes the release branch and its PR, and archives the run state so a fresh run can start.",
       "observed": "Kit 1.1.4 cleanup of the first 1.1.4 attempt (2026-10-20): `release run` has no abandon or reset action; the release branch was deleted with transfer branch-delete and the files tmp/release-run-1.1.4* were moved aside by hand with the owner's approval.",
       "impact": "Abandoning a release needs a hand step on Kit-written state, which the Kit law forbids except by explicit owner decision.",
@@ -3173,12 +3255,122 @@
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-20",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "recorded by the Cockpit on Kit 1.1.4",
-        "report": ""
+        "date": "2026-10-22",
+        "fixed_in": "1.1.5",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2591; released in 1.1.5 (2026-10-22)",
+        "report": "docs/reports/greenfield/KIT-GF-081-082-release-abandon-and-download-cause-2026-10-20.md"
       }
+    },
+    {
+      "id": "KIT-GF-082",
+      "title": "kit update names no cause when a release wheel download fails",
+      "first_observed": "2026-10-20",
+      "status": "FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-update",
+      "aliases": [],
+      "fixed_in": "1.1.5",
+      "expected": "A failed wheel download in `kit update` is retried on transient errors, every attempt is logged, and the blocker names the file and the cause.",
+      "observed": "Adoption of Kit 1.1.4 on the owner's Mac (2026-10-20): `kit update` stopped with the bare blocker release_artifact_download_failed; the update log ended before the downloads; a read-only rerun of the same downloads passed with the Kit wheel taking 29.7 s against the 30 s socket timeout.",
+      "impact": "The owner could not tell a slow network from a broken release and needed a diagnosis script.",
+      "workaround": "Rerun after the diagnosis.",
+      "repair": "Kit 1.1.5 (PR #2591): three attempts with backoff, 60 s timeout, DOWNLOAD log events, blocker with file, error type and attempt.",
+      "regression": "Kit unit tests with injected timeouts; live: the next slow download.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-081-082-release-abandon-and-download-cause-2026-10-20.md"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-22",
+        "fixed_in": "1.1.5",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2591; released in 1.1.5 (2026-10-22)",
+        "report": "docs/reports/greenfield/KIT-GF-081-082-release-abandon-and-download-cause-2026-10-20.md"
+      }
+    },
+    {
+      "id": "KIT-GF-083",
+      "title": "transfer command-reference-check always fails in an external workspace",
+      "first_observed": "2026-10-21",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": "1.1.5",
+      "expected": "`transfer command-reference-check` passes in an external workspace whose reference files match the installed Kit and names the stale files otherwise.",
+      "observed": "The Kit's machine contracts (c1a, 2026-10-21): the check ran the Kit's own test file in every workspace and returned 4 („file or directory not found“) in an external one.",
+      "impact": "An external workspace could not use the reference check at all.",
+      "workaround": "None needed in the Cockpit (the check was not part of its gates).",
+      "repair": "Kit 1.1.5 (PR #2595): in an external workspace the check compares the reference files with the installed Kit's rendering.",
+      "regression": "Kit machine contract KIT-GF-083.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-070-083-084-machine-contracts-c1a-2026-10-21.md"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-22",
+        "fixed_in": "1.1.5",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2595; released in 1.1.5 (2026-10-22)",
+        "report": "docs/reports/greenfield/KIT-GF-070-083-084-machine-contracts-c1a-2026-10-21.md"
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-083 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
+    },
+    {
+      "id": "KIT-GF-084",
+      "title": "docs-audit fails in a freshly initialized external workspace",
+      "first_observed": "2026-10-21",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": "1.1.5",
+      "expected": "`docs-audit` passes in a freshly initialized external workspace; a partial successor package still fails.",
+      "observed": "The Kit's machine contracts (c1a, 2026-10-21): `workspace init` creates the successor package directory empty and the audit counted it as an incomplete package.",
+      "impact": "A fresh external workspace failed its documentation audit before any work.",
+      "workaround": "None needed in the Cockpit (its package is complete).",
+      "repair": "Kit 1.1.5 (PR #2595): a package exists only when it holds at least one of its files.",
+      "regression": "Kit machine contract KIT-GF-084.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-070-083-084-machine-contracts-c1a-2026-10-21.md"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-22",
+        "fixed_in": "1.1.5",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2595; released in 1.1.5 (2026-10-22)",
+        "report": "docs/reports/greenfield/KIT-GF-070-083-084-machine-contracts-c1a-2026-10-21.md"
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-084 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
+    },
+    {
+      "id": "KIT-GF-085",
+      "title": "the finding catalog blocked the Kit's release audit, which no PR check ran",
+      "first_observed": "2026-10-22",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": "1.1.5",
+      "expected": "Quoted legacy calls in the greenfield finding catalog are evidence for `audit-ns-legacy-references`, and every repository-content check of the release-time audit suite runs on each PR.",
+      "observed": "Kit release 1.1.5, first run (2026-10-22): A2 (`release ready`) stopped on ten quoted `./ns` fixture lines that the c1a machine contracts had added to the catalog; the slice had merged green because no PR check ran the suite.",
+      "impact": "A release stopped after its start for a defect a PR check could have caught.",
+      "workaround": "The stopped run was abandoned with `release abandon` (KIT-GF-081) and restarted.",
+      "repair": "Kit 1.1.5 (PR #2599): catalog paths classified as evidence; a checkout test runs the suite's content checks on each PR.",
+      "regression": "Kit machine contract KIT-GF-085 and the checkout test.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-085-finding-catalog-release-audit-2026-10-22.md"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-22",
+        "fixed_in": "1.1.5",
+        "kit_state": "CLOSED",
+        "raw": "CLOSED on Kit main by PR #2599; released in 1.1.5 (2026-10-22)",
+        "report": "docs/reports/greenfield/KIT-GF-085-finding-catalog-release-audit-2026-10-22.md"
+      },
+      "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-085 PASS, installed Kit 1.1.5)",
+      "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
     }
   ],
   "explicit_exclusions": [
@@ -3335,9 +3527,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "4e784b6a",
-    "latest_release": "1.0.25",
-    "synced": "2026-10-13",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.0.25, KIT-GF-066). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
+    "kit_commit": "52f469f1",
+    "latest_release": "1.1.5",
+    "synced": "2026-10-22",
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.5, main 52f469f1). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
   }
 }
