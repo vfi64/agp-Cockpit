@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: e2563df60239
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 84540b010909
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
 - Schema version: `2`
 - Source: `generated_from_typer_click_registry`
-- Command count: `271`
+- Command count: `272`
 
 ## Commands
 
@@ -1593,7 +1593,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.4` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.5` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -2033,6 +2033,26 @@ Render project direction sections from the YAML source.
 | `section` | `TyperOption` | --section | `False` | `all` | all, strategy, roadmap, plans, ideas, done, or discarded. |
 | `output_format` | `TyperOption` | --format | `False` | `text` | text, markdown, or json. |
 
+### `agentic-kit release abandon`
+
+- Safety: `DESTRUCTIVE`
+- Surface: `orchestrator`
+- When to use: Abandon a stopped, unpublished release run: delete its release branch and archive the run state.
+- Dry-run available: `True`
+- Remote effects: `delete_remote`, `network_read`, `push`
+- Replaces raw: `abandon release run`, `delete release branch`
+
+Abandon a stopped, unpublished release run: delete its release branch and archive the run state.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `version` | `TyperOption` | --version | `True` |  | Version of the stopped release run to abandon. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Execute the signed abandon plan. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature of the abandon plan. |
+| `approved_by` | `TyperOption` | --approved-by | `False` | `` | Name or identifier of the owner who decided to abandon. |
+| `consent_source` | `TyperOption` | --consent-source | `False` | `` | Reference to the owner's decision. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
+
 ### `agentic-kit release prepare`
 
 - Safety: `BOUNDED`
@@ -2215,7 +2235,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.1.4` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.5` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2542,7 +2562,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.4` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.5` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
