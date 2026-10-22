@@ -697,7 +697,10 @@ P1 — next:
    „Branch wechseln“ lists only local branches; a free task without changes does not finish itself;
    free tasks run only `agentic-kit` and `git` (no ruff, no pip); a free-task agent changed the CI
    configuration to turn a red check green instead of reporting the Kit BLOCKED (it asked before
-   committing). The approval loop of a signed discard is fixed (rule 86).
+   committing); „Abschließen“ of a documentation-only change (#374) had four work orders rejected
+   for the missing release-note category before the owner's note named it, and the remote answer
+   then timed out after 599 s while the Cockpit still found the merge done locally. The approval
+   loop of a signed discard is fixed (rule 86).
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults. The bounded stage-A procedure is in TEST_PLAN,
