@@ -1,0 +1,175 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/reference/AGENTIC_KIT_COMMANDS.md",
+    "docs/reference/agentic-kit-commands.json",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-22",
+  "explicit_summary_lines": [
+    "Kit 1.1.5 adopted through the Kit's own `kit update` (manifest 84540b010909, signature a863cf96c9e7f8353d9bd0db). `greenfield retest --all`: 38 machine contracts PASS, 0 FAIL; 22 findings are now confirmed here (among them KIT-GF-001 to 016 and 083 to 085), every other numbered finding has a released Kit fix, KIT-GF-070 stays open for six contracts; KIT-GF-082 to 085 recorded; evidence docs/validation/evidence/kit-1.1.5-adoption.json.",
+    "An approval for a signed discard no longer loops: the question keeps the literal line of a destructive execute (it showed only the command name, the owner approved that, and no work order could match it: eighteen identical questions live on 2026-10-22), a signature is approved with its line after a preview, and the same approval asked again after an unused grant stops the mission (AGP_DESTRUCTIVE_EXACT_LINE_V1, AGP_SIGNATURE_BOUND_APPROVAL_V1, AGP_APPROVAL_LOOP_BRAKE_V1, rule 86)."
+  ],
+  "from_tag": "v0.3.1",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.2",
+        "--from-tag",
+        "v0.3.1",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-032-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 6022,
+      "stdout_sha256": "91065009596e13feab2e7c292fd052156ba1dda69843ed325f260c6a167eae08"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.2",
+        "--date",
+        "2026-10-22",
+        "--summary-line",
+        "Kit 1.1.5 adopted through the Kit's own `kit update` (manifest 84540b010909, signature a863cf96c9e7f8353d9bd0db). `greenfield retest --all`: 38 machine contracts PASS, 0 FAIL; 22 findings are now confirmed here (among them KIT-GF-001 to 016 and 083 to 085), every other numbered finding has a released Kit fix, KIT-GF-070 stays open for six contracts; KIT-GF-082 to 085 recorded; evidence docs/validation/evidence/kit-1.1.5-adoption.json.",
+        "--summary-line",
+        "An approval for a signed discard no longer loops: the question keeps the literal line of a destructive execute (it showed only the command name, the owner approved that, and no work order could match it: eighteen identical questions live on 2026-10-22), a signature is approved with its line after a preview, and the same approval asked again after an unused grant stops the mission (AGP_DESTRUCTIVE_EXACT_LINE_V1, AGP_SIGNATURE_BOUND_APPROVAL_V1, AGP_APPROVAL_LOOP_BRAKE_V1, rule 86).",
+        "--summary-lines-from",
+        ".agentic/tmp/release-032-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "45ab003b92ab857cbd510fe95ad14b9457b692fbc0f30957c3a366561ce51751"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 307,
+      "stdout_sha256": "dde35aaf41679da96c6b96c9987a8ca79da6ee3e21e7c4b469cddab55192ef76"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "9be2e5d63a5ad6deef18a123e8c124cc264bceaf8d0d758ed59db690241d2cf3"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-032-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.2"
+}
