@@ -135,3 +135,45 @@ Acceptance requires fail-loud, resumable behavior at browser boundaries and prot
 4. Perform a real browser/remote-LLM E2E cycle in the same conversation.
 5. Preserve the resulting trace as acceptance evidence.
 6. Only after that evidence adjudicate whether legacy Protocol-v1 complexity can be further isolated or removed.
+
+## External installation acceptance — digital-embryo
+
+Status: NOT_RUN (prepared 2026-10-21). Target: vfi64/digital-embryo, default branch
+main, private at the read-only inventory. This is installer stage A, not a proof of
+K07 or an authorization to publish the target repository.
+
+Record the Cockpit source revision, built app version/build and digest, installed
+Kit version, target origin/main SHA, staged extension build and browser-handshake
+identity before making acceptance claims. Keep tokens and private source out of
+the committed report. Use the existing runtime root from RUNTIME_PATH_AUTHORITY;
+record original settings for restoration and do not reset the production profile.
+
+1. Inventory the existing app and target checkout read-only. A dirty target or an
+   active Cockpit task is a stop condition. If no target checkout exists, obtain
+   the intended disposable checkout location before creating it.
+2. Run the packaged app with digital-embryo as the target repository. Cockpit source
+   must not be the selected target or a required fallback resource. Verify the app
+   uses packaged extension/resources and resolves its target Kit independently.
+   Merely running tests from the Cockpit source tree does not pass this check.
+3. Inspect components separately: Python/Tk, gh authentication, target Kit and
+   workspace, Chrome, staged extension and fresh browser binding. Record actual
+   host/port; stale 8765 defaults or build/binding mismatches stop the test.
+4. If adoption is necessary, plan it through the installed Kit. Review the exact
+   changed paths before execute; do not emulate missing Kit routes in Cockpit.
+   An unavailable route or BLOCKED result is a recorded blocker, never a bypass.
+5. In a dedicated target test branch, run one owner-bounded task through the
+   supported Cockpit/browser work-order path: start, harmless reviewable change,
+   result delivery, continuation, Kit validation and closeout. The specific
+   content change and any remote publication/merge scope must be named before
+   this live phase; do not infer it from installation approval.
+6. Verify target repository identity, approvals and exact commands, required CI,
+   resulting commit/PR (if authorized), clean final state and Kit post-merge state.
+   Preserve one sanitized evidence report with PASS/FAIL/NOT_RUN per step and
+   exact revision/artifact references. A human observes app/browser interaction;
+   unit tests and file presence cannot substitute for these observations.
+7. Restore the original app repository selection through supported UI/settings
+   paths and retain test evidence. Do not delete user state or private target data
+   as an implicit cleanup action.
+
+No installed-app or live work-cycle result is claimed by this procedure. Installer
+stage B (the component check/setup assistant) remains a separate product slice.

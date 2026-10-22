@@ -85,7 +85,10 @@ Status: EVIDENCE-BACKED COMPLETE IN K03.
 Remote DONE remains only a completion proposal. Caller-supplied Kit PASS records remain untrusted. K03 adds a local acquisition boundary that constructs trusted Kit evidence only from an actually executed, locally authorized agentic-kit result, derives revision and raw evidence hash locally, and binds completion to revision, artifact identity, action, and raw hash. Raw-evidence mutation changes the hash and mismatched completion identity is rejected. Evidence: 647-650.
 
 ### F06 / P1 — Tests can mutate real user settings
-Status: OPEN / NEXT IMPLEMENTATION PACKAGE.
+Status: EVIDENCE-BACKED COMPLETE IN K01.
+
+Status reconciliation 2026-10-21: K01 step 605 below is the acceptance evidence;
+its isolated-profile test and unchanged real-settings digest close this finding.
 
 Settings paths/adapters must be injectable. Startup tests must use an isolated
 temporary profile. A guard must fail any access to the real user settings path,
@@ -213,7 +216,12 @@ evidence-based progress.
 
 ### K06 — Align first-use and accessibility with the real task
 Findings: F10.
-Status: OPEN.
+Status: PARTIAL — MANUAL USABILITY/KEYBOARD ACCEPTED; EXTERNAL INSTALLATION OPEN.
+
+Status reconciliation 2026-10-21: K06_F10_ACCEPTANCE.md records the 2026-09-12
+manual decision and the known VoiceOver announcement limitation. That acceptance
+does not prove installation without the Cockpit source checkout. Use TEST_PLAN’s
+external installation procedure for the remaining first-use boundary.
 
 Provide a task-oriented entry path for an ordinary target repository, persistent
 human gates and resume state, and documented keyboard/screen-reader/layout
@@ -315,3 +323,12 @@ Acceptance requires fail-loud, resumable behavior at browser boundaries and prot
 4. Perform a real browser/remote-LLM E2E cycle in the same conversation.
 5. Preserve the resulting trace as acceptance evidence.
 6. Only after that evidence adjudicate whether legacy Protocol-v1 complexity can be further isolated or removed.
+
+## 2026-10-21 — Reading the historical status labels
+
+K02's evidence updates supersede its older missing-controller-evidence wording only
+for the properties explicitly proven there. Remaining product-path and whole-product
+acceptance stays open. K03/K04 are implementation/evidence records; their historical
+pending-closeout wording is not a current command to merge an old branch. A final
+acceptance package must map each claim to its evidence revision and merged revision.
+K05/K07 remain open; releases and unit-test counts do not close them.
