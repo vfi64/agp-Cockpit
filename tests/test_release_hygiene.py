@@ -52,12 +52,30 @@ def test_a_pull_request_without_a_category_is_rejected_where_the_kit_publishes_t
     assert "not a category: feature" in rh.category_violations(order(wrong), root)[0]
 
 
-def test_work_finish_execute_cannot_carry_a_category(tmp_path):
+def test_every_pull_request_route_passes_with_the_category_option_or_line(tmp_path):
+    """AGP_PR_CATEGORY_ROUTES_V1 (live 2026-10-22, PR #374/#380): work finish was refused as
+    unable to carry a category (KIT-GF-048), although the Kit takes --release-note-category."""
     root = workspace(tmp_path)
-    execute = 'subprocess.run(["agentic-kit", "work", "finish", "--branch", "b", "--title", "T", "--execute"])'
-    assert "KIT-GF-048" in rh.category_violations(order(execute), root)[0]
+    finish = 'subprocess.run(["agentic-kit", "work", "finish", "--branch", "b", "--title", "T", "--execute"{extra}])'
+    assert "work finish has no category" in rh.category_violations(order(finish.format(extra="")), root)[0]
+    for extra in (', "--release-note-category", "Docs"', ', "--release-note-category=Tests / Gates"',
+                  ', "--body", "release-note-category: Changed"'):
+        assert rh.category_violations(order(finish.format(extra=extra)), root) == [], extra
+    assert rh.category_violations(order(PR.format(body=', "--release-note-category", "Fixed"')), root) == []
+    wrong = rh.category_violations(order(finish.format(extra=', "--release-note-category", "Feature"')), root)
+    assert "'Feature' is not a category" in wrong[0]
     dry = 'subprocess.run(["agentic-kit", "work", "finish", "--branch", "b", "--title", "T"])'
     assert rh.category_violations(order(dry), root) == []
+
+
+def test_a_repository_without_a_publication_key_follows_the_kit_default(tmp_path):
+    from agentic_project_kit.workspace import DEFAULT_PUBLICATION_POLICY
+    assert rh.KIT_DEFAULT_PUBLICATION == DEFAULT_PUBLICATION_POLICY
+    (tmp_path / ".agentic").mkdir()
+    (tmp_path / ".agentic/config.yaml").write_text("release:\n  evidence_archive: true\n", encoding="utf-8")
+    assert rh.github_releases_declared(tmp_path)          # the Kit repository's own configuration
+    assert rh.category_violations(order(PR.format(body="")), tmp_path)
+    assert not rh.github_releases_declared(tmp_path / "missing")
 
 
 def test_private_tag_repositories_are_not_affected(tmp_path):
@@ -281,3 +299,50 @@ def test_only_the_release_decision_passes_its_version():
     helper = source[source.index("def _release_version(self) -> str:"):]
     helper = helper[:helper.index("def update_ampel")]
     assert 'task.key != "release"' in helper and "release_resume_version" in helper
+
+
+# --- AGP_PR_CATEGORY_ROUTES_V1: the prompt names the option and suggests a category ---------------
+
+def _branch_repo(tmp_path: Path) -> Path:
+    origin = tmp_path / "origin.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
+    root = workspace(tmp_path / "repo")
+    git(root, "init", "-q", "-b", "main")
+    (root / "src.py").write_text("x = 1\n")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "base")
+    git(root, "remote", "add", "origin", str(origin))
+    git(root, "push", "-q", "-u", "origin", "main")
+    git(root, "switch", "-q", "-c", "feat/a")
+    return root
+
+
+def test_the_category_is_suggested_only_when_the_paths_decide_it(tmp_path):
+    from agp_cockpit.core.standard_tasks import suggested_category
+    root = _branch_repo(tmp_path)
+    assert suggested_category(root) is None                                    # nothing changed
+    (root / "docs").mkdir()
+    (root / "docs/a.md").write_text("a\n")                                    # untracked
+    git(root, "add", "docs/a.md")
+    git(root, "commit", "-qm", "docs")
+    (root / "README.md").write_text("r\n")                                    # untracked, first column
+    assert suggested_category(root) == ("Docs", "documentation")
+    (root / "src.py").write_text("x = 2\n")                                   # modified, tracked
+    assert suggested_category(root) is None
+    git(root, "stash", "-q", "-u")
+    git(root, "switch", "-q", "-c", "feat/t", "main")
+    (root / "tests").mkdir()
+    (root / "tests/test_a.py").write_text("def test(): pass\n")
+    assert suggested_category(root) == ("Tests / Gates", "tests")
+
+
+def test_the_finish_prompt_names_the_option_without_naming_a_kit_command(tmp_path):
+    root = _branch_repo(tmp_path)
+    (root / "docs").mkdir()
+    (root / "docs/a.md").write_text("a\n")
+    prompt = BY_KEY["finish"].prompt(root, {})
+    rule = next(line for line in prompt.splitlines() if "needs a release-note category" in line)
+    assert f"pass {rh.CATEGORY_OPTION} <category> to the Kit route that creates it" in rule
+    assert f'use {rh.CATEGORY_OPTION} "Docs"' in rule
+    assert "agentic-kit" not in rule and "work finish" not in rule
+    assert "release-note category" not in BY_KEY["finish"].prompt(workspace(tmp_path / "n", "none"), {})

@@ -43,10 +43,15 @@ def test_required_check_keeps_its_name_and_needs_both_jobs():
 def test_no_job_or_install_step_can_hang_for_hours():
     # AGP_CI_TIMEOUTS_V1 (live 2026-10-07: apt hung 23 min in install-deps on main).
     jobs = yaml.safe_load(SOURCE.read_text(encoding="utf-8"))["jobs"]
-    assert jobs["python"]["timeout-minutes"] <= 30 and jobs["browser"]["timeout-minutes"] <= 30
+    # AGP_CI_DEPS_RETRY_V1 (main run of #377): two bounded attempts per install, so a slow mirror
+    # gets a second chance and a hanging one still ends red within the job limit.
+    assert jobs["python"]["timeout-minutes"] <= 30 and jobs["browser"]["timeout-minutes"] <= 40
     steps = jobs["browser"]["steps"]
     installs = [step for step in steps if "playwright install" in str(step.get("run", ""))]
-    assert len(installs) == 2 and all(step.get("timeout-minutes", 999) <= 10 for step in installs)
+    assert len(installs) == 2 and all(step.get("timeout-minutes", 999) <= 16 for step in installs)
+    for step in installs:
+        assert "for attempt in 1 2" in step["run"] and "timeout 420 npx playwright install" in step["run"]
+        assert step["run"].rstrip().endswith("exit 1")
     apt = next(i for i, step in enumerate(steps) if "Acquire::Retries" in str(step.get("run", "")))
     assert apt < steps.index(installs[0])
 

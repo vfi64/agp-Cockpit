@@ -36,3 +36,14 @@ def test_nothing_is_preselected_and_switch_waits_for_a_click(root):
     assert str(switch.cget("state")) == "normal"
     switch.invoke()
     assert result["name"] == "main"
+
+
+def test_an_origin_only_branch_is_labelled(root):
+    """AGP_BRANCH_SWITCH_ORIGIN_V1"""
+    branches = [*BRANCHES, LocalBranch("codex/pushed", "2026-10-22", "pushed", False, remote_only=True)]
+    _window, listbox, _switch, result, on_select = build_dialog(root, branches)
+    assert "nur auf origin" in listbox.get(1) and "nur auf origin" not in listbox.get(0)
+    listbox.selection_set(1)
+    on_select()
+    _switch.invoke()
+    assert result["name"] == "codex/pushed"

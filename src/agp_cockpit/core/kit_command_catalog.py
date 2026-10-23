@@ -216,7 +216,12 @@ class KitCommandCatalog:
                     "surface": c.get("surface"),
                     "safety": c.get("safety"),
                     "use": use[:200],
-                    "options": [o for p in c.get("params", []) for o in (p.get("opts") or [])][:12],
+                    # AGP_DIGEST_ALL_OPTIONS_V1 (live 2026-10-22, PR #380): the digest listed only the
+                    # first spelling of each option and at most twelve, so `--execute` (the second
+                    # spelling of `--dry-run/--execute`) was missing for `work finish` and ChatGPT
+                    # refused the Kit's own finish route. Every spelling of every option is listed.
+                    "options": [o for p in c.get("params", [])
+                                for o in [*(p.get("opts") or []), *(p.get("secondary_opts") or [])]],
                     "replaces_raw": list(c.get("replaces_raw") or []),
                     "remote_effect": self.has_remote_effect(c),
                     **({} if self.effect_known(c) else {"effect": "unknown"}),

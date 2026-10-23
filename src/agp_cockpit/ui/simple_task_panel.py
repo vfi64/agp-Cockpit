@@ -459,6 +459,13 @@ class SimpleTaskPanel(ttk.Frame):
             return
         self._mission_id = str(mission["mission_id"])
         self._hide_decision()
+        # AGP_AUTO_FINISH_THROUGH_DECISION_V1 (owner 2026-10-23): a ticked task that stopped for
+        # an approval lost its „Abschließen“ at the stop. It carries on after an approval while
+        # the tick is still set; a rejection or a removed tick ends it.
+        self.auto_finish_armed = bool(self.auto_finish_armed and decision == "APPROVE"
+                                      and self.auto_finish_var.get())
+        if self.auto_finish_armed:
+            self.auto_finish_check.configure(state="disabled")
         self.workflow_phase = "STARTED"
         self._last_outcome = ""
         self.update_ampel()
@@ -686,7 +693,11 @@ class SimpleTaskPanel(ttk.Frame):
                     self._last_outcome = progress.outcome
                     self._waiting_note = ""
                     self.update_ampel()
-                    self._emit("finished_done" if progress.outcome == "DONE" else "finished",
+                    # AGP_AUTO_FINISH_THROUGH_DECISION_V1: a stop for a decision is not the end
+                    # of the task; „finished_human“ keeps a ticked „Abschließen“ armed.
+                    self._emit("finished_done" if progress.outcome == "DONE" else
+                               "finished_human" if progress.outcome == "HUMAN_REQUIRED"
+                               and self._decision_mission_id else "finished",
                                progress.text)
                     self.editor.configure(state="normal")
                     self._update_start_button()

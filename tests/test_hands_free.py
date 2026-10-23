@@ -24,7 +24,8 @@ ENV = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": 
 
 
 def _git(root, *args):
-    subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, env=ENV)
+    done = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, env=ENV, check=False)
+    assert done.returncode == 0, done.stderr
 
 
 # --- approval scope (AGP_APPROVAL_SCOPE_CHOICE_V1) ------------------------------------------
@@ -120,6 +121,56 @@ def test_branch_switch_refuses_running_tasks_unknown_current_and_dirty(repo):
     assert "schon aktiv" in branch_switch.block_reason(repo, "main", task_running=False)
     (repo / "a.txt").write_text("changed\n")
     assert "nicht committete" in branch_switch.block_reason(repo, "feat/x", task_running=False)
+
+
+def _origin_kit(tmp_path, calls):
+    kit = tmp_path / "origin-kit"
+    kit.write_text(f"#!{sys.executable}\n"
+                   "import json,subprocess,sys\n"
+                   f"open({str(calls)!r},'a').write(' '.join(sys.argv[1:])+'\\n')\n"
+                   "if sys.argv[1:3]==['transfer','fetch-origin']:\n"
+                   "    subprocess.run(['git','fetch','-q','origin',sys.argv[4]],check=True)\n"
+                   "else:\n"
+                   "    subprocess.run(['git','switch','-q',sys.argv[3]],check=True)\n"
+                   "print(json.dumps({'result_status':'PASS'}))\n")
+    kit.chmod(0o755)
+    return kit
+
+
+def test_an_origin_only_branch_is_listed_and_fetched_then_switched_through_the_kit(repo, tmp_path_factory):
+    """AGP_BRANCH_SWITCH_ORIGIN_V1: a branch pushed by Codex or the chat exists only on origin."""
+    tmp_path = tmp_path_factory.mktemp("outside")          # never inside the work tree
+    remote = tmp_path / "remote.git"
+    _git(tmp_path, "init", "-q", "--bare", str(remote))
+    _git(repo, "remote", "add", "origin", str(remote))
+    _git(repo, "push", "-q", "origin", "main", "feat/x")
+    _git(repo, "switch", "-q", "-c", "codex/pushed")
+    (repo / "b.txt").write_text("2\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "pushed by codex")
+    _git(repo, "push", "-q", "origin", "codex/pushed")
+    _git(repo, "switch", "-q", "main")
+    _git(repo, "branch", "-q", "-D", "codex/pushed")
+    _git(repo, "fetch", "-q", "origin")
+    only = branch_switch.origin_branches(repo)
+    assert [(b.name, b.remote_only, b.subject) for b in only] == [("codex/pushed", True, "pushed by codex")]
+    assert [b.name for b in branch_switch.all_branches(repo)][-1] == "codex/pushed"   # local ones first
+    assert branch_switch.block_reason(repo, "codex/pushed", task_running=False) == ""
+    assert "kein Branch auf origin" in branch_switch.block_reason(repo, "nope", task_running=False)
+    calls = tmp_path / "calls.txt"
+    ok, message = branch_switch.switch(repo, _origin_kit(tmp_path, calls), "codex/pushed", env=ENV)
+    assert ok and "fetch-origin" in message, message
+    assert calls.read_text().splitlines() == ["transfer fetch-origin --branch codex/pushed --json",
+                                              "transfer branch-switch codex/pushed --json"]
+    assert next(b for b in branch_switch.local_branches(repo) if b.current).name == "codex/pushed"
+    assert branch_switch.origin_branches(repo) == []
+    calls.write_text("")
+    ok, _message = branch_switch.switch(repo, _origin_kit(tmp_path, calls), "main", env=ENV)
+    assert ok and calls.read_text().splitlines() == ["transfer branch-switch main --json"]   # local: no fetch
+
+
+def test_the_dialog_offers_origin_only_branches():
+    assert "ask_branch(self, branch_switch.all_branches(self.repository_root))" in MAIN
 
 
 def test_the_header_offers_branch_switch_beside_repo_switch():

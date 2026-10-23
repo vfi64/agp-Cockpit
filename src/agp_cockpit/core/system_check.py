@@ -82,6 +82,28 @@ def _ui_variant(root: Path) -> Check:
                  "Neu erkannte Oberfläche: beim nächsten Fehler Claude den Schnappschuss nennen." if level == WARN else "")
 
 
+def ci_kit_pins(root: Path) -> set[str]:
+    """The Kit versions the repository's GitHub workflows install (``agentic-project-kit==X``)."""
+    pins: set[str] = set()
+    for workflow in (Path(root) / ".github" / "workflows").glob("*.y*ml"):
+        try:
+            pins.update(_PIN.findall(workflow.read_text(encoding="utf-8")))
+        except OSError:
+            continue
+    return pins
+
+
+def kit_ci_mismatch(root: Path) -> str:
+    """AGP_RELEASE_KIT_MATCHES_CI_V1: "" when the installed Kit is one the CI installs (or the CI pins
+    none); otherwise a German sentence naming both versions."""
+    from agp_cockpit.core.kit_installation import discover
+    kit = discover(Path(root))
+    pins = ci_kit_pins(Path(root))
+    if kit is None or not pins or kit.version in pins:
+        return ""
+    return f"lokal ist Kit {kit.version} installiert, die CI nutzt {', '.join(sorted(pins))}"
+
+
 def _kit(root: Path) -> Check:
     from agp_cockpit.core.build_freshness import freshness_root
     from agp_cockpit.core.kit_installation import discover
@@ -89,12 +111,7 @@ def _kit(root: Path) -> Check:
     if kit is None:
         return Check("Agentic Kit", FAIL, "nicht installiert (weder .venv/bin/agentic-kit noch im Pfad)",
                      "Kit im Repository installieren (siehe Lagebericht).")
-    pins = set()
-    for workflow in (freshness_root(root) / ".github" / "workflows").glob("*.y*ml"):
-        try:
-            pins.update(_PIN.findall(workflow.read_text(encoding="utf-8")))
-        except OSError:
-            continue
+    pins = ci_kit_pins(freshness_root(root))
     if pins and kit.version not in pins:
         return Check("Agentic Kit", WARN, f"installiert {kit.version}, die CI des Cockpits nutzt {', '.join(sorted(pins))}",
                      "Kit-Version angleichen (Übernahme einer neuen Kit-Version mit Claude).")

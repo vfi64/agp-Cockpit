@@ -6,6 +6,11 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- A work order that changes the CI configuration (`.github/workflows/`, `.agentic/ci/`) without the task naming the file now stops the mission; a red check or a Kit BLOCKED is reported, not worked around (AGP_CI_CONFIG_GUARD_V1, rule 87).
+- „Release“ refuses to start while the installed Kit differs from the Kit the CI pins, because the release preparation writes the command reference with the local Kit (AGP_RELEASE_KIT_MATCHES_CI_V1).
+- Pull requests get their release-note category on every Kit route: the option is accepted everywhere, the prompt names it and suggests Docs or Tests / Gates when the changed paths decide it, and a repository without a publication key follows the Kit's default; the mission-start digest lists every option spelling (AGP_PR_CATEGORY_ROUTES_V1, AGP_DIGEST_ALL_OPTIONS_V1).
+- „Branch wechseln“ also offers branches that exist only on origin and fetches them through the Kit; a ticked „Nach Erfolg selbst abschließen“ survives a stop for an approval; the Playwright installs of the browser job retry once (AGP_BRANCH_SWITCH_ORIGIN_V1, AGP_AUTO_FINISH_THROUGH_DECISION_V1, AGP_CI_DEPS_RETRY_V1); build `release-0.3.2-r1`.
+
 ## v0.3.2 - 2026-10-22
 
 - Kit 1.1.5 adopted through the Kit's own `kit update` (manifest 84540b010909, signature a863cf96c9e7f8353d9bd0db). `greenfield retest --all`: 38 machine contracts PASS, 0 FAIL; 22 findings are now confirmed here (among them KIT-GF-001 to 016 and 083 to 085), every other numbered finding has a released Kit fix, KIT-GF-070 stays open for six contracts; KIT-GF-082 to 085 recorded; evidence docs/validation/evidence/kit-1.1.5-adoption.json.

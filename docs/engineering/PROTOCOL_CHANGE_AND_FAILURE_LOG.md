@@ -1730,3 +1730,27 @@ repeat once.
 - `kit update` on chore/kit-1.1.5-command-reference raised the local Kit to 1.1.5 and restored only these
   three files. A Kit guard that refuses entrypoint synchronization with an installed Kit older than the
   workspace's CI pin belongs to the Kit (finding).
+
+## 2026-10-23 — Six Cockpit findings in one slice (rule 87, build release-0.3.2-r1)
+
+- The orchestrator digest dropped the flag spellings of options; „Abschließen“ read `work finish
+  --execute` as unknown. The digest now lists `opts` and `secondary_opts` (AGP_DIGEST_ALL_OPTIONS_V1).
+- „Release“ 0.3.2 ran with the local Kit 1.1.4 while the CI pinned 1.1.5 and wrote the old command
+  reference (#378, repaired by #380). The release precheck now refuses that start and names `kit update`
+  (AGP_RELEASE_KIT_MATCHES_CI_V1); the Kit-side guard stays the Kit finding recorded on 2026-10-22.
+- #374 lost four work orders to the release-note category. The hygiene check accepts
+  `--release-note-category` on every pull-request route, the prompt names the option and suggests Docs or
+  Tests / Gates when the changed paths decide it, and a missing `publication:` key follows the Kit's
+  default (AGP_PR_CATEGORY_ROUTES_V1). Found while testing: the suggestion parsed `git status` after a
+  strip and cut the first path's first letter; it reads `git diff --name-only HEAD` and `ls-files --others`.
+- In the Kit repository a free-task agent changed `.github/workflows/ci.yml` to turn a red check green.
+  The bridge now compares the CI configuration paths before and after each work order and ends the mission
+  BLOCKED on a new change the mission does not name (AGP_CI_CONFIG_GUARD_V1).
+- The browser job's Playwright installs hung on an apt mirror until the job timeout; they retry once
+  within 420 s each (AGP_CI_DEPS_RETRY_V1).
+- „Branch wechseln“ listed only local branches, so a branch pushed by Codex or the chat was switched in the
+  terminal; origin-only branches are listed and fetched through the Kit (AGP_BRANCH_SWITCH_ORIGIN_V1).
+- A ticked „Nach Erfolg selbst abschließen“ was disarmed when the task stopped for an approval (the stop
+  is terminal for the mission), so a task that needed one decision never finished itself. The stop now
+  emits `finished_human`, which keeps the tick armed; an approval with the tick still set carries it on,
+  a rejection or a removed tick ends it (AGP_AUTO_FINISH_THROUGH_DECISION_V1).

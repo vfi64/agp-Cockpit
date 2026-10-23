@@ -181,7 +181,8 @@ class MainWindow(ttk.Frame):
                 work.auto_finish_armed = False
                 panel.request_auto_finish()
                 return
-        if event.startswith("finished"):
+        if event.startswith("finished") and event != "finished_human":
+            # AGP_AUTO_FINISH_THROUGH_DECISION_V1: a stop for a decision keeps the tick armed
             work.auto_finish_armed = False
         panel.refresh_lage()
 
@@ -197,7 +198,7 @@ class MainWindow(ttk.Frame):
         if running:
             panel.status_var.set(branch_switch.block_reason(self.repository_root, "", task_running=True))
             return
-        name = ask_branch(self, branch_switch.local_branches(self.repository_root))
+        name = ask_branch(self, branch_switch.all_branches(self.repository_root))
         if not name:
             return
         reason = branch_switch.block_reason(self.repository_root, name, task_running=panel._task_running())

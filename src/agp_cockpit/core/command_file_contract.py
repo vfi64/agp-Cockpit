@@ -47,6 +47,10 @@ WORK_ORDER_KIT_RULE = (
     "result_status, final_signal, failed_step and next_action separately in the return bundle; "
     "a stdout tail alone loses the verdict. Never re-run a command with remote effects to check "
     "a result: each continuation carries Cockpit-verified repository facts."
+    # AGP_CI_CONFIG_GUARD_V1 (live 2026-10-22): an agent edited the CI to turn a red check green.
+    " A red check or a Kit BLOCKED is reported, never worked around: do not change "
+    ".github/workflows/ or .agentic/ci/ unless the task names the file (the Cockpit stops the "
+    "mission otherwise)."
 )
 
 

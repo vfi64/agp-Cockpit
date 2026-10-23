@@ -4,8 +4,12 @@ AGP_PR_RELEASE_CATEGORY_V1: with ``publication: github`` the Kit blocks a releas
 merged pull request has no release-note category (between 0.1.1 and 0.2.0, 5 of 13 pull
 request titles were unclassified). Every pull request a work order creates therefore carries
 a line ``release-note-category: <category>`` in its body, which the Kit reads before the
-title. ``agentic-kit work finish`` cannot set a pull-request body (KIT-GF-048), so a work order
-creates pull requests with ``agentic-kit transfer pr-create(-complete) --body``.
+title. AGP_PR_CATEGORY_ROUTES_V1 (live 2026-10-22, PR #374 and #380): ``agentic-kit work finish
+--execute`` was refused here as unable to set a body (KIT-GF-048), long after the Kit gave it
+``--body`` and ``--release-note-category``; the work orders took detours and forgot the category
+four times. Every pull-request route of the Kit now passes with a literal ``--release-note-category
+<category>`` or a ``--body`` carrying the category line; a repository without ``publication:`` is
+treated with the Kit's default (``github+pypi+zenodo``), so the Kit repository is covered as well.
 
 AGP_RELEASE_CHANGELOG_GATE_V1: on a release branch the pull request is created only once the
 Kit's release preparation wrote the version section, and only one of them.
@@ -35,6 +39,9 @@ RELEASE_NOTE_CATEGORIES = (
 )
 PR_CREATING = (("transfer", "pr-create"), ("transfer", "pr-create-complete"))
 WORK_FINISH = ("work", "finish")
+CATEGORY_OPTION = "--release-note-category"
+# agentic_project_kit.workspace.DEFAULT_PUBLICATION_POLICY; a test compares it with the installed Kit.
+KIT_DEFAULT_PUBLICATION = "github+pypi+zenodo"
 CATEGORY_LINE = re.compile(r"release-note-category\s*:\s*([^\n]+)", re.IGNORECASE)
 CATEGORY_HINT = ("Added, Changed, Fixed, Docs, Tests / Gates, Governance, Transfer / Handoff, "
                  "Release, Breaking")
@@ -43,6 +50,13 @@ CATEGORY_HINT = ("Added, Changed, Fixed, Docs, Tests / Gates, Governance, Transf
 def _publication(root: Path) -> str:
     from agp_cockpit.core.release_policy import _workspace_publication
     return _workspace_publication(root)
+
+
+def _effective_publication(root: Path) -> str:
+    """The Kit's publication policy: the configured one, or the Kit's default when the key is absent."""
+    if not (Path(root) / ".agentic/config.yaml").is_file():
+        return ""
+    return _publication(root) or KIT_DEFAULT_PUBLICATION
 
 
 def _kit_calls(source: str) -> list[list[str]]:
@@ -76,7 +90,7 @@ def github_releases_declared(root: Path) -> bool:
     """The Kit publishes (or is about to publish) GitHub Release entries here:
     ``publication: github*`` or a ``release.github_release_title_template``. The
     template alone already collects categorized pull requests for the switch (P11c)."""
-    if _publication(root).startswith("github"):
+    if _effective_publication(root).startswith("github"):
         return True
     try:
         import yaml
@@ -91,26 +105,45 @@ def category_violations(source: str, repository_root: Path) -> list[str]:
     """AGP_PR_RELEASE_CATEGORY_V1 — only where the Kit publishes GitHub entries."""
     if not github_releases_declared(repository_root):
         return []
-    found: list[str] = []
     calls = _kit_calls(source)
-    if any(tuple(_words(argv)[:2]) == WORK_FINISH and "--execute" in argv for argv in calls):
-        found.append("agentic-kit work finish --execute cannot give its pull request a release-note "
-                     "category (KIT-GF-048); commit with the Kit, then create the pull request with "
-                     "agentic-kit transfer pr-create-complete --body containing a line "
-                     f"'release-note-category: <one of {CATEGORY_HINT}>'")
-    creating = [argv for argv in calls if _creates_pull_request(argv)]
+    creating = [argv for argv in calls if _creates_pull_request(argv)
+                or (tuple(_words(argv)[:2]) == WORK_FINISH and "--execute" in argv)]
     if not creating:
-        return found
+        return []
     categories = [match.group(1).strip().lower()
                   for text in _strings(source) for match in CATEGORY_LINE.finditer(text)]
-    valid = [c for c in categories if re.sub(r"\s+", " ", c) in RELEASE_NOTE_CATEGORIES]
-    if any(not any(token == "--body" or token.startswith("--body=") for token in argv) for argv in creating) \
-            or not valid:
-        found.append("every pull request needs a release-note category for the Kit's release notes "
-                     "(AGP_PR_RELEASE_CATEGORY_V1): pass --body with a line "
-                     f"'release-note-category: <one of {CATEGORY_HINT}>'"
-                     + (f"; not a category: {', '.join(sorted(set(categories)))}" if categories and not valid else ""))
-    return found
+    valid = [c for c in categories if _known(c)]
+    missing = []
+    for argv in creating:
+        option = _option_value(argv, CATEGORY_OPTION)
+        if option is not None:
+            if not _known(option):
+                missing.append(f"{CATEGORY_OPTION} {option!r} is not a category")
+            continue
+        if any(token == "--body" or token.startswith("--body=") for token in argv) and valid:
+            continue
+        missing.append(" ".join(["agentic-kit", *_words(argv)[:2]]) + " has no category")
+    if not missing:
+        return []
+    return ["every pull request needs a release-note category for the Kit's release notes "
+            f"(AGP_PR_RELEASE_CATEGORY_V1): pass {CATEGORY_OPTION} <one of {CATEGORY_HINT}> to "
+            "agentic-kit work finish or transfer pr-create(-complete), or a --body with a line "
+            f"'release-note-category: <category>' ({'; '.join(missing)})"
+            + (f"; not a category: {', '.join(sorted(set(categories)))}" if categories and not valid else "")]
+
+
+def _known(category: str) -> bool:
+    return re.sub(r"\s+", " ", str(category).strip().lower()) in RELEASE_NOTE_CATEGORIES
+
+
+def _option_value(argv: list[str], option: str) -> str | None:
+    """The literal value of ``option`` in an argv, ``<expr>`` for a computed one, None when absent."""
+    for index, token in enumerate(argv):
+        if token == option:
+            return argv[index + 1] if index + 1 < len(argv) else ""
+        if token.startswith(option + "="):
+            return token.split("=", 1)[1]
+    return None
 
 
 def unreleased_entries(changelog_text: str) -> list[str]:
