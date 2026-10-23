@@ -1,0 +1,178 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-23",
+  "explicit_summary_lines": [
+    "A work order that changes the CI configuration (`.github/workflows/`, `.agentic/ci/`) without the task naming the file now stops the mission; a red check or a Kit BLOCKED is reported, not worked around (AGP_CI_CONFIG_GUARD_V1, rule 87).",
+    "\u201eRelease\u201c refuses to start while the installed Kit differs from the Kit the CI pins, because the release preparation writes the command reference with the local Kit (AGP_RELEASE_KIT_MATCHES_CI_V1).",
+    "Pull requests get their release-note category on every Kit route: the option is accepted everywhere, the prompt names it and suggests Docs or Tests / Gates when the changed paths decide it, and a repository without a publication key follows the Kit's default; the mission-start digest lists every option spelling (AGP_PR_CATEGORY_ROUTES_V1, AGP_DIGEST_ALL_OPTIONS_V1).",
+    "\u201eBranch wechseln\u201c also offers branches that exist only on origin and fetches them through the Kit; a ticked \u201eNach Erfolg selbst abschlie\u00dfen\u201c survives a stop for an approval; the Playwright installs of the browser job retry once (AGP_BRANCH_SWITCH_ORIGIN_V1, AGP_AUTO_FINISH_THROUGH_DECISION_V1, AGP_CI_DEPS_RETRY_V1); build `release-0.3.2-r1`."
+  ],
+  "from_tag": "v0.3.2",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.3",
+        "--from-tag",
+        "v0.3.2",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-033-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 6258,
+      "stdout_sha256": "87e6405fdc226fe90d77ce82afd6b71f644f12a1e46effb5ed90f31ee4d35375"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.3",
+        "--date",
+        "2026-10-23",
+        "--summary-line",
+        "A work order that changes the CI configuration (`.github/workflows/`, `.agentic/ci/`) without the task naming the file now stops the mission; a red check or a Kit BLOCKED is reported, not worked around (AGP_CI_CONFIG_GUARD_V1, rule 87).",
+        "--summary-line",
+        "\u201eRelease\u201c refuses to start while the installed Kit differs from the Kit the CI pins, because the release preparation writes the command reference with the local Kit (AGP_RELEASE_KIT_MATCHES_CI_V1).",
+        "--summary-line",
+        "Pull requests get their release-note category on every Kit route: the option is accepted everywhere, the prompt names it and suggests Docs or Tests / Gates when the changed paths decide it, and a repository without a publication key follows the Kit's default; the mission-start digest lists every option spelling (AGP_PR_CATEGORY_ROUTES_V1, AGP_DIGEST_ALL_OPTIONS_V1).",
+        "--summary-line",
+        "\u201eBranch wechseln\u201c also offers branches that exist only on origin and fetches them through the Kit; a ticked \u201eNach Erfolg selbst abschlie\u00dfen\u201c survives a stop for an approval; the Playwright installs of the browser job retry once (AGP_BRANCH_SWITCH_ORIGIN_V1, AGP_AUTO_FINISH_THROUGH_DECISION_V1, AGP_CI_DEPS_RETRY_V1); build `release-0.3.2-r1`.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-033-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "c63c6a5897cdbda36af1553e8222aaa63c61e979e7bc12275646e19b6e0d22f4"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "125a272a300bae5fe5e50e0e44adee00913abd42493c3907c71a95dfe506c271"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "7b481b1dbe4fe3c3fdd4c273a1b43a92ff52ecdf133ce13433c2b90b05fe465f"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-033-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.3"
+}

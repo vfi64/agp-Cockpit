@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+## v0.3.3 - 2026-10-23
+
 - A work order that changes the CI configuration (`.github/workflows/`, `.agentic/ci/`) without the task naming the file now stops the mission; a red check or a Kit BLOCKED is reported, not worked around (AGP_CI_CONFIG_GUARD_V1, rule 87).
 - „Release“ refuses to start while the installed Kit differs from the Kit the CI pins, because the release preparation writes the command reference with the local Kit (AGP_RELEASE_KIT_MATCHES_CI_V1).
 - Pull requests get their release-note category on every Kit route: the option is accepted everywhere, the prompt names it and suggests Docs or Tests / Gates when the changed paths decide it, and a repository without a publication key follows the Kit's default; the mission-start digest lists every option spelling (AGP_PR_CATEGORY_ROUTES_V1, AGP_DIGEST_ALL_OPTIONS_V1).
