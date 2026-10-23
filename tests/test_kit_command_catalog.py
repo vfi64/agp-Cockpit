@@ -88,3 +88,14 @@ def test_compact_digest_keeps_effects_and_wrappers():
         assert rows[name][2] == expected
         if command.get("replaces_raw"):
             assert digest["compact_replaces_raw"][name] == list(command["replaces_raw"])
+
+
+def test_the_digest_lists_every_spelling_of_every_orchestrator_option():
+    """AGP_DIGEST_ALL_OPTIONS_V1 (live 2026-10-22, PR #380): `--execute` of `work finish` was cut."""
+    digest = {c["command"]: c for c in CATALOG.digest()["commands"]}
+    assert "--execute" in digest["agentic-kit work finish"]["options"]
+    for command in CATALOG.commands:
+        if command.get("surface") != "orchestrator":
+            continue
+        spelled = {o for p in command.get("params", []) for o in [*(p.get("opts") or []), *(p.get("secondary_opts") or [])]}
+        assert set(digest[command["qualified_name"]]["options"]) == spelled, command["qualified_name"]

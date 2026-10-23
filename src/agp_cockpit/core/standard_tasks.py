@@ -483,13 +483,37 @@ RELEASE_PUBLICATIONS = ("none", "github")
 
 
 def _pr_category_rule(root: Path) -> str:
-    """AGP_PR_RELEASE_CATEGORY_V1: the remote side must give every new pull request a category."""
-    from agp_cockpit.core.release_hygiene import CATEGORY_HINT, github_releases_declared
+    """AGP_PR_RELEASE_CATEGORY_V1 + AGP_PR_CATEGORY_ROUTES_V1: the remote side must give every new
+    pull request a category, and the prompt names how (live 2026-10-22: #374 lost it four times)."""
+    from agp_cockpit.core.release_hygiene import (
+        CATEGORY_HINT,
+        CATEGORY_OPTION,
+        github_releases_declared,
+    )
     if not github_releases_declared(root):
         return ""
-    return ("Every pull request you create carries a line 'release-note-category: <one of "
-            f"{CATEGORY_HINT}>' in its body (the Kit's release notes read it): choose a Kit route that "
-            "sets the pull-request body; a route without a body option is rejected here (KIT-GF-048).\n")
+    suggested = suggested_category(root)
+    return (f"Every pull request you create needs a release-note category (one of {CATEGORY_HINT}): pass "
+            f"{CATEGORY_OPTION} <category> to the Kit route that creates it, or a --body with a line "
+            "'release-note-category: <category>'. A work order without it is rejected before it runs."
+            + (f" The branch changes only {suggested[1]}: use {CATEGORY_OPTION} \"{suggested[0]}\"."
+               if suggested else "") + "\n")
+
+
+def suggested_category(root: Path) -> tuple[str, str] | None:
+    """The category when the changed paths decide it alone: documentation only → Docs, tests only →
+    Tests / Gates. Anything else is the remote side's choice."""
+    names = set(_git_value(root, "diff", "--name-only", "origin/main...HEAD").splitlines())
+    names |= set(_git_value(root, "diff", "--name-only", "HEAD").splitlines())        # uncommitted, tracked
+    names |= set(_git_value(root, "ls-files", "--others", "--exclude-standard").splitlines())   # new files
+    names.discard("")
+    if not names:
+        return None
+    if all(name.endswith(".md") or name.startswith("docs/") for name in names):
+        return "Docs", "documentation"
+    if all(name.startswith("tests/") for name in names):
+        return "Tests / Gates", "tests"
+    return None
 
 
 def _release_precheck(root: Path, inputs: dict) -> str | None:
@@ -509,6 +533,14 @@ def _release_precheck(root: Path, inputs: dict) -> str | None:
         return "main ist nicht synchron mit origin/main — erst Lagebericht/Wiederherstellen."
     if _git_value(root, "rev-parse", "--verify", "--quiet", f"refs/tags/v{version}"):
         return f"Tag v{version} existiert schon — andere Version wählen."
+    # AGP_RELEASE_KIT_MATCHES_CI_V1 (live 2026-10-22, release 0.3.2 #378): the release preparation
+    # synchronizes AGENTS.md and the command reference with the installed Kit; with 1.1.4 installed
+    # and 1.1.5 in the CI it wrote the 1.1.4 manifest back, and the tag carries it.
+    from agp_cockpit.core.system_check import kit_ci_mismatch
+    mismatch = kit_ci_mismatch(root)
+    if mismatch:
+        return (f"Release gesperrt: {mismatch}. Die Release-Vorbereitung schreibt die Befehlsreferenz mit "
+                "dem lokalen Kit — erst das lokale Kit auf die CI-Version bringen (kit update), dann Release.")
     current = _version_tuple(_current_version(root))
     if current is not None and wanted < current:
         return f"Version {version} ist kleiner als die aktuelle {_current_version(root)}."

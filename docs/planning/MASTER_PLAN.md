@@ -700,7 +700,11 @@ P1 — next:
    committing); „Abschließen“ of a documentation-only change (#374) had four work orders rejected
    for the missing release-note category before the owner's note named it, and the remote answer
    then timed out after 599 s while the Cockpit still found the merge done locally. The approval
-   loop of a signed discard is fixed (rule 86).
+   loop of a signed discard is fixed (rule 86). Rule 87 (build release-0.3.2-r1) fixes the category
+   rule without a `publication:` key, the category routes, origin branches in „Branch wechseln“, the
+   ticked finish after an approval stop, the CI-configuration change, the release with a local Kit
+   other than the CI's, the digest's missing option spellings and the Playwright install retry;
+   the 599 s timeout and the tool set of free tasks stay open.
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults. The bounded stage-A procedure is in TEST_PLAN,

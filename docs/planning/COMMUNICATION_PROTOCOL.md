@@ -916,6 +916,26 @@ This section is normative for the file loop after local execution.
    decision box, because approving once more cannot help. A used grant does not count: asking again
    later is a new request.
 
+87. The remote side gets the whole route, and a red check is reported, not worked around
+   (owner 2026-10-23, „alle 6 in einem Slice“, build release-0.3.2-r1). (1) The orchestrator digest
+   at the mission start lists every spelling of every option (`AGP_DIGEST_ALL_OPTIONS_V1`): it had
+   dropped the flag spellings, so `work finish --execute` read as unknown. (2) „Release“ refuses to
+   start while the installed Kit differs from the Kit the CI pins (`AGP_RELEASE_KIT_MATCHES_CI_V1`),
+   because the release preparation writes the command reference with the local Kit (0.3.2, #378).
+   (3) Every pull-request route passes with `--release-note-category <category>` or a body line;
+   the prompt names the option without naming a Kit command and suggests Docs or Tests / Gates when
+   the changed paths alone decide it, and a repository without a `publication:` key follows the
+   Kit's default `github+pypi+zenodo` (`AGP_PR_CATEGORY_ROUTES_V1`). (4) A work order that newly
+   changes `.github/workflows/` or `.agentic/ci/` ends the mission BLOCKED unless the mission names
+   the file (`AGP_CI_CONFIG_GUARD_V1`); the change stays in the worktree, and the work-order rule
+   says so in both copies. (5) The browser job's Playwright installs retry once within a bounded
+   time (`AGP_CI_DEPS_RETRY_V1`). (6) „Branch wechseln“ also lists branches that exist only on
+   origin and fetches them through `agentic-kit transfer fetch-origin --branch` before
+   `transfer branch-switch` (`AGP_BRANCH_SWITCH_ORIGIN_V1`); a ticked „Nach Erfolg selbst
+   abschließen“ survives a stop for an approval and ends with a rejection or a removed tick
+   (`AGP_AUTO_FINISH_THROUGH_DECISION_V1`). The Cockpit still selects no Kit command: it checks
+   what a work order did, and the branch dialog runs only the two routes the owner's click names.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

@@ -783,6 +783,9 @@ class CockpitBridgeServer:
                             )
                             # AGP_EFFECT_REFUND_V1
                             pre_run_refs = _ci_pre.remote_refs(repo_root)
+                        # AGP_CI_CONFIG_GUARD_V1: the CI configuration a work order finds changed.
+                        from agp_cockpit.core.ci_config_guard import changed_ci_paths
+                        ci_before = changed_ci_paths(repo_root)
                         outcome = consume_command_file(
                             incoming,
                             repo_root,
@@ -896,6 +899,26 @@ class CockpitBridgeServer:
                                     component="file-loop",
                                     details={"task_id": current_task_id, "commands": used, "cycle_id": cycle_id},
                                 )
+                        if not outcome.replayed and outcome.run is not None:
+                            from agp_cockpit.core.ci_config_guard import (
+                                violation as _ci_violation,
+                            )
+
+                            mission_now = engine.runtime.state
+                            ci_stop = _ci_violation(ci_before, changed_ci_paths(repo_root),
+                                                    "" if mission_now is None else
+                                                    f"{mission_now.title}\n{mission_now.mission_text}")
+                            if ci_stop:
+                                if mission_now is not None and mission_now.state not in _MISSION_ENDED_STATES:
+                                    engine.runtime.final("BLOCKED", ci_stop)
+                                diag.event("CI_CONFIG_CHANGE_BLOCKED", component="file-loop",
+                                           details={"step": outcome.run.step, "cycle_id": cycle_id,
+                                                    "reason": ci_stop[:400]})
+                                self._json(200, {"state": "BLOCKED", "step": outcome.run.step,
+                                                 "result_file": str(outcome.run.return_bundle), "prompt": None,
+                                                 "terminal": True, "human_reason": ci_stop,
+                                                 "cycle_id": cycle_id, "replayed": False})
+                                return
                         if terminal_loop and outcome.state.value == "BLOCKED" and engine.runtime.state is not None:
                             engine.runtime.final(
                                 "BLOCKED",

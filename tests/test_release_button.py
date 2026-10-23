@@ -158,3 +158,20 @@ def test_release_dialog_preview_names_the_resume():
     assert release_preview("0.1.1", "0.1.1") == "Release-Branch schon gemergt · nur noch Tag: v0.1.1"
     assert release_preview("0.1.2", "0.1.1") == "Branch: release/0.1.2 · Tag: v0.1.2"
     assert release_preview("", "0.1.1") == "Branch: release/… · Tag: v…"
+
+
+def test_precheck_blocks_a_release_with_a_local_kit_other_than_the_ci_kit(repo, monkeypatch):
+    """AGP_RELEASE_KIT_MATCHES_CI_V1 (live 2026-10-22, release 0.3.2 #378): the release preparation
+    wrote the command reference with local Kit 1.1.4 while the CI ran 1.1.5."""
+    from types import SimpleNamespace
+
+    from agp_cockpit.core import kit_installation
+    (repo / ".github/workflows").mkdir(parents=True)
+    commit(repo, ".github/workflows/gate.yaml", 'pip install "agentic-project-kit==1.1.5"\n', "ci")
+    git(repo, "push", "-q", "origin", "main")
+    monkeypatch.setattr(kit_installation, "discover", lambda _root: SimpleNamespace(version="1.1.4"))
+    blocked = TASK.check(repo, {"version": "0.1.1"})
+    assert blocked.startswith("Release gesperrt: lokal ist Kit 1.1.4 installiert, die CI nutzt 1.1.5")
+    assert "kit update" in blocked
+    monkeypatch.setattr(kit_installation, "discover", lambda _root: SimpleNamespace(version="1.1.5"))
+    assert TASK.check(repo, {"version": "0.1.1"}) is None

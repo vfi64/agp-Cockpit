@@ -58,6 +58,26 @@ def test_a_finished_work_task_leads_back_to_the_guided_path_only_when_done():
     work.auto_finish_armed = True
     MainWindow._work_task_event(window, "finished", "TAB", "Gestoppt")    # no finish after a failure
     assert not work.auto_finish_armed
+    # AGP_AUTO_FINISH_THROUGH_DECISION_V1: a stop for an approval is not the end of the task
+    work.auto_finish_armed = True
+    calls.clear()
+    MainWindow._work_task_event(window, "finished_human", "TAB", "Mensch muss eingreifen")
+    assert work.auto_finish_armed and calls == [("lage",)]
+    MainWindow._work_task_event(window, "finished_done", "TAB", "Fertig ✓")   # after the approval
+    assert calls[-1] == ("auto",) and not work.auto_finish_armed
+
+
+def test_an_approval_keeps_the_ticked_finish_and_a_rejection_ends_it():
+    """AGP_AUTO_FINISH_THROUGH_DECISION_V1 (owner 2026-10-23)."""
+    from pathlib import Path
+    simple = (Path(__file__).resolve().parents[1] / "src/agp_cockpit/ui/simple_task_panel.py").read_text(encoding="utf-8")
+    emit = simple[simple.index("if progress.terminal:"):][:1200]
+    assert '"finished_human" if progress.outcome == "HUMAN_REQUIRED"' in emit
+    assert "and self._decision_mission_id" in emit
+    decide = simple[simple.index("def decide("):simple.index("def new_task(")]
+    assert ('self.auto_finish_armed = bool(self.auto_finish_armed and decision == "APPROVE"\n'
+            '                                      and self.auto_finish_var.get())') in decide
+    assert decide.index("self.auto_finish_armed = bool(") > decide.index("request_task_start(")
 
 
 def test_the_external_result_names_its_tab():

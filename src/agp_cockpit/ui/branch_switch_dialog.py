@@ -4,6 +4,8 @@ AGP_BRANCH_DIALOG_EXPLICIT_V1 (live 2026-10-07, 22:07): right after a switch the
 was main, preselected; opening the dialog again and pressing „Wechseln“ (or Return) switched
 straight back to main twice. Nothing is preselected now: „Wechseln“ and Return act only after
 the owner has clicked a branch, and main is labelled as the way back.
+
+AGP_BRANCH_SWITCH_ORIGIN_V1: origin-only branches follow the local ones, labelled „nur auf origin“.
 """
 
 from __future__ import annotations
@@ -14,6 +16,8 @@ from tkinter import ttk
 
 def _label(entry) -> str:
     back = "   ·   zurück auf main" if entry.name in ("main", "master") else ""
+    if getattr(entry, "remote_only", False):
+        back += "   ·   nur auf origin (wird über das Kit geholt)"
     return f"{entry.name}   ·   {entry.date}   ·   {entry.subject}{back}"
 
 
@@ -26,7 +30,7 @@ def build_dialog(parent: tk.Misc, branches):
     window.transient(parent.winfo_toplevel())
     window.columnconfigure(0, weight=1)
     window.rowconfigure(1, weight=1)
-    ttk.Label(window, text=f"Aktiv: {current or '—'} · Ziel anklicken (lokale Branches, neuester zuerst)",
+    ttk.Label(window, text=f"Aktiv: {current or '—'} · Ziel anklicken (lokale Branches, dann nur auf origin; neuester zuerst)",
               padding=(10, 8)).grid(row=0, column=0, columnspan=2, sticky="w")
     listbox = tk.Listbox(window, height=12, width=70, exportselection=False)
     listbox.grid(row=1, column=0, sticky="nsew", padx=(10, 0))
@@ -61,7 +65,7 @@ def build_dialog(parent: tk.Misc, branches):
 
 
 def ask_branch(parent: tk.Misc, branches) -> str | None:
-    """Modal choice of one non-current local branch; None when cancelled or nothing chosen."""
+    """Modal choice of one non-current branch (local or origin-only); None when cancelled or nothing chosen."""
     window, listbox, _switch, result, _on_select = build_dialog(parent, branches)
     window.grab_set()
     listbox.focus_set()
