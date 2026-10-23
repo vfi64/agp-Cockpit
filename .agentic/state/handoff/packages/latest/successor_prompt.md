@@ -38,8 +38,8 @@ Critical rule IDs:
 ## Current continuation state
 
 - branch: `release/0.3.3`
-- head_matches_origin_main: `True`
-- worktree_clean: `False`
+- head_matches_origin_main: `False`
+- worktree_clean: `True`
 - open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
 - document_registry_source: `.agentic/registries/documentation.yaml`
 - Current state is volatile continuation data, not a durable rule source.
@@ -156,13 +156,13 @@ In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-
   "repo": {
     "branch": "release/0.3.3",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "7f4cfe21d2db494a869dd8e5257a34de7087c49b",
-    "head_matches_origin_main": true,
-    "head_short": "7f4cfe21",
+    "head": "790d63cd3e459b427571c8038d6f76d288b82afa",
+    "head_matches_origin_main": false,
+    "head_short": "790d63cd",
     "local_path": "cd /path/to/",
     "origin_main": "7f4cfe21d2db494a869dd8e5257a34de7087c49b",
     "origin_main_short": "7f4cfe21",
-    "worktree_clean": false
+    "worktree_clean": true
   }
 }
 ```
