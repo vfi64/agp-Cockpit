@@ -71,6 +71,37 @@ def test_ways_around_the_guard_are_refused_in_the_source(source):
     assert command_catalog_violations(source, CATALOG, allow_remote_effects=True)
 
 
+@pytest.mark.parametrize("source", [
+    "import runpy\nrunpy.run_module('agentic_project_kit.cli', run_name='__main__')\n",
+    "import importlib\nimportlib.import_module('agentic_project_kit')\n",
+    "import subprocess\nsubprocess.run('python3 -m agentic_project_kit check', shell=True)\n",
+    "import subprocess\nsubprocess.run('cd x\\n.venv/bin/agentic-kit check\\n', shell=True)\n",
+    "import subprocess, sys\nsubprocess.run((sys.executable, '-m', 'agentic_project_kit'))\n",
+])
+def test_other_module_runs_stay_refused(source):
+    """AGP_KIT_GUARD_NOT_FILE_CONTENT_V1: the narrowed rule still sees a module run."""
+    assert kit_bypass_violations(source), source
+
+
+def test_kit_source_paths_and_file_content_are_not_a_module_run():
+    """AGP_KIT_GUARD_NOT_FILE_CONTENT_V1 (live 2026-10-25, Kit repository steps 113 and 134)."""
+    content = (
+        "import subprocess, sys\n"
+        "from agentic_project_kit.kit_ci_pin_guard import evaluate\n\n"
+        "def test_cli():\n"
+        "    done = subprocess.run([sys.executable, '-m', 'agentic_project_kit.cli', 'commands'])\n"
+        "    assert Path('.venv/bin/agentic-kit')\n"
+    )
+    source = (
+        "import subprocess\nfrom pathlib import Path\n"
+        f"TEST = {content!r}\n"
+        "GUARD = 'src/agentic_project_kit/kit_ci_pin_guard.py'\n"
+        "Path('tests/test_kit_ci_pin_guard.py').write_text(TEST)\n"
+        "subprocess.run(['agentic-kit', 'transfer', 'commit', '--path', GUARD, '-m', 'KIT-GF-086'])\n"
+    )
+    assert kit_bypass_violations(source) == []
+
+
 def test_plain_agentic_kit_is_fine():
     assert kit_bypass_violations("import subprocess\nsubprocess.run(['agentic-kit', 'check', '--json'])\n"
                                  "print('run `agentic-kit check` first')\n") == []

@@ -940,7 +940,9 @@ This section is normative for the file loop after local execution.
    the Kit version is the running package's version, not the pip metadata of an editable install
    (`AGP_KIT_RUNTIME_VERSION_V1`), and „Branch wechseln“ offers origin branches from GitHub's current
    list, not from local remote-tracking refs that outlive a deleted branch
-   (`AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1`). Both are read-only observations.
+   (`AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1`). Both are read-only observations. Rule 85's source check
+   refuses a real module run of the Kit, not file content: in the Kit's own repository a work order
+   names `src/agentic_project_kit/...` and writes Kit source and tests (`AGP_KIT_GUARD_NOT_FILE_CONTENT_V1`).
 
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files

@@ -1766,4 +1766,11 @@ repeat once.
   cleaned up its merged branches. GitHub's deletion leaves the local remote-tracking ref, so the
   0.3.3 dialog would have offered deleted branches as „nur auf origin“. It now reads `git ls-remote
   --heads origin`; the tracking refs are the offline fallback (AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1).
+- KIT-GF-086 through the Cockpit in the Kit's own repository: eight work orders (up to steps 113 and
+  134) were refused with „do not run agentic_project_kit as a module“. The invocation guard's source
+  check refused every string that contained the package name, so a work order could neither name
+  `src/agentic_project_kit/...` nor write a test that runs the CLI. It now refuses only a real module
+  run: `-m` before the package in an argument list, a bare module name, a one-line command string with
+  `-m agentic_project_kit`; a multi-line string is file content unless the work order uses a shell.
+  Imports of the package stay refused (AGP_KIT_GUARD_NOT_FILE_CONTENT_V1).
 
