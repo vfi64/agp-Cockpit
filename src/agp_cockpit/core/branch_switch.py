@@ -12,6 +12,11 @@ terminal again. The dialog now also lists the origin branches without a local br
 the remote-tracking refs (no network). Choosing one runs two Kit routes: ``agentic-kit transfer
 fetch-origin --branch <branch>`` refreshes it, then ``agentic-kit transfer branch-switch <branch>``
 creates the local tracking branch and switches (git's own guess from origin/<branch>).
+
+AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1 (owner 2026-10-25): GitHub now deletes a merged branch itself,
+while the local remote-tracking ref stays until a prune; the list would have offered merged,
+deleted branches as „nur auf origin“. The origin branches are read with ``git ls-remote --heads
+origin`` (read-only, what GitHub has now); the remote-tracking refs are only the offline fallback.
 """
 
 from __future__ import annotations
@@ -55,19 +60,41 @@ def local_branches(root: Path, *, runner=subprocess.run) -> list[LocalBranch]:
     return branches
 
 
-def origin_branches(root: Path, *, runner=subprocess.run) -> list[LocalBranch]:
-    """Branches on origin without a local branch of the same name, newest commit first."""
-    local = {entry.name for entry in local_branches(root, runner=runner)}
+def _ref_list(root: Path, runner, pattern: str) -> list[LocalBranch]:
     listed = _git(root, runner, "for-each-ref", "--sort=-committerdate",
-                  "--format=%(refname:short)%09%(committerdate:short)%09%(subject)", "refs/remotes/origin")
+                  "--format=%(refname:short)%09%(committerdate:short)%09%(subject)", pattern)
     branches = []
     for line in listed.stdout.splitlines():
         ref, _, rest = line.partition("\t")
         date, _, subject = rest.partition("\t")
-        name = ref.removeprefix("origin/")
-        if ref.startswith("origin/") and name and name != "HEAD" and name not in local:
-            branches.append(LocalBranch(name, date, subject, False, remote_only=True))
+        branches.append(LocalBranch(ref.removeprefix("origin/"), date, subject, False, remote_only=True))
     return branches
+
+
+def origin_branches(root: Path, *, runner=subprocess.run) -> list[LocalBranch]:
+    """Branches on origin without a local branch of the same name, newest commit first."""
+    local = {entry.name for entry in local_branches(root, runner=runner)}
+    listed = _git(root, runner, "ls-remote", "--heads", "origin")
+    if listed.returncode != 0:          # offline: the last fetched state
+        candidates = _ref_list(root, runner, "refs/remotes/origin")
+    else:
+        heads = {}
+        for line in listed.stdout.splitlines():
+            sha, _, ref = line.partition("\t")
+            if ref.startswith("refs/heads/"):
+                heads[ref.removeprefix("refs/heads/")] = sha.strip()
+        known = {}
+        if heads:
+            shown = _git(root, runner, "log", "--no-walk", "--ignore-missing", "--format=%H%x09%cs%x09%s",
+                         *sorted(set(heads.values())))
+            for line in shown.stdout.splitlines():
+                sha, _, rest = line.partition("\t")
+                date, _, subject = rest.partition("\t")
+                known[sha] = (date, subject)
+        candidates = [LocalBranch(name, *known.get(sha, ("", "noch nicht geholt")), False, remote_only=True)
+                      for name, sha in heads.items()]
+        candidates.sort(key=lambda entry: (entry.date, entry.name), reverse=True)
+    return [entry for entry in candidates if entry.name and entry.name != "HEAD" and entry.name not in local]
 
 
 def all_branches(root: Path, *, runner=subprocess.run) -> list[LocalBranch]:

@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- The Lage and the Systemcheck show the Kit version that runs: in the Kit's own repository, an editable install kept the package metadata of its install time and the Lage showed „Kit 1.1.4“ while 1.1.5 ran; the Systemcheck names such a stale install, and a changed Kit package is seen without a restart (AGP_KIT_RUNTIME_VERSION_V1). „Branch wechseln“ reads the origin branches from GitHub itself, so a merged branch that GitHub deleted is no longer offered from a stale local ref (AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1); build `release-0.3.3-r1`.
+
 ## v0.3.3 - 2026-10-23
 
 - A work order that changes the CI configuration (`.github/workflows/`, `.agentic/ci/`) without the task naming the file now stops the mission; a red check or a Kit BLOCKED is reported, not worked around (AGP_CI_CONFIG_GUARD_V1, rule 87).

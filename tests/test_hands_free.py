@@ -169,6 +169,23 @@ def test_an_origin_only_branch_is_listed_and_fetched_then_switched_through_the_k
     assert ok and calls.read_text().splitlines() == ["transfer branch-switch main --json"]   # local: no fetch
 
 
+def test_a_branch_deleted_on_github_is_not_offered_from_a_stale_tracking_ref(repo, tmp_path_factory):
+    """AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1: GitHub deletes a merged branch, the local tracking ref
+    stays; the dialog asks GitHub (ls-remote) and falls back to the tracking refs only offline."""
+    outside = tmp_path_factory.mktemp("outside2")
+    remote = outside / "remote.git"
+    _git(outside, "init", "-q", "--bare", str(remote))
+    _git(repo, "remote", "add", "origin", str(remote))
+    _git(repo, "push", "-q", "origin", "main", "feat/x")
+    _git(repo, "branch", "-q", "-D", "feat/x")
+    _git(repo, "fetch", "-q", "origin")
+    assert [b.name for b in branch_switch.origin_branches(repo)] == ["feat/x"]
+    _git(outside, "--git-dir", str(remote), "update-ref", "-d", "refs/heads/feat/x")   # GitHub deleted it
+    assert branch_switch.origin_branches(repo) == []                                 # stale ref ignored
+    _git(repo, "remote", "set-url", "origin", str(outside / "unreachable.git"))
+    assert [b.name for b in branch_switch.origin_branches(repo)] == ["feat/x"]       # offline fallback
+
+
 def test_the_dialog_offers_origin_only_branches():
     assert "ask_branch(self, branch_switch.all_branches(self.repository_root))" in MAIN
 

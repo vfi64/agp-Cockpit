@@ -936,6 +936,12 @@ This section is normative for the file loop after local execution.
    (`AGP_AUTO_FINISH_THROUGH_DECISION_V1`). The Cockpit still selects no Kit command: it checks
    what a work order did, and the branch dialog runs only the two routes the owner's click names.
 
+88. The Cockpit reports what runs and what exists now (owner 2026-10-25, build release-0.3.3-r1):
+   the Kit version is the running package's version, not the pip metadata of an editable install
+   (`AGP_KIT_RUNTIME_VERSION_V1`), and „Branch wechseln“ offers origin branches from GitHub's current
+   list, not from local remote-tracking refs that outlive a deleted branch
+   (`AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1`). Both are read-only observations.
+
 Open, not yet proven live: whether ChatGPT's current DOM exposes the nonce line
 in the committed user turn (expected, it is plain text), whether result files
 are fully uploaded before the continuation is committed, and whether the

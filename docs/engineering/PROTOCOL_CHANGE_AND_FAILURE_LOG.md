@@ -1754,3 +1754,16 @@ repeat once.
   is terminal for the mission), so a task that needed one decision never finished itself. The stop now
   emits `finished_human`, which keeps the tick armed; an approval with the tick still set carries it on,
   a rejection or a removed tick ends it (AGP_AUTO_FINISH_THROUGH_DECISION_V1).
+
+## 2026-10-25 — Kit version of an editable install; stale origin branches (build release-0.3.3-r1)
+
+- In the Kit's own repository the Lage showed „Kit 1.1.4“ while `agentic-kit --version` reported 1.1.5:
+  the Cockpit read the pip metadata, which an editable install keeps from its install time. The probe
+  now reads `agentic_project_kit.__version__` (metadata as fallback, kept as `metadata_version`), the
+  Systemcheck names a differing metadata version as „Entwicklerinstallation“, and the discovery cache
+  follows the package's `__init__.py` (AGP_KIT_RUNTIME_VERSION_V1).
+- The owner switched on GitHub's automatic deletion of merged branches for the Kit repository and
+  cleaned up its merged branches. GitHub's deletion leaves the local remote-tracking ref, so the
+  0.3.3 dialog would have offered deleted branches as „nur auf origin“. It now reads `git ls-remote
+  --heads origin`; the tracking refs are the offline fallback (AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1).
+
