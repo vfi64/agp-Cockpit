@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.1.6 adopted through the Kit's own `kit update` (manifest f2cdb65463e0, signature 0ac64fb3bc1affcd1bc7e462); CI pins, entrypoints, command reference and rule inventory follow 1.1.6.
+
 ## v0.3.3 - 2026-10-23
 
 - A work order that changes the CI configuration (`.github/workflows/`, `.agentic/ci/`) without the task naming the file now stops the mission; a red check or a Kit BLOCKED is reported, not worked around (AGP_CI_CONFIG_GUARD_V1, rule 87).

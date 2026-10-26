@@ -3,6 +3,6 @@
 // version anchor in .agentic/config.yaml); a rebuild between releases raises AGP_BUILD_REVISION.
 var AGP_APP_VERSION;
 AGP_APP_VERSION = "0.3.3";
-var AGP_BUILD_REVISION = ["0.3.2", 1];
+var AGP_BUILD_REVISION = ["0.3.3", 1];
 globalThis.AGP_EXTENSION_BUILD_ID = "release-" + AGP_APP_VERSION
   + (AGP_BUILD_REVISION[0] === AGP_APP_VERSION && AGP_BUILD_REVISION[1] ? "-r" + AGP_BUILD_REVISION[1] : "");
