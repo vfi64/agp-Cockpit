@@ -186,6 +186,21 @@ def test_a_branch_deleted_on_github_is_not_offered_from_a_stale_tracking_ref(rep
     assert [b.name for b in branch_switch.origin_branches(repo)] == ["feat/x"]       # offline fallback
 
 
+def test_the_offline_list_does_not_offer_origin_head_as_a_branch(repo, tmp_path_factory):
+    """AGP_ORIGIN_HEAD_NOT_A_BRANCH_V1: newer Git (owner's Mac) creates refs/remotes/origin/HEAD on
+    fetch; its short name "origin" was offered as a branch when GitHub was unreachable."""
+    outside = tmp_path_factory.mktemp("outside3")
+    remote = outside / "remote.git"
+    _git(outside, "init", "-q", "--bare", str(remote))
+    _git(repo, "remote", "add", "origin", str(remote))
+    _git(repo, "push", "-q", "origin", "main", "feat/x")
+    _git(repo, "branch", "-q", "-D", "feat/x")
+    _git(repo, "fetch", "-q", "origin")
+    _git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+    _git(repo, "remote", "set-url", "origin", str(outside / "unreachable.git"))
+    assert [b.name for b in branch_switch.origin_branches(repo)] == ["feat/x"]
+
+
 def test_the_dialog_offers_origin_only_branches():
     assert "ask_branch(self, branch_switch.all_branches(self.repository_root))" in MAIN
 

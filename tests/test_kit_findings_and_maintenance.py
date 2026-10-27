@@ -131,12 +131,12 @@ def test_the_real_register_tracks_the_kit_1_0_25_adoption():
     for fid in ("KIT-GF-066", "KIT-GF-067", "KIT-GF-068", "KIT-GF-069", "KIT-GF-RULE-REGISTRY-BOOTSTRAP"):
         assert by_id[fid].fixed_in == "1.0.25" and by_id[fid].kit["fixed_in"] == "1.0.25", fid
         assert by_id[fid].effective_status("1.0.24") != kf.VERIFIED or fid in ("KIT-GF-068", "KIT-GF-RULE-REGISTRY-BOOTSTRAP",
-                                                                              "KIT-GF-066")   # 066: Kit 1.1.5
+                                                                              "KIT-GF-066", "KIT-GF-067")   # 066: Kit 1.1.5, 067: Kit 1.1.7
     for fid in ("KIT-GF-068", "KIT-GF-RULE-REGISTRY-BOOTSTRAP", "KIT-GF-051", "KIT-GF-021"):
         assert by_id[fid].effective_status("1.0.25") == kf.VERIFIED, fid
-    for fid in ("KIT-GF-067", "KIT-GF-069"):        # 066 verified later, with Kit 1.1.5 (test below)
+    for fid in ("KIT-GF-069",):     # 066 verified later with Kit 1.1.5, 067 with Kit 1.1.7 (tests below)
         assert by_id[fid].effective_status("1.0.25") == kf.FIXED_UNVERIFIED, fid
-    for fid in ("KIT-GF-070", "KIT-GF-071"):        # KIT-GF-072 was verified later, with Kit 1.1.4 (test below)
+    for fid in ("KIT-GF-071",):     # 072 verified later with Kit 1.1.4, 070 with Kit 1.1.7 (tests below)
         assert by_id[fid].effective_status("1.0.25") not in (kf.VERIFIED, kf.FIXED_UNVERIFIED), fid
 
 
@@ -180,10 +180,26 @@ def test_the_real_register_tracks_the_kit_1_1_6_adoption():
     assert evidence["greenfield_retest"]["counts"] == {"FAIL": 4, "NOT_RUN_LOCALLY": 40, "NO_MACHINE_CONTRACT": 0,
                                                        "PASS": 41}
     assert sorted(evidence["greenfield_retest"]["fail"]) == ["KIT-GF-021", "KIT-GF-032", "KIT-GF-045", "KIT-GF-067"]
-    assert by_id["KIT-GF-070"].status == "FIXED" and by_id["KIT-GF-070"].fixed_in == "1.1.6"
+    assert by_id["KIT-GF-070"].fixed_in == "1.1.6"          # FIXED then; VERIFIED_FIXED since Kit 1.1.7
     assert by_id["KIT-GF-070"].kit["kit_state"] == "CLOSED"
-    assert by_id["KIT-GF-089"].status == "OPEN"
-    assert not [f.id for f in by_id.values() if f.status == "OPEN" and f.id != "KIT-GF-089"]
+    assert by_id["KIT-GF-089"].first_observed == "2026-10-26"  # OPEN then; fixed in Kit 1.1.7
+
+
+def test_the_real_register_tracks_the_kit_1_1_7_adoption():
+    """Kit 1.1.7 (2026-10-27, #390, GF-E117, evidence kit-1.1.7-adoption.json): the owned-runtime contracts run
+    from the wheel again (KIT-GF-089); 021/032/045/067/070/089 verified, no Kit finding left open."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-1.1.7-adoption.json").read_text(encoding="utf-8"))
+    assert sorted(evidence["verifies"]) == ["KIT-GF-067", "KIT-GF-070", "KIT-GF-089"]
+    assert sorted(evidence["reverifies"]) == ["KIT-GF-021", "KIT-GF-032", "KIT-GF-045"]   # verified earlier
+    assert evidence["greenfield_retest"]["counts"] == {"FAIL": 0, "NOT_RUN_LOCALLY": 40, "NO_MACHINE_CONTRACT": 0,
+                                                       "PASS": 48}
+    for fid in [*evidence["verifies"], *evidence["reverifies"]]:
+        assert by_id[fid].effective_status("1.1.7") == kf.VERIFIED, fid
+    for fid in evidence["verifies"]:
+        assert "kit-1.1.7-adoption.json" in by_id[fid].verified_by, fid
+    assert by_id["KIT-GF-089"].fixed_in == "1.1.7"
+    assert not [f.id for f in by_id.values() if f.status == "OPEN"]
 
 
 
