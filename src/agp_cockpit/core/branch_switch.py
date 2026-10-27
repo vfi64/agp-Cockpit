@@ -61,13 +61,20 @@ def local_branches(root: Path, *, runner=subprocess.run) -> list[LocalBranch]:
 
 
 def _ref_list(root: Path, runner, pattern: str) -> list[LocalBranch]:
+    # AGP_ORIGIN_HEAD_NOT_A_BRANCH_V1 (Kit 1.1.7 adoption on the owner's Mac, 2026-10-27): newer Git
+    # creates refs/remotes/origin/HEAD on fetch, whose short name is "origin"; the offline list
+    # offered it as a branch. Full ref names are stripped of the pattern and the symbolic HEAD dropped.
     listed = _git(root, runner, "for-each-ref", "--sort=-committerdate",
-                  "--format=%(refname:short)%09%(committerdate:short)%09%(subject)", pattern)
+                  "--format=%(refname)%09%(committerdate:short)%09%(subject)", pattern)
+    prefix = pattern.rstrip("/") + "/"
     branches = []
     for line in listed.stdout.splitlines():
         ref, _, rest = line.partition("\t")
         date, _, subject = rest.partition("\t")
-        branches.append(LocalBranch(ref.removeprefix("origin/"), date, subject, False, remote_only=True))
+        name = ref.removeprefix(prefix)
+        if not ref.startswith(prefix) or not name or name == "HEAD":
+            continue
+        branches.append(LocalBranch(name, date, subject, False, remote_only=True))
     return branches
 
 

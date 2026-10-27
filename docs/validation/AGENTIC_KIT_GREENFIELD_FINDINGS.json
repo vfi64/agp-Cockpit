@@ -846,6 +846,13 @@
       "historical_id": "Kit 1.1.6 adoption (#386), greenfield retest",
       "canonical_family": "KIT-GF-089",
       "summary": "KIT-GF-021/032/045/067 FAIL under the 1.1.6 wheel: owned-runtime fixture without typer; reproduced in a clean venv"
+    },
+    {
+      "date": "2026-10-27",
+      "event_id": "GF-E117",
+      "historical_id": "Kit 1.1.7 adoption (#390), greenfield retest",
+      "canonical_family": "KIT-GF-089",
+      "summary": "greenfield retest --all under the 1.1.7 wheel: PASS 48, FAIL 0; KIT-GF-021/032/045/067/089 PASS"
     }
   ],
   "families": [
@@ -1504,7 +1511,8 @@
         "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-021-workspace-kit-discovery-2026-10-10.md"
       },
-      "verified_by": "2026-10-13 adoption of Kit 1.0.25 in a work clone (docs/validation/evidence/kit-1.0.25-adoption.json): kit update found the intact workspace-owned installation (.venv, status FOUND, version 1.0.24) before updating it."
+      "verified_by": "2026-10-13 adoption of Kit 1.0.25 in a work clone (docs/validation/evidence/kit-1.0.25-adoption.json): kit update found the intact workspace-owned installation (.venv, status FOUND, version 1.0.24) before updating it.",
+      "retest": "Re-verified 2026-10-27 by the Kit's installed-wheel machine contract under Kit 1.1.7: `greenfield retest --all` on the owner's Mac during the adoption (#390, PASS 48, FAIL 0) and in a clean Linux venv: PASS."
     },
     {
       "id": "KIT-GF-022",
@@ -1860,7 +1868,8 @@
         "kit_state": "CLOSED",
         "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-032-external-release-ready-2026-10-03.md"
-      }
+      },
+      "retest": "Re-verified 2026-10-27 by the Kit's installed-wheel machine contract under Kit 1.1.7: `greenfield retest --all` on the owner's Mac during the adoption (#390, PASS 48, FAIL 0) and in a clean Linux venv: PASS."
     },
     {
       "id": "KIT-GF-033",
@@ -2245,7 +2254,8 @@
         "kit_state": "CLOSED",
         "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-045-release-summary-line-passthrough-2026-10-05.md"
-      }
+      },
+      "retest": "Re-verified 2026-10-27 by the Kit's installed-wheel machine contract under Kit 1.1.7: `greenfield retest --all` on the owner's Mac during the adoption (#390, PASS 48, FAIL 0) and in a clean Linux venv: PASS."
     },
     {
       "id": "KIT-GF-046",
@@ -2881,7 +2891,7 @@
       "id": "KIT-GF-067",
       "title": "release and transfer diagnostics run ./.venv/bin/agentic-kit literally",
       "first_observed": "2026-10-13",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -2901,7 +2911,9 @@
         "kit_state": "CLOSED",
         "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/greenfield/KIT-GF-067-owned-kit-subprocess-resolution-2026-10-13.md"
-      }
+      },
+      "verified_by": "2026-10-27 docs/validation/evidence/kit-1.1.7-adoption.json (greenfield retest KIT-GF-067 PASS, installed Kit 1.1.7)",
+      "retest": "Verified 2026-10-27 by the Kit's installed-wheel machine contract under Kit 1.1.7: `greenfield retest --all` on the owner's Mac during the adoption (#390, PASS 48, FAIL 0) and in a clean Linux venv: PASS."
     },
     {
       "id": "KIT-GF-068",
@@ -2962,7 +2974,7 @@
       "id": "KIT-GF-070",
       "title": "the external retest catalog is not executable",
       "first_observed": "2026-10-13",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
@@ -2983,7 +2995,8 @@
         "raw": "agentic-kit greenfield status --json (Kit 1.1.6)",
         "report": "docs/reports/greenfield/KIT-GF-070-machine-contracts-c1c-2026-10-22.md"
       },
-      "retest": "2026-10-26/27 with Kit 1.1.6 (evidence kit-1.1.6-adoption.json): `greenfield retest --all` PASS 41, FAIL 4, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0. Not VERIFIED_FIXED: four of the new contracts (KIT-GF-021, 032, 045, 067) cannot run from the installed wheel (KIT-GF-089)."
+      "retest": "2026-10-26/27 with Kit 1.1.6 (evidence kit-1.1.6-adoption.json): `greenfield retest --all` PASS 41, FAIL 4, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0. Not VERIFIED_FIXED: four of the new contracts (KIT-GF-021, 032, 045, 067) cannot run from the installed wheel (KIT-GF-089). 2026-10-27 with Kit 1.1.7 (evidence kit-1.1.7-adoption.json): PASS 48, FAIL 0, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0; the four contracts blocked by KIT-GF-089 run.",
+      "verified_by": "2026-10-27 docs/validation/evidence/kit-1.1.7-adoption.json (greenfield retest --all under Kit 1.1.7: NO_MACHINE_CONTRACT 0, every local contract PASS)"
     },
     {
       "id": "KIT-GF-071",
@@ -3422,29 +3435,31 @@
       "id": "KIT-GF-089",
       "title": "four machine contracts of the retest catalog cannot run from the installed wheel",
       "first_observed": "2026-10-26",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.7",
       "expected": "`agentic-kit greenfield retest --all` under an installed Kit wheel runs every local machine contract to PASS, or to a FAIL of the defect it covers.",
       "observed": "Kit 1.1.6 adoption (2026-10-26, owner's Mac) and a clean Linux venv with agentic-project-kit==1.1.6: KIT-GF-021, 032, 045 and 067 report FAIL; their owned-runtime fixture runs the Kit without its dependencies (`ModuleNotFoundError: No module named 'typer'`).",
       "impact": "The four families cannot be re-verified here, and the retest's FAIL count mixes harness failures with real regressions.",
       "workaround": "None needed for the work; the families keep their earlier status (021, 032, 045 VERIFIED_FIXED from older evidence, 067 FIXED).",
-      "repair": null,
-      "regression": "A Kit test that runs the retest against the built wheel.",
+      "repair": "Kit 1.1.7 (PR #2658): the owned-runtime fixture replaces the Kit's site-packages directory by a symlink view without the Kit, so the owned interpreter keeps its dependencies; regression test models the wheel layout; machine contract KIT-GF-089 (nested retest of KIT-GF-021).",
+      "regression": "Kit tests/test_greenfield_retest_owned_runtime_wheel.py and machine contract KIT-GF-089.",
       "evidence": [
-        "docs/validation/evidence/kit-1.1.6-adoption.json (greenfield_retest.fail)"
+        "docs/validation/evidence/kit-1.1.6-adoption.json (greenfield_retest.fail)",
+        "Kit report docs/reports/greenfield/KIT-GF-089-owned-runtime-dependencies-2026-10-27.md",
+        "docs/validation/evidence/kit-1.1.7-adoption.json"
       ],
       "kit_repo_status": {
         "date": "2026-10-27",
-        "fixed_in": "",
-        "kit_state": "OPEN",
-        "raw": "observed by the Cockpit; reported to the Kit 2026-10-27",
-        "report": ""
+        "fixed_in": "unreleased",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.7); the catalog still says \"unreleased\", the fix shipped in 1.1.7 (Kit CHANGELOG v1.1.7)",
+        "report": "docs/reports/greenfield/KIT-GF-089-owned-runtime-dependencies-2026-10-27.md"
       },
-      "verified_by": null,
-      "retest": null
+      "verified_by": "2026-10-27 docs/validation/evidence/kit-1.1.7-adoption.json (greenfield retest KIT-GF-021/032/045/067/089 PASS, installed Kit 1.1.7)",
+      "retest": "Verified 2026-10-27 by the Kit's installed-wheel machine contract under Kit 1.1.7: `greenfield retest --all` on the owner's Mac during the adoption (#390, PASS 48, FAIL 0) and in a clean Linux venv: PASS."
     }
   ],
   "explicit_exclusions": [
@@ -3601,9 +3616,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "e3ffed18",
-    "latest_release": "1.1.6",
+    "kit_commit": "6d5fe5b2",
+    "latest_release": "1.1.7",
     "synced": "2026-10-27",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.6; Kit main e3ffed18). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.7; Kit main 6d5fe5b2). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
   }
 }

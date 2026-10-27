@@ -1796,3 +1796,13 @@ repeat once.
   KIT-GF-021/032/045/067 fail from the wheel because the owned-runtime fixture lacks the Kit's dependencies,
   recorded as KIT-GF-089 (GF-E116); GF-E115 records the 0.3.2 incident behind KIT-GF-086.
 
+## 2026-10-27 — Kit 1.1.7 register, origin/HEAD in the offline branch list (build release-0.3.3-r3)
+
+- Kit 1.1.7 adoption run (#390, owner's Mac): `greenfield retest --all` PASS 48, FAIL 0, NOT_RUN_LOCALLY 40,
+  NO_MACHINE_CONTRACT 0 (evidence docs/validation/evidence/kit-1.1.7-adoption.json, GF-E117). KIT-GF-067, 070 and
+  089 VERIFIED_FIXED; 021, 032 and 045 re-verified. No Kit finding is open in the register. The Kit's 1.1.7
+  catalog still names KIT-GF-089 „unreleased“ although the fix shipped in 1.1.7; recorded in kit_repo_status.
+- The same run found tests/test_hands_free.py red on main on the Mac: newer Git creates refs/remotes/origin/HEAD
+  on fetch, whose short name „origin“ the offline branch list offered as a branch. The list now reads full ref
+  names and drops the symbolic HEAD (AGP_ORIGIN_HEAD_NOT_A_BRANCH_V1); the regression test creates the symref
+  itself, so it also fails with older Git.
