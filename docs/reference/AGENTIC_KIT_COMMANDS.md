@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: f2cdb65463e0
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 019d0f970c2c
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
-- Schema version: `2`
+- Schema version: `3`
 - Source: `generated_from_typer_click_registry`
-- Command count: `272`
+- Command count: `273`
 
 ## Commands
 
@@ -488,16 +488,19 @@ _No parameters._
 
 - Safety: `READ_ONLY`
 - Surface: `diagnostic`
-- When to use: Select the deterministic wrapper command for a raw command or task tag.
+- When to use: Select by raw command, task tag or explicit state-aware intent; never execute.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `network_read`
 
-Select the deterministic wrapper command for a raw command or task tag.
+Select by raw command, task tag or explicit state-aware intent; never execute.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `raw` | `TyperOption` | --raw | `False` |  | Raw command line to map to a wrapper. |
 | `task` | `TyperOption` | --task | `False` |  | Task tag to list matching commands. |
+| `intent` | `TyperOption` | --intent | `False` |  | Exact task ID from manifest task_routes; selection grants no execution authority. |
+| `inputs` | `TyperOption` | --inputs | `False` | `{}` | JSON object of explicit task parameters, never facts or consent. |
+| `observe_pr` | `TyperOption` | --observe-pr | `False` | `False` | Read exactly the explicitly named PR from origin; no discovery or mutation. |
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
 
@@ -1595,7 +1598,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.6` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.7` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -2237,7 +2240,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.1.6` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.7` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2564,7 +2567,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.6` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.7` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -3097,6 +3100,26 @@ Render the terminal hint for copy/paste communication with the LLM.
 |---|---:|---|---:|---|---|
 | `log_path` | `TyperOption` | --log-path | `True` |  | Log file path to mention in the terminal upload hint. |
 | `return_code` | `TyperOption` | --rc | `False` |  | Optional return code to explain in the upload hint. |
+
+### `agentic-kit transfer merge-upstream`
+
+- Safety: `DESTRUCTIVE`
+- Surface: `primitive`
+- When to use: Merge a fetched upstream locally, preserve conflicts, then explicitly continue or abort.
+- Dry-run available: `True`
+- Remote effects: `none`
+
+Merge a fetched upstream locally, preserve conflicts, then explicitly continue or abort.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `branch` | `TyperOption` | --branch | `True` |  | Expected current work branch; main is refused. |
+| `upstream` | `TyperOption` | --upstream | `False` | `origin/main` | Already fetched origin ref; never fetched or pushed here. |
+| `continue_merge` | `TyperOption` | --continue | `False` | `False` | Preview/finish the resolved active merge. |
+| `abort` | `TyperOption` | --abort | `False` | `False` | Preview/discard tracked progress of the active merge; preserve untracked files. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Execute one approved action; preview is the default. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature from this action's preview. |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print the same structured result as JSON. |
 
 ### `agentic-kit transfer normalize-files`
 
@@ -4346,6 +4369,10 @@ Plan or create a bounded operating-layer workspace.
 | `inject_ci` | `TyperOption` | --inject-ci | `False` | `False` | Opt in to GitHub Actions workflow injection. |
 | `inject_pre_commit` | `TyperOption` | --inject-pre-commit | `False` | `False` | Opt in to pre-commit snippet injection. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Emit machine-readable JSON. |
+| `recover_partial` | `TyperOption` | --recover-partial | `False` | `False` | Plan signed additive recovery of a generated external project. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Reviewed recovery plan signature. |
+| `approved_by` | `TyperOption` | --approved-by | `False` | `` | Maintainer approving recovery. |
+| `consent_source` | `TyperOption` | --consent-source | `False` | `` | Source of explicit recovery consent. |
 
 ### `agentic-kit workspace remove`
 
