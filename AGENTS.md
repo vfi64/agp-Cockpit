@@ -1,5 +1,5 @@
 <!-- command-manifest-entrypoint:start -->
-MANDATORY FIRST READ: docs/reference/agentic-kit-commands.json (manifest_sha: f2cdb65463e0). Every reply containing commands MUST start with: COMMAND_MANIFEST_ACK f2cdb65463e0. Consult `agentic-kit command-for` before proposing commands and choose the most specific available Kit workflow command.
+MANDATORY FIRST READ: docs/reference/agentic-kit-commands.json (manifest_sha: 019d0f970c2c). Every reply containing commands MUST start with: COMMAND_MANIFEST_ACK 019d0f970c2c. Consult `agentic-kit command-for` before proposing commands and choose the most specific available Kit workflow command.
 <!-- command-manifest-entrypoint:end -->
 
 # AGENTS.md
