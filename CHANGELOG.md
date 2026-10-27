@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.1.6 adopted through the Kit's own `kit update` (manifest f2cdb65463e0, signature 0ac64fb3bc1affcd1bc7e462); CI pins, entrypoints, command reference and rule inventory follow 1.1.6.
 - The Lage and the Systemcheck show the Kit version that runs: in the Kit's own repository, an editable install kept the package metadata of its install time and the Lage showed „Kit 1.1.4“ while 1.1.5 ran; the Systemcheck names such a stale install, and a changed Kit package is seen without a restart (AGP_KIT_RUNTIME_VERSION_V1). „Branch wechseln“ reads the origin branches from GitHub itself, so a merged branch that GitHub deleted is no longer offered from a stale local ref (AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1). In the Kit's own repository a work order may name Kit source paths and write Kit source and tests: only a real module run (`-m` before the package, a bare module name, a one-line `-m` command string, or any string under `shell=True`) is still refused (AGP_KIT_GUARD_NOT_FILE_CONTENT_V1); build `release-0.3.3-r1`.
 
 ## v0.3.3 - 2026-10-23
