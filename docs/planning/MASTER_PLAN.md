@@ -704,7 +704,12 @@ P1 — next:
    rule without a `publication:` key, the category routes, origin branches in „Branch wechseln“, the
    ticked finish after an approval stop, the CI-configuration change, the release with a local Kit
    other than the CI's, the digest's missing option spellings and the Playwright install retry;
-   the 599 s timeout and the tool set of free tasks stay open.
+   the 599 s timeout and the tool set of free tasks stay open. Kit 1.1.6 is adopted (#386); rules 88
+   and 89 (build release-0.3.3-r2) add the running Kit version, live origin branches, Kit source in Kit
+   work orders, the work-branch start guard, the fresh-branch Lage, the app's own extension and ruff in
+   the CI. Open: the tool set of free tasks (owner decision: free tasks run only `agentic-kit` and `git`,
+   which kept tests and the site generator of the Kit out of KIT-GF-086), KIT-GF-089 in the Kit, the
+   599 s timeout.
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults. The bounded stage-A procedure is in TEST_PLAN,

@@ -680,7 +680,9 @@ class CockpitBridgeServer:
                             # AGP_APPROVAL_LOOP_BRAKE_V1 (live 2026-10-22, steps 65-82): the same
                             # approval asked again right after the owner granted it cannot be
                             # satisfied by granting it once more; the mission stops instead.
-                            from agp_cockpit.core.human_decision import approval_loop_question
+                            from agp_cockpit.core.human_decision import (
+                                approval_loop_question,
+                            )
                             loop = approval_loop_question(runtime_root, _current_task_id(runtime_root, engine),
                                                           wanted, invocations, filename=filename)
                             if loop:
@@ -1619,13 +1621,19 @@ class CockpitBridgeServer:
                         if mission.state != "NEEDS_HUMAN":
                             raise ValueError(f"mission is {mission.state}, not waiting for a human decision")
                         task_id = str(resolve_task_binding(runtime_root, mission_id).get("task_id") or "")
-                        from agp_cockpit.core.human_decision import EXACT_SCOPE, SCOPES, exact_commands_in
+                        from agp_cockpit.core.human_decision import (
+                            EXACT_SCOPE,
+                            SCOPES,
+                            exact_commands_in,
+                        )
                         scope_key = str(data.get("scope") or "full")
                         if scope_key not in SCOPES:
                             raise ValueError(f"unknown approval scope: {scope_key}")
                         exact = None
                         if scope_key == EXACT_SCOPE and str(data.get("decision") or "").upper() == "APPROVE":
-                            from agp_cockpit.core.kit_command_catalog import KitCommandCatalog
+                            from agp_cockpit.core.kit_command_catalog import (
+                                KitCommandCatalog,
+                            )
                             exact = exact_commands_in(mission.last_summary, KitCommandCatalog.load(repo_root))
                             if not exact:
                                 raise ValueError("the question names no agentic-kit command line; "

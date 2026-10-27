@@ -532,8 +532,10 @@ class SimpleTaskPanel(ttk.Frame):
 
     def start_task(self) -> None:
         # AGP_STALE_APP_GUARD_V1: never start a task on an outdated app.
+        # AGP_WORK_TASK_NOT_ON_MAIN_V1: never on main, master or a detached HEAD.
         from agp_cockpit.core.build_freshness import start_block_reason
-        blocked = start_block_reason(self.repository_root)
+        from agp_cockpit.core.work_tab_guard import work_task_block_reason
+        blocked = start_block_reason(self.repository_root) or work_task_block_reason(self.repository_root)
         if blocked:
             self.state_var.set(blocked)
             return
@@ -570,6 +572,11 @@ class SimpleTaskPanel(ttk.Frame):
     def _launch(self, auto_finish: bool, attempt: int = 0) -> None:
         """The confirmed start. AGP_START_WAITS_FOR_EXTENSION_V1: after a rebuild it waits
         (once a second, up to SETTLE_ATTEMPTS) until the extension reports the current build."""
+        from agp_cockpit.core.work_tab_guard import work_task_block_reason
+        blocked = work_task_block_reason(self.repository_root)   # AGP_WORK_TASK_NOT_ON_MAIN_V1
+        if blocked:
+            self.state_var.set(blocked)
+            return
         from agp_cockpit.core.start_request_client import (
             SETTLE_ATTEMPTS,
             extension_settling,

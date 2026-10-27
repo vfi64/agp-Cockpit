@@ -17,6 +17,7 @@ UNKLAR and tasks are blocked (no silent fallback to a repository copy).
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -102,6 +103,7 @@ class RepoFacts:
     post_merge_detail: str = ""
     task_running: bool = False
     branch_published: bool | None = None    # refs/remotes/origin/<branch> exists (None: main/unknown)
+    published_head: str = ""                # its commit (AGP_FRESH_PUBLISHED_BRANCH_V1)
     # AGP_FOLLOWUP_PR_CI_V1: the Kit's open follow-up pull request after a merge (post-merge
     # check not PASS on clean main) and the CI verdict of its checks (read-only gh query).
     followup_pr: int | None = None
@@ -155,6 +157,10 @@ FOLLOWUP_BRANCH = __import__("re").compile(r"^docs/post-pr\d+-")
 # the Kit's transfer branch with its published result; recommending „Abschließen“ there would open a
 # pull request with the transfer's orders into main. No recommendation; the Lösungsweg says why.
 TRANSFER_BRANCH_PREFIX = "transfer/"
+# AGP_FRESH_PUBLISHED_BRANCH_V1: „Arbeit beginnen“ names a branch <kind>/<name>; the Kit's own
+# post-merge refresh branches (docs/post-pr<N>-…) are administrative and never started by the owner.
+_STARTED_WORK_BRANCH = re.compile(r"^(feat|fix|docs|chore|refactor|test)/[a-z0-9][a-z0-9.-]*$")
+_KIT_ADMIN_BRANCH = re.compile(r"^docs/post-pr\d+-")
 FOLLOWUP_GREEN, FOLLOWUP_PENDING, FOLLOWUP_RUNNER, FOLLOWUP_FAILED = "GREEN", "PENDING", "RUNNER", "FAILED"
 FOLLOWUP_NOT_STARTED = "NOT_STARTED"       # AGP_CI_NOT_STARTED_V1
 _NOT_STARTED_SECONDS = 3
@@ -257,9 +263,10 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
     gh = gh_binary(root)
     if gh:
         gh_ok = _run([gh, "auth", "status"], root, runner).returncode == 0
-    published = None
+    published, published_head = None, ""
     if branch and branch != "main":
-        published = bool(_git(root, runner, "rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}"))
+        published_head = _git(root, runner, "rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}") or ""
+        published = bool(published_head)
     post_merge, detail = None, ""
     if kit is not None and branch == "main" and workspace:
         post_merge, detail = post_merge_check(root, kit, runner=runner)
@@ -270,7 +277,7 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
                      tracking_main=tracking, own_commits=own, changes=tuple(changes),
                      volatile_changes=tuple(volatile), kit_version=kit_version, workspace=workspace,
                      gh_ok=gh_ok, post_merge=post_merge, post_merge_detail=detail,
-                     task_running=task_running, branch_published=published,
+                     task_running=task_running, branch_published=published, published_head=published_head,
                      followup_pr=followup[0], followup_ci=followup[1], followup_url=followup[2])
 
 
@@ -328,8 +335,16 @@ def classify(facts: RepoFacts) -> RepoState:
                           problems, facts)
         return _state(BEREIT, "main ist synchron und sauber; bereit für neue Arbeit.", ARBEIT_BEGINNEN,
                       (), facts)
+    fresh_published = (facts.branch_published is True and facts.published_head == facts.head
+                       and bool(_STARTED_WORK_BRANCH.match(facts.branch))
+                       and not _KIT_ADMIN_BRANCH.match(facts.branch))
     if (facts.own_commits == 0 and facts.changes and facts.head == facts.origin_main
-            and facts.branch_published is False):
+            and (facts.branch_published is False or fresh_published)):
+        # AGP_FRESH_PUBLISHED_BRANCH_V1 (live 2026-10-25, Kit repository): „Arbeit beginnen“ publishes
+        # the new branch (its origin ref is the commit of origin/main). Uncommitted work on such a
+        # branch is work in progress, not a leftover: the Lage said „Störung … Rest eines
+        # Abschlusses“ and recommended „Wiederherstellen“, which would have discarded it. A leftover
+        # after a squash merge has an origin branch at its own (unmerged) commits instead.
         # AGP_UNCOMMITTED_WORK_STATE_V1 (live 2026-10-05, docs/lifecycle-headers): a new,
         # never published branch whose work is still uncommitted (an Arbeiten task leaves it so)
         # is work in progress, not a leftover; Abschließen commits and publishes it.

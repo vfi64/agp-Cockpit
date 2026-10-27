@@ -40,8 +40,9 @@ CATALOG = KitCommandCatalog.load(ROOT)
 PUSH = "agentic-kit transfer push-current"
 
 
-def _policy(tmp_path, approvals=KitApprovals(), real_kit=None):
-    return build_policy(CATALOG, approvals, real_kit=real_kit, log_path=tmp_path / LOG_NAME)
+def _policy(tmp_path, approvals=None, real_kit=None):
+    return build_policy(CATALOG, approvals if approvals is not None else KitApprovals(), real_kit=real_kit,
+                        log_path=tmp_path / LOG_NAME)
 
 
 # --- (b) literal arguments ----------------------------------------------------------------------
@@ -69,6 +70,37 @@ def test_an_approval_required_call_must_name_its_arguments_literally(source, rej
 def test_ways_around_the_guard_are_refused_in_the_source(source):
     assert kit_bypass_violations(source)
     assert command_catalog_violations(source, CATALOG, allow_remote_effects=True)
+
+
+@pytest.mark.parametrize("source", [
+    "import runpy\nrunpy.run_module('agentic_project_kit.cli', run_name='__main__')\n",
+    "import importlib\nimportlib.import_module('agentic_project_kit')\n",
+    "import subprocess\nsubprocess.run('python3 -m agentic_project_kit check', shell=True)\n",
+    "import subprocess\nsubprocess.run('cd x\\n.venv/bin/agentic-kit check\\n', shell=True)\n",
+    "import subprocess, sys\nsubprocess.run((sys.executable, '-m', 'agentic_project_kit'))\n",
+])
+def test_other_module_runs_stay_refused(source):
+    """AGP_KIT_GUARD_NOT_FILE_CONTENT_V1: the narrowed rule still sees a module run."""
+    assert kit_bypass_violations(source), source
+
+
+def test_kit_source_paths_and_file_content_are_not_a_module_run():
+    """AGP_KIT_GUARD_NOT_FILE_CONTENT_V1 (live 2026-10-25, Kit repository steps 113 and 134)."""
+    content = (
+        "import subprocess, sys\n"
+        "from agentic_project_kit.kit_ci_pin_guard import evaluate\n\n"
+        "def test_cli():\n"
+        "    done = subprocess.run([sys.executable, '-m', 'agentic_project_kit.cli', 'commands'])\n"
+        "    assert Path('.venv/bin/agentic-kit')\n"
+    )
+    source = (
+        "import subprocess\nfrom pathlib import Path\n"
+        f"TEST = {content!r}\n"
+        "GUARD = 'src/agentic_project_kit/kit_ci_pin_guard.py'\n"
+        "Path('tests/test_kit_ci_pin_guard.py').write_text(TEST)\n"
+        "subprocess.run(['agentic-kit', 'transfer', 'commit', '--path', GUARD, '-m', 'KIT-GF-086'])\n"
+    )
+    assert kit_bypass_violations(source) == []
 
 
 def test_plain_agentic_kit_is_fine():
@@ -130,7 +162,7 @@ def _fake_kit(tmp_path):
 def _run(directory, *args):
     env = {**os.environ, "PATH": os.pathsep.join([str(directory), os.environ.get("PATH", "")])}
     env.pop("AGP_KIT_GUARD_INNER", None)
-    return subprocess.run(["agentic-kit", *args], env=env, capture_output=True, text=True)
+    return subprocess.run(["agentic-kit", *args], env=env, capture_output=True, text=True, check=False)
 
 
 def _calls(record):

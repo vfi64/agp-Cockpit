@@ -79,6 +79,9 @@ def test_refresh_pull_requests_take_the_kits_light_path_and_everything_else_runs
     pytest_step = next(step for step in python["steps"] if "pytest" in str(step.get("run", "")))
     kit_step = next(step for step in python["steps"] if "agentic-kit check" in str(step.get("run", "")))
     assert pytest_step["if"] == "steps.plan.outputs.mode != 'light'" and "if" not in kit_step
+    # AGP_CI_RUFF_V1 (2026-10-27): without ruff the CI skipped tests/test_lint_clean.py, and eight
+    # findings on main surfaced only on the owner's Mac during the Kit 1.1.6 adoption.
+    assert re.search(r'"ruff==\d+\.\d+\.\d+"', pytest_step["run"]), pytest_step["run"]
     # AGP_CI_LIGHT_SKIP_DECLARED_V1 (Kit 1.1.2, KIT-GF-073; replaces AGP_CI_LIGHT_NO_SKIP_V1): the browser job is
     # skipped on the light path only; a failed classification still runs it (always()). The gate accepts a skipped
     # browser job only together with the light verdict, and the workspace declares the check for the Kit.

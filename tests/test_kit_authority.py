@@ -182,3 +182,40 @@ def test_status_names_the_installed_kit_digest(bridge, installed_kit):
     digest = json.loads(Path(status["kit_command_digest_path"]).read_text())
     assert status["kit_manifest_sha"] == "installed1"
     assert digest["source"] == "installed agentic-kit 9.9.9"
+
+
+def test_the_version_is_the_running_package_and_follows_its_init(tmp_path, monkeypatch):
+    """AGP_KIT_RUNTIME_VERSION_V1: an editable install keeps the metadata of its install time."""
+    import os
+    import time
+    from types import SimpleNamespace
+
+    from agp_cockpit.core import system_check
+    manifest = tmp_path / "agentic-kit-commands.json"
+    manifest.write_text(json.dumps(MANIFEST))
+    init = tmp_path / "__init__.py"
+    init.write_text('__version__ = "1.1.5"\n')
+    answer = tmp_path / "answer.json"
+    answer.write_text(json.dumps({"version": "1.1.5", "metadata_version": "1.1.4",
+                                  "package_init": str(init), "manifest": str(manifest)}))
+    interpreter = tmp_path / "kitpython"
+    interpreter.write_text(f"#!/bin/sh\ncat '{answer}'\n")
+    interpreter.chmod(interpreter.stat().st_mode | stat.S_IEXEC)
+    binary = tmp_path / "agentic-kit"
+    binary.write_text(f"#!{interpreter}\n")
+    monkeypatch.setenv("AGP_COCKPIT_KIT_BINARY", str(binary))
+    kit_installation._CACHE.clear()
+    kit = kit_installation.discover(tmp_path)
+    assert (kit.version, kit.metadata_version) == ("1.1.5", "1.1.4")
+    assert "import agentic_project_kit as k" in kit_installation.PROBE
+    assert "getattr(k, '__version__', '') or meta" in kit_installation.PROBE
+    answer.write_text(answer.read_text().replace('"version": "1.1.5"', '"version": "1.1.6"'))
+    assert kit_installation.discover(tmp_path).version == "1.1.5"            # cached while unchanged
+    later = time.time_ns() + 10**9
+    os.utime(init, ns=(later, later))                                        # a pull changed the package
+    assert kit_installation.discover(tmp_path).version == "1.1.6"
+    monkeypatch.setattr(kit_installation, "discover",
+                        lambda _root: SimpleNamespace(version="1.1.5", metadata_version="1.1.4"))
+    monkeypatch.setattr(system_check, "ci_kit_pins", lambda _root: set())
+    check = system_check._kit(tmp_path)
+    assert check.detail == "1.1.5 · Entwicklerinstallation (Paketangabe 1.1.4)"

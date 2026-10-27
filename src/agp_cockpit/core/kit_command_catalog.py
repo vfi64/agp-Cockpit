@@ -24,6 +24,7 @@ the Cockpit does not know counts as remote effect (R3, fail closed).
 from __future__ import annotations
 
 import ast
+import itertools
 import json
 import re
 import shlex
@@ -505,20 +506,44 @@ KIT_GUARD_MARKER = "AGP_KIT_GUARD"
 KIT_PACKAGE = "agentic_project_kit"
 
 
+_MODULE_NAME = re.compile(rf"^{KIT_PACKAGE}(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+_MODULE_RUN = re.compile(rf"(^|\s)-m\s+{KIT_PACKAGE}(\b|\.)")
+
+
 def kit_bypass_violations(source: str) -> list[str]:
+    """AGP_KIT_GUARD_NOT_FILE_CONTENT_V1 (live 2026-10-25, Kit repository, steps 113 and 134): every
+    string that contained the package name was read as a module run, so a work order in the Kit's
+    own repository could neither name `src/agentic_project_kit/...` nor write a test that runs the
+    CLI: eight rejections in one task. A module run is now what runs one: `-m` before the package
+    in an argument list, a bare module name (runpy, importlib, `__import__`), or a one-line command
+    string with `-m agentic_project_kit`. A multi-line string is file content and is not read as a
+    command, unless the work order uses a shell (`shell=True`), where it could be one.
+    """
     tree = ast.parse(source)
     violations: set[str] = set()
+    shell = any(isinstance(node, ast.keyword) and node.arg == "shell"
+                and not (isinstance(node.value, ast.Constant) and node.value.value in (False, None))
+                for node in ast.walk(tree))
+    module_run = f"do not run {KIT_PACKAGE} as a module; call the Kit as plain agentic-kit"
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             modules = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
             if any(m.split(".")[0] == KIT_PACKAGE for m in modules):
                 violations.add(f"do not import {KIT_PACKAGE}; call the Kit as plain agentic-kit")
+        elif isinstance(node, (ast.List, ast.Tuple)):
+            values = [e.value if isinstance(e, ast.Constant) and isinstance(e.value, str) else None
+                      for e in node.elts]
+            for flag, target in itertools.pairwise(values):
+                if flag == "-m" and isinstance(target, str) and target.startswith(KIT_PACKAGE):
+                    violations.add(module_run)
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             text = node.value
-            if KIT_PACKAGE in text:
-                violations.add(f"do not run {KIT_PACKAGE} as a module; call the Kit as plain agentic-kit")
             if KIT_GUARD_MARKER in text:
                 violations.add(f"{KIT_GUARD_MARKER} belongs to the Cockpit's invocation guard")
+            if "\n" in text.strip() and not shell:
+                continue                        # file content, not a command
+            if _MODULE_NAME.match(text.strip()) or _MODULE_RUN.search(text):
+                violations.add(module_run)
             for token in text.split():
                 if token != "agentic-kit" and Path(token.strip("'\"")).name == "agentic-kit":
                     violations.add(

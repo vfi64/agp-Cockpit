@@ -115,7 +115,9 @@ def _kit(root: Path) -> Check:
     if pins and kit.version not in pins:
         return Check("Agentic Kit", WARN, f"installiert {kit.version}, die CI des Cockpits nutzt {', '.join(sorted(pins))}",
                      "Kit-Version angleichen (Übernahme einer neuen Kit-Version mit Claude).")
-    return Check("Agentic Kit", OK, f"{kit.version}" + (" · wie in der CI" if pins else ""))
+    stale = getattr(kit, "metadata_version", "")
+    note = (f" · Entwicklerinstallation (Paketangabe {stale})" if stale and stale != kit.version else "")
+    return Check("Agentic Kit", OK, f"{kit.version}" + (" · wie in der CI" if pins else "") + note)
 
 
 def _repository(root: Path) -> Check:

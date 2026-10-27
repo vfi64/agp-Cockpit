@@ -116,3 +116,25 @@ def test_macos_app_bundle_version_comes_from_runtime_version():
     assert "def _app_version()" in spec
     assert 'version=_app_version()' in spec
     assert 'version="0.1.0' not in spec
+
+
+def test_an_older_checkout_gives_way_to_the_running_apps_extension(monkeypatch, tmp_path):
+    """AGP_EXTENSION_MATCHES_RUNNING_APP_V1 (live 2026-10-26): checkout on main (release-0.3.3), app
+    built from a fix branch (release-0.3.3-r1): the staged extension must be the app's own."""
+    from agp_cockpit import version
+    from agp_cockpit.adapters import macos_extension
+
+    repo, bundle = tmp_path / "repo", tmp_path / "bundle"
+    _make_extension(repo, version="0.3.3")
+    (repo / "chrome_extension" / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "release-0.3.3";\n', encoding="utf-8")
+    _make_extension(bundle, version="0.3.3")
+    (bundle / "chrome_extension" / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "release-0.3.3-r7";\n', encoding="utf-8")
+    monkeypatch.setattr(macos_extension.sys, "_MEIPASS", str(bundle), raising=False)
+    monkeypatch.setattr(version, "BRIDGE_BUILD_ID", "release-0.3.3-r7")   # not the checkout's own
+    assert macos_extension.packaged_extension_source(repo) == bundle / "chrome_extension"
+    # a checkout newer than the app still wins (the stale-app guard then asks for a rebuild)
+    (repo / "chrome_extension" / "build_identity.js").write_text(
+        'globalThis.AGP_EXTENSION_BUILD_ID = "release-0.3.3-r8";\n', encoding="utf-8")
+    assert macos_extension.packaged_extension_source(repo) == (repo / "chrome_extension").resolve()

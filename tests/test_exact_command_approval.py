@@ -8,11 +8,11 @@ branch, so the remote side took an existing one for missing; and the Lage recomm
 """
 from __future__ import annotations
 
-import json
 import subprocess
 from pathlib import Path
 
 import pytest
+from test_human_decision import _bridge, mission, work_order
 
 from agp_cockpit.core import guidance
 from agp_cockpit.core import repo_state as rs
@@ -22,9 +22,11 @@ from agp_cockpit.core.human_decision import (
     exact_approval_view,
     exact_commands_in,
 )
-from agp_cockpit.core.kit_command_catalog import KitCommandCatalog, approval_required_invocations
+from agp_cockpit.core.kit_command_catalog import (
+    KitCommandCatalog,
+    approval_required_invocations,
+)
 from agp_cockpit.core.merged_branch_guard import mentioned_branches, repository_facts
-from test_human_decision import _bridge, mission, work_order
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = KitCommandCatalog.load(ROOT)
@@ -140,7 +142,7 @@ def test_the_bridge_question_lists_the_line_and_an_exact_approval_runs_only_it(b
 
 
 def test_an_exact_approval_of_the_same_line_executes(bridge):
-    root, runtime, call = bridge
+    _root, runtime, call = bridge
     first = mission(call, runtime)
     call("/v1/file-loop/command", {"filename": "1480_push.py", "content": work_order(["transfer", "push-current"])})
     call("/v1/task/decision", {"mission_id": first, "decision": "APPROVE", "scope": "exact"})

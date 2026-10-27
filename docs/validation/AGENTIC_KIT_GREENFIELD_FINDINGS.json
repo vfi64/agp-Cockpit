@@ -832,6 +832,20 @@
       "historical_id": "Kit release 1.1.5, first run, A2",
       "canonical_family": "KIT-GF-085",
       "summary": "release ready blocked on quoted ./ns fixture lines in the finding catalog; no PR check had run the audit suite"
+    },
+    {
+      "date": "2026-10-22",
+      "event_id": "GF-E115",
+      "historical_id": "Cockpit release 0.3.2 (#378)",
+      "canonical_family": "KIT-GF-086",
+      "summary": "release preparation with the local Kit 1.1.4 rewrote the 1.1.5 command reference; repaired by #380"
+    },
+    {
+      "date": "2026-10-26",
+      "event_id": "GF-E116",
+      "historical_id": "Kit 1.1.6 adoption (#386), greenfield retest",
+      "canonical_family": "KIT-GF-089",
+      "summary": "KIT-GF-021/032/045/067 FAIL under the 1.1.6 wheel: owned-runtime fixture without typer; reproduced in a clean venv"
     }
   ],
   "families": [
@@ -1290,7 +1304,7 @@
       "id": "KIT-GF-014",
       "title": "External-workspace governance does not detect stale or ambiguous continuation authority",
       "first_observed": "2026-09-05",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -1311,13 +1325,15 @@
         "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_12_GREENFIELD_REMAINING_CLOSEOUT_20260915.json"
       },
-      "fixed_in": "1.0.13"
+      "fixed_in": "1.0.13",
+      "verified_by": "2026-10-27 docs/validation/evidence/kit-1.1.6-adoption.json (greenfield retest KIT-GF-014 PASS, installed Kit 1.1.6)",
+      "retest": "Verified 2026-10-26/27 by the Kit's installed-wheel machine contract (new in Kit 1.1.6), run with `greenfield retest --all` under Kit 1.1.6 on the owner's Mac during the adoption and again in a clean venv: PASS."
     },
     {
       "id": "KIT-GF-015",
       "title": "Canonical document facts are not propagated across registered documents",
       "first_observed": "2026-09-05",
-      "status": "FIXED",
+      "status": "VERIFIED_FIXED",
       "severity": "medium-high",
       "classification": "agentic-kit",
       "aliases": [],
@@ -1338,7 +1354,9 @@
         "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
         "report": "docs/reports/POST_V1_0_12_GREENFIELD_REMAINING_CLOSEOUT_20260915.json"
       },
-      "fixed_in": "1.0.13"
+      "fixed_in": "1.0.13",
+      "verified_by": "2026-10-27 docs/validation/evidence/kit-1.1.6-adoption.json (greenfield retest KIT-GF-015 PASS, installed Kit 1.1.6)",
+      "retest": "Verified 2026-10-26/27 by the Kit's installed-wheel machine contract (new in Kit 1.1.6), run with `greenfield retest --all` under Kit 1.1.6 on the owner's Mac during the adoption and again in a clean venv: PASS."
     },
     {
       "id": "KIT-GF-016",
@@ -2944,28 +2962,28 @@
       "id": "KIT-GF-070",
       "title": "the external retest catalog is not executable",
       "first_observed": "2026-10-13",
-      "status": "OPEN",
+      "status": "FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.6",
       "expected": "Each family's retest is executable by the Kit: a declarative fixture the Kit builds, machine assertions that prove the fix, and an execution class (local, owner_remote, kit_release); a local route runs it in a disposable workspace and returns PASS/FAIL per family.",
       "observed": "Kit 1.0.25 `greenfield status --json` (KIT-GF-066) lists argv templates per family, but the expected results are prose for 65 of 67 families (only KIT-GF-001 fully machine-checkable; KIT-GF-060: only returncode and JSON shape), preconditions are prose, and remote retests carry no machine marker.",
       "impact": "A consumer can only re-implement the Kit's fixtures per finding (a consumer workaround) or accept returncode 0 as proof (too weak); VERIFIED_FIXED cannot be reached systematically.",
       "workaround": "Families are verified from real runs (release 0.2.5, Kit 1.0.25 adoption) with committed evidence files.",
-      "repair": "Kit PR #2569 (1.1.3): `agentic-kit greenfield retest` with execution classes (local, owner_remote, kit_release) and machine contracts for eight families; the other families still carry prose expectations (Kit state PARTIAL).",
+      "repair": "Kit PR #2569 (1.1.3): `agentic-kit greenfield retest` with execution classes (local, owner_remote, kit_release) and machine contracts for eight families; the other families still carry prose expectations (Kit state PARTIAL). Kit 1.1.6 (c1c contracts, PR #2607): every catalog family carries a machine contract (NO_MACHINE_CONTRACT 0); the Kit's catalog states CLOSED without fixed_in, the first release with c1c is 1.1.6.",
       "regression": "External installed-wheel fixture with positive and negative case.",
       "evidence": [
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-22",
+        "date": "2026-10-27",
         "fixed_in": "",
-        "kit_state": "PARTIAL",
-        "raw": "agentic-kit greenfield status --json (Kit 1.1.5, Kit main 52f469f1)",
-        "report": "docs/reports/greenfield/KIT-GF-070-077-executable-retests-2026-10-20.md"
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.6)",
+        "report": "docs/reports/greenfield/KIT-GF-070-machine-contracts-c1c-2026-10-22.md"
       },
-      "retest": "2026-10-20 with Kit 1.1.4 here (evidence kit-1.1.4-adoption.json): `greenfield retest --all` INCOMPLETE (exit 3) with PASS 8, FAIL 0, NOT_RUN_LOCALLY 37, NO_MACHINE_CONTRACT 34; the route works and never reports an unverified family as PASS, but 34 local families have no machine contract yet, so the finding stays OPEN."
+      "retest": "2026-10-26/27 with Kit 1.1.6 (evidence kit-1.1.6-adoption.json): `greenfield retest --all` PASS 41, FAIL 4, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0. Not VERIFIED_FIXED: four of the new contracts (KIT-GF-021, 032, 045, 067) cannot run from the installed wheel (KIT-GF-089)."
     },
     {
       "id": "KIT-GF-071",
@@ -3371,6 +3389,62 @@
       },
       "verified_by": "2026-10-22 docs/validation/evidence/kit-1.1.5-adoption.json (greenfield retest KIT-GF-085 PASS, installed Kit 1.1.5)",
       "retest": "Verified 2026-10-22 by the Kit's installed-wheel machine contract, run from here with `greenfield retest --all` under Kit 1.1.5: PASS."
+    },
+    {
+      "id": "KIT-GF-086",
+      "title": "entrypoint synchronization rewrote the command reference with an installed Kit older than the CI pin",
+      "first_observed": "2026-10-22",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-release-governance",
+      "aliases": [],
+      "fixed_in": "1.1.6",
+      "expected": "`commands sync-entrypoints --execute` and `release prepare` refuse to run while the installed Kit is older than the workspace's CI pin, before any write.",
+      "observed": "Cockpit release 0.3.2 (#378, 2026-10-22) ran its preparation with the checkout's Kit 1.1.4 while the CI pinned 1.1.5; the entrypoint synchronization rewrote AGENTS.md and the command reference to the 1.1.4 manifest, and the tag v0.3.2 carries them.",
+      "impact": "A release silently downgraded the workspace's command authority; follow-up PR #380 restored it.",
+      "workaround": "AGP_RELEASE_KIT_MATCHES_CI_V1 (Cockpit 0.3.3): the Release button refuses to start on a mismatch.",
+      "repair": "Kit 1.1.6 (PR #2633): read-only guard on the CI pins; `sync-entrypoints --execute` and `release prepare` block with installed_kit_older_than_ci_pin.",
+      "regression": "Kit machine contract KIT-GF-086 and the Kit's guard tests.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-086-ci-pin-guard-2026-10-25.md"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-27",
+        "fixed_in": "1.1.6",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.6)",
+        "report": "docs/reports/greenfield/KIT-GF-086-ci-pin-guard-2026-10-25.md"
+      },
+      "verified_by": "2026-10-27 docs/validation/evidence/kit-1.1.6-adoption.json (greenfield retest KIT-GF-086 PASS, installed Kit 1.1.6)",
+      "retest": "Verified 2026-10-26/27 by the Kit's installed-wheel machine contract under Kit 1.1.6 (owner's Mac adoption run and a clean venv): PASS."
+    },
+    {
+      "id": "KIT-GF-089",
+      "title": "four machine contracts of the retest catalog cannot run from the installed wheel",
+      "first_observed": "2026-10-26",
+      "status": "OPEN",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "`agentic-kit greenfield retest --all` under an installed Kit wheel runs every local machine contract to PASS, or to a FAIL of the defect it covers.",
+      "observed": "Kit 1.1.6 adoption (2026-10-26, owner's Mac) and a clean Linux venv with agentic-project-kit==1.1.6: KIT-GF-021, 032, 045 and 067 report FAIL; their owned-runtime fixture runs the Kit without its dependencies (`ModuleNotFoundError: No module named 'typer'`).",
+      "impact": "The four families cannot be re-verified here, and the retest's FAIL count mixes harness failures with real regressions.",
+      "workaround": "None needed for the work; the families keep their earlier status (021, 032, 045 VERIFIED_FIXED from older evidence, 067 FIXED).",
+      "repair": null,
+      "regression": "A Kit test that runs the retest against the built wheel.",
+      "evidence": [
+        "docs/validation/evidence/kit-1.1.6-adoption.json (greenfield_retest.fail)"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-27",
+        "fixed_in": "",
+        "kit_state": "OPEN",
+        "raw": "observed by the Cockpit; reported to the Kit 2026-10-27",
+        "report": ""
+      },
+      "verified_by": null,
+      "retest": null
     }
   ],
   "explicit_exclusions": [
@@ -3527,9 +3601,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "52f469f1",
-    "latest_release": "1.1.5",
-    "synced": "2026-10-22",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.5, main 52f469f1). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
+    "kit_commit": "e3ffed18",
+    "latest_release": "1.1.6",
+    "synced": "2026-10-27",
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.6; Kit main e3ffed18). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
   }
 }

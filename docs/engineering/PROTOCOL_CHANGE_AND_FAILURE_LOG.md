@@ -1754,3 +1754,45 @@ repeat once.
   is terminal for the mission), so a task that needed one decision never finished itself. The stop now
   emits `finished_human`, which keeps the tick armed; an approval with the tick still set carries it on,
   a rejection or a removed tick ends it (AGP_AUTO_FINISH_THROUGH_DECISION_V1).
+
+## 2026-10-25 — Kit version of an editable install; stale origin branches (build release-0.3.3-r1)
+
+- In the Kit's own repository the Lage showed „Kit 1.1.4“ while `agentic-kit --version` reported 1.1.5:
+  the Cockpit read the pip metadata, which an editable install keeps from its install time. The probe
+  now reads `agentic_project_kit.__version__` (metadata as fallback, kept as `metadata_version`), the
+  Systemcheck names a differing metadata version as „Entwicklerinstallation“, and the discovery cache
+  follows the package's `__init__.py` (AGP_KIT_RUNTIME_VERSION_V1).
+- The owner switched on GitHub's automatic deletion of merged branches for the Kit repository and
+  cleaned up its merged branches. GitHub's deletion leaves the local remote-tracking ref, so the
+  0.3.3 dialog would have offered deleted branches as „nur auf origin“. It now reads `git ls-remote
+  --heads origin`; the tracking refs are the offline fallback (AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1).
+- KIT-GF-086 through the Cockpit in the Kit's own repository: eight work orders (up to steps 113 and
+  134) were refused with „do not run agentic_project_kit as a module“. The invocation guard's source
+  check refused every string that contained the package name, so a work order could neither name
+  `src/agentic_project_kit/...` nor write a test that runs the CLI. It now refuses only a real module
+  run: `-m` before the package in an argument list, a bare module name, a one-line command string with
+  `-m agentic_project_kit`; a multi-line string is file content unless the work order uses a shell.
+  Imports of the package stay refused (AGP_KIT_GUARD_NOT_FILE_CONTENT_V1).
+
+## 2026-10-27 — Work tab on main, fresh branch Lage, extension build, ruff in CI, Kit 1.1.6 register (build release-0.3.3-r2)
+
+- 2026-10-26, Kit repository: an „Arbeiten“ task started on main failed its own branch check three times and
+  used up the mission's error budget. „Task starten“ (and the confirmed start) now refuse main, master and a
+  detached HEAD and point to „Arbeit beginnen“ (AGP_WORK_TASK_NOT_ON_MAIN_V1).
+- 2026-10-25, Kit repository: after „Arbeit beginnen“, whose Kit route publishes the branch at origin/main, the
+  Lage called uncommitted work „Störung … Rest eines Abschlusses“ and recommended „Wiederherstellen“, which
+  would have discarded it. A started work branch (<kind>/<name>, not a Kit refresh branch) whose origin ref is
+  its HEAD at origin/main is now IN_ARBEIT (AGP_FRESH_PUBLISHED_BRANCH_V1).
+- 2026-10-26: with the checkout on main (release-0.3.3) and the app from a fix branch (release-0.3.3-r1) the
+  checkout's older extension was staged, every task stopped with „Build passt nicht“, and AGP_BUILD_ORDER_V1
+  offered no rebuild for an older source; the owner had to rebuild in the terminal. A checkout whose release
+  build is older than the running app now gives way to the app's own extension
+  (AGP_EXTENSION_MATCHES_RUNNING_APP_V1).
+- The Kit 1.1.6 adoption run (#386) found tests/test_lint_clean.py red on main: eight ruff findings that the CI
+  never saw, because ruff is not installed there and the test skips itself. Findings fixed; the CI python job
+  installs a pinned ruff (AGP_CI_RUFF_V1).
+- Findings register for Kit 1.1.6 (evidence docs/validation/evidence/kit-1.1.6-adoption.json): retest PASS 41,
+  FAIL 4, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0. KIT-GF-014, 015 and 086 VERIFIED_FIXED; 070 FIXED in 1.1.6;
+  KIT-GF-021/032/045/067 fail from the wheel because the owned-runtime fixture lacks the Kit's dependencies,
+  recorded as KIT-GF-089 (GF-E116); GF-E115 records the 0.3.2 incident behind KIT-GF-086.
+
