@@ -47,6 +47,16 @@ def facts(**kw):
     # work uncommitted -> Abschließen, not Wiederherstellen
     ({"branch": "docs/lifecycle-headers", "own_commits": 0, "changes": ("docs/planning/A.md",),
       "branch_published": False}, rs.IN_ARBEIT, rs.ABSCHLIESSEN),
+    # AGP_FRESH_PUBLISHED_BRANCH_V1 (live 2026-10-25): „Arbeit beginnen“ published the branch at
+    # origin/main; uncommitted work there is work in progress, never „Wiederherstellen“
+    ({"branch": "fix/kit-gf-086-ci-pin-guard", "own_commits": 0, "changes": ("src/x.py",),
+      "branch_published": True, "published_head": "a" * 40}, rs.IN_ARBEIT, rs.ABSCHLIESSEN),
+    # an origin branch at other commits (a squash-merged leftover) stays a Störung
+    ({"branch": "fix/old", "own_commits": 0, "changes": ("src/x.py",),
+      "branch_published": True, "published_head": "c" * 40}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
+    # the Kit's refresh branches are never a started work branch
+    ({"branch": "docs/post-pr139-handoff-refresh", "own_commits": 0, "changes": ("a.md",),
+      "branch_published": True, "published_head": "a" * 40}, rs.STOERUNG, rs.WIEDERHERSTELLEN),
 ])
 def test_classify(kw, state, recommended):
     result = rs.classify(facts(**kw))

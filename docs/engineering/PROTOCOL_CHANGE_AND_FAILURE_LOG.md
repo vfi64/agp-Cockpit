@@ -1774,3 +1774,25 @@ repeat once.
   `-m agentic_project_kit`; a multi-line string is file content unless the work order uses a shell.
   Imports of the package stay refused (AGP_KIT_GUARD_NOT_FILE_CONTENT_V1).
 
+## 2026-10-27 — Work tab on main, fresh branch Lage, extension build, ruff in CI, Kit 1.1.6 register (build release-0.3.3-r2)
+
+- 2026-10-26, Kit repository: an „Arbeiten“ task started on main failed its own branch check three times and
+  used up the mission's error budget. „Task starten“ (and the confirmed start) now refuse main, master and a
+  detached HEAD and point to „Arbeit beginnen“ (AGP_WORK_TASK_NOT_ON_MAIN_V1).
+- 2026-10-25, Kit repository: after „Arbeit beginnen“, whose Kit route publishes the branch at origin/main, the
+  Lage called uncommitted work „Störung … Rest eines Abschlusses“ and recommended „Wiederherstellen“, which
+  would have discarded it. A started work branch (<kind>/<name>, not a Kit refresh branch) whose origin ref is
+  its HEAD at origin/main is now IN_ARBEIT (AGP_FRESH_PUBLISHED_BRANCH_V1).
+- 2026-10-26: with the checkout on main (release-0.3.3) and the app from a fix branch (release-0.3.3-r1) the
+  checkout's older extension was staged, every task stopped with „Build passt nicht“, and AGP_BUILD_ORDER_V1
+  offered no rebuild for an older source; the owner had to rebuild in the terminal. A checkout whose release
+  build is older than the running app now gives way to the app's own extension
+  (AGP_EXTENSION_MATCHES_RUNNING_APP_V1).
+- The Kit 1.1.6 adoption run (#386) found tests/test_lint_clean.py red on main: eight ruff findings that the CI
+  never saw, because ruff is not installed there and the test skips itself. Findings fixed; the CI python job
+  installs a pinned ruff (AGP_CI_RUFF_V1).
+- Findings register for Kit 1.1.6 (evidence docs/validation/evidence/kit-1.1.6-adoption.json): retest PASS 41,
+  FAIL 4, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0. KIT-GF-014, 015 and 086 VERIFIED_FIXED; 070 FIXED in 1.1.6;
+  KIT-GF-021/032/045/067 fail from the wheel because the owned-runtime fixture lacks the Kit's dependencies,
+  recorded as KIT-GF-089 (GF-E116); GF-E115 records the 0.3.2 incident behind KIT-GF-086.
+

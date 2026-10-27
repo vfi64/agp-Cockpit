@@ -148,8 +148,7 @@ def test_the_real_register_tracks_the_kit_1_1_4_adoption():
     for fid in ("KIT-GF-079", "KIT-GF-080"):
         assert by_id[fid].fixed_in == "1.1.4" and by_id[fid].effective_status("1.1.4") == kf.FIXED_UNVERIFIED, fid
         assert by_id[fid].effective_status("1.1.3") == kf.FIXED_NOT_INSTALLED, fid
-    assert by_id["KIT-GF-070"].effective_status("1.1.4") == kf.IN_PROGRESS   # register OPEN, the Kit says PARTIAL
-    assert by_id["KIT-GF-070"].kit["kit_state"] == "PARTIAL"
+    # KIT-GF-070 was OPEN/PARTIAL at 1.1.4; Kit 1.1.6 closed it (test below)
     assert by_id["KIT-GF-081"].effective_status("1.1.4") == kf.FIXED_NOT_INSTALLED   # fixed in 1.1.5
 
 
@@ -162,12 +161,29 @@ def test_the_real_register_tracks_the_kit_1_1_5_adoption():
     for fid in evidence["verifies"]:
         assert by_id[fid].effective_status("1.1.5") == kf.VERIFIED, fid
         assert "kit-1.1.5-adoption.json" in by_id[fid].verified_by, fid
-    for fid in ("KIT-GF-003", "KIT-GF-009", "KIT-GF-012", "KIT-GF-014", "KIT-GF-015", "KIT-GF-018",
-                "KIT-GF-081", "KIT-GF-082"):
+    for fid in ("KIT-GF-003", "KIT-GF-009", "KIT-GF-012", "KIT-GF-018", "KIT-GF-081", "KIT-GF-082"):
+        # 014 and 015 verified later, with Kit 1.1.6 (test below)
         assert by_id[fid].status == "FIXED" and by_id[fid].effective_status("1.1.5") == kf.FIXED_UNVERIFIED, fid
     assert by_id["KIT-GF-082"].effective_status("1.1.4") == kf.FIXED_NOT_INSTALLED
-    assert by_id["KIT-GF-070"].effective_status("1.1.5") == kf.IN_PROGRESS   # six local families without a contract
-    assert not [f.id for f in by_id.values() if f.status == "OPEN" and f.id != "KIT-GF-070"]
+    # KIT-GF-070 was OPEN at 1.1.5 (six local families without a contract); Kit 1.1.6 closed it
+
+
+def test_the_real_register_tracks_the_kit_1_1_6_adoption():
+    """Kit 1.1.6 (2026-10-26, #386, GF-E115/E116, evidence kit-1.1.6-adoption.json): the new c1c contracts
+    verify 014 and 015, KIT-GF-086 is verified here; four contracts cannot run from the wheel (KIT-GF-089)."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-1.1.6-adoption.json").read_text(encoding="utf-8"))
+    assert sorted(evidence["verifies"]) == ["KIT-GF-014", "KIT-GF-015", "KIT-GF-086"]
+    for fid in evidence["verifies"]:
+        assert by_id[fid].effective_status("1.1.6") == kf.VERIFIED, fid
+        assert "kit-1.1.6-adoption.json" in by_id[fid].verified_by, fid
+    assert evidence["greenfield_retest"]["counts"] == {"FAIL": 4, "NOT_RUN_LOCALLY": 40, "NO_MACHINE_CONTRACT": 0,
+                                                       "PASS": 41}
+    assert sorted(evidence["greenfield_retest"]["fail"]) == ["KIT-GF-021", "KIT-GF-032", "KIT-GF-045", "KIT-GF-067"]
+    assert by_id["KIT-GF-070"].status == "FIXED" and by_id["KIT-GF-070"].fixed_in == "1.1.6"
+    assert by_id["KIT-GF-070"].kit["kit_state"] == "CLOSED"
+    assert by_id["KIT-GF-089"].status == "OPEN"
+    assert not [f.id for f in by_id.values() if f.status == "OPEN" and f.id != "KIT-GF-089"]
 
 
 

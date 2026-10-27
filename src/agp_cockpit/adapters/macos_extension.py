@@ -64,10 +64,30 @@ def packaged_extension_source(repository_root: Path) -> Path:
     meipass = getattr(sys, "_MEIPASS", None)
     if meipass:
         candidates.append(Path(meipass) / "chrome_extension")
-    for candidate in candidates:
-        if (candidate / "manifest.json").is_file():
-            return candidate
-    raise ExtensionStagingError("AGP Cockpit Chrome extension assets are not available.")
+    present = [candidate for candidate in candidates if (candidate / "manifest.json").is_file()]
+    if not present:
+        raise ExtensionStagingError("AGP Cockpit Chrome extension assets are not available.")
+    # AGP_EXTENSION_MATCHES_RUNNING_APP_V1 (live 2026-10-26): with the checkout on main
+    # (release-0.3.3) and the app built from a fix branch (release-0.3.3-r1), the checkout's older
+    # extension was staged; the bridge refused every task („Build passt nicht“) and, the source being
+    # older, AGP_BUILD_ORDER_V1 offered no rebuild. A checkout whose release build is older than the
+    # running app gives way to a candidate with exactly the running build (the app's own extension).
+    # A newer or equal checkout still wins, as before.
+    from agp_cockpit.core.build_freshness import build_order
+    from agp_cockpit.version import BRIDGE_BUILD_ID
+
+    def build(candidate: Path) -> str:
+        try:
+            return _manifest_build_id(candidate)
+        except ExtensionStagingError:
+            return ""
+
+    first = present[0]
+    if build_order(build(first), BRIDGE_BUILD_ID) == -1:
+        for candidate in present[1:]:
+            if build(candidate) == BRIDGE_BUILD_ID:
+                return candidate
+    return first
 
 
 def local_extension_root() -> Path:

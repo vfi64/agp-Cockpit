@@ -40,8 +40,9 @@ CATALOG = KitCommandCatalog.load(ROOT)
 PUSH = "agentic-kit transfer push-current"
 
 
-def _policy(tmp_path, approvals=KitApprovals(), real_kit=None):
-    return build_policy(CATALOG, approvals, real_kit=real_kit, log_path=tmp_path / LOG_NAME)
+def _policy(tmp_path, approvals=None, real_kit=None):
+    return build_policy(CATALOG, approvals if approvals is not None else KitApprovals(), real_kit=real_kit,
+                        log_path=tmp_path / LOG_NAME)
 
 
 # --- (b) literal arguments ----------------------------------------------------------------------
@@ -161,7 +162,7 @@ def _fake_kit(tmp_path):
 def _run(directory, *args):
     env = {**os.environ, "PATH": os.pathsep.join([str(directory), os.environ.get("PATH", "")])}
     env.pop("AGP_KIT_GUARD_INNER", None)
-    return subprocess.run(["agentic-kit", *args], env=env, capture_output=True, text=True)
+    return subprocess.run(["agentic-kit", *args], env=env, capture_output=True, text=True, check=False)
 
 
 def _calls(record):

@@ -48,7 +48,7 @@ jobs:
           python -c 'import json,os; p=json.load(open(os.environ["RUNNER_TEMP"]+"/runtime-plan.json")); print("mode="+("light" if p.get("mode")=="light" else "full"),file=open(os.environ["GITHUB_OUTPUT"],"a")); print("runtime plan:",p.get("mode"),p.get("reason"))' || echo "mode=full" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.mode != 'light'
         run: |
-          python -m pip install -e . pytest
+          python -m pip install -e . pytest "ruff==0.16.8"   # AGP_CI_RUFF_V1: tests/test_lint_clean.py runs, not skipped
           python -m pytest -q
       - run: |
           agentic-kit check --root .
