@@ -1,0 +1,208 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-27",
+  "explicit_summary_lines": [
+    "Kit 1.1.6 adopted through the Kit's own `kit update` (manifest f2cdb65463e0, signature 0ac64fb3bc1affcd1bc7e462); CI pins, entrypoints, command reference and rule inventory follow 1.1.6.",
+    "The Lage and the Systemcheck show the Kit version that runs: in the Kit's own repository, an editable install kept the package metadata of its install time and the Lage showed \u201eKit 1.1.4\u201c while 1.1.5 ran; the Systemcheck names such a stale install, and a changed Kit package is seen without a restart (AGP_KIT_RUNTIME_VERSION_V1). \u201eBranch wechseln\u201c reads the origin branches from GitHub itself, so a merged branch that GitHub deleted is no longer offered from a stale local ref (AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1). In the Kit's own repository a work order may name Kit source paths and write Kit source and tests: only a real module run (`-m` before the package, a bare module name, a one-line `-m` command string, or any string under `shell=True`) is still refused (AGP_KIT_GUARD_NOT_FILE_CONTENT_V1). \u201eTask starten\u201c in \u201eArbeiten\u201c refuses main, master and a detached HEAD and points to \u201eArbeit beginnen\u201c (AGP_WORK_TASK_NOT_ON_MAIN_V1); uncommitted work on a branch that \u201eArbeit beginnen\u201c published is work in progress, no longer a \u201eSt\u00f6rung\u201c that recommends \u201eWiederherstellen\u201c (AGP_FRESH_PUBLISHED_BRANCH_V1); a checkout older than the running app no longer stages its older extension (AGP_EXTENSION_MATCHES_RUNNING_APP_V1); the CI installs ruff, so the lint test runs instead of being skipped, and its eight findings are fixed (AGP_CI_RUFF_V1); the Kit findings register follows Kit 1.1.6: KIT-GF-014, 015 and 086 verified, 070 fixed, KIT-GF-089 recorded (four retest contracts cannot run from the wheel); build `release-0.3.3-r2`.",
+    "Kit 1.1.7 adopted through the Kit's own `kit update` (manifest 019d0f970c2c, signature 23cad950e7384be09202e366); CI pins, entrypoints, command reference and rule inventory follow 1.1.7.",
+    "Kit findings register follows Kit 1.1.7: the owned-runtime retests run from the wheel again; KIT-GF-067, 070 and 089 verified, 021/032/045 re-verified, no Kit finding left open. The offline branch list no longer offers `origin` (newer Git's origin/HEAD) as a branch; build `release-0.3.3-r3`."
+  ],
+  "from_tag": "v0.3.3",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": null,
+      "argv": [
+        "kit-ci-pin-guard"
+      ],
+      "name": "kit-ci-pin-guard",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "{\"next_action\": null, \"reasons\": [], \"result_status\": \"PASS\", \"unreadable_files\": [], \"versions\": {\"highest_pin\": \"1.1.7\", \"installed\": \"1.1.7\", \"pins\": [{\"path\": \".github/workflows/agentic-gate.yaml\", \"version\": \"1.1.7\"}, {\"path\": \".agentic/ci/agentic-gate.yaml\", \"version\": \"1.1.7\"}]}}",
+      "stdout_length": 287,
+      "stdout_sha256": "87b03667c06886425a132a4b9e5acb6b4b148b6683ee77e775f4f7175f442370"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.4",
+        "--from-tag",
+        "v0.3.3",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-034-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 14548,
+      "stdout_sha256": "7706ed7d5067ce3cc6f806602f94b9c8fbe0125ccf25e3ab8cd2430b49322332"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.4",
+        "--date",
+        "2026-10-27",
+        "--summary-line",
+        "Kit 1.1.6 adopted through the Kit's own `kit update` (manifest f2cdb65463e0, signature 0ac64fb3bc1affcd1bc7e462); CI pins, entrypoints, command reference and rule inventory follow 1.1.6.",
+        "--summary-line",
+        "The Lage and the Systemcheck show the Kit version that runs: in the Kit's own repository, an editable install kept the package metadata of its install time and the Lage showed \u201eKit 1.1.4\u201c while 1.1.5 ran; the Systemcheck names such a stale install, and a changed Kit package is seen without a restart (AGP_KIT_RUNTIME_VERSION_V1). \u201eBranch wechseln\u201c reads the origin branches from GitHub itself, so a merged branch that GitHub deleted is no longer offered from a stale local ref (AGP_BRANCH_SWITCH_ORIGIN_LIVE_V1). In the Kit's own repository a work order may name Kit source paths and write Kit source and tests: only a real module run (`-m` before the package, a bare module name, a one-line `-m` command string, or any string under `shell=True`) is still refused (AGP_KIT_GUARD_NOT_FILE_CONTENT_V1). \u201eTask starten\u201c in \u201eArbeiten\u201c refuses main, master and a detached HEAD and points to \u201eArbeit beginnen\u201c (AGP_WORK_TASK_NOT_ON_MAIN_V1); uncommitted work on a branch that \u201eArbeit beginnen\u201c published is work in progress, no longer a \u201eSt\u00f6rung\u201c that recommends \u201eWiederherstellen\u201c (AGP_FRESH_PUBLISHED_BRANCH_V1); a checkout older than the running app no longer stages its older extension (AGP_EXTENSION_MATCHES_RUNNING_APP_V1); the CI installs ruff, so the lint test runs instead of being skipped, and its eight findings are fixed (AGP_CI_RUFF_V1); the Kit findings register follows Kit 1.1.6: KIT-GF-014, 015 and 086 verified, 070 fixed, KIT-GF-089 recorded (four retest contracts cannot run from the wheel); build `release-0.3.3-r2`.",
+        "--summary-line",
+        "Kit 1.1.7 adopted through the Kit's own `kit update` (manifest 019d0f970c2c, signature 23cad950e7384be09202e366); CI pins, entrypoints, command reference and rule inventory follow 1.1.7.",
+        "--summary-line",
+        "Kit findings register follows Kit 1.1.7: the owned-runtime retests run from the wheel again; KIT-GF-067, 070 and 089 verified, 021/032/045 re-verified, no Kit finding left open. The offline branch list no longer offers `origin` (newer Git's origin/HEAD) as a branch; build `release-0.3.3-r3`.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-034-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "21bd7aaf735324423fdd6f25495dac9a35c451aa300daa28969d69a0659b322e"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "0eface0836ad84ec4c44232d1fe5f337cac1dafe0c30da786d012892f8c91d44"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [],
+      "name": "task-selection-review-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "Skipped: Kit development projection is not applicable.",
+      "stdout_length": 54,
+      "stdout_sha256": "294dde19be118c8a1e8bcaae87e2ccf2eeb7df71ecd82f83edd4ffe91b167773"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "d28a0bc1fbf11f5eabb1b41c720e25a70f435a62e8c99f1ece3958e5163cb559"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-034-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.4"
+}
