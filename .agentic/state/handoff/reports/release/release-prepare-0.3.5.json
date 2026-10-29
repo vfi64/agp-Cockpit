@@ -1,0 +1,202 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-29",
+  "explicit_summary_lines": [
+    "Kit 1.1.8 adopted through the Kit's own `kit update` (manifest abe3d2533d28, signature 1048dd24c7aeca74a109fe64); CI pins, entrypoints, command reference and rule inventory follow 1.1.8.",
+    "Kit findings register follows Kit 1.1.8 (retest PASS 49, FAIL 0): KIT-GF-087 and KIT-GF-088, partial external bootstrap from another external workspace and fixed in Kit 1.1.7, recorded and verified; build `release-0.3.4-r2`."
+  ],
+  "from_tag": "v0.3.4",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": null,
+      "argv": [
+        "kit-ci-pin-guard"
+      ],
+      "name": "kit-ci-pin-guard",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "{\"next_action\": null, \"reasons\": [], \"result_status\": \"PASS\", \"unreadable_files\": [], \"versions\": {\"highest_pin\": \"1.1.8\", \"installed\": \"1.1.8\", \"pins\": [{\"path\": \".github/workflows/agentic-gate.yaml\", \"version\": \"1.1.8\"}, {\"path\": \".agentic/ci/agentic-gate.yaml\", \"version\": \"1.1.8\"}]}}",
+      "stdout_length": 287,
+      "stdout_sha256": "3c878c58220f3e343e4b2c3c947cfe9766b903adc282952b46cd92a733fb765b"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.5",
+        "--from-tag",
+        "v0.3.4",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-035-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 7106,
+      "stdout_sha256": "8b5f3a18342ae9ffce3b7fc645ea0e35e3b221417792d9528deb236244261582"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.5",
+        "--date",
+        "2026-10-29",
+        "--summary-line",
+        "Kit 1.1.8 adopted through the Kit's own `kit update` (manifest abe3d2533d28, signature 1048dd24c7aeca74a109fe64); CI pins, entrypoints, command reference and rule inventory follow 1.1.8.",
+        "--summary-line",
+        "Kit findings register follows Kit 1.1.8 (retest PASS 49, FAIL 0): KIT-GF-087 and KIT-GF-088, partial external bootstrap from another external workspace and fixed in Kit 1.1.7, recorded and verified; build `release-0.3.4-r2`.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-035-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "9d41b397e62acddf41cb0feaa0a62a3c31c53bcd18cdf9cef59fb973562dc3a2"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "07c48c59d5b8d0a5e62a2ea020593b0ff6f66758587b08a2680891c97b1941d5"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [],
+      "name": "task-selection-review-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "Skipped: Kit development projection is not applicable.",
+      "stdout_length": 54,
+      "stdout_sha256": "294dde19be118c8a1e8bcaae87e2ccf2eeb7df71ecd82f83edd4ffe91b167773"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "882fa6986f2e3cf68e5cb5b06c1faa985d0136cb2205d0a7bea558b1b0de5a65"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-035-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.5"
+}
