@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.1.8 adopted through the Kit's own `kit update` (manifest abe3d2533d28, signature 1048dd24c7aeca74a109fe64); CI pins, entrypoints, command reference and rule inventory follow 1.1.8.
+
 ## v0.3.4 - 2026-10-27
 
 - Kit 1.1.6 adopted through the Kit's own `kit update` (manifest f2cdb65463e0, signature 0ac64fb3bc1affcd1bc7e462); CI pins, entrypoints, command reference and rule inventory follow 1.1.6.
