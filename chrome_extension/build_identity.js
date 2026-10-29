@@ -2,7 +2,7 @@
 // src/agp_cockpit/version.py. The Kit's release preparation writes the AGP_APP_VERSION line (a
 // version anchor in .agentic/config.yaml); a rebuild between releases raises AGP_BUILD_REVISION.
 var AGP_APP_VERSION;
-AGP_APP_VERSION = "0.3.4";
+AGP_APP_VERSION = "0.3.5";
 var AGP_BUILD_REVISION = ["0.3.4", 2];
 globalThis.AGP_EXTENSION_BUILD_ID = "release-" + AGP_APP_VERSION
   + (AGP_BUILD_REVISION[0] === AGP_APP_VERSION && AGP_BUILD_REVISION[1] ? "-r" + AGP_BUILD_REVISION[1] : "");
