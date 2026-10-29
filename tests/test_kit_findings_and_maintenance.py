@@ -202,6 +202,22 @@ def test_the_real_register_tracks_the_kit_1_1_7_adoption():
     assert not [f.id for f in by_id.values() if f.status == "OPEN"]
 
 
+def test_the_real_register_tracks_the_kit_1_1_8_adoption_and_kit_gf_087_088():
+    """Kit 1.1.8 (2026-10-29, #396, GF-E118/E119, evidence kit-1.1.8-adoption.json): retest PASS 49, FAIL 0.
+    KIT-GF-087/088 (another external workspace, fixed in Kit 1.1.7) are recorded and verified from this run."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-1.1.8-adoption.json").read_text(encoding="utf-8"))
+    assert evidence["greenfield_retest"]["counts"] == {"FAIL": 0, "NOT_RUN_LOCALLY": 40, "NO_MACHINE_CONTRACT": 0,
+                                                       "PASS": 49}
+    assert sorted(evidence["verifies"]) == ["KIT-GF-087", "KIT-GF-088"]
+    for fid in evidence["verifies"]:
+        assert fid in evidence["greenfield_retest"]["pass"], fid
+        assert by_id[fid].fixed_in == "1.1.7" and by_id[fid].effective_status("1.1.8") == kf.VERIFIED, fid
+        assert "kit-1.1.8-adoption.json" in by_id[fid].verified_by, fid
+        assert by_id[fid].kit["kit_state"] == "CLOSED", fid
+    assert not [f.id for f in by_id.values() if f.status == "OPEN"]
+
+
 
 def test_window_filters_and_shows_details(tmp_path):
     tk = pytest.importorskip("tkinter")
