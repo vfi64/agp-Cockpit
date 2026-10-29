@@ -853,6 +853,20 @@
       "historical_id": "Kit 1.1.7 adoption (#390), greenfield retest",
       "canonical_family": "KIT-GF-089",
       "summary": "greenfield retest --all under the 1.1.7 wheel: PASS 48, FAIL 0; KIT-GF-021/032/045/067/089 PASS"
+    },
+    {
+      "date": "2026-10-26",
+      "event_id": "GF-E118",
+      "historical_id": "external workspace outside this project, Kit 1.1.6",
+      "canonical_family": "KIT-GF-087",
+      "summary": "partial external bootstrap without completion route (087) and Kit-internal gates on it (088); fixed in Kit 1.1.7, verified by the Cockpit's 1.1.8 retest"
+    },
+    {
+      "date": "2026-10-29",
+      "event_id": "GF-E119",
+      "historical_id": "Kit 1.1.8 adoption (#396), greenfield retest",
+      "canonical_family": "KIT-GF-087",
+      "summary": "greenfield retest --all under the 1.1.8 wheel: PASS 49, FAIL 0; KIT-GF-087/088 PASS"
     }
   ],
   "families": [
@@ -3432,6 +3446,66 @@
       "retest": "Verified 2026-10-26/27 by the Kit's installed-wheel machine contract under Kit 1.1.6 (owner's Mac adoption run and a clean venv): PASS."
     },
     {
+      "id": "KIT-GF-087",
+      "title": "a partially generated external workspace has no controlled completion path",
+      "first_observed": "2026-10-26",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": "1.1.7",
+      "expected": "An external workspace with project.yaml, todo.yaml and a DPA creation receipt but no config.yaml can be completed through a signed, additive Kit route that preserves the project's documents.",
+      "observed": "Observed 2026-10-26 in another external workspace of the owner (generated with Kit 1.1.6), not in this project; recorded here because the Cockpit's Kit 1.1.8 adoption retest verifies the fix. Normal workspace init refused FOREIGN_AGENTIC, the adoption report was BLOCKED_FOR_DPA_REPO_ADOPTION, and rule-registry bootstrap required an initialized workspace.",
+      "impact": "The workspace could not reach initialized Kit governance through any Kit command.",
+      "workaround": null,
+      "repair": "Kit 1.1.7 (PR #2652): `workspace init --recover-partial` plans, then with signature, maintainer and consent source executes an additive recovery; unknown files keep the collision guard.",
+      "regression": "Kit machine contract KIT-GF-087 and tests/test_workspace_recovery.py.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md",
+        "docs/validation/evidence/kit-1.1.7-adoption.json (greenfield_retest.pass)",
+        "docs/validation/evidence/kit-1.1.8-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-29",
+        "fixed_in": "unreleased",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.8); the catalog still says \"unreleased\", the fix shipped in 1.1.7 (Kit CHANGELOG v1.1.7, PR #2652)",
+        "report": "docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md"
+      },
+      "verified_by": "2026-10-29 docs/validation/evidence/kit-1.1.8-adoption.json (greenfield retest KIT-GF-087 PASS, installed Kit 1.1.8)",
+      "retest": "Verified 2026-10-29 by the Kit's installed-wheel machine contract under Kit 1.1.8: `greenfield retest --all` on the owner's Mac during the Cockpit's adoption (#396, PASS 49, FAIL 0) and in a clean Linux venv: PASS. The Kit 1.1.7 adoption retest (#390) had passed both already."
+    },
+    {
+      "id": "KIT-GF-088",
+      "title": "Kit-internal gates and rule sources were applied to a partial external workspace",
+      "first_observed": "2026-10-26",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": "1.1.7",
+      "expected": "Work-check, reference checks and rule validation in an external workspace use the external gate family and the workspace's own rule basis, never the Kit's self-hosting sources.",
+      "observed": "Observed 2026-10-26 in another external workspace of the owner (generated with Kit 1.1.6), not in this project; recorded here because the Cockpit's Kit 1.1.8 adoption retest verifies the fix. Without config.yaml, work-check and reference checks selected the development fallback and rule validation the self-hosting source set, failing on unrelated missing sources.",
+      "impact": "Gate results in the workspace reported Kit-internal failures instead of its own state.",
+      "workaround": null,
+      "repair": "Kit 1.1.7 (PR #2652): a partial workspace stops at workspace-bootstrap-required before Kit subprocess gates; completed external workspaces run the external gates and rule basis.",
+      "regression": "Kit machine contract KIT-GF-088 and the Kit's external gate tests.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md",
+        "docs/validation/evidence/kit-1.1.7-adoption.json (greenfield_retest.pass)",
+        "docs/validation/evidence/kit-1.1.8-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-29",
+        "fixed_in": "unreleased",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.8); the catalog still says \"unreleased\", the fix shipped in 1.1.7 (Kit CHANGELOG v1.1.7, PR #2652)",
+        "report": "docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md"
+      },
+      "verified_by": "2026-10-29 docs/validation/evidence/kit-1.1.8-adoption.json (greenfield retest KIT-GF-088 PASS, installed Kit 1.1.8)",
+      "retest": "Verified 2026-10-29 by the Kit's installed-wheel machine contract under Kit 1.1.8: `greenfield retest --all` on the owner's Mac during the Cockpit's adoption (#396, PASS 49, FAIL 0) and in a clean Linux venv: PASS. The Kit 1.1.7 adoption retest (#390) had passed both already."
+    },
+    {
       "id": "KIT-GF-089",
       "title": "four machine contracts of the retest catalog cannot run from the installed wheel",
       "first_observed": "2026-10-26",
@@ -3616,9 +3690,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "6d5fe5b2",
-    "latest_release": "1.1.7",
-    "synced": "2026-10-27",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.7; Kit main 6d5fe5b2). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
+    "kit_commit": "1666ec6f",
+    "latest_release": "1.1.8",
+    "synced": "2026-10-29",
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.8; Kit main 1666ec6f). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
   }
 }

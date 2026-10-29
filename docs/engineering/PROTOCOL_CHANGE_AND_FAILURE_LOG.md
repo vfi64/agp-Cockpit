@@ -1806,3 +1806,15 @@ repeat once.
   on fetch, whose short name „origin“ the offline branch list offered as a branch. The list now reads full ref
   names and drops the symbolic HEAD (AGP_ORIGIN_HEAD_NOT_A_BRANCH_V1); the regression test creates the symref
   itself, so it also fails with older Git.
+
+## 2026-10-29 — Kit 1.1.8 register, KIT-GF-087/088, Download/run_next.py and the owner's next runner (build release-0.3.4-r2)
+
+- Kit 1.1.8 adoption (#396, owner's Mac): `greenfield retest --all` PASS 49, FAIL 0, NOT_RUN_LOCALLY 40
+  (evidence docs/validation/evidence/kit-1.1.8-adoption.json, GF-E119; per-family results reproduced in a clean
+  Linux venv, identical counts). KIT-GF-087/088 — observed in another external workspace, fixed in Kit 1.1.7 —
+  were missing from the register although the 1.1.7 retest already passed them (found by the Kit's consumer
+  retest plan, Kit PR #2684); recorded and verified from the 1.1.8 run (GF-E118).
+- The owner's `next` runner refuses a Download/ with tracked files; this repository tracks Download/run_next.py,
+  the Cockpit's canonical runner. Owner decision 2026-10-29: the steps up to release 0.3.5 run as before through
+  the maintainer scripts; a following slice moves the canonical runner into the package and provides
+  Download/run_next.py untracked here as in every other repository.
