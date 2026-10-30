@@ -172,6 +172,10 @@ def _finish_precheck(root: Path, _inputs: dict) -> str | None:
             return None   # AGP_FINISH_OPEN_FOLLOWUP_V1: complete the open post-merge lifecycle
         return ("Abschließen läuft nie von main aus (R4), außer um einen offenen Post-Merge-Abschluss "
                 "des Kits zu Ende zu bringen. Erst „Arbeit beginnen“.")
+    from agp_cockpit.core.work_tab_guard import behind_origin_reason
+    behind = behind_origin_reason(root, branch)   # AGP_WORK_BRANCH_BEHIND_V1
+    if behind:
+        return behind.replace("weiterarbeiten", "Abschließen")
     dirty = bool(_git_value(root, "status", "--porcelain"))
     found = relation(root, branch, "origin/main")
     if found == CHANGES or (dirty and found in (NO_COMMITS, None)):
@@ -364,8 +368,34 @@ def _main_behind_facts(root: Path) -> dict | None:
     return {"head": head, "origin": origin, "tracking": tracking}
 
 
+def _branch_behind_facts(root: Path) -> dict | None:
+    """AGP_WORK_BRANCH_BEHIND_V1: read-only, live — the facts of „clean work branch only behind
+    origin/<branch>“, or None."""
+    from agp_cockpit.core import repo_state as rs
+    branch = _git_value(root, "branch", "--show-current")
+    if not branch or branch == "main" or branch.startswith(rs.TRANSFER_BRANCH_PREFIX):
+        return None
+    head = _git_value(root, "rev-parse", "HEAD")
+    remote = _git_value(root, "ls-remote", "origin", f"refs/heads/{branch}")
+    origin = remote.split()[0] if remote.split() else ""
+    import subprocess
+    try:
+        status = subprocess.run(["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=str(root),
+                                text=True, capture_output=True, timeout=30, check=False).stdout or ""
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    changes = tuple(path for line in status.splitlines() if len(line) > 3
+                    for path in [line[3:].split(" -> ")[-1].strip().strip('"')] if not rs.is_kit_volatile(path))
+    facts = rs.RepoFacts(root=str(root), is_git=True, branch=branch, head=head, changes=changes,
+                         published_remote=origin,
+                         branch_relation=rs.branch_relation(root, head, origin))
+    if not rs.work_branch_only_behind(facts):
+        return None
+    return {"branch": branch, "head": head, "origin": origin, "relation": facts.branch_relation}
+
+
 def _recover_scope_for(root: Path, _inputs: dict) -> frozenset[str] | None:
-    return RECOVER_SYNC_SCOPE if _main_behind_facts(root) else None
+    return RECOVER_SYNC_SCOPE if (_main_behind_facts(root) or _branch_behind_facts(root)) else None
 
 def _recover_contract(root: Path) -> dict:
     return {
@@ -386,6 +416,7 @@ def _recover_contract(root: Path) -> dict:
 
 def _recover_prompt(root: Path) -> str:
     behind = _main_behind_facts(root)
+    branch = None if behind is not None else _branch_behind_facts(root)
     observed = "" if behind is None else f"""
 Observed by the Cockpit before the start (read-only, live): local main is {behind['head']},
 origin/main on GitHub is {behind['origin']}, the local origin/main ref is {behind['tracking'] or '(none)'}
@@ -393,6 +424,18 @@ origin/main on GitHub is {behind['origin']}, the local origin/main ref is {behin
 origin/main": fetch first — a diagnosis against the stale local ref reports main as synchronized.
 The human approved by starting this task exactly bringing main up to date through the Kit's main
 synchronization route (fetch from origin, then fast-forward only); do not ask NEEDS_HUMAN for it.
+"""
+    if branch is not None:
+        fetched = ("is not fetched yet" if branch["relation"] == "NOT_FETCHED"
+                   else "contains the local commit")
+        observed = f"""
+Observed by the Cockpit before the start (read-only, live): the work branch {branch['branch']} is
+{branch['head']} locally, origin/{branch['branch']} on GitHub is {branch['origin']} ({fetched}), clean
+worktree. This is the case "work branch only behind origin/{branch['branch']}" (AGP_WORK_BRANCH_BEHIND_V1):
+commits were pushed from elsewhere. The human approved by starting this task exactly fetching
+{branch['branch']} from origin and fast-forwarding the checked-out branch through the Kit's routes (fast-forward
+only; never a merge, rebase, reset or discard); do not ask NEEDS_HUMAN for it. If the fast-forward is
+refused because the branches diverged, stop and report it.
 """
     return f"""STANDARD TASK — WIEDERHERSTELLEN (recover)
 

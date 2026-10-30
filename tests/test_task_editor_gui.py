@@ -61,6 +61,10 @@ def test_editor_widget_flow(monkeypatch, tmp_path):
     monkeypatch.setattr(m, "TaskOperatorAPI", FakeAPI)
     # AGP_REPO_STATE_V1: the test repository has no installed Kit
     monkeypatch.setattr("agp_cockpit.core.build_freshness.kit_block_reason", lambda root: "")
+    # AGP_TK_TESTS_IN_CI_V1 (CI of #406): the panel works on the Cockpit's own checkout, which CI checks
+    # out as a detached merge ref and main runs on main, so the work-branch guard (tested on its own in
+    # test_work_tab_guard / test_work_branch_behind) refused the start. This test is about the editor.
+    monkeypatch.setattr("agp_cockpit.core.work_tab_guard.work_task_block_reason", lambda root, **k: "")
     monkeypatch.setattr(m.messagebox, "askyesno", lambda *a, **k: True)
     monkeypatch.setattr(m, "require_allowed_active_chat", lambda: type("C", (), {"url": "https://chatgpt.com/c/x"})())
     monkeypatch.setattr(m, "create_live_full_auto", lambda **k: sent.update(k) or {"mission": {"mission_id": "M1"}})

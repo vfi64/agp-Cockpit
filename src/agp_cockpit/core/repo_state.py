@@ -104,6 +104,10 @@ class RepoFacts:
     task_running: bool = False
     branch_published: bool | None = None    # refs/remotes/origin/<branch> exists (None: main/unknown)
     published_head: str = ""                # its commit (AGP_FRESH_PUBLISHED_BRANCH_V1)
+    # AGP_WORK_BRANCH_BEHIND_V1: HEAD against origin/<branch> as GitHub has it (live when the network
+    # is read, else the last fetched ref): SAME, AHEAD, BEHIND, NOT_FETCHED, DIVERGED or "".
+    branch_relation: str = ""
+    published_remote: str = ""              # origin/<branch> commit the relation was taken against
     # AGP_FOLLOWUP_PR_CI_V1: the Kit's open follow-up pull request after a merge (post-merge
     # check not PASS on clean main) and the CI verdict of its checks (read-only gh query).
     followup_pr: int | None = None
@@ -264,9 +268,16 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
     if gh:
         gh_ok = _run([gh, "auth", "status"], root, runner).returncode == 0
     published, published_head = None, ""
+    relation, published_remote = "", ""
     if branch and branch != "main":
         published_head = _git(root, runner, "rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}") or ""
         published = bool(published_head)
+        published_remote = published_head
+        if network:
+            line = _git(root, runner, "ls-remote", "origin", f"refs/heads/{branch}")
+            if line is not None:
+                published_remote = line.split()[0] if line.split() else ""
+        relation = branch_relation(root, head, published_remote, runner=runner)
     post_merge, detail = None, ""
     if kit is not None and branch == "main" and workspace:
         post_merge, detail = post_merge_check(root, kit, runner=runner)
@@ -278,7 +289,62 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
                      volatile_changes=tuple(volatile), kit_version=kit_version, workspace=workspace,
                      gh_ok=gh_ok, post_merge=post_merge, post_merge_detail=detail,
                      task_running=task_running, branch_published=published, published_head=published_head,
+                     branch_relation=relation, published_remote=published_remote,
                      followup_pr=followup[0], followup_ci=followup[1], followup_url=followup[2])
+
+
+SAME, AHEAD, BEHIND, NOT_FETCHED, DIVERGED = "SAME", "AHEAD", "BEHIND", "NOT_FETCHED", "DIVERGED"
+
+
+def branch_relation(root: Path, head: str, published: str, *, runner=subprocess.run) -> str:
+    """AGP_WORK_BRANCH_BEHIND_V1: how HEAD relates to origin/<branch> (read-only).
+
+    NOT_FETCHED: GitHub's commit is not in the local object store, so origin/<branch> has commits
+    that are missing here (behind or diverged; HEAD cannot be ahead of a commit it does not have)."""
+    if not head or not published:
+        return ""
+    if published == head:
+        return SAME
+    if _run(["git", "cat-file", "-e", f"{published}^{{commit}}"], Path(root), runner).returncode != 0:
+        return NOT_FETCHED
+    if _run(["git", "merge-base", "--is-ancestor", head, published], Path(root), runner).returncode == 0:
+        return BEHIND
+    if _run(["git", "merge-base", "--is-ancestor", published, head], Path(root), runner).returncode == 0:
+        return AHEAD
+    return DIVERGED
+
+
+def work_branch_only_behind(facts: RepoFacts) -> bool:
+    """AGP_WORK_BRANCH_BEHIND_V1: a clean work branch whose origin/<branch> only has more commits; a
+    fast-forward through the Kit (fetch, then pull --ff-only) brings it up to date."""
+    return (bool(facts.branch) and facts.branch != "main" and not facts.changes
+            and facts.branch_relation in (BEHIND, NOT_FETCHED))
+
+
+def _branch_behind_reasons(facts: RepoFacts) -> tuple[str, ...]:
+    """Reasons when a work branch lacks commits of origin/<branch>; () otherwise (transfer branches
+    belong to the Kit's FILE_TRANSFER and are never judged here)."""
+    if (not facts.branch or facts.branch == "main" or facts.branch.startswith(TRANSFER_BRANCH_PREFIX)
+            or facts.branch_relation not in (BEHIND, NOT_FETCHED, DIVERGED)):
+        return ()
+    local, remote = facts.head[:8], facts.published_remote[:8]
+    if facts.branch_relation == DIVERGED:
+        first = (f"{facts.branch} {local} und origin/{facts.branch} {remote} sind auseinandergelaufen "
+                 "(beide haben eigene Commits).")
+    elif facts.branch_relation == NOT_FETCHED:
+        first = (f"origin/{facts.branch} {remote} hat Commits, die lokal fehlen (noch nicht geholt); "
+                 f"lokal {local}.")
+    else:
+        first = f"{facts.branch} {local} ist hinter origin/{facts.branch} {remote}."
+    if work_branch_only_behind(facts):
+        second = ("Sauberer Arbeitsbaum: „Wiederherstellen“ holt origin/" + facts.branch
+                  + " über das Kit und zieht den Branch nur per Fast-Forward nach.")
+    elif facts.changes:
+        second = ("Offene Änderungen: " + ", ".join(facts.changes[:5])
+                  + " — „Wiederherstellen“ fragt, bevor es eingreift.")
+    else:
+        second = "Kein Fast-Forward möglich — „Wiederherstellen“ fragt, bevor es eingreift."
+    return first, second
 
 
 def main_only_behind(facts: RepoFacts) -> bool:
@@ -347,6 +413,15 @@ def classify(facts: RepoFacts) -> RepoState:
                           problems, facts)
         return _state(BEREIT, "main ist synchron und sauber; bereit für neue Arbeit.", ARBEIT_BEGINNEN,
                       (), facts)
+    behind = _branch_behind_reasons(facts)
+    if behind:
+        # AGP_WORK_BRANCH_BEHIND_V1 (live 2026-10-27, owner screenshot after a branch switch; again
+        # 2026-10-30, where the finish script had to fast-forward fix/cleanup-preview-window to the
+        # commit pushed from Claude's workspace): origin/<branch> had commits from elsewhere and the
+        # Lage still offered the stale local branch for work. Arbeiten and Abschließen wait until it is
+        # brought up to date; a clean branch that is only behind is fast-forwarded by „Wiederherstellen“.
+        return _state(STOERUNG, f"Branch {facts.branch} ist nicht auf dem Stand von origin/{facts.branch}.",
+                      WIEDERHERSTELLEN, behind, facts)
     fresh_published = (facts.branch_published is True and facts.published_head == facts.head
                        and bool(_STARTED_WORK_BRANCH.match(facts.branch))
                        and not _KIT_ADMIN_BRANCH.match(facts.branch))

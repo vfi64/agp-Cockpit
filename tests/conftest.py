@@ -44,17 +44,32 @@ def _hide_window(window) -> None:
         pass
 
 
+# AGP_TK_GC_ON_MAIN_THREAD_V1 (2026-10-30, suite under xvfb): „Fatal Python error: Aborted“ while a
+# bridge test's server thread was garbage-collecting — Tk objects left in reference cycles by an
+# earlier GUI test were freed on a foreign thread, which Tcl does not allow (the intermittent
+# „Trace/breakpoint trap“ of the Linux workspace). After every test that created a Tk window the
+# garbage is collected on the main thread, so it never reaches another thread.
+_TK_CREATED = [False]
+
+
+@pytest.fixture(autouse=True)
+def _collect_tk_garbage_on_the_main_thread():
+    yield
+    if _TK_CREATED[0]:
+        _TK_CREATED[0] = False
+        import gc
+        gc.collect()
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _invisible_test_windows():
     import os
-    if os.environ.get("AGP_TEST_SHOW_WINDOWS") == "1":
-        yield
-        return
     try:
         import tkinter
     except ImportError:
         yield
         return
+    show = os.environ.get("AGP_TEST_SHOW_WINDOWS") == "1"
     originals = {cls: cls.__init__ for cls in (tkinter.Tk, tkinter.Toplevel)}
 
     def wrap(cls):
@@ -62,7 +77,9 @@ def _invisible_test_windows():
 
         def __init__(self, *args, **kwargs):
             original(self, *args, **kwargs)
-            _hide_window(self)
+            _TK_CREATED[0] = True
+            if not show:
+                _hide_window(self)
         return __init__
 
     for cls in originals:
@@ -79,3 +96,22 @@ def _invisible_test_windows():
 @pytest.fixture(autouse=True)
 def _no_extension_gate(monkeypatch):
     monkeypatch.setenv("AGP_COCKPIT_EXTENSION_GATE", "off")
+
+
+# AGP_TK_TESTS_IN_CI_V1 (owner 2026-10-30): the Tk tests used to be skipped in CI (no tkinter display),
+# so every UI change merged unchecked. With AGP_REQUIRE_TK=1 (set in CI, which runs the suite under
+# xvfb) a test skipped for a missing tkinter or display fails instead of passing silently.
+_TK_SKIP_MARKERS = ("tkinter", "no display")
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    import os
+    outcome = yield
+    report = outcome.get_result()
+    if os.environ.get("AGP_REQUIRE_TK") != "1" or not report.skipped:
+        return
+    reason = str(report.longrepr[-1] if isinstance(report.longrepr, tuple) else report.longrepr)
+    if any(marker in reason for marker in _TK_SKIP_MARKERS):
+        report.outcome = "failed"
+        report.longrepr = f"AGP_REQUIRE_TK=1 but the Tk test was skipped: {reason}"
