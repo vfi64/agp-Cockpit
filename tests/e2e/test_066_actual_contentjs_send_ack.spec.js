@@ -147,7 +147,7 @@ async function installBridgeMocks(page, {fileInput = true} = {}) {
         window.__agpMission = Object.assign({
           schema_version: 1,
           mission_id: "phase066-b1",
-          repository_root: "/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit",
+          repository_root: "/Users/owner/GitHub/agp-Cockpit",
           state: "READY",
           current_step: 0,
           turns: 0
@@ -168,7 +168,7 @@ async function installBridgeMocks(page, {fileInput = true} = {}) {
           window.__agpMission = {
             schema_version: 1,
             mission_id: "phase066-b1",
-            repository_root: "/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit",
+            repository_root: "/Users/owner/GitHub/agp-Cockpit",
             state: "READY",
             title: "Task · Fixture",
             mission_text: "Test status",

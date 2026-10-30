@@ -281,6 +281,15 @@ def observe(root: Path, *, runner=subprocess.run, task_running: bool = False,
                      followup_pr=followup[0], followup_ci=followup[1], followup_url=followup[2])
 
 
+def main_only_behind(facts: RepoFacts) -> bool:
+    """AGP_RECOVER_MAIN_BEHIND_V1 (live 2026-10-29, Kit repository): main is clean, has no commits
+    beyond the last fetched origin/main, and GitHub's origin/main is another commit — main is only
+    behind. „Wiederherstellen“ ran without network, saw the stale local origin/main ref as equal to
+    main and asked for an unrelated decision; a fast-forward through the Kit is all that is needed."""
+    return (facts.branch == "main" and bool(facts.head) and bool(facts.origin_main)
+            and facts.head != facts.origin_main and facts.own_commits == 0 and not facts.changes)
+
+
 def _state(name: str, summary: str, recommended: str | None, reasons, facts: RepoFacts,
            offered: tuple[str, ...] | None = None) -> RepoState:
     return RepoState(name, summary, recommended, OFFERED[name] if offered is None else offered,
@@ -318,6 +327,9 @@ def classify(facts: RepoFacts) -> RepoState:
         if facts.head != facts.origin_main:
             problems.append(f"main {facts.head[:8]} ist nicht synchron mit origin/main "
                             f"{(facts.origin_main or '')[:8]}.")
+            if main_only_behind(facts):
+                problems.append("main ist nur hinter origin/main (keine eigenen Commits, keine Änderungen): "
+                                "„Wiederherstellen“ zieht main über das Kit per Fast-Forward nach.")
         if facts.changes:
             problems.append("Unerwartete Änderungen auf main: " + ", ".join(facts.changes[:5]))
         if facts.post_merge == "NOT_PASS":

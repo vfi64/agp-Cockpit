@@ -550,6 +550,13 @@ def execute_with_run_next(
         work_tmp.mkdir(parents=True, exist_ok=True)
         for name in ("TMPDIR", "TEMP", "TMP"):
             runner_env[name] = str(work_tmp)
+        # AGP_PYTEST_SHARED_TEMPROOT_V1 (2026-10-29, Kit repository): each work order had its own
+        # TMPDIR, so pytest's retention (the newest three runs per temp root) never applied and every
+        # test run left a full pytest-of-<user> tree (~38,000 files, ~1,600 symlinks) per step. One
+        # temp root per repository lets pytest prune its own old runs.
+        pytest_root = runtime_dir(root.resolve(), "tmp", "pytest")
+        pytest_root.mkdir(parents=True, exist_ok=True)
+        runner_env["PYTEST_DEBUG_TEMPROOT"] = str(pytest_root)
         # AGP_KIT_INVOCATION_GUARD_V1: every real agentic-kit call of the work order meets the
         # guard first; without approvals (None) it refuses every approval-required call.
         runner_env["PATH"] = os.pathsep.join(

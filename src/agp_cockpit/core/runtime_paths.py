@@ -33,6 +33,12 @@ def runtime_base(repository_root: Path) -> Path:
     return root / ".local" / "agp-cockpit"
 
 
+def runtime_home_base() -> Path | None:
+    """``<home>/.local/agp-cockpit`` of the announced runtime home, or None without one."""
+    home = os.environ.get(HOME_ENV, "").strip()
+    return Path(home).expanduser().resolve() / ".local" / "agp-cockpit" if home else None
+
+
 def runtime_dir(repository_root: Path, *parts: str) -> Path:
     """``<runtime base>/<parts…>`` of ``repository_root`` (not created)."""
     return runtime_base(repository_root).joinpath(*parts)

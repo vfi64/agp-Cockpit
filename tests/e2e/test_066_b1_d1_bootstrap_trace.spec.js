@@ -121,7 +121,7 @@ test("066-B1-D1 trace actual content.js bootstrap path", async ({page}) => {
         window.__mission = Object.assign({
           schema_version:1,
           mission_id:"phase066-b1-d1",
-          repository_root:"/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit",
+          repository_root:"/Users/owner/GitHub/agp-Cockpit",
           state:"READY",
           current_step:0,
           turns:0

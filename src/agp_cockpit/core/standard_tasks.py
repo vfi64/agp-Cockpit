@@ -330,6 +330,43 @@ contains the current origin/main and the worktree is clean.
 
 # --- P8 Wiederherstellen (diagnosis first) -------------------------------------
 
+# AGP_RECOVER_MAIN_BEHIND_V1: when the Cockpit observed main only behind origin/main, the start click
+# approves exactly bringing main up to date through the Kit (fast-forward); otherwise every remote
+# effect asks as before.
+RECOVER_SYNC_SCOPE = frozenset({"agentic-kit transfer fetch-origin", "agentic-kit transfer sync-main",
+                                "agentic-kit transfer pull-current"})
+
+
+def _main_behind_facts(root: Path) -> dict | None:
+    """Read-only, live: the facts of „main only behind origin/main“, or None."""
+    from agp_cockpit.core.repo_state import RepoFacts, is_kit_volatile, main_only_behind
+    branch = _git_value(root, "branch", "--show-current")
+    if branch != "main":
+        return None
+    head = _git_value(root, "rev-parse", "HEAD")
+    tracking = _git_value(root, "rev-parse", "--verify", "-q", "refs/remotes/origin/main")
+    own = _git_value(root, "rev-list", "--count", f"{tracking}..HEAD") if tracking else ""
+    import subprocess
+    try:   # raw: a porcelain line may start with a space; _git_value strips it
+        status = subprocess.run(["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=str(root),
+                                text=True, capture_output=True, timeout=30, check=False).stdout or ""
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    changes = tuple(path for line in status.splitlines() if len(line) > 3
+                    for path in [line[3:].split(" -> ")[-1].strip().strip('"')] if not is_kit_volatile(path))
+    remote = _git_value(root, "ls-remote", "origin", "refs/heads/main")
+    origin = remote.split()[0] if remote.split() else ""
+    facts = RepoFacts(root=str(root), is_git=True, branch=branch, head=head, origin_main=origin,
+                      tracking_main=tracking, own_commits=int(own) if own.isdigit() else None,
+                      changes=changes)
+    if not main_only_behind(facts):
+        return None
+    return {"head": head, "origin": origin, "tracking": tracking}
+
+
+def _recover_scope_for(root: Path, _inputs: dict) -> frozenset[str] | None:
+    return RECOVER_SYNC_SCOPE if _main_behind_facts(root) else None
+
 def _recover_contract(root: Path) -> dict:
     return {
         "title": "Standard Task: Wiederherstellen",
@@ -348,10 +385,19 @@ def _recover_contract(root: Path) -> dict:
 
 
 def _recover_prompt(root: Path) -> str:
+    behind = _main_behind_facts(root)
+    observed = "" if behind is None else f"""
+Observed by the Cockpit before the start (read-only, live): local main is {behind['head']},
+origin/main on GitHub is {behind['origin']}, the local origin/main ref is {behind['tracking'] or '(none)'}
+(stale when it differs), no own commits, clean worktree. This is the case "main only behind
+origin/main": fetch first — a diagnosis against the stale local ref reports main as synchronized.
+The human approved by starting this task exactly bringing main up to date through the Kit's main
+synchronization route (fetch from origin, then fast-forward only); do not ask NEEDS_HUMAN for it.
+"""
     return f"""STANDARD TASK — WIEDERHERSTELLEN (recover)
 
 Repository: {root}
-
+{observed}
 Goal: find out why the repository is not in a clean state (drift from origin/main, unexpected
 changes, an interrupted publish/merge/post-merge lifecycle, a failing post-merge check) and
 restore a clean, synchronized state: either a clean work branch that can be finished, or main
@@ -895,6 +941,7 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
         description="Diagnostiziert und stellt einen sauberen Zustand her; Eingriffe nur nach Freigabe.",
         contract_factory=_recover_contract,
         prompt_factory=_recover_prompt,
+        scope_factory=_recover_scope_for,     # AGP_RECOVER_MAIN_BEHIND_V1
     ),
 )
 BY_KEY = {task.key: task for task in STANDARD_TASKS}

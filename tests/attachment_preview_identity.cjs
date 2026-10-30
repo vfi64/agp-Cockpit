@@ -90,7 +90,7 @@ assert.equal(context.attachmentPreviewContainer(preview), shell);
           ok:true,
           stage:"COMMAND_FILE_DOWNLOADED",
           filename,
-          download_path:`/Users/hof/Downloads/${filename}`,
+          download_path:`/Users/owner/Downloads/${filename}`,
           download_id:42,
           download_bytes:complete.length,
         };
@@ -101,7 +101,7 @@ assert.equal(context.attachmentPreviewContainer(preview), shell);
       assert.equal(url, "/v1/file-loop/download");
       const body = JSON.parse(options.body);
       assert.equal(body.filename, filename);
-      assert.equal(body.download_path, `/Users/hof/Downloads/${filename}`);
+      assert.equal(body.download_path, `/Users/owner/Downloads/${filename}`);
       return {ok:true, stage:"COMMAND_FILE_FETCHED", filename, content:complete, content_type:"text/x-python",
         bytes:Buffer.byteLength(complete, "utf8"), sha256:"bridge-sha"};
     },

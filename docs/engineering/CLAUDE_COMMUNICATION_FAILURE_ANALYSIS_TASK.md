@@ -10,7 +10,7 @@ Arbeite nicht symptomorientiert. Rekonstruiere den vollständigen Ablauf anhand 
 
 Repository:
 
-`/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit`
+`<owner-checkout>/agp-Cockpit`
 
 Wichtige Bereiche:
 

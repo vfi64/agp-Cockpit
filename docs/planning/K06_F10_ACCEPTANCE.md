@@ -25,7 +25,7 @@ VoiceOver names/roles/state, and usable layout at supported minimum/normal sizes
 
 Observed on macOS with the real AGP Cockpit application and Chrome bridge:
 
-- PASS — production repository context resolves to `/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit`; no pytest/tmp repository path is shown.
+- PASS — production repository context resolves to `<owner-checkout>/agp-Cockpit`; no pytest/tmp repository path is shown.
 - PASS — Chrome bridge reaches `CONNECTED` without manual port or token editing.
 - PASS — System, Auftrag, and Task Operator are separate usable tabs.
 - PASS — Auftrag layout no longer overlaps controls; the browser-refresh control is in normal layout flow.

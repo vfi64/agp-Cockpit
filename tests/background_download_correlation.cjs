@@ -45,7 +45,7 @@ function makeContext(storage, downloads) {
   const storage = {};
   const oldDownload = {
     id:1,
-    filename:`/Users/hof/Downloads/${filename}`,
+    filename:`/Users/owner/Downloads/${filename}`,
     state:"complete",
     startTime:new Date(Date.now() - 120_000).toISOString(),
     fileSize:100,
@@ -59,14 +59,14 @@ function makeContext(storage, downloads) {
 
   const staleUnseen = {
     id:2,
-    filename:`/Users/hof/Downloads/${filename}`,
+    filename:`/Users/owner/Downloads/${filename}`,
     state:"complete",
     startTime:new Date(Date.now() - 60_000).toISOString(),
     fileSize:200,
   };
   const fresh = {
     id:3,
-    filename:`/Users/hof/Downloads/${filename}`,
+    filename:`/Users/owner/Downloads/${filename}`,
     state:"complete",
     startTime:new Date(Date.now() + 1_000).toISOString(),
     fileSize:4431,

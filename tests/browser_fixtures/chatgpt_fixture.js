@@ -22,7 +22,7 @@
   function assistantJsonFor(prompt) {
     return JSON.stringify({
       kind: "generic",
-      cwd: "/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit",
+      cwd: "/Users/owner/GitHub/agp-Cockpit",
       argv: ["/usr/bin/git", "status", "--short"],
       timeout_seconds: 30,
       label: "066 fixture read-only status"

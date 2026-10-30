@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
-cd /Users/hof/Dropbox/Privat/GitHub/agp-Cockpit
+cd "$(dirname "$0")/.."
 exec /usr/bin/env npx playwright test tests/e2e/test_066_g4_multisignal_send_acceptance.spec.js --workers=1 --reporter=line
