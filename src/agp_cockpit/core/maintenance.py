@@ -152,6 +152,20 @@ def _run_kit(root: Path, argv: list[str], runner) -> str:
     return f"$ {' '.join(argv[1:])} → rc {completed.returncode}\n" + text.strip()[-2000:]
 
 
+def nothing_to_do(result: Plan) -> bool:
+    """AGP_CLEANUP_PREVIEW_WINDOW_V1 (live 2026-10-30): with no Cockpit candidates and nothing for the
+    Kit to collect the preview still asked „Jetzt endgültig löschen?“ and then reported 0 deletions."""
+    kit_idle = result.kit_argv is None or "NOTHING_TO_COLLECT" in (result.kit_preview or "")
+    return not result.candidates and kit_idle
+
+
+def summary(result: Plan) -> str:
+    """One line for the head of the preview window."""
+    if not result.candidates:
+        return "Keine Cockpit-Dateien zum Löschen."
+    return f"{len(result.candidates)} Einträge, {result.total_bytes / 1e6:.1f} MB"
+
+
 def describe(result: Plan) -> str:
     if not result.candidates:
         lines = ["Keine Cockpit-Dateien zum Löschen."]

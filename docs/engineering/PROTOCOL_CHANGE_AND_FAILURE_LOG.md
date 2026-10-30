@@ -1836,3 +1836,13 @@ repeat once.
 - The public repository named the owner's home folder in 17 files (live evidence, fixtures, scripts,
   CLAUDE.md). Replaced by <owner-checkout> or a neutral /Users/owner/…; scripts locate the checkout themselves;
   a test refuses personal home folders in tracked files (AGP_NO_OWNER_PATHS_V1). Git history still holds them.
+
+## 2026-10-30 — Cleanup preview window (build release-0.3.5-r2)
+
+- After #402 the cleanup preview listed 153 entries in a native yes/no box that grew taller than the screen and
+  could not be read to the end. Most entries were old runtime folders named after pytest test repositories
+  (`test_…0`) in the Cockpit's runtime home — presumably leftovers from before the runtime-home test isolation
+  of PR #272, made visible by AGP_CLEANUP_ALL_REPOS_V1; they were deleted. With nothing left to delete the box
+  still asked „Jetzt endgültig löschen?“ and then reported 0 deletions. The preview is now a resizable window
+  with a summary line, a bounded list with a scroll bar and explicit „Löschen“ / „Abbrechen“; with no Cockpit
+  entries and nothing for the Kit to collect it only informs (AGP_CLEANUP_PREVIEW_WINDOW_V1).

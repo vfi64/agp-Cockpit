@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- „Aufräumen“ shows its preview in a resizable window with a summary, a scrollable list of bounded height and „Löschen“ / „Abbrechen“; with nothing to delete it only informs (AGP_CLEANUP_PREVIEW_WINDOW_V1); build `release-0.3.5-r2`.
 - „Wiederherstellen“ handles main that is only behind origin/main: the Lage names it, and the task carries the live facts and approves exactly the Kit's fast-forward of main (AGP_RECOVER_MAIN_BEHIND_V1). Work orders share one pytest temp root per repository, and „Aufräumen“ also offers the aged temp folders of every other steered repository without following links (AGP_PYTEST_SHARED_TEMPROOT_V1, AGP_CLEANUP_ALL_REPOS_V1). Tracked files no longer name the owner's home folder (AGP_NO_OWNER_PATHS_V1); build `release-0.3.5-r1`.
 
 ## v0.3.5 - 2026-10-29
