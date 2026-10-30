@@ -166,6 +166,9 @@ def test_narrowing_the_window_wraps_instead_of_scrolling_sideways(tk_root, monke
     panel = m.SimpleTaskPanel(tab.inner, repository_root=tmp_path)
     panel.grid(row=0, column=0, sticky="nsew")
     panel._show_decision("M1", "Frage " * 200)
+    # AGP_DECISION_ROWS_WRAP_V1 (xvfb, 2026-10-30): the scope row and the optional --allow-unlisted
+    # line kept the panel wider than 620 px with Linux font metrics.
+    panel.allow_unlisted_row.grid()
 
     def settle(width):
         tk_root.geometry(f"{width}x700")
@@ -180,7 +183,8 @@ def test_narrowing_the_window_wraps_instead_of_scrolling_sideways(tk_root, monke
         right = tab.canvas.winfo_rootx() + tab.canvas.winfo_width()
         assert not tab.hbar.winfo_ismapped(), width
         assert panel.actions.rows() > wide or width == 760, width
-        for widget in (*panel.actions.items, panel.approve_decision_button, panel.diff_button):
+        for widget in (*panel.actions.items, *panel.scope_row.items, panel.approve_decision_button,
+                       panel.diff_button, panel.allow_unlisted_check):
             assert widget.winfo_rootx() + widget.winfo_width() <= right, (width, widget)
     settle(1000)
     assert panel.actions.rows() == wide and not tab.hbar.winfo_ismapped()

@@ -177,30 +177,39 @@ class SimpleTaskPanel(ttk.Frame):
         self.decision_note = tk.Text(note_row, height=2, width=20, wrap="word", undo=True)
         self.decision_note.grid(row=0, column=1, sticky="ew")
         # AGP_APPROVAL_SCOPE_CHOICE_V1: the owner names the scope; the bridge enforces it.
-        scope_row = ttk.Frame(self.decision_frame)
-        scope_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        # AGP_DECISION_ROWS_WRAP_V1 (CI under xvfb, 2026-10-30): with Linux font metrics the
+        # scope row and the --allow-unlisted line requested more than a 620 px window and showed a
+        # horizontal scroll bar; both wrap with the window now, as the button rows do.
+        scope_row = FlowRow(self.decision_frame)
+        scope_row.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(6, 0))
+        self.scope_row = scope_row
         self.decision_scope_var = tk.StringVar(value="push_pr")
-        ttk.Label(scope_row, text="Freigabe für:").grid(row=0, column=0, sticky="w", padx=(0, 6))
-        ttk.Radiobutton(scope_row, text="Push und PR, ohne Merge", value="push_pr",
-                        variable=self.decision_scope_var).grid(row=0, column=1, sticky="w")
-        ttk.Radiobutton(scope_row, text="Push, PR und Merge", value="full",
-                        variable=self.decision_scope_var).grid(row=0, column=2, sticky="w", padx=(8, 0))
+        scope_row.add(ttk.Label(scope_row, text="Freigabe für:"))
+        scope_row.add(ttk.Radiobutton(scope_row, text="Push und PR, ohne Merge", value="push_pr",
+                                      variable=self.decision_scope_var))
+        scope_row.add(ttk.Radiobutton(scope_row, text="Push, PR und Merge", value="full",
+                                      variable=self.decision_scope_var))
         # AGP_EXACT_COMMAND_APPROVAL_V1: exactly the command lines the question names; the
         # bridge refuses any other or changed line. --allow-unlisted needs its own tick.
-        self.exact_scope_button = ttk.Radiobutton(scope_row, text="Nur diese Befehle", value="exact",
-                                                  variable=self.decision_scope_var)
-        self.exact_scope_button.grid(row=0, column=3, sticky="w", padx=(8, 0))
+        self.exact_scope_button = scope_row.add(ttk.Radiobutton(scope_row, text="Nur diese Befehle", value="exact",
+                                                                variable=self.decision_scope_var))
         self.exact_commands_var = tk.StringVar(value="")
         self._wrap(ttk.Label(self.decision_frame, textvariable=self.exact_commands_var,
                              font="TkFixedFont", justify="left"), 200).grid(
             row=4, column=0, columnspan=3, sticky="ew", pady=(4, 0))
         self.allow_unlisted_var = tk.BooleanVar(value=False)
+        self.allow_unlisted_row = ttk.Frame(self.decision_frame)
+        self.allow_unlisted_row.columnconfigure(0, weight=1)
         self.allow_unlisted_check = ttk.Checkbutton(
-            self.decision_frame, variable=self.allow_unlisted_var,
-            text="⚠ --allow-unlisted bewusst freigeben: der Auftrag darf BOUNDED-Kit-Befehle und "
-                 "Befehle außerhalb des Kit-Manifests ausführen")
-        self.allow_unlisted_check.grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
-        self.allow_unlisted_check.grid_remove()
+            self.allow_unlisted_row, variable=self.allow_unlisted_var,
+            text="⚠ --allow-unlisted bewusst freigeben")
+        self.allow_unlisted_check.grid(row=0, column=0, sticky="w")
+        self._wrap(ttk.Label(self.allow_unlisted_row, justify="left",
+                             text="Der Auftrag darf BOUNDED-Kit-Befehle und Befehle außerhalb des "
+                                  "Kit-Manifests ausführen."), 220).grid(row=1, column=0, sticky="ew",
+                                                                         padx=(22, 0))
+        self.allow_unlisted_row.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(4, 0))
+        self.allow_unlisted_row.grid_remove()
         self._exact_view = {"commands": [], "allow_unlisted": [], "default_scope": "push_pr"}
         self.decision_frame.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         self.decision_frame.grid_remove()
@@ -405,9 +414,9 @@ class SimpleTaskPanel(ttk.Frame):
             self.exact_scope_button.state(["disabled"])
             self.exact_commands_var.set("")
         if view["allow_unlisted"]:
-            self.allow_unlisted_check.grid()
+            self.allow_unlisted_row.grid()
         else:
-            self.allow_unlisted_check.grid_remove()
+            self.allow_unlisted_row.grid_remove()
 
     def _hide_decision(self) -> None:
         self._decision_mission_id = ""

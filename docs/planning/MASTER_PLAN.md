@@ -709,7 +709,11 @@ P1 — next:
    work orders, the work-branch start guard, the fresh-branch Lage, the app's own extension and ruff in
    the CI. Open: the tool set of free tasks (owner decision: free tasks run only `agentic-kit` and `git`,
    which kept tests and the site generator of the Kit out of KIT-GF-086), KIT-GF-089 in the Kit, the
-   599 s timeout.
+   599 s timeout. Settled 2026-10-30: KIT-GF-089 shipped in Kit 1.1.7; the owner keeps the tool set of
+   free tasks (widening it would break the architecture); the 599 s timeout is closed without a fix (no
+   bridge log of that run, its finish was confirmed locally; a recurrence is diagnosed from its log).
+   Build release-0.3.5-r3: a work branch behind origin/<branch> is a Störung with „Wiederherstellen“
+   (AGP_WORK_BRANCH_BEHIND_V1), and the CI runs the Tk tests under xvfb (AGP_TK_TESTS_IN_CI_V1).
 5. External repository and installation test with vfi64/digital-embryo (installer stage A): the app
    without the Cockpit's source, adoption through Kit routes, one full work cycle; remove the stale 8765
    bridge defaults. The bounded stage-A procedure is in TEST_PLAN,

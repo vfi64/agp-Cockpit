@@ -1846,3 +1846,30 @@ repeat once.
   still asked „Jetzt endgültig löschen?“ and then reported 0 deletions. The preview is now a resizable window
   with a summary line, a bounded list with a scroll bar and explicit „Löschen“ / „Abbrechen“; with no Cockpit
   entries and nothing for the Kit to collect it only informs (AGP_CLEANUP_PREVIEW_WINDOW_V1).
+
+## 2026-10-30 — Work branch behind its origin, Tk tests in CI (build release-0.3.5-r3)
+
+- Lage gap (owner screenshot 2026-10-27 after a branch switch; again 2026-10-30, when the finish script had to
+  fast-forward fix/cleanup-preview-window to the commit pushed from Claude's workspace): origin/<branch> had
+  commits from elsewhere, and the Lage still offered the stale local branch for „Arbeiten“ and „Abschließen“.
+  AGP_WORK_BRANCH_BEHIND_V1: the facts read origin/<branch> live (ls-remote; offline the last fetched ref) and
+  relate HEAD to it (SAME, AHEAD, BEHIND, NOT_FETCHED, DIVERGED). Behind, not fetched or diverged is a
+  „Störung“ with „Wiederherstellen“; both start paths refuse it; for a clean branch that is only behind the
+  recover task carries the live facts and its start click approves exactly fetch-origin and pull-current
+  (fast-forward only). Transfer branches stay the Kit's and are not judged.
+- Owner decision (option 2 of three): the Tk tests had never run in CI — the workflow had no display, so all
+  of them were skipped and UI changes merged unchecked. AGP_TK_TESTS_IN_CI_V1: the python job runs the suite
+  under xvfb with AGP_REQUIRE_TK=1, and a Tk test skipped for a missing tkinter or display fails there. The
+  owner rejected widening the tool set of free tasks (option 3) as an architecture break.
+- Under xvfb with Linux font metrics one layout test failed: the approval scope row and the --allow-unlisted
+  line kept the „Arbeiten“ tab wider than 620 px (horizontal scroll bar). AGP_DECISION_ROWS_WRAP_V1: both wrap
+  with the window; the test now also shows the --allow-unlisted line. Not observed on the Mac, whose font is
+  narrower.
+- The intermittent abort of the suite in Claude's Linux workspace („Trace/breakpoint trap“, here „Fatal Python
+  error: Aborted“) was located: a bridge test's server thread was garbage-collecting Tk objects an earlier GUI
+  test had left in reference cycles; Tcl forbids freeing them on a foreign thread. AGP_TK_GC_ON_MAIN_THREAD_V1:
+  after every test that created a Tk window the garbage is collected on the main thread. Before: one abort in
+  two full runs; after: five runs without one (bounded evidence, not proof).
+- Dropped from the slice: the ChatGPT UI variant item (Systemcheck: variant b57e34f5 since 27.10., no „NEU“)
+  and the 599 s timeout of 2026-10-22 (no bridge log of that run; its finish was confirmed locally).
+
