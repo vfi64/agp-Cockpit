@@ -8,7 +8,8 @@ One rule set, always previewed first, executed only on the operator's OK:
   anything younger than ``max_age_days``; ``run_next.py`` is never touched;
 * ``.local/agp-cockpit/delivery`` (result projections): older than
   ``max_age_days``;
-* ``.local/agp-cockpit/tmp`` (TMPDIR of work orders): older than one day;
+* ``.local/agp-cockpit/tmp`` (TMPDIR of work orders): older than one day — of the selected
+  repository and of every other repository in the Cockpit's runtime home (AGP_CLEANUP_ALL_REPOS_V1);
 * ``.local/agp-cockpit/ci`` (CI evidence): older than ``max_age_days`` beyond
   the newest 20;
 * the Kit's own temporary logs through ``agentic-kit artifact-gc --tmp-logs``
@@ -21,8 +22,10 @@ that a fresh plan still lists.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
+import stat
 import subprocess
 import time
 from dataclasses import dataclass
@@ -54,9 +57,40 @@ class Plan:
 
 
 def _size(path: Path) -> int:
-    if path.is_dir():
-        return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
-    return path.stat().st_size
+    """Bytes of regular files under ``path``; symbolic links are neither followed nor counted
+    (pytest's ``…current`` links point into the same tree, AGP_CLEANUP_ALL_REPOS_V1)."""
+    if path.is_symlink() or not path.exists():
+        return 0
+    if not path.is_dir():
+        return path.stat().st_size
+    total = 0
+    for folder, _dirs, files in os.walk(path, followlinks=False):
+        for name in files:
+            try:
+                info = os.lstat(os.path.join(folder, name))
+            except OSError:
+                continue
+            if stat.S_ISREG(info.st_mode):
+                total += info.st_size
+    return total
+
+
+def _other_runtime_tmp(local: Path) -> list[tuple[Path, str]]:
+    """AGP_CLEANUP_ALL_REPOS_V1 (2026-10-29): the work-order temp folders of every repository the
+    Cockpit steers live in its runtime home (AGP_RUNTIME_HOME_V1), one folder per repository.
+    „Aufräumen“ saw only the selected repository's folder, so the Kit repository's pytest trees
+    were never offered while the Cockpit's own repository was selected."""
+    from agp_cockpit.core.runtime_paths import runtime_home_base
+    base = runtime_home_base()
+    if base is None:
+        return []
+    found = [(base / "tmp", "Temporär (Cockpit)")]
+    repos = base / "repos"
+    if repos.is_dir():
+        found += [(repo / "tmp", f"Temporär ({repo.name.rsplit('-', 1)[0]})")
+                  for repo in sorted(repos.iterdir()) if repo.is_dir() and not repo.is_symlink()]
+    own = (local / "tmp").resolve()
+    return [(folder, area) for folder, area in found if folder.is_dir() and folder.resolve() != own]
 
 
 def _download_candidates(root: Path, now: float, keep_steps: int, max_age: float) -> list[Candidate]:
@@ -93,6 +127,8 @@ def plan(root: Path, *, now: float | None = None, keep_steps: int = KEEP_STEPS,
         + _aged(local / "tmp", "Temporär", now, TMP_AGE_SECONDS)
         + _aged(local / "ci", "CI-Nachweise", now, max_age, keep_newest=KEEP_CI_EVIDENCE)
     )
+    for folder, area in _other_runtime_tmp(local):
+        candidates += _aged(folder, area, now, TMP_AGE_SECONDS)
     # AGP_RUNTIME_HOME_V1: the Cockpit runtime that earlier builds left in a steered
     # repository is offered as a whole once the runtime lives in the Cockpit's home.
     legacy = root / ".local" / "agp-cockpit"
@@ -135,8 +171,10 @@ def execute(root: Path, approved: Plan, *, kit_binary: Path | None = None,
     """Delete what the approved plan lists and a fresh plan still lists."""
     root = Path(root).resolve()
     fresh = {c.path for c in plan(root, now=now).candidates}
-    from agp_cockpit.core.runtime_paths import runtime_base
-    allowed = (root / "Download", runtime_base(root), root / ".local" / "agp-cockpit")
+    from agp_cockpit.core.runtime_paths import runtime_base, runtime_home_base
+    home = runtime_home_base()
+    allowed = (root / "Download", runtime_base(root), root / ".local" / "agp-cockpit",
+               *((home,) if home is not None else ()))
     deleted, freed, skipped = 0, 0, []
     for candidate in approved.candidates:
         path = candidate.path
@@ -145,8 +183,8 @@ def execute(root: Path, approved: Plan, *, kit_binary: Path | None = None,
             skipped.append(str(path))
             continue
         size = _size(path)
-        if path.is_dir():
-            shutil.rmtree(path)
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)   # removes links inside the tree, never their targets
         else:
             path.unlink()
         deleted += 1

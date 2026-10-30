@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-ROOT="/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 if [ -x "./node_modules/.bin/playwright" ]; then

@@ -1,5 +1,7 @@
 # LIVE Late-Acceptance Validation — Step 099
 
+> 2026-10-29: the owner's local checkout path was replaced by <owner-checkout> (AGP_NO_OWNER_PATHS_V1); previews are otherwise unchanged, their sha256 values refer to the original text.
+
 Status: active
 Decision status: accepted
 Review policy: on material change
@@ -51,7 +53,7 @@ DRAFT_WRITTEN -> SUBMIT_ATTEMPTED -> WAITING_FOR_ACCEPTANCE -> ACCEPTED -> DRAFT
 007. MISSION_BOOTSTRAP_SENT :: {"chars": 1015}
 008. ASSISTANT_RESPONSE_COMPLETE :: {"chars": 167, "stable_polls": 3}
 009. TURN_SUBMIT_STARTED_CLIENT :: {"chars": 167}
-010. TURN_SUBMIT_STARTED :: {"assistant": {"chars": 167, "preview": "{\"kind\":\"generic\",\"cwd\":\"/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit\",\"argv\":[\"/usr/bin/git\",\"status\",\"--short\"],\"timeout_seconds\":30,\"label\":\"098 step 1 git s", "sha256": "13ac03ae481c8253381487eaeb9c32b3d5fb0ea58736e8a1356c9bf65135b166"}}
+010. TURN_SUBMIT_STARTED :: {"assistant": {"chars": 167, "preview": "{\"kind\":\"generic\",\"cwd\":\"<owner-checkout>/agp-Cockpit\",\"argv\":[\"/usr/bin/git\",\"status\",\"--short\"],\"timeout_seconds\":30,\"label\":\"098 step 1 git s", "sha256": "13ac03ae481c8253381487eaeb9c32b3d5fb0ea58736e8a1356c9bf65135b166"}}
 011. TURN_SUBMIT_OK :: {"action": "continue", "note": "turn=1"}
 012. SEND_TRANSPORT_STATE state=DRAFT_WRITTEN retry_count=0 details={"chars": 5793, "retry_count": 0, "state": "DRAFT_WRITTEN"}
 013. SEND_TRANSPORT_STATE state=SUBMIT_ATTEMPTED retry_count=0 details={"attempt": 1, "retry_count": 0, "state": "SUBMIT_ATTEMPTED"}
@@ -60,7 +62,7 @@ DRAFT_WRITTEN -> SUBMIT_ATTEMPTED -> WAITING_FOR_ACCEPTANCE -> ACCEPTED -> DRAFT
 016. PROMPT_SENT :: {"state": "STEP_PASS"}
 017. ASSISTANT_RESPONSE_COMPLETE :: {"chars": 178, "stable_polls": 3}
 018. TURN_SUBMIT_STARTED_CLIENT :: {"chars": 178}
-019. TURN_SUBMIT_STARTED :: {"assistant": {"chars": 178, "preview": "{\"kind\":\"generic\",\"cwd\":\"/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit\",\"argv\":[\"/usr/bin/git\",\"branch\",\"--show-current\"],\"timeout_seconds\":30,\"label\":\"098 step ", "sha256": "040833d0e1acd40a6399a79d365e043d8336782669c170d724436b88b79de981"}}
+019. TURN_SUBMIT_STARTED :: {"assistant": {"chars": 178, "preview": "{\"kind\":\"generic\",\"cwd\":\"<owner-checkout>/agp-Cockpit\",\"argv\":[\"/usr/bin/git\",\"branch\",\"--show-current\"],\"timeout_seconds\":30,\"label\":\"098 step ", "sha256": "040833d0e1acd40a6399a79d365e043d8336782669c170d724436b88b79de981"}}
 020. TURN_SUBMIT_OK :: {"action": "continue", "note": "turn=2"}
 021. SEND_TRANSPORT_STATE state=DRAFT_WRITTEN retry_count=0 details={"chars": 1214, "retry_count": 0, "state": "DRAFT_WRITTEN"}
 022. SEND_TRANSPORT_STATE state=SUBMIT_ATTEMPTED retry_count=0 details={"attempt": 1, "retry_count": 0, "state": "SUBMIT_ATTEMPTED"}
@@ -69,7 +71,7 @@ DRAFT_WRITTEN -> SUBMIT_ATTEMPTED -> WAITING_FOR_ACCEPTANCE -> ACCEPTED -> DRAFT
 025. PROMPT_SENT :: {"state": "STEP_PASS"}
 026. ASSISTANT_RESPONSE_COMPLETE :: {"chars": 174, "stable_polls": 3}
 027. TURN_SUBMIT_STARTED_CLIENT :: {"chars": 174}
-028. TURN_SUBMIT_STARTED :: {"assistant": {"chars": 174, "preview": "{\"kind\":\"generic\",\"cwd\":\"/Users/hof/Dropbox/Privat/GitHub/agp-Cockpit\",\"argv\":[\"/usr/bin/git\",\"log\",\"-1\",\"--oneline\"],\"timeout_seconds\":30,\"label\":\"098 step 3 l", "sha256": "11a2c420e77a177df81807f10d74c1150f9ecf6c5cd7892a2f20046e3010534e"}}
+028. TURN_SUBMIT_STARTED :: {"assistant": {"chars": 174, "preview": "{\"kind\":\"generic\",\"cwd\":\"<owner-checkout>/agp-Cockpit\",\"argv\":[\"/usr/bin/git\",\"log\",\"-1\",\"--oneline\"],\"timeout_seconds\":30,\"label\":\"098 step 3 l", "sha256": "11a2c420e77a177df81807f10d74c1150f9ecf6c5cd7892a2f20046e3010534e"}}
 029. TURN_SUBMIT_OK :: {"action": "continue", "note": "turn=3"}
 030. SEND_TRANSPORT_STATE state=DRAFT_WRITTEN retry_count=0 details={"chars": 1256, "retry_count": 0, "state": "DRAFT_WRITTEN"}
 031. SEND_TRANSPORT_STATE state=SUBMIT_ATTEMPTED retry_count=0 details={"attempt": 1, "retry_count": 0, "state": "SUBMIT_ATTEMPTED"}

@@ -308,3 +308,52 @@ def test_kit_gc_previews_and_then_executes(tmp_path):
     assert calls == [["artifact-gc", "--tmp-logs"]] and "DRY_RUN" in result.kit_preview
     mt.execute(tmp_path, result, runner=runner)
     assert calls[-1] == ["artifact-gc", "--tmp-logs", "--execute"]
+
+
+def test_cleanup_offers_the_temp_folders_of_every_steered_repository(tmp_path, monkeypatch):
+    """AGP_CLEANUP_ALL_REPOS_V1 (2026-10-29): pytest trees of the Kit repository's work orders were never
+    offered while the Cockpit's own repository was selected."""
+    from agp_cockpit.core.runtime_paths import HOME_ENV
+    now = time.time()
+    home, cockpit = tmp_path / "home", tmp_path / "home"
+    monkeypatch.setenv(HOME_ENV, str(home))
+    kit_tmp = home / ".local/agp-cockpit/repos/agentic-project-kit-a77d515b/tmp"
+    _touch(kit_tmp / "112/pytest-of-u/pytest-0/x.txt", 3, now, "x" * 100)
+    os.utime(kit_tmp / "112", (now - 3 * 86400,) * 2)
+    _touch(kit_tmp / "200/young.txt", 0, now)
+    _touch(home / ".local/agp-cockpit/tmp/7/a.txt", 3, now)
+    os.utime(home / ".local/agp-cockpit/tmp/7", (now - 3 * 86400,) * 2)
+    result = mt.plan(cockpit, now=now)
+    offered = {(c.path.parent.parent.name, c.path.name, c.area) for c in result.candidates}
+    assert ("agentic-project-kit-a77d515b", "112", "Temporär (agentic-project-kit)") in offered
+    assert not any(name == "200" for _, name, _ in offered)
+    assert sum(1 for _, name, _ in offered if name == "7") == 1        # own tmp listed once
+    # steering the Kit repository: its own folder plus the Cockpit's are offered, each once
+    other = mt.plan(tmp_path / "agentic-project-kit", now=now)
+    assert [c.path.name for c in other.candidates].count("7") == 1
+
+
+def test_cleanup_removes_links_inside_a_tree_but_never_their_targets(tmp_path, monkeypatch):
+    from agp_cockpit.core.runtime_paths import HOME_ENV
+    now = time.time()
+    home = tmp_path / "home"
+    monkeypatch.setenv(HOME_ENV, str(home))
+    outside = _touch(tmp_path / "keep/precious.txt", 0, now, "keep")
+    step = home / ".local/agp-cockpit/repos/kit-12345678/tmp/112"
+    _touch(step / "pytest-of-u/pytest-16/x.txt", 3, now, "x" * 10)
+    (step / "pytest-of-u/pytest-current").symlink_to(step / "pytest-of-u/pytest-16", target_is_directory=True)
+    (step / "escape").symlink_to(outside.parent, target_is_directory=True)
+    os.utime(step, (now - 3 * 86400,) * 2)
+    assert mt._size(step) == 10                                     # links neither followed nor counted
+    approved = mt.plan(home, now=now)
+    assert [c.path for c in approved.candidates] == [step]
+    outcome = mt.execute(home, approved, now=now)
+    assert outcome["deleted"] == 1 and not step.exists()
+    assert outside.read_text() == "keep"
+
+
+def test_work_orders_share_one_pytest_temp_root_per_repository():
+    """AGP_PYTEST_SHARED_TEMPROOT_V1: pytest keeps only its newest runs per temp root."""
+    source = (Path(__file__).resolve().parents[1] / "src/agp_cockpit/core/file_loop_runner.py").read_text()
+    assert 'runtime_dir(root.resolve(), "tmp", "pytest")' in source
+    assert 'runner_env["PYTEST_DEBUG_TEMPROOT"] = str(pytest_root)' in source

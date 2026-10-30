@@ -1816,5 +1816,23 @@ repeat once.
   retest plan, Kit PR #2684); recorded and verified from the 1.1.8 run (GF-E118).
 - The owner's `next` runner refuses a Download/ with tracked files; this repository tracks Download/run_next.py,
   the Cockpit's canonical runner. Owner decision 2026-10-29: the steps up to release 0.3.5 run as before through
-  the maintainer scripts; a following slice moves the canonical runner into the package and provides
-  Download/run_next.py untracked here as in every other repository.
+  the maintainer scripts. Owner decision 2026-10-30: Download/run_next.py stays tracked here; the next
+  runner is reserved for manual work without the Cockpit, so no runner move follows.
+
+## 2026-10-30 — Recover when main is only behind, cleanup of every repository's temp folders, no owner paths (build release-0.3.5-r1)
+
+- 2026-10-29, Kit repository: main was 10 commits behind origin/main (clean, no own commits). „Wiederherstellen“
+  ran without network, diagnosed against the stale local origin/main ref, found main "synchronized" and asked
+  for an unrelated admin-refresh decision; the owner rejected it and main was brought up to date by a
+  maintainer order through the Kit. The Lage now names „main ist nur hinter origin/main“, and the recover task
+  carries the live facts (local main, GitHub's origin/main, the stale ref) and in exactly that case approves
+  only the Kit's fast-forward of main (AGP_RECOVER_MAIN_BEHIND_V1).
+- 2026-10-29: each work order in the Kit repository had its own TMPDIR, so pytest's retention never applied and
+  every step kept a pytest-of-<user> tree (~38,000 files, ~1,600 symlinks). Work orders now share one pytest
+  temp root per repository (AGP_PYTEST_SHARED_TEMPROOT_V1); „Aufräumen“ offers the aged temp folders of every
+  repository in the Cockpit's runtime home, counts sizes without following links and removes links inside a
+  tree, never their targets (AGP_CLEANUP_ALL_REPOS_V1). The drop of free disk space the same evening was mostly
+  swap and application caches (14 GB came back after closing applications), not these trees.
+- The public repository named the owner's home folder in 17 files (live evidence, fixtures, scripts,
+  CLAUDE.md). Replaced by <owner-checkout> or a neutral /Users/owner/…; scripts locate the checkout themselves;
+  a test refuses personal home folders in tracked files (AGP_NO_OWNER_PATHS_V1). Git history still holds them.
