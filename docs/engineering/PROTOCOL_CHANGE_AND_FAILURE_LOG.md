@@ -1872,4 +1872,11 @@ repeat once.
   two full runs; after: five runs without one (bounded evidence, not proof).
 - Dropped from the slice: the ChatGPT UI variant item (Systemcheck: variant b57e34f5 since 27.10., no „NEU“)
   and the 599 s timeout of 2026-10-22 (no bridge log of that run; its finish was confirmed locally).
+- First CI run with the Tk tests (PR #406, head 34524677) was red: `test_editor_widget_flow` — KeyError
+  'mission_text'. The test drove the panel on the Cockpit's own checkout; CI checks it out as a detached merge
+  ref (and push runs on main), so the work-branch guard of rule 89 (AGP_WORK_TASK_NOT_ON_MAIN_V1) refused the
+  start. The regression had been invisible since rule 89 because the test was always skipped in CI — the case
+  AGP_TK_TESTS_IN_CI_V1 exists for. The test now replaces the guard (it has its own tests); reproduced and
+  verified on a detached HEAD and on a checkout named main. The log came through the Kit (`pr status`, order
+  0002), because Claude's workspace cannot read GitHub's job logs.
 
