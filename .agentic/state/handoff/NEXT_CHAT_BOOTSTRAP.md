@@ -6,10 +6,10 @@ Do not start from chat memory. Read the Successor Handoff Package first.
 ## Current verified repository state
 
 - Repo: `vfi64/agp-Cockpit`
-- HEAD: `5fd5a27d917daeed63a2e48b5131cc9169b5ce40` (`5fd5a27d`)
-- Handoff freshness marker: `5fd5a27d`
+- HEAD: `f0a02249a10dfe2d6c4f65fd1d01eac48b347fc9` (`f0a02249`)
+- Handoff freshness marker: `f0a02249`
 - Branch at generation: `release/0.3.6`
-- Worktree clean at generation: `False`
+- Worktree clean at generation: `True`
 
 ## Successor handoff package
 
