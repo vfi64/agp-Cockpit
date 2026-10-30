@@ -1,0 +1,205 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-30",
+  "explicit_summary_lines": [
+    "A work branch whose origin/<branch> on GitHub has commits that are missing locally is a \u201eSt\u00f6rung\u201c: the Lage names it (behind, not fetched or diverged), \u201eArbeiten\u201c and \u201eAbschlie\u00dfen\u201c refuse to start, and \u201eWiederherstellen\u201c carries the live facts and approves exactly the Kit's fetch and fast-forward of the branch (AGP_WORK_BRANCH_BEHIND_V1). The CI runs the Tk tests under xvfb and fails a Tk test that would be skipped (AGP_TK_TESTS_IN_CI_V1); the approval scope row and the --allow-unlisted line wrap with the window (AGP_DECISION_ROWS_WRAP_V1); Tk garbage is collected on the main thread after GUI tests (AGP_TK_GC_ON_MAIN_THREAD_V1); build `release-0.3.5-r3`.",
+    "\u201eAufr\u00e4umen\u201c shows its preview in a resizable window with a summary, a scrollable list of bounded height and \u201eL\u00f6schen\u201c / \u201eAbbrechen\u201c; with nothing to delete it only informs (AGP_CLEANUP_PREVIEW_WINDOW_V1); build `release-0.3.5-r2`.",
+    "\u201eWiederherstellen\u201c handles main that is only behind origin/main: the Lage names it, and the task carries the live facts and approves exactly the Kit's fast-forward of main (AGP_RECOVER_MAIN_BEHIND_V1). Work orders share one pytest temp root per repository, and \u201eAufr\u00e4umen\u201c also offers the aged temp folders of every other steered repository without following links (AGP_PYTEST_SHARED_TEMPROOT_V1, AGP_CLEANUP_ALL_REPOS_V1). Tracked files no longer name the owner's home folder (AGP_NO_OWNER_PATHS_V1); build `release-0.3.5-r1`."
+  ],
+  "from_tag": "v0.3.5",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": null,
+      "argv": [
+        "kit-ci-pin-guard"
+      ],
+      "name": "kit-ci-pin-guard",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "{\"next_action\": null, \"reasons\": [], \"result_status\": \"PASS\", \"unreadable_files\": [], \"versions\": {\"highest_pin\": \"1.1.8\", \"installed\": \"1.1.8\", \"pins\": [{\"path\": \".github/workflows/agentic-gate.yaml\", \"version\": \"1.1.8\"}, {\"path\": \".agentic/ci/agentic-gate.yaml\", \"version\": \"1.1.8\"}]}}",
+      "stdout_length": 287,
+      "stdout_sha256": "3c878c58220f3e343e4b2c3c947cfe9766b903adc282952b46cd92a733fb765b"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.6",
+        "--from-tag",
+        "v0.3.5",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-036-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 12028,
+      "stdout_sha256": "8457ebdcef4cb204c39fc0a2f843914fe0c24e7aca3abf74518c2ed539f039ae"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.6",
+        "--date",
+        "2026-10-30",
+        "--summary-line",
+        "A work branch whose origin/<branch> on GitHub has commits that are missing locally is a \u201eSt\u00f6rung\u201c: the Lage names it (behind, not fetched or diverged), \u201eArbeiten\u201c and \u201eAbschlie\u00dfen\u201c refuse to start, and \u201eWiederherstellen\u201c carries the live facts and approves exactly the Kit's fetch and fast-forward of the branch (AGP_WORK_BRANCH_BEHIND_V1). The CI runs the Tk tests under xvfb and fails a Tk test that would be skipped (AGP_TK_TESTS_IN_CI_V1); the approval scope row and the --allow-unlisted line wrap with the window (AGP_DECISION_ROWS_WRAP_V1); Tk garbage is collected on the main thread after GUI tests (AGP_TK_GC_ON_MAIN_THREAD_V1); build `release-0.3.5-r3`.",
+        "--summary-line",
+        "\u201eAufr\u00e4umen\u201c shows its preview in a resizable window with a summary, a scrollable list of bounded height and \u201eL\u00f6schen\u201c / \u201eAbbrechen\u201c; with nothing to delete it only informs (AGP_CLEANUP_PREVIEW_WINDOW_V1); build `release-0.3.5-r2`.",
+        "--summary-line",
+        "\u201eWiederherstellen\u201c handles main that is only behind origin/main: the Lage names it, and the task carries the live facts and approves exactly the Kit's fast-forward of main (AGP_RECOVER_MAIN_BEHIND_V1). Work orders share one pytest temp root per repository, and \u201eAufr\u00e4umen\u201c also offers the aged temp folders of every other steered repository without following links (AGP_PYTEST_SHARED_TEMPROOT_V1, AGP_CLEANUP_ALL_REPOS_V1). Tracked files no longer name the owner's home folder (AGP_NO_OWNER_PATHS_V1); build `release-0.3.5-r1`.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-036-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 261,
+      "stdout_sha256": "647214437700ff602e12781b02928ad8695f98576daa762f4f5ddb949f0d6646"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "07c48c59d5b8d0a5e62a2ea020593b0ff6f66758587b08a2680891c97b1941d5"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [],
+      "name": "task-selection-review-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "Skipped: Kit development projection is not applicable.",
+      "stdout_length": 54,
+      "stdout_sha256": "294dde19be118c8a1e8bcaae87e2ccf2eeb7df71ecd82f83edd4ffe91b167773"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "440fd1e8fe0a17e28932b60adde42123612fd1bb9907e8edc658c1ecdae5f016"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-036-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.6"
+}
