@@ -517,12 +517,11 @@ class MainWindow(ttk.Frame):
             plan = maintenance.plan(self.repository_root, kit_binary=binary)
         finally:
             self.configure(cursor="")
-        if not plan.candidates and plan.kit_argv is None:
-            messagebox.showinfo("Aufräumen", maintenance.describe(plan), parent=self)
+        if maintenance.nothing_to_do(plan):   # AGP_CLEANUP_PREVIEW_WINDOW_V1
+            messagebox.showinfo("Aufräumen", "Nichts zu löschen.\n\n" + maintenance.describe(plan), parent=self)
             return
-        if not messagebox.askyesno(
-                "Aufräumen — Vorschau",
-                maintenance.describe(plan) + "\n\nJetzt endgültig löschen?", parent=self):
+        from agp_cockpit.ui import cleanup_preview
+        if not cleanup_preview.ask(self, plan):
             return
         outcome = maintenance.execute(self.repository_root, plan, kit_binary=binary)
         messagebox.showinfo(

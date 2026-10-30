@@ -357,3 +357,25 @@ def test_work_orders_share_one_pytest_temp_root_per_repository():
     source = (Path(__file__).resolve().parents[1] / "src/agp_cockpit/core/file_loop_runner.py").read_text()
     assert 'runtime_dir(root.resolve(), "tmp", "pytest")' in source
     assert 'runner_env["PYTEST_DEBUG_TEMPROOT"] = str(pytest_root)' in source
+
+
+def test_pytest_creates_its_runs_under_the_shared_temp_root(tmp_path):
+    """AGP_PYTEST_SHARED_TEMPROOT_V1: pytest itself honours PYTEST_DEBUG_TEMPROOT, so the work orders' runs
+    land in one folder per repository where pytest's retention prunes them."""
+    import getpass
+    import subprocess
+    import sys
+    project, root = tmp_path / "proj", tmp_path / "shared-root"
+    project.mkdir()
+    root.mkdir()
+    (project / "test_one.py").write_text("def test_tmp(tmp_path):\n    assert tmp_path.is_dir()\n")
+    env = {**os.environ, "PYTEST_DEBUG_TEMPROOT": str(root), "PYTEST_ADDOPTS": ""}
+    env.pop("PYTEST_CURRENT_TEST", None)
+    for _ in range(4):
+        done = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "test_one.py"],
+                              cwd=project, env=env, capture_output=True, text=True, timeout=120, check=False)
+        assert done.returncode == 0, done.stdout + done.stderr
+    users = [p for p in root.iterdir() if p.name.startswith("pytest-of-")]
+    assert [p.name for p in users] == [f"pytest-of-{getpass.getuser()}"]
+    runs = [p for p in users[0].iterdir() if p.name.startswith("pytest-") and not p.is_symlink()]
+    assert len(runs) <= 3                                    # pytest keeps only its newest runs
