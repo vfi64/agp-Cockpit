@@ -123,6 +123,14 @@
       "date": "2026-10-29",
       "tag": "v0.3.5",
       "published": false
+    },
+    {
+      "app": "0.3.6",
+      "build_id": "release-0.3.6",
+      "kit": "1.1.8",
+      "date": "2026-10-30",
+      "tag": "v0.3.6",
+      "published": false
     }
   ]
 }
