@@ -1899,3 +1899,20 @@ repeat once.
   row's width, never fewer when narrower); a mutation without relayout fails it. Lesson: a test that stays red on
   one platform for four adoptions is a finding, not background noise.
 
+## 2026-10-31 — Systemcheck „Kit-Release“; KIT-GF-093 (build release-0.3.6-r2)
+
+- Owner decision 2026-10-30 (option B, part 1): AGP_KIT_RELEASE_CHECK_V1 adds the Systemcheck line „Kit-Release“. It
+  runs the repository's own Kit with `kit status --root <repo> --check-release --json` (KIT-GF-092, Kit 1.1.9) and
+  shows its verdict: CURRENT ✓, AHEAD ✓, UPDATE_AVAILABLE ⚠ with the step that adopts it, UNKNOWN ⚠ with its reason;
+  a Kit without the option is named. The Cockpit never asks the package index itself (a test keeps it so). The
+  window grows to nine lines. Part 2, the task „Kit übernehmen“, follows in its own slice.
+- New Kit finding KIT-GF-093 (GF-E123): trying the line against the Kit repository in Claude's workspace (checkout
+  2ad5357b, package 1.1.9, pip metadata 1.1.4 from an older `pip install -e`) the Kit reported installed 1.1.4 and
+  UPDATE_AVAILABLE 1.1.9. `release_installation` reads the distribution metadata, not the running package — the
+  same class of defect the Cockpit fixed for itself in AGP_KIT_VERSION_EDITABLE (Lage „Kit 1.1.4“). The owner's
+  Kit checkout gets this shape after every pull. The Cockpit shows the contradiction instead of the Kit's verdict
+  and gives no advice; it does not recompute the verdict. Codex task CODEX_TASK_kit_editable_release_check.
+- The 1.1.7/1.1.8 register tests asserted „no OPEN family“ for the whole register; they now assert it for the
+  findings known at their adoption (first observed by then), and a new test covers the 1.1.9 register, which
+  the previous slice (#412) lacked.
+

@@ -2,7 +2,7 @@
 
 AGP_SYSTEM_CHECK_V1 (owner 2026-10-07: „Bei Problemzuständen soll das Cockpit den Nutzer selbst
 auf dem Lösungsweg führen“): the System tab checks app build, bridge, Chrome extension, ChatGPT
-UI variant, Agentic Kit, repository, GitHub CLI and disk space, and names for every problem the
+UI variant, Agentic Kit, Kit release, repository, GitHub CLI and disk space, and names for every problem the
 one step that fixes it. Every check reads only; none changes the repository, the Kit or a task.
 """
 
@@ -120,6 +120,62 @@ def _kit(root: Path) -> Check:
     return Check("Agentic Kit", OK, f"{kit.version}" + (" · wie in der CI" if pins else "") + note)
 
 
+# AGP_KIT_RELEASE_CHECK_V1 (owner 2026-10-30, option B): the Kit itself answers whether a newer stable
+# release exists (KIT-GF-092, Kit 1.1.9: `kit status --check-release`); the Cockpit only shows its answer
+# and never asks the package index on its own.
+KIT_RELEASE_TIMEOUT = 30          # the Kit limits its index request to 10 s
+
+
+def _kit_release(root: Path, runner: Callable = subprocess.run) -> Check:
+    import json
+
+    from agp_cockpit.core.kit_installation import discover
+    name = "Kit-Release"
+    kit = discover(root)
+    if kit is None:
+        return Check(name, WARN, "nicht prüfbar: kein Kit installiert", "Erst das Kit installieren (Zeile „Agentic Kit“).")
+    try:
+        done = runner([str(kit.binary), "kit", "status", "--root", str(root), "--check-release", "--json"],
+                      cwd=str(root), capture_output=True, text=True, timeout=KIT_RELEASE_TIMEOUT, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return Check(name, WARN, f"nicht prüfbar: das Kit antwortet nicht ({type(exc).__name__})",
+                     "Später erneut prüfen.")
+    text = f"{getattr(done, 'stdout', '') or ''}"
+    try:
+        data = json.loads(text[text.index("{"):])
+    except ValueError:
+        data = {}
+    release = data.get("release_check") if isinstance(data, dict) else None
+    if not isinstance(release, dict):
+        if "check-release" in f"{text}{getattr(done, 'stderr', '') or ''}":   # Typer: No such option
+            return Check(name, WARN, f"Kit {kit.version} kennt die Release-Prüfung noch nicht (ab Kit 1.1.9)",
+                         "Kit übernehmen (mit Claude).")
+        return Check(name, WARN, "nicht prüfbar: das Kit lieferte keine Release-Prüfung", "Claude den Systemcheck zeigen.")
+    installed = str(release.get("installed") or kit.version)
+    latest = str(release.get("latest_release") or "")
+    editable = release.get("installation_kind") == "editable"
+    result = str(release.get("result") or "UNKNOWN")
+    if editable and release.get("installed") and kit.version and release.get("installed") != kit.version:
+        # KIT-GF-093 (2026-10-31): for an editable install the Kit compares the pip metadata of the last
+        # `pip install -e` (here older) instead of the running package, and would report an update that
+        # the checkout already has. The Cockpit shows the contradiction instead of the Kit's verdict and
+        # does not recompute it (the Kit owns the release answer).
+        return Check(name, WARN, f"Kit meldet {release.get('installed')} aus veralteten Paketdaten, es läuft "
+                     f"{kit.version}; neuestes Release {latest or 'unbekannt'} — Ergebnis „{result}“ nicht belastbar",
+                     "Nichts zu tun: bekannter Kit-Befund KIT-GF-093 (Entwicklerinstallation).")
+    if result == "CURRENT":
+        return Check(name, OK, f"{installed} ist das neueste stabile Release")
+    if result == "AHEAD":
+        return Check(name, OK, f"{installed} ist neuer als das neueste Release {latest}"
+                     + (" (Entwicklerinstallation)" if editable else ""))
+    if result == "UPDATE_AVAILABLE":
+        fix = ("Im Kit-Repository: „Wiederherstellen“ zieht main nach." if editable
+               else f"Kit {latest} übernehmen (mit Claude).")
+        return Check(name, WARN, f"neu: {latest} verfügbar (installiert {installed})", fix)
+    reason = str(release.get("reason") or "unbekannt")
+    return Check(name, WARN, f"nicht prüfbar ({reason})", "Netzverbindung prüfen, dann „Erneut prüfen“.")
+
+
 def _repository(root: Path) -> Check:
     from agp_cockpit.core.work_facts import facts_line, observe
     facts = observe(root)
@@ -158,9 +214,9 @@ def _disk(root: Path) -> Check:
 
 
 CHECKS: tuple[Callable[[Path], Check], ...] = (
-    _app_build, _bridge, _extension, _ui_variant, _kit, _repository, _github_cli, _disk)
-NAMES = ("App-Build", "Bridge", "Chrome-Erweiterung", "ChatGPT-Oberfläche", "Agentic Kit", "Repository",
-         "GitHub-CLI", "Speicherplatz")
+    _app_build, _bridge, _extension, _ui_variant, _kit, _kit_release, _repository, _github_cli, _disk)
+NAMES = ("App-Build", "Bridge", "Chrome-Erweiterung", "ChatGPT-Oberfläche", "Agentic Kit", "Kit-Release",
+         "Repository", "GitHub-CLI", "Speicherplatz")
 
 
 def run_all(repository_root: Path, checks=CHECKS) -> list[Check]:

@@ -17,7 +17,7 @@ class SystemCheckWindow(tk.Toplevel):
     def __init__(self, master, *, repository_root: Path, run=system_check.run_all) -> None:
         super().__init__(master)
         self.title("Systemcheck")
-        self.geometry("720x420")
+        self.geometry("720x480")   # AGP_KIT_RELEASE_CHECK_V1: nine lines
         self.minsize(480, 300)
         self._root_path = Path(repository_root)
         self._run = run

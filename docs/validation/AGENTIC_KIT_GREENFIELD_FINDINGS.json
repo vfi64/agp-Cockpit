@@ -888,6 +888,13 @@
       "historical_id": "Kit 1.1.9 adoption (#410), greenfield retest",
       "canonical_family": "KIT-GF-091",
       "summary": "greenfield retest --all under the 1.1.9 wheel: PASS 51, FAIL 0; KIT-GF-091/092 PASS; the Kit release stamped both fixed_in itself"
+    },
+    {
+      "date": "2026-10-31",
+      "event_id": "GF-E123",
+      "historical_id": "Systemcheck „Kit-Release“ slice, Kit repository in Claude's workspace",
+      "canonical_family": "KIT-GF-093",
+      "summary": "editable install: release check used pip metadata 1.1.4 while 1.1.9 runs; false UPDATE_AVAILABLE"
     }
   ],
   "families": [
@@ -3616,6 +3623,25 @@
       },
       "verified_by": "2026-10-31 docs/validation/evidence/kit-1.1.9-adoption.json (greenfield retest KIT-GF-092 PASS, installed Kit 1.1.9)",
       "retest": "Verified 2026-10-31 by the Kit's installed-wheel machine contract under Kit 1.1.9 (adoption #410). The Cockpit's use of the route (Systemcheck line, task „Kit übernehmen“) follows in its own slice."
+    },
+    {
+      "id": "KIT-GF-093",
+      "title": "the release check of an editable install compares stale package metadata",
+      "first_observed": "2026-10-31",
+      "status": "OPEN",
+      "severity": "low",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": null,
+      "expected": "`kit status --check-release` (and `kit update --latest`) judge an editable install by the version of the running package (`agentic_project_kit.__version__`), as the Kit's own `--version` does; the pip metadata of the last `pip install -e` is at most a note.",
+      "observed": "2026-10-31, Claude's workspace, Kit repository checkout at 2ad5357b (package 1.1.9, pip metadata 1.1.4 from an older `pip install -e`): `kit status --check-release --json` reported installed 1.1.4, installation_kind editable, result UPDATE_AVAILABLE for 1.1.9 although the checkout runs 1.1.9. `release_installation` reads `importlib.metadata.distribution(...).version`. The owner's Kit checkout has the same shape after every pull (metadata from the last editable install).",
+      "impact": "In the Kit repository the check reports an update the checkout already has (or hides one, if the metadata is newer); a consumer would advise a needless pull.",
+      "workaround": "The Cockpit's Systemcheck (AGP_KIT_RELEASE_CHECK_V1) shows the contradiction for an editable install whose reported version differs from the running one and gives no advice; it does not recompute the Kit's verdict.",
+      "repair": null,
+      "regression": null,
+      "evidence": [
+        "docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md (2026-10-31, Kit-Release line)"
+      ]
     }
   ],
   "explicit_exclusions": [
