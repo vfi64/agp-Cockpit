@@ -106,3 +106,58 @@ def test_the_window_shows_marks_and_fixes():
 def test_the_system_tab_offers_the_check():
     source = (ROOT / "src/agp_cockpit/ui/main_window.py").read_text(encoding="utf-8")
     assert 'text="Systemcheck …", command=self.open_system_check' in source
+
+
+def test_kit_release_shows_the_kits_own_answer(monkeypatch, tmp_path):
+    """AGP_KIT_RELEASE_CHECK_V1: the line repeats `kit status --check-release` (KIT-GF-092); the Cockpit never
+    asks the package index itself."""
+    import json
+
+    from agp_cockpit.core import kit_installation
+    monkeypatch.setattr(kit_installation, "discover",
+                        lambda _root: SimpleNamespace(version="1.1.9", binary=Path("/venv/bin/agentic-kit")))
+    calls = []
+
+    def answer(release, rc=0, stderr=""):
+        def run(argv, **kwargs):
+            calls.append((argv, kwargs))
+            return subprocess.CompletedProcess(argv, rc, json.dumps({"result_status": "PASS", "release_check": release})
+                                               if release is not None else "", stderr)
+        return run
+
+    current = sc._kit_release(tmp_path, runner=answer({"installed": "1.1.9", "latest_release": "1.1.9",
+                                                         "installation_kind": "wheel", "result": "CURRENT"}))
+    assert current.level == sc.OK and "neueste stabile Release" in current.detail
+    argv, kwargs = calls[-1]
+    assert argv == ["/venv/bin/agentic-kit", "kit", "status", "--root", str(tmp_path), "--check-release", "--json"]
+    assert kwargs["cwd"] == str(tmp_path) and kwargs["timeout"] == sc.KIT_RELEASE_TIMEOUT
+    newer = sc._kit_release(tmp_path, runner=answer({"installed": "1.1.9", "latest_release": "1.1.10",
+                                                       "installation_kind": "wheel", "result": "UPDATE_AVAILABLE"}))
+    assert newer.level == sc.WARN and "1.1.10 verfügbar" in newer.detail and "übernehmen" in newer.fix
+    editable = sc._kit_release(tmp_path, runner=answer({"installed": "1.1.9", "latest_release": "1.1.10",
+                                                          "installation_kind": "editable",
+                                                          "result": "UPDATE_AVAILABLE"}))
+    assert "Wiederherstellen" in editable.fix
+    stale = sc._kit_release(tmp_path, runner=answer({"installed": "1.1.4", "latest_release": "1.1.9",
+                                                       "installation_kind": "editable",
+                                                       "result": "UPDATE_AVAILABLE"}))
+    assert stale.level == sc.WARN and "veralteten Paketdaten" in stale.detail and "KIT-GF-093" in stale.fix
+    assert "Wiederherstellen" not in stale.fix          # never advise a pull the checkout does not need
+    ahead = sc._kit_release(tmp_path, runner=answer({"installed": "1.1.9", "latest_release": "1.1.8",
+                                                       "installation_kind": "editable", "result": "AHEAD"}))
+    assert ahead.level == sc.OK and "Entwicklerinstallation" in ahead.detail
+    offline = sc._kit_release(tmp_path, runner=answer({"result": "UNKNOWN", "reason": "index_unavailable:TimeoutError"}))
+    assert offline.level == sc.WARN and "index_unavailable" in offline.detail and "Netz" in offline.fix
+    old = sc._kit_release(tmp_path, runner=answer(None, rc=2, stderr="No such option: --check-release"))
+    assert old.level == sc.WARN and "ab Kit 1.1.9" in old.detail
+
+    def hang(argv, **_kwargs):
+        raise subprocess.TimeoutExpired(argv, sc.KIT_RELEASE_TIMEOUT)
+    assert sc._kit_release(tmp_path, runner=hang).level == sc.WARN
+    monkeypatch.setattr(kit_installation, "discover", lambda _root: None)
+    assert sc._kit_release(tmp_path).level == sc.WARN
+
+
+def test_the_cockpit_does_not_query_the_package_index_itself():
+    source = (ROOT / "src/agp_cockpit/core/system_check.py").read_text(encoding="utf-8")
+    assert "pypi" not in source.lower() and "urllib" not in source and "--check-release" in source

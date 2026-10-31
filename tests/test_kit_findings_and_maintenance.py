@@ -199,7 +199,8 @@ def test_the_real_register_tracks_the_kit_1_1_7_adoption():
     for fid in evidence["verifies"]:
         assert "kit-1.1.7-adoption.json" in by_id[fid].verified_by, fid
     assert by_id["KIT-GF-089"].fixed_in == "1.1.7"
-    assert not [f.id for f in by_id.values() if f.status == "OPEN"]
+    # no finding known at this adoption was left open (later findings, e.g. KIT-GF-093, are not part of it)
+    assert not [f.id for f in by_id.values() if f.status == "OPEN" and f.first_observed <= "2026-10-27"]
 
 
 def test_the_real_register_tracks_the_kit_1_1_8_adoption_and_kit_gf_087_088():
@@ -215,8 +216,30 @@ def test_the_real_register_tracks_the_kit_1_1_8_adoption_and_kit_gf_087_088():
         assert by_id[fid].fixed_in == "1.1.7" and by_id[fid].effective_status("1.1.8") == kf.VERIFIED, fid
         assert "kit-1.1.8-adoption.json" in by_id[fid].verified_by, fid
         assert by_id[fid].kit["kit_state"] == "CLOSED", fid
-    assert not [f.id for f in by_id.values() if f.status == "OPEN"]
+    # no finding known at this adoption was left open (later findings, e.g. KIT-GF-093, are not part of it)
+    assert not [f.id for f in by_id.values() if f.status == "OPEN" and f.first_observed <= "2026-10-29"]
 
+
+
+def test_the_real_register_tracks_the_kit_1_1_9_adoption_and_kit_gf_091_to_093():
+    """Kit 1.1.9 (2026-10-31, #410, GF-E120 to GF-E122, evidence kit-1.1.9-adoption.json): retest PASS 51, FAIL 0.
+    KIT-GF-091 (release stamps fixed_in) and KIT-GF-092 (release check) are verified; the Kit's back-fill reached
+    the snapshots of 070/087/088/089. KIT-GF-093 (editable release check, GF-E123) is open."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-1.1.9-adoption.json").read_text(encoding="utf-8"))
+    assert evidence["greenfield_retest"]["counts"] == {"FAIL": 0, "NOT_RUN_LOCALLY": 40, "NO_MACHINE_CONTRACT": 0,
+                                                       "PASS": 51}
+    assert sorted(evidence["verifies"]) == ["KIT-GF-091", "KIT-GF-092"]
+    for fid in evidence["verifies"]:
+        assert fid in evidence["greenfield_retest"]["pass"], fid
+        assert by_id[fid].fixed_in == "1.1.9" and by_id[fid].effective_status("1.1.9") == kf.VERIFIED, fid
+        assert "kit-1.1.9-adoption.json" in by_id[fid].verified_by, fid
+    for fid, version in (("KIT-GF-070", "1.1.6"), ("KIT-GF-087", "1.1.7"), ("KIT-GF-088", "1.1.7"),
+                         ("KIT-GF-089", "1.1.7"), ("KIT-GF-091", "1.1.9"), ("KIT-GF-092", "1.1.9")):
+        assert by_id[fid].kit["fixed_in"] == version, fid
+    assert [f.id for f in by_id.values() if f.status == "OPEN"] == ["KIT-GF-093"]
+    assert by_id["KIT-GF-093"].first_observed == "2026-10-31"
+    assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
 
 
 def test_window_filters_and_shows_details(tmp_path):

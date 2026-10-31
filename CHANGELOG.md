@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- The Systemcheck shows a line „Kit-Release“ with the Kit's own answer to whether a newer stable Kit release exists (`kit status --check-release`, Kit 1.1.9): current, newer available with the step that adopts it, ahead, or not checkable; for an editable install whose reported version differs from the running one it shows the contradiction instead of advice (KIT-GF-093) (AGP_KIT_RELEASE_CHECK_V1); build `release-0.3.6-r2`.
 - Kit 1.1.9 adopted through the Kit's own `kit update` (manifest 357a6861eea4, signature b176f82eba913d224b1d2ab5); CI pins, entrypoints, command reference and rule inventory follow 1.1.9.
 
 ## v0.3.6 - 2026-10-30
