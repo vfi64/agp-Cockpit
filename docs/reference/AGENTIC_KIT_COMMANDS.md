@@ -1,6 +1,6 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: abe3d2533d28
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 357a6861eea4
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
@@ -1598,7 +1598,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.8` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.9` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1713,13 +1713,14 @@ Lint instruction text against the current command manifest.
 - Surface: `diagnostic`
 - When to use: Verify the workspace-owned Kit interpreter and installation without global PATH guesses.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `network_read`
 
 Verify the workspace-owned Kit interpreter and installation without global PATH guesses.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Workspace root. |
+| `check_release` | `TyperOption` | --check-release | `False` | `False` | Read the configured index for a newer stable release; bounded to 10 seconds. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Emit one JSON document. |
 
 ### `agentic-kit kit update`
@@ -1734,7 +1735,8 @@ Plan a released Kit update; signed execution installs locally, updates CI pins a
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `True` |  | Exact released stable Kit version (X.Y.Z). |
+| `version` | `TyperOption` | --version | `False` |  | Exact released Kit version (X.Y.Z or X.Y.Z.postN). |
+| `latest` | `TyperOption` | --latest | `False` | `False` | Resolve the latest stable release at the configured index and plan its exact version. |
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | External workspace on a work branch. |
 | `execute` | `TyperOption` | --execute | `False` | `False` | Execute the exactly signed update plan. |
 | `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature from the current dry run. |
@@ -2240,7 +2242,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.1.8` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.9` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2567,7 +2569,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.8` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.9` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
