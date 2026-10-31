@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-31T17:12:08.469794+00:00",
+  "generated_at_utc": "2026-10-31T17:19:21.647457+00:00",
   "generated_by": "agentic-kit transfer chat-switch-complete",
   "handoff_validity": {
     "canonical_bootstrap": ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
@@ -38,14 +38,14 @@
     "package_version": "1.1.9"
   },
   "repo": {
-    "branch": "chore/kit-1.1.9",
+    "branch": "docs/post-pr410-successor-package-refresh",
     "full_name": "vfi64/agp-Cockpit",
-    "head": "06d8f1316a6945bdf0e00b06561e503e6ef38794",
-    "head_matches_origin_main": false,
-    "head_short": "06d8f131",
+    "head": "384d17891be7003ec1d453a8df802d7840545b13",
+    "head_matches_origin_main": true,
+    "head_short": "384d1789",
     "local_path": "cd /path/to/",
-    "origin_main": "1d682d469864fd01a2376e27165ba6dfd79ef3ad",
-    "origin_main_short": "1d682d46",
+    "origin_main": "384d17891be7003ec1d453a8df802d7840545b13",
+    "origin_main_short": "384d1789",
     "worktree_clean": true
   },
   "schema_version": 1,
