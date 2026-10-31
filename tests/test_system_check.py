@@ -114,6 +114,7 @@ def test_kit_release_shows_the_kits_own_answer(monkeypatch, tmp_path):
     import json
 
     from agp_cockpit.core import kit_installation
+    from agp_cockpit.core import kit_release as kr
     monkeypatch.setattr(kit_installation, "discover",
                         lambda _root: SimpleNamespace(version="1.1.9", binary=Path("/venv/bin/agentic-kit")))
     calls = []
@@ -130,10 +131,10 @@ def test_kit_release_shows_the_kits_own_answer(monkeypatch, tmp_path):
     assert current.level == sc.OK and "neueste stabile Release" in current.detail
     argv, kwargs = calls[-1]
     assert argv == ["/venv/bin/agentic-kit", "kit", "status", "--root", str(tmp_path), "--check-release", "--json"]
-    assert kwargs["cwd"] == str(tmp_path) and kwargs["timeout"] == sc.KIT_RELEASE_TIMEOUT
+    assert kwargs["cwd"] == str(tmp_path) and kwargs["timeout"] == kr.KIT_RELEASE_TIMEOUT
     newer = sc._kit_release(tmp_path, runner=answer({"installed": "1.1.9", "latest_release": "1.1.10",
                                                        "installation_kind": "wheel", "result": "UPDATE_AVAILABLE"}))
-    assert newer.level == sc.WARN and "1.1.10 verfügbar" in newer.detail and "übernehmen" in newer.fix
+    assert newer.level == sc.WARN and "1.1.10 verfügbar" in newer.detail and "Kit übernehmen" in newer.fix
     editable = sc._kit_release(tmp_path, runner=answer({"installed": "1.1.9", "latest_release": "1.1.10",
                                                           "installation_kind": "editable",
                                                           "result": "UPDATE_AVAILABLE"}))
@@ -152,12 +153,14 @@ def test_kit_release_shows_the_kits_own_answer(monkeypatch, tmp_path):
     assert old.level == sc.WARN and "ab Kit 1.1.9" in old.detail
 
     def hang(argv, **_kwargs):
-        raise subprocess.TimeoutExpired(argv, sc.KIT_RELEASE_TIMEOUT)
+        raise subprocess.TimeoutExpired(argv, kr.KIT_RELEASE_TIMEOUT)
     assert sc._kit_release(tmp_path, runner=hang).level == sc.WARN
     monkeypatch.setattr(kit_installation, "discover", lambda _root: None)
     assert sc._kit_release(tmp_path).level == sc.WARN
 
 
 def test_the_cockpit_does_not_query_the_package_index_itself():
-    source = (ROOT / "src/agp_cockpit/core/system_check.py").read_text(encoding="utf-8")
-    assert "pypi" not in source.lower() and "urllib" not in source and "--check-release" in source
+    for name in ("system_check.py", "kit_release.py"):
+        source = (ROOT / "src/agp_cockpit/core" / name).read_text(encoding="utf-8")
+        assert "pypi" not in source.lower() and "urllib" not in source and "requests" not in source, name
+    assert "--check-release" in (ROOT / "src/agp_cockpit/core/kit_release.py").read_text(encoding="utf-8")

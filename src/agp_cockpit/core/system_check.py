@@ -122,58 +122,40 @@ def _kit(root: Path) -> Check:
 
 # AGP_KIT_RELEASE_CHECK_V1 (owner 2026-10-30, option B): the Kit itself answers whether a newer stable
 # release exists (KIT-GF-092, Kit 1.1.9: `kit status --check-release`); the Cockpit only shows its answer
-# and never asks the package index on its own.
-KIT_RELEASE_TIMEOUT = 30          # the Kit limits its index request to 10 s
+# and never asks the package index on its own (core/kit_release.py).
 
 
 def _kit_release(root: Path, runner: Callable = subprocess.run) -> Check:
-    import json
-
-    from agp_cockpit.core.kit_installation import discover
+    from agp_cockpit.core import kit_release as kr
     name = "Kit-Release"
-    kit = discover(root)
-    if kit is None:
+    release = kr.read(root, runner=runner)
+    if release.result == kr.NO_KIT:
         return Check(name, WARN, "nicht prüfbar: kein Kit installiert", "Erst das Kit installieren (Zeile „Agentic Kit“).")
-    try:
-        done = runner([str(kit.binary), "kit", "status", "--root", str(root), "--check-release", "--json"],
-                      cwd=str(root), capture_output=True, text=True, timeout=KIT_RELEASE_TIMEOUT, check=False)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return Check(name, WARN, f"nicht prüfbar: das Kit antwortet nicht ({type(exc).__name__})",
-                     "Später erneut prüfen.")
-    text = f"{getattr(done, 'stdout', '') or ''}"
-    try:
-        data = json.loads(text[text.index("{"):])
-    except ValueError:
-        data = {}
-    release = data.get("release_check") if isinstance(data, dict) else None
-    if not isinstance(release, dict):
-        if "check-release" in f"{text}{getattr(done, 'stderr', '') or ''}":   # Typer: No such option
-            return Check(name, WARN, f"Kit {kit.version} kennt die Release-Prüfung noch nicht (ab Kit 1.1.9)",
-                         "Kit übernehmen (mit Claude).")
-        return Check(name, WARN, "nicht prüfbar: das Kit lieferte keine Release-Prüfung", "Claude den Systemcheck zeigen.")
-    installed = str(release.get("installed") or kit.version)
-    latest = str(release.get("latest_release") or "")
-    editable = release.get("installation_kind") == "editable"
-    result = str(release.get("result") or "UNKNOWN")
-    if editable and release.get("installed") and kit.version and release.get("installed") != kit.version:
+    if release.result == kr.NO_ANSWER:
+        return Check(name, WARN, f"nicht prüfbar: {release.reason}", "Später erneut prüfen; sonst Claude den Systemcheck zeigen.")
+    if release.result == kr.UNSUPPORTED:
+        return Check(name, WARN, f"Kit {release.running} kennt die Release-Prüfung noch nicht (ab Kit 1.1.9)",
+                     "Kit übernehmen (mit Claude).")
+    if release.result == kr.STALE_EDITABLE:
         # KIT-GF-093 (2026-10-31): for an editable install the Kit compares the pip metadata of the last
         # `pip install -e` (here older) instead of the running package, and would report an update that
         # the checkout already has. The Cockpit shows the contradiction instead of the Kit's verdict and
         # does not recompute it (the Kit owns the release answer).
-        return Check(name, WARN, f"Kit meldet {release.get('installed')} aus veralteten Paketdaten, es läuft "
-                     f"{kit.version}; neuestes Release {latest or 'unbekannt'} — Ergebnis „{result}“ nicht belastbar",
+        return Check(name, WARN, f"Kit meldet {release.installed} aus veralteten Paketdaten, es läuft "
+                     f"{release.running}; neuestes Release {release.latest or 'unbekannt'} — Ergebnis "
+                     f"„{release.reason}“ nicht belastbar",
                      "Nichts zu tun: bekannter Kit-Befund KIT-GF-093 (Entwicklerinstallation).")
-    if result == "CURRENT":
-        return Check(name, OK, f"{installed} ist das neueste stabile Release")
-    if result == "AHEAD":
-        return Check(name, OK, f"{installed} ist neuer als das neueste Release {latest}"
-                     + (" (Entwicklerinstallation)" if editable else ""))
-    if result == "UPDATE_AVAILABLE":
-        fix = ("Im Kit-Repository: „Wiederherstellen“ zieht main nach." if editable
-               else f"Kit {latest} übernehmen (mit Claude).")
-        return Check(name, WARN, f"neu: {latest} verfügbar (installiert {installed})", fix)
-    reason = str(release.get("reason") or "unbekannt")
-    return Check(name, WARN, f"nicht prüfbar ({reason})", "Netzverbindung prüfen, dann „Erneut prüfen“.")
+    if release.result == kr.CURRENT:
+        return Check(name, OK, f"{release.installed} ist das neueste stabile Release")
+    if release.result == kr.AHEAD:
+        return Check(name, OK, f"{release.installed} ist neuer als das neueste Release {release.latest}"
+                     + (" (Entwicklerinstallation)" if release.editable else ""))
+    if release.result == kr.UPDATE_AVAILABLE:
+        fix = ("Im Kit-Repository: „Wiederherstellen“ zieht main nach." if release.editable
+               else f"Unter „Weitere anzeigen“ „Kit übernehmen“ ({release.latest}).")
+        return Check(name, WARN, f"neu: {release.latest} verfügbar (installiert {release.installed})", fix)
+    return Check(name, WARN, f"nicht prüfbar ({release.reason or 'unbekannt'})",
+                 "Netzverbindung prüfen, dann „Erneut prüfen“.")
 
 
 def _repository(root: Path) -> Check:

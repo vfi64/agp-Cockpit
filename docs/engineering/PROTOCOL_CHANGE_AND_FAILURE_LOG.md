@@ -1916,3 +1916,21 @@ repeat once.
   findings known at their adoption (first observed by then), and a new test covers the 1.1.9 register, which
   the previous slice (#412) lacked.
 
+## 2026-10-31 — Standard task „Kit übernehmen“ (build release-0.3.6-r3)
+
+- Owner decision 2026-10-31 (option 1 of three; option 2, a button that runs branch, update, PR and merge itself,
+  was rejected as Cockpit-owned workflow progression): AGP_KIT_ADOPT_TASK_V1. The click reads the Kit's own
+  release answer beside the UI thread (core/kit_release.py, shared with the Systemcheck line). Nothing to adopt
+  (CURRENT, AHEAD, an editable checkout, KIT-GF-093's contradiction, UNKNOWN, no Kit, a Kit before 1.1.9) shows an
+  information window and starts nothing. UPDATE_AVAILABLE for a wheel install asks „Kit <installed> → <latest>
+  übernehmen?“ and starts the task with exactly that version; the precheck reads the Kit again and refuses a
+  version that is no longer the latest.
+- The task follows the Pflege pattern: the start click approves only the synchronization and the branch
+  chore/kit-<version> (WORK_START_SCOPE); the remote LLM plans the update through the Kit, asks NEEDS_HUMAN for
+  the signed execute and leaves the changes for „Abschließen“. Enforced in code: `kit update` is a local
+  orchestrator (its plan runs freely; the manifest declares only network_read) and an owner-decision execute
+  (AGP_OWNER_DECISION_EXECUTE_V1), so its --execute needs an open approval in every task, not only here. The local
+  verifier `kit-adopted` accepts DONE only on the branch from origin/main with changes, the installed Kit equal to
+  the version and every CI pin naming it.
+- Not yet proven live: it needs a newer Kit release than 1.1.9 (planned: 1.1.10 with the KIT-GF-093 fix).
+

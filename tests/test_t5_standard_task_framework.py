@@ -49,9 +49,9 @@ def repo(tmp_path):
 
 def test_every_standard_verb_has_a_task_and_later_slices_stay_disabled():
     assert {t.key for t in standard_tasks()} == {"chat-switch", "finish", "work-start", "recover", "release",
-                                                 "maintain"}
+                                                 "maintain", "kit-adopt"}
     for key in (rs.ABSCHLIESSEN, rs.ARBEIT_BEGINNEN, rs.WIEDERHERSTELLEN, rs.CHAT_WECHSELN, rs.RELEASE,
-                rs.PFLEGE):
+                rs.PFLEGE, rs.KIT_UEBERNEHMEN):
         verb = VERBS[key]
         assert verb.slice is None and verb.task_key in BY_KEY
     assert VERBS[rs.REPO_UEBERNEHMEN].slice == "P9"
@@ -66,8 +66,9 @@ def test_new_goal_texts_name_no_kit_command(monkeypatch, branch):
     real = st._git_value
     monkeypatch.setattr(st, "_git_value", lambda root, *args: branch
                         if args == ("branch", "--show-current") else real(root, *args))
-    inputs = {"work-start": {"kind": "feat", "name": "demo"}, "release": {"version": "9.9.9"}}
-    for key in ("finish", "work-start", "recover", "release"):
+    inputs = {"work-start": {"kind": "feat", "name": "demo"}, "release": {"version": "9.9.9"},
+              "kit-adopt": {"version": "9.9.9"}}
+    for key in ("finish", "work-start", "recover", "release", "kit-adopt"):
         task = BY_KEY[key]
         prompt = task.prompt(ROOT, inputs.get(key))
         for command in ("pr-create", "pr-closeout", "work finish", "remote-work-start", "work recover",

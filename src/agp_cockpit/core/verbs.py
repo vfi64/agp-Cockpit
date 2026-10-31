@@ -80,9 +80,15 @@ VERBS: tuple[Verb, ...] = (
     Verb(rs.PFLEGE, "Pflege", "weitere", None, LOKAL,
          "Pflegt die Kit-Steuerschicht mit den Kit-Routen: Schema-Upgrade, Aufräumen von "
          "Übertragungsresten — erst als Probelauf; Dokument-Hinweise nur als Bericht. "
-         "Das Kit-Update folgt mit P10b.",
+         "Das Kit-Update macht „Kit übernehmen“.",
          "ändert lokal; Ergebnisse gehen über „Abschließen“ ins Repo.",
          "auf sauberem, synchronem main (Zustand BEREIT).", task_key="maintain"),
+    Verb(rs.KIT_UEBERNEHMEN, "Kit übernehmen", "weitere", None, LOKAL,
+         "Fragt das Kit, ob ein neueres stabiles Kit-Release verfügbar ist. Wenn nein, nur ein Hinweis; "
+         "wenn ja, übernimmt das Kit es selbst (kit update) auf einem Branch chore/kit-<Version>.",
+         "ändert lokal; die Ausführung des signierten Update-Plans fragt dich; veröffentlicht wird mit "
+         "„Abschließen“.",
+         "auf sauberem, synchronem main (Zustand BEREIT).", task_key="kit-adopt"),
 )
 BY_KEY = {verb.key: verb for verb in VERBS}
 

@@ -141,6 +141,34 @@ def verify_maintained(root: Path, *, branch: str, runner=subprocess.run) -> tupl
     return True, f"maintenance changes on {branch}; finish them with Abschließen"
 
 
+def verify_kit_adopted(root: Path, *, branch: str, version: str, runner=subprocess.run,
+                       installed=None, pins=None) -> tuple[bool, str]:
+    """AGP_KIT_ADOPT_TASK_V1: the adoption branch from origin/main carries the update, the repository's
+    installed Kit is ``version`` and every CI pin names it."""
+    current = _out(_git(root, "branch", "--show-current", runner=runner))
+    if current != branch:
+        return False, f"current branch is {current or '(none)'}, expected {branch}"
+    contains = _git(root, "merge-base", "--is-ancestor", "origin/main", "HEAD", runner=runner)
+    if contains is None or contains.returncode != 0:
+        return False, f"{branch} does not contain the current origin/main"
+    dirty = bool(_out(_git(root, "status", "--porcelain", runner=runner)))
+    ahead = _out(_git(root, "rev-list", "--count", "origin/main..HEAD", runner=runner))
+    if not dirty and ahead in ("", "0"):
+        return False, f"{branch} carries no changes; the update has not run"
+    if installed is None:
+        from agp_cockpit.core.kit_installation import discover
+        kit = discover(Path(root))
+        installed = kit.version if kit is not None else ""
+    if installed != version:
+        return False, f"the installed Kit is {installed or 'missing'}, expected {version}"
+    if pins is None:
+        from agp_cockpit.core.system_check import ci_kit_pins
+        pins = ci_kit_pins(Path(root))
+    if set(pins) != {version}:
+        return False, f"the CI pins name {', '.join(sorted(pins)) or 'nothing'}, expected {version}"
+    return True, f"Kit {version} installed and pinned on {branch}; finish with Abschließen"
+
+
 def verify(root: Path, contract: dict, **kw) -> tuple[bool, str]:
     name = str(contract.get("verifier") or "")
     params = dict(contract.get("params") or {})
@@ -153,6 +181,9 @@ def verify(root: Path, contract: dict, **kw) -> tuple[bool, str]:
     if name == "maintained":
         return verify_maintained(Path(root), branch=str(params.get("branch") or ""),
                                  runner=kw.get("runner", subprocess.run))
+    if name == "kit-adopted":
+        return verify_kit_adopted(Path(root), branch=str(params.get("branch") or ""),
+                                  version=str(params.get("version") or ""), runner=kw.get("runner", subprocess.run))
     if name == "recovered":
         return verify_recovered(Path(root), lagebericht=kw.get("lagebericht"))
     return False, f"unknown standard verifier {name!r}"
