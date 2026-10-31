@@ -175,14 +175,30 @@ def test_narrowing_the_window_wraps_instead_of_scrolling_sideways(tk_root, monke
         for _ in range(6):
             tk_root.update()
 
+    def rows_needed(row) -> int:
+        """Rows the button widths need at the row's current width (FlowRow's greedy packing).
+        AGP_WRAP_TEST_FONT_INDEPENDENT_V1 (owner's Mac, red since at least Kit 1.1.6 adoption #386):
+        the test expected more rows at 620 px than at 1000 px — with the Mac's narrower font the
+        buttons fit in two rows at both widths, so the proxy failed although nothing was cut off.
+        The test now checks the wrap itself: the rows match what the widths require."""
+        lines, used, width = 1, 0, row.winfo_width()
+        for item in row.items:
+            need = item.winfo_reqwidth() + (row.gap if used else 0)
+            if used and used + need > width:
+                lines, used, need = lines + 1, 0, item.winfo_reqwidth()
+            used += need
+        return lines
+
     settle(1000)
     wide = panel.actions.rows()
-    assert wide <= 2
+    assert wide <= 2 and wide == rows_needed(panel.actions)
+    previous = wide
     for width in (760, 620):
         settle(width)
         right = tab.canvas.winfo_rootx() + tab.canvas.winfo_width()
         assert not tab.hbar.winfo_ismapped(), width
-        assert panel.actions.rows() > wide or width == 760, width
+        assert panel.actions.rows() == rows_needed(panel.actions) >= previous, width
+        previous = panel.actions.rows()
         for widget in (*panel.actions.items, *panel.scope_row.items, panel.approve_decision_button,
                        panel.diff_button, panel.allow_unlisted_check):
             assert widget.winfo_rootx() + widget.winfo_width() <= right, (width, widget)

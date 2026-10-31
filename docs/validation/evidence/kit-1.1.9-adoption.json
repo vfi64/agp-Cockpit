@@ -1,0 +1,103 @@
+{
+ "schema_version": 1,
+ "kind": "agp_kit_retest_evidence",
+ "id": "kit-1.1.9-adoption",
+ "date": "2026-10-31",
+ "kit_version": "1.1.9",
+ "source": "Owner's Mac, agp-Cockpit on chore/kit-1.1.9 (2026-10-31, order 0005_agp-Cockpit.py, PR #410): retest JSON written by the adoption (Download/kit-1.1.9-greenfield-retest-20261031T170517Z.json, not committed; machine paths left out here) and the adoption log.",
+ "kit_update": {
+  "controller": "installed Kit 1.1.8 planned and executed the update",
+  "plan": {
+   "result_status": "AWAITING_APPROVAL",
+   "approval_signature": "b176f82eba913d224b1d2ab5",
+   "changed_paths": [
+    ".agentic/ci/agentic-gate.yaml",
+    ".github/workflows/agentic-gate.yaml",
+    "AGENTS.md",
+    "docs/reference/AGENTIC_KIT_COMMANDS.md",
+    "docs/reference/agentic-kit-commands.json"
+   ],
+   "manifest_ack": "357a6861eea4"
+  },
+  "execute": {
+   "result_status": "PASS",
+   "installed_version": "1.1.9"
+  },
+  "owner_consent": "the owner ran order 0005_agp-Cockpit.py (Kit 1.1.9, no Cockpit release) on 2026-10-31 (PR #410)"
+ },
+ "rule_registry": {
+  "check_after_update": "PASS"
+ },
+ "greenfield_retest": {
+  "command": "agentic-kit greenfield retest --all --json",
+  "result_status": "INCOMPLETE",
+  "kit_version": "1.1.9",
+  "catalog_sha256": "6aa7c3a3312ece7b6a97d522c7bf4a403f59cbeef26af7c6f8252217835120b1",
+  "counts": {
+   "FAIL": 0,
+   "NOT_RUN_LOCALLY": 40,
+   "NO_MACHINE_CONTRACT": 0,
+   "PASS": 51
+  },
+  "pass": [
+   "KIT-GF-001",
+   "KIT-GF-002",
+   "KIT-GF-004",
+   "KIT-GF-005",
+   "KIT-GF-006",
+   "KIT-GF-007",
+   "KIT-GF-008",
+   "KIT-GF-010",
+   "KIT-GF-013",
+   "KIT-GF-014",
+   "KIT-GF-015",
+   "KIT-GF-016",
+   "KIT-GF-021",
+   "KIT-GF-022",
+   "KIT-GF-023",
+   "KIT-GF-025",
+   "KIT-GF-026",
+   "KIT-GF-028",
+   "KIT-GF-032",
+   "KIT-GF-033",
+   "KIT-GF-035",
+   "KIT-GF-036",
+   "KIT-GF-037",
+   "KIT-GF-042",
+   "KIT-GF-044",
+   "KIT-GF-045",
+   "KIT-GF-053",
+   "KIT-GF-054",
+   "KIT-GF-057",
+   "KIT-GF-060",
+   "KIT-GF-063",
+   "KIT-GF-066",
+   "KIT-GF-067",
+   "KIT-GF-068",
+   "KIT-GF-070",
+   "KIT-GF-072",
+   "KIT-GF-074",
+   "KIT-GF-075",
+   "KIT-GF-076",
+   "KIT-GF-077",
+   "KIT-GF-083",
+   "KIT-GF-084",
+   "KIT-GF-085",
+   "KIT-GF-086",
+   "KIT-GF-087",
+   "KIT-GF-088",
+   "KIT-GF-089",
+   "KIT-GF-090",
+   "KIT-GF-091",
+   "KIT-GF-092",
+   "KIT-GF-RULE-REGISTRY-BOOTSTRAP"
+  ],
+  "fail": {}
+ },
+ "cockpit_tests": "adoption run on the owner's Mac: 1397 passed, 1 failed, already red on origin/main (the Mac window-width test, repaired in this slice)",
+ "verifies": {
+  "KIT-GF-091": "greenfield retest KIT-GF-091 PASS with the installed Kit 1.1.9 (installed-wheel machine contract); live: the Kit's own 1.1.9 release stamped fixed_in 1.1.9 for KIT-GF-091 and KIT-GF-092 in its catalog",
+  "KIT-GF-092": "greenfield retest KIT-GF-092 PASS with the installed Kit 1.1.9 (installed-wheel machine contract: kit status --check-release, kit update --latest against a local index)"
+ },
+ "not_verified": {}
+}
