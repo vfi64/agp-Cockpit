@@ -237,8 +237,28 @@ def test_the_real_register_tracks_the_kit_1_1_9_adoption_and_kit_gf_091_to_093()
     for fid, version in (("KIT-GF-070", "1.1.6"), ("KIT-GF-087", "1.1.7"), ("KIT-GF-088", "1.1.7"),
                          ("KIT-GF-089", "1.1.7"), ("KIT-GF-091", "1.1.9"), ("KIT-GF-092", "1.1.9")):
         assert by_id[fid].kit["fixed_in"] == version, fid
-    assert [f.id for f in by_id.values() if f.status == "OPEN"] == ["KIT-GF-093"]
-    assert by_id["KIT-GF-093"].first_observed == "2026-10-31"
+    # KIT-GF-093 was found during this adoption's follow-up and was still open then (fixed in Kit 1.1.10)
+    assert by_id["KIT-GF-093"].first_observed == "2026-10-31" and by_id["KIT-GF-093"].fixed_in == "1.1.10"
+    assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
+
+
+def test_the_real_register_tracks_the_kit_1_1_10_adoption_and_kit_gf_093():
+    """Kit 1.1.10 (2026-10-31, #418, the first adoption through „Kit übernehmen“, GF-E124, evidence
+    kit-1.1.10-adoption.json): retest PASS 52, FAIL 0; KIT-GF-093 is verified and the register has no open family."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-1.1.10-adoption.json").read_text(encoding="utf-8"))
+    assert evidence["greenfield_retest"]["counts"] == {"FAIL": 0, "NOT_RUN_LOCALLY": 40, "NO_MACHINE_CONTRACT": 0,
+                                                       "PASS": 52}
+    assert evidence["kit_update"]["execute"]["installed_version"] == "1.1.10"
+    assert sorted(evidence["verifies"]) == ["KIT-GF-093"]
+    for fid in [*evidence["verifies"], *evidence["reverifies"]]:
+        assert fid in evidence["greenfield_retest"]["pass"] or fid == "KIT-GF-091", fid
+    gf093 = by_id["KIT-GF-093"]
+    assert gf093.status == "VERIFIED_FIXED" and gf093.fixed_in == "1.1.10" and gf093.kit["fixed_in"] == "1.1.10"
+    assert gf093.effective_status("1.1.10") == kf.VERIFIED and "kit-1.1.10-adoption.json" in gf093.verified_by
+    assert not [f.id for f in by_id.values() if f.status == "OPEN"]
+    register = json.loads((ROOT / kf.REGISTER).read_text(encoding="utf-8"))
+    assert register["kit_repo_sync"]["latest_release"] == "1.1.10"
     assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
 
 

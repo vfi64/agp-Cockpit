@@ -33,6 +33,18 @@ def _no_runtime_home(monkeypatch):
     monkeypatch.setenv("AGP_COCKPIT_RUNTIME_HOME", "")
 
 
+# AGP_CHAT_BINDING_BEFORE_CONFIRM_V1: every verb click now asks which ChatGPT chat is in front before
+# any dialog. No test may read or focus the host's Chrome through AppleScript on the owner's Mac;
+# tests that exercise the AppleScript path patch _run_osascript themselves.
+@pytest.fixture(autouse=True)
+def _no_host_chrome(monkeypatch):
+    from agp_cockpit.core import chrome_automation
+
+    def refuse(_script):
+        raise OSError("no host Chrome in tests")
+    monkeypatch.setattr(chrome_automation, "_run_osascript", refuse)
+
+
 # AGP_INVISIBLE_TEST_WINDOWS_V1 (owner 2026-10-07, release 0.2.2): the Kit's local feature
 # gate runs this suite on the owner's Mac, and every GUI test flashed a real Cockpit window
 # in an odd size. Test windows are fully transparent; geometry, mapping and events are

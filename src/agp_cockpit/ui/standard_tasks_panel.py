@@ -38,6 +38,12 @@ def rs_labels() -> dict:
     return LABELS
 
 
+def chat_binding_hint(reason: str, label: str) -> str:
+    """AGP_CHAT_BINDING_HINT_V1 (live 2026-10-06): say what to do, not only what is wrong."""
+    return (f"BLOCKED — {reason}\nIn Chrome links „Neuer Chat“ (oder den Chat dieses Repos) öffnen, "
+            f"den Tab vorn lassen, dann „{label}“ erneut klicken.")
+
+
 class StandardTasksPanel(ttk.Frame):
     """Button surface for deterministic, reusable Cockpit task templates."""
 
@@ -315,9 +321,7 @@ class StandardTasksPanel(ttk.Frame):
         bindings = ConversationBindingStore(self.runtime_root())
         bound_elsewhere = bindings.block_reason(conversation_url, self.repository_root)
         if bound_elsewhere:
-            # AGP_CHAT_BINDING_HINT_V1 (live 2026-10-06): say what to do, not only what is wrong.
-            self.status_var.set(f"BLOCKED — {bound_elsewhere}\nIn Chrome links „Neuer Chat“ (oder den Chat "
-                                f"dieses Repos) öffnen, den Tab vorn lassen, dann „{task.label}“ erneut klicken.")
+            self.status_var.set(chat_binding_hint(bound_elsewhere, task.label))
             return False
         contract = task.contract(self.repository_root, inputs)
         try:
@@ -652,6 +656,10 @@ class StandardTasksPanel(ttk.Frame):
         task = self.tasks_by_key.get(verb.task_key or "")
         if task is None:
             return
+        blocked = self.chat_binding_block(task.label)
+        if blocked:                       # AGP_CHAT_BINDING_BEFORE_CONFIRM_V1: before any question
+            self.status_var.set(blocked)
+            return
         if task.key == "kit-adopt":
             self.run_kit_adopt(task)      # AGP_KIT_ADOPT_TASK_V1: the Kit names the version, not a dialog
             return
@@ -665,6 +673,18 @@ class StandardTasksPanel(ttk.Frame):
             self.status_var.set(f"{task.label} nicht gestartet.")
             return
         self.start_standard_task(task, inputs)
+
+    def chat_binding_block(self, label: str) -> str:
+        """AGP_CHAT_BINDING_BEFORE_CONFIRM_V1 (live 2026-10-31, „Kit übernehmen“): the owner confirmed
+        „Kit 1.1.9 → 1.1.10 übernehmen?“ and only then learned that the front chat belonged to another
+        repository (P4). The binding is now checked before any input dialog or question; the start checks
+        it again. A chat that cannot be determined here is left to the start, which reports it."""
+        try:
+            url = require_allowed_active_chat().url
+            reason = ConversationBindingStore(self.runtime_root()).block_reason(url, self.repository_root)
+        except Exception:  # noqa: BLE001 - undetermined here; the start reports it
+            return ""
+        return chat_binding_hint(reason, label) if reason else ""
 
     def run_kit_adopt(self, task: StandardTask) -> None:
         """AGP_KIT_ADOPT_TASK_V1: ask the repository's Kit for its release answer beside the UI thread

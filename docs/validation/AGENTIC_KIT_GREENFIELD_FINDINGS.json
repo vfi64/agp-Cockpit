@@ -895,6 +895,13 @@
       "historical_id": "Systemcheck „Kit-Release“ slice, Kit repository in Claude's workspace",
       "canonical_family": "KIT-GF-093",
       "summary": "editable install: release check used pip metadata 1.1.4 while 1.1.9 runs; false UPDATE_AVAILABLE"
+    },
+    {
+      "date": "2026-10-31",
+      "event_id": "GF-E124",
+      "historical_id": "Kit 1.1.10 adoption (#418) through the standard task „Kit übernehmen“, greenfield retest",
+      "canonical_family": "KIT-GF-093",
+      "summary": "first adoption through „Kit übernehmen“; greenfield retest --all under the 1.1.10 wheel: PASS 52, FAIL 0; KIT-GF-093 PASS; the Kit release stamped fixed_in 1.1.10 itself"
     }
   ],
   "families": [
@@ -3628,20 +3635,31 @@
       "id": "KIT-GF-093",
       "title": "the release check of an editable install compares stale package metadata",
       "first_observed": "2026-10-31",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "low",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.10",
       "expected": "`kit status --check-release` (and `kit update --latest`) judge an editable install by the version of the running package (`agentic_project_kit.__version__`), as the Kit's own `--version` does; the pip metadata of the last `pip install -e` is at most a note.",
       "observed": "2026-10-31, Claude's workspace, Kit repository checkout at 2ad5357b (package 1.1.9, pip metadata 1.1.4 from an older `pip install -e`): `kit status --check-release --json` reported installed 1.1.4, installation_kind editable, result UPDATE_AVAILABLE for 1.1.9 although the checkout runs 1.1.9. `release_installation` reads `importlib.metadata.distribution(...).version`. The owner's Kit checkout has the same shape after every pull (metadata from the last editable install).",
       "impact": "In the Kit repository the check reports an update the checkout already has (or hides one, if the metadata is newer); a consumer would advise a needless pull.",
       "workaround": "The Cockpit's Systemcheck (AGP_KIT_RELEASE_CHECK_V1) shows the contradiction for an editable install whose reported version differs from the running one and gives no advice; it does not recompute the Kit's verdict.",
-      "repair": null,
-      "regression": null,
+      "repair": "Kit 1.1.10 (PR #2700, CHANGELOG wording #2702): for an editable install the release probe imports the package in the owned interpreter and reports its __version__ as installed; differing metadata appears as metadata_version; an unimportable editable package is UNKNOWN with running_version_unavailable, never the metadata version. Wheel installs unchanged; kit update --latest unchanged (checkout hint).",
+      "regression": "Kit machine contract KIT-GF-093 (fixture external_release_check_stale_editable) and tests/test_kit_release_check.py in the Kit.",
       "evidence": [
-        "docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md (2026-10-31, Kit-Release line)"
-      ]
+        "docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md (2026-10-31, Kit-Release line)",
+        "Kit report docs/reports/greenfield/KIT-GF-093-editable-release-check-2026-10-31.md",
+        "docs/validation/evidence/kit-1.1.10-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-31",
+        "fixed_in": "1.1.10",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.10; Kit main fd298409)",
+        "report": "docs/reports/greenfield/KIT-GF-093-editable-release-check-2026-10-31.md"
+      },
+      "verified_by": "2026-10-31 docs/validation/evidence/kit-1.1.10-adoption.json (greenfield retest KIT-GF-093 PASS, installed Kit 1.1.10)",
+      "retest": "Verified 2026-10-31 by the Kit's installed-wheel machine contract under Kit 1.1.10 after the adoption #418. The Cockpit keeps its STALE_EDITABLE guard for Kits before 1.1.10."
     }
   ],
   "explicit_exclusions": [
@@ -3798,9 +3816,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "2ad5357b",
-    "latest_release": "1.1.9",
+    "kit_commit": "fd298409",
+    "latest_release": "1.1.10",
     "synced": "2026-10-31",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.9; Kit main 2ad5357b). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both. Since Kit 1.1.9 (KIT-GF-091) the Kit stamps fixed_in at release, so the snapshot's versions no longer need a hand note."
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.10; Kit main fd298409). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both. Since Kit 1.1.9 (KIT-GF-091) the Kit stamps fixed_in at release, so the snapshot's versions no longer need a hand note."
   }
 }
