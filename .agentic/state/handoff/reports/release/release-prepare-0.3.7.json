@@ -1,0 +1,214 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-10-31",
+  "explicit_summary_lines": [
+    "Every Standard Tasks button checks the ChatGPT chat binding before its input dialog, its question or the Kit's release request: a chat of another repository is named at once with the step that resolves it, no longer after the owner confirmed; the start still checks it again, and a regression test guards the order (AGP_CHAT_BINDING_BEFORE_CONFIRM_V1); build `release-0.3.6-r4`.",
+    "Kit 1.1.10 adopted through the standard task \u201eKit \u00fcbernehmen\u201c and the Kit's own `kit update` (manifest c75ff9f747e1, signature 74c7e1dd132720bc096ba736, #418); CI pins, entrypoints, command reference and rule inventory follow 1.1.10.",
+    "Kit findings register follows Kit 1.1.10 (retest PASS 52, FAIL 0, evidence docs/validation/evidence/kit-1.1.10-adoption.json): KIT-GF-093, the release check of an editable install, is verified fixed; no Kit finding is open.",
+    "\u201eKit \u00fcbernehmen\u201c (Standard Tasks \u2192 \u201eWeitere anzeigen\u201c) asks the Kit whether a newer stable Kit release exists. Nothing to adopt \u2014 current, ahead, an editable checkout or not checkable \u2014 shows an information window and starts nothing. A newer release confirms the exact version and starts a task that adopts it through the Kit's own update route on `chore/kit-<version>`; the signed execute of the update is always the owner's decision (`kit update` joins the owner-decision executes), the changes stay on the branch for \u201eAbschlie\u00dfen\u201c and a local verifier checks branch, installed Kit and CI pins (AGP_KIT_ADOPT_TASK_V1); build `release-0.3.6-r3`.",
+    "The Systemcheck shows a line \u201eKit-Release\u201c with the Kit's own answer to whether a newer stable Kit release exists (`kit status --check-release`, Kit 1.1.9): current, newer available with the step that adopts it, ahead, or not checkable; for an editable install whose reported version differs from the running one it shows the contradiction instead of advice (KIT-GF-093) (AGP_KIT_RELEASE_CHECK_V1); build `release-0.3.6-r2`.",
+    "Kit 1.1.9 adopted through the Kit's own `kit update` (manifest 357a6861eea4, signature b176f82eba913d224b1d2ab5); CI pins, entrypoints, command reference and rule inventory follow 1.1.9."
+  ],
+  "from_tag": "v0.3.6",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": null,
+      "argv": [
+        "kit-ci-pin-guard"
+      ],
+      "name": "kit-ci-pin-guard",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "{\"next_action\": null, \"reasons\": [], \"result_status\": \"PASS\", \"unreadable_files\": [], \"versions\": {\"highest_pin\": \"1.1.10\", \"installed\": \"1.1.10\", \"pins\": [{\"path\": \".github/workflows/agentic-gate.yaml\", \"version\": \"1.1.10\"}, {\"path\": \".agentic/ci/agentic-gate.yaml\", \"version\": \"1.1.10\"}]}}",
+      "stdout_length": 291,
+      "stdout_sha256": "edbc7cc0453810ef25ceb29e0c0288242de4c7f71a3f0892591e92d05e37bb9d"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.3.7",
+        "--from-tag",
+        "v0.3.6",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-037-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 22850,
+      "stdout_sha256": "fa721afb59ba38004f8f8f03b3ee2bf063ce9b6de6ae02fe22ce9645c8b3d8a0"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.3.7",
+        "--date",
+        "2026-10-31",
+        "--summary-line",
+        "Every Standard Tasks button checks the ChatGPT chat binding before its input dialog, its question or the Kit's release request: a chat of another repository is named at once with the step that resolves it, no longer after the owner confirmed; the start still checks it again, and a regression test guards the order (AGP_CHAT_BINDING_BEFORE_CONFIRM_V1); build `release-0.3.6-r4`.",
+        "--summary-line",
+        "Kit 1.1.10 adopted through the standard task \u201eKit \u00fcbernehmen\u201c and the Kit's own `kit update` (manifest c75ff9f747e1, signature 74c7e1dd132720bc096ba736, #418); CI pins, entrypoints, command reference and rule inventory follow 1.1.10.",
+        "--summary-line",
+        "Kit findings register follows Kit 1.1.10 (retest PASS 52, FAIL 0, evidence docs/validation/evidence/kit-1.1.10-adoption.json): KIT-GF-093, the release check of an editable install, is verified fixed; no Kit finding is open.",
+        "--summary-line",
+        "\u201eKit \u00fcbernehmen\u201c (Standard Tasks \u2192 \u201eWeitere anzeigen\u201c) asks the Kit whether a newer stable Kit release exists. Nothing to adopt \u2014 current, ahead, an editable checkout or not checkable \u2014 shows an information window and starts nothing. A newer release confirms the exact version and starts a task that adopts it through the Kit's own update route on `chore/kit-<version>`; the signed execute of the update is always the owner's decision (`kit update` joins the owner-decision executes), the changes stay on the branch for \u201eAbschlie\u00dfen\u201c and a local verifier checks branch, installed Kit and CI pins (AGP_KIT_ADOPT_TASK_V1); build `release-0.3.6-r3`.",
+        "--summary-line",
+        "The Systemcheck shows a line \u201eKit-Release\u201c with the Kit's own answer to whether a newer stable Kit release exists (`kit status --check-release`, Kit 1.1.9): current, newer available with the step that adopts it, ahead, or not checkable; for an editable install whose reported version differs from the running one it shows the contradiction instead of advice (KIT-GF-093) (AGP_KIT_RELEASE_CHECK_V1); build `release-0.3.6-r2`.",
+        "--summary-line",
+        "Kit 1.1.9 adopted through the Kit's own `kit update` (manifest 357a6861eea4, signature b176f82eba913d224b1d2ab5); CI pins, entrypoints, command reference and rule inventory follow 1.1.9.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-037-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 289,
+      "stdout_sha256": "488beab994a1c7b46f159e0e60b89f303e902a2752ba428acc3412f7e311bd07"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "fe6b8ba5f44e1b8fc4b139b9c566f63f7dfd6dde487fb2f589342584d645ead4"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [],
+      "name": "task-selection-review-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "Skipped: Kit development projection is not applicable.",
+      "stdout_length": 54,
+      "stdout_sha256": "294dde19be118c8a1e8bcaae87e2ccf2eeb7df71ecd82f83edd4ffe91b167773"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1002,
+      "stdout_sha256": "dcc563deabd1695262ffe87a2888d7aa3635444ab9b98084b9cf144043b0712e"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-037-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.3.7"
+}
