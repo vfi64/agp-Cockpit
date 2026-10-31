@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+## v0.3.7 - 2026-10-31
+
 - Every Standard Tasks button checks the ChatGPT chat binding before its input dialog, its question or the Kit's release request: a chat of another repository is named at once with the step that resolves it, no longer after the owner confirmed; the start still checks it again, and a regression test guards the order (AGP_CHAT_BINDING_BEFORE_CONFIRM_V1); build `release-0.3.6-r4`.
 - Kit 1.1.10 adopted through the standard task „Kit übernehmen“ and the Kit's own `kit update` (manifest c75ff9f747e1, signature 74c7e1dd132720bc096ba736, #418); CI pins, entrypoints, command reference and rule inventory follow 1.1.10.
 - Kit findings register follows Kit 1.1.10 (retest PASS 52, FAIL 0, evidence docs/validation/evidence/kit-1.1.10-adoption.json): KIT-GF-093, the release check of an editable install, is verified fixed; no Kit finding is open.
