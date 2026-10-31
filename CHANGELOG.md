@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.1.9 adopted through the Kit's own `kit update` (manifest 357a6861eea4, signature b176f82eba913d224b1d2ab5); CI pins, entrypoints, command reference and rule inventory follow 1.1.9.
+
 ## v0.3.6 - 2026-10-30
 
 - A work branch whose origin/<branch> on GitHub has commits that are missing locally is a „Störung“: the Lage names it (behind, not fetched or diverged), „Arbeiten“ and „Abschließen“ refuse to start, and „Wiederherstellen“ carries the live facts and approves exactly the Kit's fetch and fast-forward of the branch (AGP_WORK_BRANCH_BEHIND_V1). The CI runs the Tk tests under xvfb and fails a Tk test that would be skipped (AGP_TK_TESTS_IN_CI_V1); the approval scope row and the --allow-unlisted line wrap with the window (AGP_DECISION_ROWS_WRAP_V1); Tk garbage is collected on the main thread after GUI tests (AGP_TK_GC_ON_MAIN_THREAD_V1); build `release-0.3.5-r3`.
