@@ -1934,3 +1934,28 @@ repeat once.
   the version and every CI pin naming it.
 - Not yet proven live: it needs a newer Kit release than 1.1.9 (planned: 1.1.10 with the KIT-GF-093 fix).
 
+
+## 2026-10-31 — „Kit übernehmen“ live; Kit 1.1.10; chat binding before the question (build release-0.3.6-r4)
+
+- „Kit übernehmen“ ran live in both cases. With Kit 1.1.9 current it showed only the information window. After the
+  owner published Kit 1.1.10 it asked „Kit 1.1.9 → 1.1.10 übernehmen?“, created chore/kit-1.1.10 and stopped in the
+  decision box with the Kit's plan: signature 74c7e1dd132720bc096ba736, the five planned paths, the derived
+  `.agentic/rule_mechanism_inventory.yaml` and the exact execute command. The owner released it, the verifier
+  `kit-adopted` accepted DONE and „Abschließen“ merged #418 with CI green (successor package #419). This was the
+  first Kit adoption without a maintainer script.
+- Found live: the first click confirmed the question and only then reported BLOCKED, because the front ChatGPT chat
+  belonged to the Kit repository (P4). The binding was checked inside the start, after every dialog.
+  AGP_CHAT_BINDING_BEFORE_CONFIRM_V1: every Standard Tasks button checks the binding before its input dialog, its
+  question or the Kit's release request. The start still checks it, because the front chat can change in between.
+  A chat that cannot be determined at the click is left to the start, which reports it. Tests no longer reach the
+  host's Chrome through AppleScript (conftest `_no_host_chrome`).
+- KIT-GF-093 is VERIFIED_FIXED (fixed_in 1.1.10, stamped by the Kit's release itself, KIT-GF-091). `greenfield retest
+  --all` under the 1.1.10 wheel: PASS 52, FAIL 0 (GF-E124, evidence kit-1.1.10-adoption.json). No Kit finding is open.
+- Sequencing fault (Claude): order 0008_agp-Cockpit.py went to the owner before its commit was on origin. Its
+  EXPECTED_HEAD check held: it found no origin branch, stopped with FAIL and changed nothing, so the owner saw
+  neither r3 nor the new button. The fix was to push and issue order 0009. Lesson: Claude hands out a finish order
+  only after the push the owner released; the order's own check stays the safety net.
+- Kit release 1.1.10 first stopped at A2: the Kit's release-quality gate requires the projected CHANGELOG section to
+  cover at least three substance categories, and Claude's KIT-GF-093 entry hit too few. Reworded in Kit #2702, then the
+  owner's release ran through. The gate only runs at release time, so an Unreleased entry that will fail it passes
+  every PR check. This is a possible Kit finding, proposed to the owner and not yet recorded.
