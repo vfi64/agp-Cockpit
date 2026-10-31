@@ -652,6 +652,9 @@ class StandardTasksPanel(ttk.Frame):
         task = self.tasks_by_key.get(verb.task_key or "")
         if task is None:
             return
+        if task.key == "kit-adopt":
+            self.run_kit_adopt(task)      # AGP_KIT_ADOPT_TASK_V1: the Kit names the version, not a dialog
+            return
         inputs = None
         if task.inputs:
             inputs = self.ask_inputs(task)
@@ -662,6 +665,61 @@ class StandardTasksPanel(ttk.Frame):
             self.status_var.set(f"{task.label} nicht gestartet.")
             return
         self.start_standard_task(task, inputs)
+
+    def run_kit_adopt(self, task: StandardTask) -> None:
+        """AGP_KIT_ADOPT_TASK_V1: ask the repository's Kit for its release answer beside the UI thread
+        (the Kit may wait up to 10 s for the package index), then inform or start."""
+        import queue
+        import threading
+
+        from agp_cockpit.core import kit_release
+        if getattr(self, "_kit_release_pending", False):
+            return
+        self._kit_release_pending = True
+        self.status_var.set("Kit übernehmen: das Kit prüft, ob ein neueres stabiles Release verfügbar ist …")
+        answers: queue.Queue = queue.Queue(maxsize=1)
+        root = self.repository_root
+
+        def ask() -> None:
+            try:
+                answers.put(kit_release.read(root))
+            except Exception as exc:  # noqa: BLE001 - reported in the window, never raised
+                answers.put(kit_release.KitRelease(kit_release.NO_ANSWER, reason=f"{type(exc).__name__}: {exc}"))
+
+        threading.Thread(target=ask, name="agp-kit-release", daemon=True).start()
+
+        def poll() -> None:
+            try:
+                release = answers.get_nowait()
+            except queue.Empty:
+                self.after(150, poll)
+                return
+            self._kit_release_pending = False
+            self.kit_adopt_answer(task, release)
+
+        self.after(150, poll)
+
+    def kit_adopt_answer(self, task: StandardTask, release) -> bool:
+        """Inform when there is nothing to adopt; otherwise confirm the exact version and start."""
+        from agp_cockpit.core import kit_release
+        if not release.adoptable:
+            text = kit_release.info_text(release)
+            self.status_var.set(f"Kit übernehmen: {text}")
+            self._show_info(task.label, text)
+            return False
+        question = f"Kit {release.installed} → {release.latest} übernehmen?\n\n{task.confirm}"
+        if not self._ask_ok(task.label, question):
+            self.status_var.set(f"{task.label} nicht gestartet.")
+            return False
+        return self.start_standard_task(task, {"version": release.latest})
+
+    def _show_info(self, title: str, text: str) -> None:
+        from tkinter import messagebox
+        messagebox.showinfo(title, text, parent=self)
+
+    def _ask_ok(self, title: str, text: str) -> bool:
+        from tkinter import messagebox
+        return bool(messagebox.askokcancel(title, text, parent=self))
 
     def _wait_for_extension(self, label: str, retry) -> bool:
         """AGP_START_WAITS_FOR_EXTENSION_V1: True while the start waits for the extension to

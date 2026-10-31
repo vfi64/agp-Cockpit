@@ -60,6 +60,10 @@ LOCAL_ORCHESTRATORS = frozenset({
     "init", "release prepare", "release ready", "release-prep",
     "transfer chat-switch-complete", "work recover", "work rescue", "workspace adopt",
     "workspace dpa-intake", "workspace init", "workspace remove", "workspace upgrade",
+    # AGP_KIT_ADOPT_TASK_V1: `kit update` reads the package index and changes only the local Kit
+    # installation and local files; its plan runs freely, its signed execute is an owner decision
+    # (OWNER_DECISION_EXECUTE_COMMANDS).
+    "kit update",
 })
 # AGP_MANIFEST_REMOTE_EFFECTS_V1 (Kit 1.0.19 manifest, owner 2026-10-07): the Kit declares
 # ``remote_effects`` per command. A declared write effect makes a command remote even when
@@ -79,7 +83,9 @@ DESTRUCTIVE_EXECUTE_COMMANDS = frozenset({"work rescue", "work discard-changes"}
 # AGP_OWNER_DECISION_EXECUTE_V1 (plan P10a, owner 2026-10-04): local routes whose
 # execute applies decisions that belong to the owner (documentation lifecycle:
 # defer or confirm a document). Gated exactly like a destructive execute.
-OWNER_DECISION_EXECUTE_COMMANDS = frozenset({"docs lifecycle sweep"})
+# AGP_KIT_ADOPT_TASK_V1 (2026-10-31): the signed execute of `kit update` installs another Kit and rewrites the
+# CI pins, AGENTS.md and the command reference — the owner's decision, whatever task runs it.
+OWNER_DECISION_EXECUTE_COMMANDS = frozenset({"docs lifecycle sweep", "kit update"})
 # AGP_CI_UPDATE_GUARD_V1 (KIT-GF-042): the Kit's managed-CI template update would
 # replace the Cockpit's customized CI (pytest and Playwright jobs). Its execute is
 # rejected outright; the Kit pin in both workflow files is updated by hand (P10b).
@@ -112,8 +118,8 @@ COMMAND_RULES = (
     "Raw git/gh commands that have a Kit wrapper (\"replaces_raw\") are rejected; use the wrapper. "
     "Commands marked \"remote_effect\" (push, pull/fetch, PR, merge, publish) or \"effect\": \"unknown\" "
     "run only with an open human approval; without one the Cockpit does not execute the work order and "
-    "asks the human itself. The same holds for the signed --execute of work rescue and "
-    "work discard-changes (their dry run is free). Do not work around this. "
+    "asks the human itself. The same holds for the signed --execute of work rescue, "
+    "work discard-changes and kit update (their dry run is free). Do not work around this. "
     "\"commands\" lists the orchestrators completely; diagnostic and primitive commands are rows of "
     "\"compact\" (columns in \"compact_columns\", no options): read their options with "
     "`agentic-kit <command> --help` inside a work order."

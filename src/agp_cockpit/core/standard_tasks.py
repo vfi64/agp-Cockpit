@@ -894,6 +894,94 @@ equal to origin/main, or {branch} is checked out, contains origin/main and carri
 """
 
 
+
+# --- Kit übernehmen (AGP_KIT_ADOPT_TASK_V1, owner 2026-10-30/31, option B part 2) ----------------------
+# The click reads the Kit's own release answer (core/kit_release.py). Only a released wheel install with a
+# newer stable release starts the task; otherwise the panel shows an information window and nothing runs.
+# The task adopts exactly the version the owner confirmed: work start on chore/kit-<version>, the Kit's
+# `kit update --version <version>` as a plan, the owner approves its signed execute (gated in code:
+# AGP_OWNER_DECISION_EXECUTE_V1 lists `kit update`), the changes stay on the branch for „Abschließen“.
+_KIT_VERSION = __import__("re").compile(r"^\d+\.\d+\.\d+(?:\.post\d+)?$")
+
+
+def kit_adopt_branch(version: str) -> str:
+    return f"chore/kit-{version}"
+
+
+def _kit_adopt_precheck(root: Path, inputs: dict) -> str | None:
+    from agp_cockpit.core import kit_release
+    version = str(inputs.get("version") or "").strip()
+    if not _KIT_VERSION.match(version):
+        return "Kit-Version fehlt — „Kit übernehmen“ liest sie beim Klick aus der Release-Prüfung des Kits."
+    if _git_value(root, "branch", "--show-current") != "main":
+        return "Kit übernehmen startet nur auf main (Zustand BEREIT)."
+    if _git_value(root, "status", "--porcelain"):
+        return "main hat ungesicherte Änderungen — erst abschließen oder wiederherstellen."
+    head = _git_value(root, "rev-parse", "HEAD")
+    if not head or head != _git_value(root, "rev-parse", "--verify", "-q", "refs/remotes/origin/main"):
+        return "main ist nicht synchron mit origin/main — erst Lagebericht/Wiederherstellen."
+    branch = kit_adopt_branch(version)
+    for ref in (branch, f"origin/{branch}"):
+        if _git_value(root, "rev-parse", "--verify", "--quiet", ref):
+            return f"Branch {branch} existiert schon ({ref}) — erst abschließen oder wiederherstellen."
+    release = kit_release.read(root)
+    if not release.adoptable or release.latest != version:
+        return kit_release.info_text(release) if not release.adoptable else (
+            f"Das Kit meldet jetzt {release.latest} als neuestes Release, nicht {version} — erneut klicken.")
+    return None
+
+
+def _kit_adopt_contract(root: Path, inputs: dict) -> dict:
+    version = str(inputs.get("version") or "")
+    branch = kit_adopt_branch(version)
+    return {
+        "title": f"Standard Task: Kit übernehmen ({version})",
+        "goal": (f"Adopt Agentic Project Kit {version} into this repository through the Kit's own update route on "
+                 f"{branch}; leave the changes on the branch for Abschließen."),
+        "repository_root": str(root),
+        "completion_contract": _verifier("kit-adopted", branch=branch, version=version),
+        "acceptance_criteria": [
+            (f"{branch} contains origin/main, carries the update's changes, the installed Kit is {version} and "
+             f"every CI pin names {version}."),
+        ],
+        "constraints": ["The signed execute of the update only after the human approved exactly it.",
+                        "No pull request (Abschließen publishes).",
+                        "No managed-CI template update (KIT-GF-042); no other change."],
+    }
+
+
+def _kit_adopt_prompt(root: Path, inputs: dict) -> str:
+    version = str(inputs.get("version") or "")
+    branch = kit_adopt_branch(version)
+    return f"""STANDARD TASK — KIT ÜBERNEHMEN (adopt Agentic Project Kit {version})
+
+Repository: {root}
+Kit version to adopt: {version} (the Kit's own release check reported it as the newest stable release)
+Work branch: {branch}
+
+1. Start {branch} from the current origin/main through the Kit's work-start route from the command digest.
+2. On {branch}: run the Kit's update route from the command digest for exactly version {version} as a plan
+   (no execute). Record its result status, approval signature and the paths it would change.
+3. Ask the human (NEEDS_HUMAN) for exactly the signed execute of that plan. The question names the version,
+   the paths the plan changes and the complete command line with --execute and --expected-signature. Do not
+   run the execute before the human approved it; the Cockpit refuses it without the approval.
+4. After the approval run exactly that command line. Then check: the installed Kit reports {version}, the
+   Kit's status (with its release check) passes, and the changed paths are the planned ones.
+5. Leave the changes on {branch}; do not commit them, do not publish and open no pull request — the human
+   finishes with Abschließen. Never run the managed-CI template update in execute mode (KIT-GF-042) and
+   change nothing else.
+6. The DONE file has only the keys "state", "reason" and "step" (AGP_K07_TERMINAL_REPLY_FILE_V1); its
+   "reason" names the adopted version and the changed paths.
+
+The human approved by starting this task only the synchronization with origin and the creation of {branch}
+through the Kit's work-start route. The signed execute of the update and every remote effect still need a
+decision.
+{{common}}
+Completion is verified locally: DONE is accepted only when {branch} is checked out, contains origin/main,
+carries changes, the installed Kit is {version} and every CI pin names {version}.
+""".replace("{common}", _COMMON)
+
+
 STANDARD_TASKS: tuple[StandardTask, ...] = (
     StandardTask(
         key="chat-switch",
@@ -976,6 +1064,24 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
                  "chore/pflege-<Datum> an und lässt die Änderungen dort; veröffentlicht wird erst mit "
                  "„Abschließen“.\n\nDer Start gibt nur die Synchronisierung mit origin und den Branch frei. "
                  "Dokument-Hinweise werden nur berichtet; die CI-Vorlage und die Kit-Version bleiben unberührt.\n\n"
+                 "Jetzt starten?"),
+    ),
+    StandardTask(
+        key="kit-adopt",
+        label="Kit übernehmen",
+        description=("Übernimmt das neueste stabile Kit-Release über das Kit (kit update) auf einem Branch "
+                     "chore/kit-<Version>; veröffentlicht wird mit „Abschließen“."),
+        contract_factory=_kit_adopt_contract,
+        prompt_factory=_kit_adopt_prompt,
+        effect="local",
+        inputs=("version",),
+        precheck=_kit_adopt_precheck,
+        approved_scope=WORK_START_SCOPE,
+        confirm=("„Kit übernehmen“ legt einen Branch chore/kit-<Version> an und lässt das Kit seine eigene "
+                 "Übernahme planen (kit update). Die Ausführung des signierten Plans fragt dich in der "
+                 "Entscheidungsbox mit Version, betroffenen Dateien und Signatur.\n\n"
+                 "Die Änderungen bleiben auf dem Branch; veröffentlicht wird erst mit „Abschließen“. Der "
+                 "Start gibt nur die Synchronisierung mit origin und das Anlegen des Branches frei.\n\n"
                  "Jetzt starten?"),
     ),
     StandardTask(
