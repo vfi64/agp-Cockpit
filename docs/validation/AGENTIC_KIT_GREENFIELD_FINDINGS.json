@@ -867,6 +867,27 @@
       "historical_id": "Kit 1.1.8 adoption (#396), greenfield retest",
       "canonical_family": "KIT-GF-087",
       "summary": "greenfield retest --all under the 1.1.8 wheel: PASS 49, FAIL 0; KIT-GF-087/088 PASS"
+    },
+    {
+      "date": "2026-10-29",
+      "event_id": "GF-E120",
+      "historical_id": "Kit 1.1.8 register sync (#398)",
+      "canonical_family": "KIT-GF-091",
+      "summary": "Kit catalog reported shipped fixes as fixed_in \"unreleased\" (087/088/089, 090) or empty (070); fixed in Kit 1.1.9"
+    },
+    {
+      "date": "2026-10-30",
+      "event_id": "GF-E121",
+      "historical_id": "owner request „Kit Update“ button",
+      "canonical_family": "KIT-GF-092",
+      "summary": "no Kit route for the newest stable release; fixed in Kit 1.1.9 (kit status --check-release, kit update --latest)"
+    },
+    {
+      "date": "2026-10-31",
+      "event_id": "GF-E122",
+      "historical_id": "Kit 1.1.9 adoption (#410), greenfield retest",
+      "canonical_family": "KIT-GF-091",
+      "summary": "greenfield retest --all under the 1.1.9 wheel: PASS 51, FAIL 0; KIT-GF-091/092 PASS; the Kit release stamped both fixed_in itself"
     }
   ],
   "families": [
@@ -3003,10 +3024,10 @@
         "docs/validation/evidence/kit-1.1.4-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-27",
-        "fixed_in": "",
+        "date": "2026-10-31",
+        "fixed_in": "1.1.6",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.1.6)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.9; Kit main 2ad5357b); fixed_in back-filled by the Kit with KIT-GF-091 (PR #2686) from its CHANGELOG",
         "report": "docs/reports/greenfield/KIT-GF-070-machine-contracts-c1c-2026-10-22.md"
       },
       "retest": "2026-10-26/27 with Kit 1.1.6 (evidence kit-1.1.6-adoption.json): `greenfield retest --all` PASS 41, FAIL 4, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0. Not VERIFIED_FIXED: four of the new contracts (KIT-GF-021, 032, 045, 067) cannot run from the installed wheel (KIT-GF-089). 2026-10-27 with Kit 1.1.7 (evidence kit-1.1.7-adoption.json): PASS 48, FAIL 0, NOT_RUN_LOCALLY 40, NO_MACHINE_CONTRACT 0; the four contracts blocked by KIT-GF-089 run.",
@@ -3463,13 +3484,14 @@
       "evidence": [
         "Kit report docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md",
         "docs/validation/evidence/kit-1.1.7-adoption.json (greenfield_retest.pass)",
-        "docs/validation/evidence/kit-1.1.8-adoption.json"
+        "docs/validation/evidence/kit-1.1.8-adoption.json",
+        "docs/validation/evidence/kit-1.1.9-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-29",
-        "fixed_in": "unreleased",
+        "date": "2026-10-31",
+        "fixed_in": "1.1.7",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.1.8); the catalog still says \"unreleased\", the fix shipped in 1.1.7 (Kit CHANGELOG v1.1.7, PR #2652)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.9; Kit main 2ad5357b); fixed_in back-filled by the Kit with KIT-GF-091 (PR #2686) from its CHANGELOG",
         "report": "docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md"
       },
       "verified_by": "2026-10-29 docs/validation/evidence/kit-1.1.8-adoption.json (greenfield retest KIT-GF-087 PASS, installed Kit 1.1.8)",
@@ -3493,13 +3515,14 @@
       "evidence": [
         "Kit report docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md",
         "docs/validation/evidence/kit-1.1.7-adoption.json (greenfield_retest.pass)",
-        "docs/validation/evidence/kit-1.1.8-adoption.json"
+        "docs/validation/evidence/kit-1.1.8-adoption.json",
+        "docs/validation/evidence/kit-1.1.9-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-29",
-        "fixed_in": "unreleased",
+        "date": "2026-10-31",
+        "fixed_in": "1.1.7",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.1.8); the catalog still says \"unreleased\", the fix shipped in 1.1.7 (Kit CHANGELOG v1.1.7, PR #2652)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.9; Kit main 2ad5357b); fixed_in back-filled by the Kit with KIT-GF-091 (PR #2686) from its CHANGELOG",
         "report": "docs/reports/greenfield/KIT-GF-087-088-external-bootstrap-isolation-2026-10-26.md"
       },
       "verified_by": "2026-10-29 docs/validation/evidence/kit-1.1.8-adoption.json (greenfield retest KIT-GF-088 PASS, installed Kit 1.1.8)",
@@ -3523,17 +3546,76 @@
       "evidence": [
         "docs/validation/evidence/kit-1.1.6-adoption.json (greenfield_retest.fail)",
         "Kit report docs/reports/greenfield/KIT-GF-089-owned-runtime-dependencies-2026-10-27.md",
-        "docs/validation/evidence/kit-1.1.7-adoption.json"
+        "docs/validation/evidence/kit-1.1.7-adoption.json",
+        "docs/validation/evidence/kit-1.1.9-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-10-27",
-        "fixed_in": "unreleased",
+        "date": "2026-10-31",
+        "fixed_in": "1.1.7",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit 1.1.7); the catalog still says \"unreleased\", the fix shipped in 1.1.7 (Kit CHANGELOG v1.1.7)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.9; Kit main 2ad5357b); fixed_in back-filled by the Kit with KIT-GF-091 (PR #2686) from its CHANGELOG",
         "report": "docs/reports/greenfield/KIT-GF-089-owned-runtime-dependencies-2026-10-27.md"
       },
       "verified_by": "2026-10-27 docs/validation/evidence/kit-1.1.7-adoption.json (greenfield retest KIT-GF-021/032/045/067/089 PASS, installed Kit 1.1.7)",
       "retest": "Verified 2026-10-27 by the Kit's installed-wheel machine contract under Kit 1.1.7: `greenfield retest --all` on the owner's Mac during the adoption (#390, PASS 48, FAIL 0) and in a clean Linux venv: PASS."
+    },
+    {
+      "id": "KIT-GF-091",
+      "title": "a release left fixed_in of its closed findings at \"unreleased\"",
+      "first_observed": "2026-10-29",
+      "status": "VERIFIED_FIXED",
+      "severity": "medium",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": "1.1.9",
+      "expected": "Release preparation stamps the released version into every CLOSED finding whose fixed_in is \"unreleased\" and exports the status projections; a missing fixed_in is reported, never guessed.",
+      "observed": "Kit 1.1.8 adoption (2026-10-29) and register sync: `agentic-kit greenfield status --json` reported KIT-GF-087/088/089 as fixed_in \"unreleased\" although they shipped in 1.1.7, KIT-GF-090 as \"unreleased\" after 1.1.8 and KIT-GF-070 with an empty fixed_in; this register had to note the deviation in each kit_repo_status by hand.",
+      "impact": "Consumers saw shipped fixes as unreleased and had to correct the Kit's version facts by hand.",
+      "workaround": "The register's kit_repo_status recorded the real release next to the Kit's value.",
+      "repair": "Kit 1.1.9 (PR #2686): release preparation assigns the version to CLOSED/unreleased findings in the signed B4 change, names their IDs in the B4 approval and blocks missing version evidence before metadata writes; one-time back-fill 070 → 1.1.6, 087/088/089 → 1.1.7, 090 → 1.1.8.",
+      "regression": "Kit machine contract KIT-GF-091 and the Kit's release-preparation tests.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-091-release-fixed-in-stamp-2026-10-30.md",
+        "docs/validation/evidence/kit-1.1.9-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-31",
+        "fixed_in": "1.1.9",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.9; Kit main 2ad5357b)",
+        "report": "docs/reports/greenfield/KIT-GF-091-release-fixed-in-stamp-2026-10-30.md"
+      },
+      "verified_by": "2026-10-31 docs/validation/evidence/kit-1.1.9-adoption.json (greenfield retest KIT-GF-091 PASS, installed Kit 1.1.9)",
+      "retest": "Verified 2026-10-31 by the Kit's installed-wheel machine contract under Kit 1.1.9 (adoption #410, PASS 51, FAIL 0) and live: the Kit's own 1.1.9 release stamped fixed_in 1.1.9 into KIT-GF-091 and KIT-GF-092 without a hand edit."
+    },
+    {
+      "id": "KIT-GF-092",
+      "title": "no Kit route reports whether a newer stable Kit release exists",
+      "first_observed": "2026-10-30",
+      "status": "VERIFIED_FIXED",
+      "severity": "low",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": "1.1.9",
+      "expected": "A read-only Kit route reports the newest stable release at the workspace's configured index and whether an update is available; a planning route plans exactly that version under a signature.",
+      "observed": "2026-10-30, owner's request for a Cockpit „Kit Update“ button: `kit status` checks only the installation, `kit update` needs an exact version and `agentic-kit --version` names only the installed one. The Cockpit would have had to query the package index itself and decide what counts as a stable release — a local workaround around a missing Kit route.",
+      "impact": "No Kit-backed way to tell the owner that a newer Kit exists or to plan its adoption from the newest release.",
+      "workaround": "The owner reports new releases; Claude plans `kit update --version X.Y.Z` with the exact version.",
+      "repair": "Kit 1.1.9 (PR #2692): `kit status --check-release` (CURRENT, UPDATE_AVAILABLE, AHEAD, UNKNOWN; stable post-releases count, pre/dev/yanked do not; 10 s index limit; offline status unchanged) and `kit update --latest` (plans the resolved version with the same signature as --version; already current is PASS with already_current; editable gets a checkout hint).",
+      "regression": "Kit machine contract KIT-GF-092 and the Kit's release-check tests.",
+      "evidence": [
+        "Kit report docs/reports/greenfield/KIT-GF-092-release-check-2026-10-30.md",
+        "docs/validation/evidence/kit-1.1.9-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-10-31",
+        "fixed_in": "1.1.9",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.9; Kit main 2ad5357b)",
+        "report": "docs/reports/greenfield/KIT-GF-092-release-check-2026-10-30.md"
+      },
+      "verified_by": "2026-10-31 docs/validation/evidence/kit-1.1.9-adoption.json (greenfield retest KIT-GF-092 PASS, installed Kit 1.1.9)",
+      "retest": "Verified 2026-10-31 by the Kit's installed-wheel machine contract under Kit 1.1.9 (adoption #410). The Cockpit's use of the route (Systemcheck line, task „Kit übernehmen“) follows in its own slice."
     }
   ],
   "explicit_exclusions": [
@@ -3690,9 +3772,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "1666ec6f",
-    "latest_release": "1.1.8",
-    "synced": "2026-10-29",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.8; Kit main 1666ec6f). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both."
+    "kit_commit": "2ad5357b",
+    "latest_release": "1.1.9",
+    "synced": "2026-10-31",
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.9; Kit main 2ad5357b). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both. Since Kit 1.1.9 (KIT-GF-091) the Kit stamps fixed_in at release, so the snapshot's versions no longer need a hand note."
   }
 }

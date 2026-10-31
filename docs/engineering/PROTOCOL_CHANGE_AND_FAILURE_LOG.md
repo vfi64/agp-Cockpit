@@ -1880,3 +1880,22 @@ repeat once.
   verified on a detached HEAD and on a checkout named main. The log came through the Kit (`pr status`, order
   0002), because Claude's workspace cannot read GitHub's job logs.
 
+## 2026-10-31 — Kit 1.1.9 register, KIT-GF-091/092, Wiederherstellen live, Mac wrap test (no rebuild)
+
+- Live acceptance of AGP_RECOVER_MAIN_BEHIND_V1 (build release-0.3.6, 2026-10-30, Kit repository): the Lage showed
+  STÖRUNG with main 1666ec6f only behind origin/main; „Wiederherstellen“ ended „Fertig ✓“ after one remote turn and
+  one step without a question, main 62ea664c equal to origin/main, Lage BEREIT. Until 0.3.4 the same situation
+  asked for an unrelated decision.
+- Kit 1.1.9 adopted (order 0005, PR #410): `kit update` changed exactly the five adoption files; retest under the
+  1.1.9 wheel PASS 51, FAIL 0 (evidence kit-1.1.9-adoption.json). KIT-GF-091 (release left fixed_in
+  „unreleased“; observed in the 1.1.8 sync) and KIT-GF-092 (no route for the newest stable release; the owner's
+  „Kit Update“ request) are VERIFIED_FIXED. KIT-GF-091 also showed live: the Kit's own 1.1.9 release stamped
+  fixed_in 1.1.9 for both, and the back-fill corrected 070, 087, 088 and 089 — their kit_repo_status snapshots no
+  longer need a hand note.
+- `test_narrowing_the_window_wraps_instead_of_scrolling_sideways` had been red on the owner's Mac since at least
+  the Kit 1.1.6 adoption (#386, then #390, #396, #410 as „already red on origin/main“): it expected more button
+  rows at 620 px than at 1000 px, but with the Mac's narrower font two rows fit both widths — nothing was cut off.
+  AGP_WRAP_TEST_FONT_INDEPENDENT_V1: the test checks the wrap itself (rows equal what the button widths need at the
+  row's width, never fewer when narrower); a mutation without relayout fails it. Lesson: a test that stays red on
+  one platform for four adoptions is a finding, not background noise.
+
