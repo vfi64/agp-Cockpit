@@ -916,6 +916,13 @@
       "historical_id": "review of Kit PR #2710 in a disposable Cockpit copy",
       "canonical_family": "KIT-GF-094",
       "summary": "Kit-main wheel: v1 -> NEEDS_PROJECTION_MIGRATION, migration writes 8 projection files + config + .gitignore, bytes stable on regeneration, new run_id, post-merge PASS after a content squash, distinct error codes, read-only checks without side effects; retest 092-095 PASS"
+    },
+    {
+      "date": "2026-11-01",
+      "event_id": "GF-E127",
+      "historical_id": "Kit 1.1.11 adoption (#428) through the standard task „Kit übernehmen“, greenfield retest",
+      "canonical_family": "KIT-GF-095",
+      "summary": "release A of the two-release transition adopted (projection v1 kept, refresh #429 as before, „Chat wechseln“ PASS); greenfield retest --all under the 1.1.11 wheel: PASS 56, FAIL 0; KIT-GF-095/097/098 PASS, fixed_in 1.1.11 stamped by the Kit release; KIT-GF-094 PASS but PARTIAL/unreleased (v2 dormant)"
     }
   ],
   "families": [
@@ -3688,45 +3695,50 @@
       "observed": "2026-11-01, measured with the GitHub API for 2026-10-24..31: 19 of 38 merged Cockpit PRs were „Refresh successor package after PR<n>“ (78 of 208 CI minutes, 37 %); each refresh commit changed only HEAD, origin/main, branch, short SHAs and generation time. Cause: freshness meant validation_report.generated_head == HEAD, and a squash merge always creates a new HEAD.",
       "impact": "One extra PR, two CI runs and several minutes of waiting in every finish order.",
       "workaround": "None; the refresh PR ran automatically.",
-      "repair": "Kit main 334ac052 (PR #2710, unreleased): external projection contract v2 — deterministic versioned projection without Git state, regeneration plus byte comparison decides, diagnostic input digest, handoff.projection_contract_min: 2, ignored runtime identity with run_id and exact HEAD; supersedes the C4 refresh boundary for external workspaces (owner decision F1, 2026-11-01).",
+      "repair": "Kit main 334ac052 (PR #2710, unreleased): external projection contract v2 — deterministic versioned projection without Git state, regeneration plus byte comparison decides, diagnostic input digest, handoff.projection_contract_min: 2, ignored runtime identity with run_id and exact HEAD; supersedes the C4 refresh boundary for external workspaces (owner decision F1, 2026-11-01). Shipped dormant in Kit 1.1.11 (release A, EXTERNAL_PROJECTION_V2_ACTIVE = False); effective with the next release (B) after all known external workspaces adopted A (owner decision 2026-11-01, option 1).",
       "regression": "Kit machine contract KIT-GF-094; Cockpit tests/test_handoff_projection_v2_consumer.py (AGP_HANDOFF_PROJECTION_V2_CONSUMER_V1).",
       "evidence": [
         "docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md (2026-11-01)",
-        "Kit report docs/reports/greenfield/KIT-GF-094-external-handoff-v2-2026-11-01.md"
+        "Kit report docs/reports/greenfield/KIT-GF-094-external-handoff-v2-2026-11-01.md",
+        "docs/validation/evidence/kit-1.1.11-adoption.json"
       ],
       "kit_repo_status": {
         "date": "2026-11-01",
         "fixed_in": "unreleased",
-        "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit main 721b7d3a, unreleased)",
+        "kit_state": "PARTIAL",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.11; Kit main 6dde207e)",
         "report": "docs/reports/greenfield/KIT-GF-094-external-handoff-v2-2026-11-01.md"
       }
     },
     {
       "first_observed": "2026-11-01",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "low",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.1.11",
       "id": "KIT-GF-095",
       "title": "no governed return after kit update",
       "expected": "After an adoption a governed, signed route returns the workspace and the installed Kit to the previously pinned release.",
       "observed": "2026-11-01, Kit 1.1.10: kit update refuses every downgrade (kit_downgrade_refused) and the manifest rejects unknown keys, so an adoption could only be undone by hand around the Kit.",
       "impact": "Every adoption was a one-way step; most visible for the projection v2 migration.",
       "workaround": "None governed.",
-      "repair": "Kit main 334ac052 (PR #2710, unreleased): kit return-revert (revert precheck and simulation, squash identified by PR number) and kit return-install (reuses the two-phase kit update, only back to the pinned predecessor, owner decision, never PASS on partial failure).",
-      "regression": "Kit machine contract KIT-GF-095; the real-wheel consumer rehearsal is still to run (release gate).",
+      "repair": "Kit 1.1.11 (PR #2710, two-release transition #2712): kit return-revert (revert precheck and simulation, squash identified by PR number) and kit return-install (reuses the two-phase kit update, only back to the pinned predecessor named by the adoption evidence, owner decision, never PASS on partial failure); KIT-GF-097/098 prove transition and return with real non-editable wheels.",
+      "regression": "Kit machine contracts KIT-GF-095, KIT-GF-097 and KIT-GF-098; real-wheel consumer rehearsal of PR #2712 PASS (Claude's workspace, 2026-11-01).",
       "evidence": [
-        "Kit report docs/reports/greenfield/KIT-GF-095-governed-return-2026-11-01.md"
+        "Kit report docs/reports/greenfield/KIT-GF-095-governed-return-2026-11-01.md",
+        "Kit report docs/reports/greenfield/KIT-GF-098-evidence-bound-previous-pin-return-2026-11-01.md",
+        "docs/validation/evidence/kit-1.1.11-adoption.json"
       ],
       "kit_repo_status": {
         "date": "2026-11-01",
-        "fixed_in": "unreleased",
+        "fixed_in": "1.1.11",
         "kit_state": "CLOSED",
-        "raw": "agentic-kit greenfield status --json (Kit main 721b7d3a, unreleased)",
+        "raw": "agentic-kit greenfield status --json (Kit 1.1.11; Kit main 6dde207e)",
         "report": "docs/reports/greenfield/KIT-GF-095-governed-return-2026-11-01.md"
-      }
+      },
+      "verified_by": "2026-11-01 docs/validation/evidence/kit-1.1.11-adoption.json (greenfield retest KIT-GF-095 PASS, installed Kit 1.1.11)",
+      "retest": "Verified 2026-11-01 by the Kit's installed-wheel machine contract under Kit 1.1.11 after the adoption #428. The adoption evidence the return needs stays local-only (.git/info/exclude); a lost checkout loses the governed return."
     }
   ],
   "explicit_exclusions": [
@@ -3883,9 +3895,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "fd298409",
-    "latest_release": "1.1.10",
-    "synced": "2026-10-31",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.10; Kit main fd298409). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both. Since Kit 1.1.9 (KIT-GF-091) the Kit stamps fixed_in at release, so the snapshot's versions no longer need a hand note."
+    "kit_commit": "6dde207e",
+    "latest_release": "1.1.11",
+    "synced": "2026-11-01",
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.11; Kit main 6dde207e). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both. Since Kit 1.1.9 (KIT-GF-091) the Kit stamps fixed_in at release, so the snapshot's versions no longer need a hand note."
   }
 }
