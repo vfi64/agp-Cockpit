@@ -1976,3 +1976,37 @@ repeat once.
   heuristic, not a parse of every field. Such a commit is stale again by its own merge, which is why the Kit's
   freshness check skips refresh-only commits (`_latest_non_refresh_commit_state`). This is a Kit finding
   candidate; the owner chooses the direction before a Kit task is written.
+
+## 2026-11-01 — KIT-GF-094/095 on Kit main; „Chat wechseln“ understands projection v2 (build release-0.3.7-r1)
+
+- Kit PR #2710 (merge 334ac052, unreleased) adds the external handoff projection v2 (KIT-GF-094) and a governed
+  return after `kit update` (KIT-GF-095). Codex merged it before Claude's review. The review followed in a
+  disposable copy of this repository with a wheel built from Kit main. Results:
+  - Under the new Kit a v1 package is `NEEDS_PROJECTION_MIGRATION`, never PASS.
+  - The migration writes the 8 projection files, `handoff.projection_contract_min: 2` and one `.gitignore` line.
+    The files carry no SHA and stay byte-identical on regeneration, while each run gets a new `run_id`.
+  - After a squash-merged content change, `post-merge-check` is PASS with no refresh need.
+  - A changed input, a tampered file and a lowered minimum each fail with their own code.
+  - `check`, `post-merge-check` and `kit status` change no file, ignored file, ref or index entry.
+  - Retests 092 to 095 from the wheel PASS.
+- The Kit-main change does not reduce CI in the Kit repository itself. Self-hosting (stage 2) was excluded, and #2710
+  was followed by the handoff PR #2711. In this repository the saving starts only after a Kit release containing it
+  is adopted. Claude had not said this clearly enough before the work began; the owner noticed it from the CI list.
+- Found in the review: the Cockpit's handoff verifier would have broken „Chat wechseln“ right after the adoption,
+  because the v1 validator raised on a v2 package. AGP_HANDOFF_PROJECTION_V2_CONSUMER_V1:
+  - The verifier reads the projection contract from `validation_report.json`. v1 keeps its evidence (all five files
+    regenerated in this step, `generated_head == HEAD`).
+  - For v2 the evidence is a new `run_id` in `.agentic/tmp/handoff/runtime_identity.json` compared with the snapshot
+    before the step, with `head == generated_head == HEAD` and freshness, integrity and validator PASS of that same
+    run. Byte-stable package files are expected.
+  - The check combines the installed Kit's own pure `check_projection` with the Cockpit's own reading of the
+    identity. The identity is part of the hashed evidence, and a later run before the acknowledgement is rejected.
+  - An unknown contract, or a runtime path the Kit moved, is BLOCKED.
+  - Verified for real twice: against Kit main (a real `chat-switch-complete` gives a receipt v2/PASS; the same run
+    again is no completion) and against Kit 1.1.10 (v1 PASS).
+- AGP_UNRELEASED_FIX_NOT_INSTALLED_V1: the Kit findings window parsed `fixed_in: "unreleased"` as version 0 and showed
+  „behoben, nicht bestätigt“ for every installed Kit. Only a release number can now count as installed. KIT-GF-094 and
+  KIT-GF-095 are recorded as OPEN, with Kit CLOSED/unreleased (GF-E125, GF-E126).
+- Still open before any release or adoption: the rehearsal with real wheels in a disposable copy (adopt, migrate, chat
+  switch, `kit return-revert`, `kit return-install` back to 1.1.10, then check, doctor, post-merge-check and a v1
+  chat switch), then the owner's acceptance, the Kit release and the live adoption with one „Chat wechseln“.

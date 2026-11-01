@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- „Chat wechseln“ also accepts the Kit's external handoff projection v2 (KIT-GF-094, on Kit main, unreleased): the package files stay byte-identical across regenerations, and a new run of the Kit's generator — a new run_id in the ignored runtime identity with the exact HEAD and the validator PASS of the same run — is the evidence; the v1 evidence is unchanged, and an unknown projection contract is BLOCKED instead of guessed. Verified against a Kit-main wheel in a disposable copy and against Kit 1.1.10, with regression tests for every rejected case (AGP_HANDOFF_PROJECTION_V2_CONSUMER_V1). The Kit findings window no longer counts a fix marked "unreleased" as installed (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1); KIT-GF-094 and KIT-GF-095 are recorded; build `release-0.3.7-r1`.
 ## v0.3.7 - 2026-10-31
 
 - Every Standard Tasks button checks the ChatGPT chat binding before its input dialog, its question or the Kit's release request: a chat of another repository is named at once with the step that resolves it, no longer after the owner confirmed; the start still checks it again, and a regression test guards the order (AGP_CHAT_BINDING_BEFORE_CONFIRM_V1); build `release-0.3.6-r4`.
