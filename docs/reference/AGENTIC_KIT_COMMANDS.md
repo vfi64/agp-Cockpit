@@ -1,12 +1,12 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: c75ff9f747e1
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: f770b8310c36
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
 - Schema version: `3`
 - Source: `generated_from_typer_click_registry`
-- Command count: `273`
+- Command count: `275`
 
 ## Commands
 
@@ -1598,7 +1598,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.10` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.11` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1706,6 +1706,42 @@ Lint instruction text against the current command manifest.
 | `strict_unknown` | `TyperOption` | --strict-unknown | `False` | `False` | Treat unknown raw git/gh commands as blocking. |
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Repository root. |
 | `json_output` | `TyperOption` | --json | `False` | `False` | Print machine-readable JSON. |
+
+### `agentic-kit kit return-install`
+
+- Safety: `BOUNDED`
+- Surface: `orchestrator`
+- When to use: Return only to the prior pinned 1.1.10 through the existing two-phase updater; no general downgrade.
+- Dry-run available: `True`
+- Remote effects: `network_read`
+
+Return only to the prior pinned 1.1.10 through the existing two-phase updater; no general downgrade.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `adoption` | `TyperOption` | --adoption | `True` |  | Evidence ID whose verified revert PR is already merged. |
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | Already reverted external workspace. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Owner decision: execute the exactly signed installation return. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature from the fresh installation plan. |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
+
+### `agentic-kit kit return-revert`
+
+- Safety: `BOUNDED`
+- Surface: `orchestrator`
+- When to use: Preflight the recorded adoption's squash revert and stage its verified prior Kit through the existing updater.
+- Dry-run available: `True`
+- Remote effects: `network_read`
+
+Preflight the recorded adoption's squash revert and stage its verified prior Kit through the existing updater.
+
+| Parameter | Type | Options | Required | Default | Help |
+|---|---:|---|---:|---|---|
+| `adoption` | `TyperOption` | --adoption | `True` |  | Immutable v2 adoption evidence ID. |
+| `root` | `TyperOption` | --root | `False` | `PosixPath('.')` | External workspace on its return work branch. |
+| `execute` | `TyperOption` | --execute | `False` | `False` | Prepare the exactly signed revert; normal work closeout follows. |
+| `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Approval signature from the fresh return plan. |
+| `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit kit status`
 
@@ -2242,7 +2278,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.1.10` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.11` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2569,7 +2605,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.1.10` |  |
+| `version` | `TyperOption` | --version | `False` | `1.1.11` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
