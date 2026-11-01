@@ -54,6 +54,27 @@ WORK_ORDER_KIT_RULE = (
 )
 
 
+# AGP_SELF_TEST_ARGV_SLICE_V1 (live 2026-11-01, steps 2209, 2210, 2213): the rule above allows
+# "sys.argv or argparse"; ChatGPT wrote `'--self-test' in sys.argv[1:]`, the check knew only
+# `in sys.argv` and rejected three correct work orders without saying which form it accepts.
+SELF_TEST_VIOLATION = (
+    "missing --self-test contract (accepted: `if '--self-test' in sys.argv:`, "
+    "`if '--self-test' in sys.argv[1:]:` or argparse `add_argument('--self-test', ...)`)"
+)
+
+
+def _is_sys_argv(node: ast.AST) -> bool:
+    """`sys.argv` itself or any subscript of it (`sys.argv[1:]`)."""
+    if isinstance(node, ast.Subscript):
+        node = node.value
+    return (
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "sys"
+        and node.attr == "argv"
+    )
+
+
 def command_content_contract_violations(
     source: str,
     *,
@@ -90,10 +111,7 @@ def command_content_contract_violations(
         and isinstance(node.left, ast.Constant)
         and node.left.value == "--self-test"
         and len(node.comparators) == 1
-        and isinstance(node.comparators[0], ast.Attribute)
-        and isinstance(node.comparators[0].value, ast.Name)
-        and node.comparators[0].value.id == "sys"
-        and node.comparators[0].attr == "argv"
+        and _is_sys_argv(node.comparators[0])
         for node in ast.walk(tree)
     )
     has_bundle_writer = any(
@@ -126,7 +144,7 @@ def command_content_contract_violations(
     if expected_step is not None and embedded_step is not None and embedded_step != expected_step:
         violations.append(f"embedded STEP {embedded_step} does not match local step {expected_step}")
     if "--self-test" not in strings or not (has_self_test_argument or has_self_test_argv_guard):
-        violations.append("missing --self-test contract")
+        violations.append(SELF_TEST_VIOLATION)
     if "agentic-kit" not in strings:
         violations.append("missing declared agentic-kit command")
     if not any("return_bundle" in value for value in strings) or not has_bundle_writer:

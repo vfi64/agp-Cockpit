@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 from agp_cockpit.core import bridge_server
 from agp_cockpit.core.command_file_contract import (
+    SELF_TEST_VIOLATION,
     WORK_ORDER_KIT_RULE,
     command_content_contract_violations,
 )
@@ -40,7 +41,7 @@ def test_the_live_1568_work_order_is_fetched_and_its_violation_is_correctable(tm
     path.write_text(LIVE_1568, encoding="utf-8")
     assert read_downloaded_command(path, path.name, tmp_path)[1] == LIVE_1568
     violations = command_content_contract_violations(LIVE_1568)
-    assert violations == ["missing --self-test contract"]
+    assert violations == [SELF_TEST_VIOLATION]
     message = "command file semantic contract rejected: " + "; ".join(violations)
     assert bridge_server._correctable(ValueError(message))
 

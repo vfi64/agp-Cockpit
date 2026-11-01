@@ -258,8 +258,30 @@ def test_the_real_register_tracks_the_kit_1_1_10_adoption_and_kit_gf_093():
     assert gf093.effective_status("1.1.10") == kf.VERIFIED and "kit-1.1.10-adoption.json" in gf093.verified_by
     # no finding known at this adoption was left open (later findings, e.g. KIT-GF-094, are not part of it)
     assert not [f.id for f in by_id.values() if f.status == "OPEN" and f.first_observed <= "2026-10-31"]
+    assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
+
+
+def test_the_real_register_tracks_the_kit_1_1_11_adoption_and_kit_gf_095():
+    """Kit 1.1.11 (2026-11-01, #428, release A of the two-release transition, GF-E127, evidence
+    kit-1.1.11-adoption.json): retest PASS 56, FAIL 0; KIT-GF-095 is verified; KIT-GF-094 stays open because
+    projection v2 ships dormant in 1.1.11 (Kit PARTIAL, fixed_in "unreleased")."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-1.1.11-adoption.json").read_text(encoding="utf-8"))
+    assert evidence["greenfield_retest"]["counts"] == {"FAIL": 0, "NOT_RUN_LOCALLY": 41, "NO_MACHINE_CONTRACT": 0,
+                                                       "PASS": 56}
+    assert evidence["kit_update"]["execute"]["installed_version"] == "1.1.11"
+    assert sorted(evidence["verifies"]) == ["KIT-GF-095"]
+    for fid in ("KIT-GF-093", "KIT-GF-094", "KIT-GF-095", "KIT-GF-097", "KIT-GF-098"):
+        assert fid in evidence["greenfield_retest"]["pass"], fid
+    gf095 = by_id["KIT-GF-095"]
+    assert gf095.status == "VERIFIED_FIXED" and gf095.fixed_in == "1.1.11" and gf095.kit["fixed_in"] == "1.1.11"
+    assert gf095.effective_status("1.1.11") == kf.VERIFIED and "kit-1.1.11-adoption.json" in gf095.verified_by
+    gf094 = by_id["KIT-GF-094"]
+    assert gf094.status == "OPEN" and gf094.kit["kit_state"] == "PARTIAL" and gf094.kit["fixed_in"] == "unreleased"
+    assert gf094.effective_status("1.1.11") == kf.IN_PROGRESS
+    assert "KIT-GF-094" in evidence["not_verified"]
     register = json.loads((ROOT / kf.REGISTER).read_text(encoding="utf-8"))
-    assert register["kit_repo_sync"]["latest_release"] == "1.1.10"
+    assert register["kit_repo_sync"]["latest_release"] == "1.1.11"
     assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
 
 
@@ -425,17 +447,14 @@ def test_pytest_creates_its_runs_under_the_shared_temp_root(tmp_path):
     assert len(runs) <= 3                                    # pytest keeps only its newest runs
 
 
-def test_the_real_register_records_kit_gf_094_and_095_as_fixed_on_kit_main_only():
-    """KIT-GF-094 (refresh PRs restate git state) and KIT-GF-095 (no governed return after kit update), found
-    2026-11-01 (GF-E125/E126) and fixed on Kit main 334ac052 without a release: OPEN here, Kit CLOSED with
-    fixed_in "unreleased", so no installed Kit counts as containing the fix (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1)."""
-    by_id = {f.id: f for f in kf.load(ROOT)}
-    for fid in ("KIT-GF-094", "KIT-GF-095"):
-        finding = by_id[fid]
-        assert finding.status == "OPEN" and finding.first_observed == "2026-11-01", fid
-        assert finding.kit["kit_state"] == "CLOSED" and finding.kit["fixed_in"] == "unreleased", fid
-        assert finding.effective_status("1.1.10") == kf.FIXED_NOT_INSTALLED, fid
-        assert finding.effective_status("9.9.9") == kf.FIXED_NOT_INSTALLED, fid
+def test_kit_gf_094_counts_as_in_progress_while_v2_is_dormant():
+    """KIT-GF-094 (refresh PRs restate git state), found 2026-11-01 (GF-E125/E126): until 1.1.11 the Kit said
+    CLOSED/"unreleased" and no installed Kit counted as containing it (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1);
+    with 1.1.11 the Kit says PARTIAL/"unreleased" (v2 dormant), so the window shows it in progress for any Kit."""
+    finding = {f.id: f for f in kf.load(ROOT)}["KIT-GF-094"]
+    assert finding.status == "OPEN" and finding.first_observed == "2026-11-01"
+    assert finding.effective_status("1.1.11") == kf.IN_PROGRESS
+    assert finding.effective_status("9.9.9") == kf.IN_PROGRESS
 
 
 @pytest.mark.parametrize("fixed_in", ["unreleased", "", "main", "next"])

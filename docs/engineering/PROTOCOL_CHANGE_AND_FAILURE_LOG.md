@@ -2010,3 +2010,37 @@ repeat once.
 - Still open before any release or adoption: the rehearsal with real wheels in a disposable copy (adopt, migrate, chat
   switch, `kit return-revert`, `kit return-install` back to 1.1.10, then check, doctor, post-merge-check and a v1
   chat switch), then the owner's acceptance, the Kit release and the live adoption with one „Chat wechseln“.
+
+## 2026-11-01 — Kit 1.1.11 (release A) adopted live; self-test check too strict (build release-0.3.7-r2)
+
+- The owner decided on a two-release transition for projection v2 (option 1). Kit PR #2712 split it into a switch
+  `EXTERNAL_PROJECTION_V2_ACTIVE`: off in release A, on in release B. Claude's rehearsal with real wheels in two
+  disposable copies passed four paths:
+  - 1.1.10 → A;
+  - A → B planned by A;
+  - the return B → A with `return-revert` and `return-install`;
+  - the direct jump 1.1.10 → B, BLOCKED as documented, with its documented completion and no return.
+
+  The first 1.1.11 release run failed on a test that depended on the running version. It was fixed on Kit main
+  (#2715, together with a `maintenance.lock` flake), and the stale run was abandoned through the Kit's
+  `release abandon` (plan, then signed execute). The owner's release script then refused a fresh start: it found the
+  old local backup but no Kit run state. An order first proved that nothing had been published (no tag, release
+  branch, GitHub release or PyPI version), then moved the backup aside. Kit 1.1.11 was released completely.
+- „Kit übernehmen“ adopted 1.1.11:
+  - plan by the installed 1.1.10, signature f0a6c8f0abcb841f121017f6;
+  - the five usual paths plus the rule inventory;
+  - #428 merged with CI green; the refresh #429 followed as expected, since v1 is kept under A;
+  - „Chat wechseln“ afterwards finished after one remote turn with the Cockpit's own package check PASS.
+- Retest with the PyPI wheel of 1.1.11 against main 436027ec: PASS 56, FAIL 0, 41 not run locally (they need remote
+  effects). KIT-GF-095 is verified (GF-E127); KIT-GF-097 and KIT-GF-098 also pass. KIT-GF-094 passes its contract
+  but stays OPEN: the Kit lists it PARTIAL/unreleased while v2 is dormant. Release B waits until every known external
+  workspace has adopted A. Otherwise the Kit's release check there would offer B directly, and that jump has no
+  governed return.
+- AGP_SELF_TEST_ARGV_SLICE_V1: in this adoption the local check rejected 3 of 7 work orders (2209, 2210, 2213) with
+  „missing --self-test contract“, two of them in a row. One more would have stopped the mission.
+  - All three wrote `'--self-test' in sys.argv[1:]`. The rule sent to ChatGPT says „sys.argv or argparse“, but the
+    check knew only `in sys.argv` and `add_argument("--self-test")`. The orders were correct and the check was too
+    narrow; the rejection did not say which form it accepts, so the next attempt guessed.
+  - Now a subscript of `sys.argv` counts, and the rejection names every accepted form. An order without a
+    self-test mode, or with the string compared against some other list, is still rejected.
+  - The regression tests use the shapes of the three live orders; removing the subscript case fails them.

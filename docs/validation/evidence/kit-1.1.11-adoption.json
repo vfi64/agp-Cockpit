@@ -1,0 +1,114 @@
+{
+ "schema_version": 1,
+ "kind": "agp_kit_retest_evidence",
+ "id": "kit-1.1.11-adoption",
+ "date": "2026-11-01",
+ "kit_version": "1.1.11",
+ "source": "Adoption: the owner's Mac, Cockpit build release-0.3.7-r1, standard task „Kit übernehmen“ (AGP_KIT_ADOPT_TASK_V1) from main e757911, PR #428 (merge 4b5f904), successor package #429 (main 436027ec); read from the Cockpit's decision box, the transcript of the mission and the PR. Retest: Claude's workspace, Cockpit main 436027ec with the agentic-project-kit 1.1.11 wheel from PyPI (sha256 c79bc14ef862940e07923d9396d177068984dba97646f19d4aad26f11e61ddd7, Python 3.13); machine paths left out here.",
+ "kit_update": {
+  "controller": "installed Kit 1.1.10 planned and executed the update inside the standard task „Kit übernehmen“",
+  "plan": {
+   "result_status": "AWAITING_APPROVAL",
+   "approval_signature": "f0a6c8f0abcb841f121017f6",
+   "changed_paths": [
+    ".agentic/ci/agentic-gate.yaml",
+    ".github/workflows/agentic-gate.yaml",
+    "AGENTS.md",
+    "docs/reference/AGENTIC_KIT_COMMANDS.md",
+    "docs/reference/agentic-kit-commands.json"
+   ],
+   "derived_paths": [
+    ".agentic/rule_mechanism_inventory.yaml"
+   ],
+   "manifest_ack": "c75ff9f747e1"
+  },
+  "execute": {
+   "result_status": "PASS",
+   "installed_version": "1.1.11"
+  },
+  "owner_consent": "the owner clicked „Kit übernehmen“ and released exactly `kit update --version 1.1.11 --execute --expected-signature f0a6c8f0abcb841f121017f6` in the decision box (AGP_OWNER_DECISION_EXECUTE_V1); „Abschließen“ merged PR #428 with CI green; „Chat wechseln“ afterwards PASS with the Cockpit's own package check (handoff projection v1, as 1.1.11 keeps v2 dormant)",
+  "rejected_orders": "steps 2209, 2210 and 2213 were correct work orders rejected for `'--self-test' in sys.argv[1:]` (AGP_SELF_TEST_ARGV_SLICE_V1, fixed in this slice)"
+ },
+ "greenfield_retest": {
+  "command": "agentic-kit greenfield retest --all --json",
+  "result_status": "INCOMPLETE",
+  "kit_version": "1.1.11",
+  "catalog_sha256": "caa4b3f57ab770c30992ce93f99a9747c66723edac3ec2d6830db7a167e84a86",
+  "counts": {
+   "FAIL": 0,
+   "NOT_RUN_LOCALLY": 41,
+   "NO_MACHINE_CONTRACT": 0,
+   "PASS": 56
+  },
+  "pass": [
+   "KIT-GF-001",
+   "KIT-GF-002",
+   "KIT-GF-004",
+   "KIT-GF-005",
+   "KIT-GF-006",
+   "KIT-GF-007",
+   "KIT-GF-008",
+   "KIT-GF-010",
+   "KIT-GF-013",
+   "KIT-GF-014",
+   "KIT-GF-015",
+   "KIT-GF-016",
+   "KIT-GF-021",
+   "KIT-GF-022",
+   "KIT-GF-023",
+   "KIT-GF-025",
+   "KIT-GF-026",
+   "KIT-GF-028",
+   "KIT-GF-032",
+   "KIT-GF-033",
+   "KIT-GF-035",
+   "KIT-GF-036",
+   "KIT-GF-037",
+   "KIT-GF-042",
+   "KIT-GF-044",
+   "KIT-GF-045",
+   "KIT-GF-053",
+   "KIT-GF-054",
+   "KIT-GF-057",
+   "KIT-GF-060",
+   "KIT-GF-063",
+   "KIT-GF-066",
+   "KIT-GF-067",
+   "KIT-GF-068",
+   "KIT-GF-070",
+   "KIT-GF-072",
+   "KIT-GF-074",
+   "KIT-GF-075",
+   "KIT-GF-076",
+   "KIT-GF-077",
+   "KIT-GF-083",
+   "KIT-GF-084",
+   "KIT-GF-085",
+   "KIT-GF-086",
+   "KIT-GF-087",
+   "KIT-GF-088",
+   "KIT-GF-089",
+   "KIT-GF-090",
+   "KIT-GF-091",
+   "KIT-GF-092",
+   "KIT-GF-093",
+   "KIT-GF-094",
+   "KIT-GF-095",
+   "KIT-GF-097",
+   "KIT-GF-098",
+   "KIT-GF-RULE-REGISTRY-BOOTSTRAP"
+  ],
+  "fail": {}
+ },
+ "cockpit_tests": "Claude's workspace (Python 3.12 with Tk under xvfb, AGP_REQUIRE_TK=1): full suite green on this slice",
+ "verifies": {
+  "KIT-GF-095": "greenfield retest KIT-GF-095 PASS with the installed Kit 1.1.11 (real local Git adoption and return squashes, byte-exact v1 restoration, wrong state/version rejected); the Kit's 1.1.11 release stamped fixed_in 1.1.11 itself; KIT-GF-097 and KIT-GF-098 (real-wheel transition and return to the pinned predecessor) PASS as well"
+ },
+ "reverifies": {
+  "KIT-GF-093": "greenfield retest KIT-GF-093 PASS under 1.1.11",
+  "KIT-GF-092": "the Cockpit task read UPDATE_AVAILABLE 1.1.10 → 1.1.11 from the Kit's release check live; Systemcheck „1.1.11 ist das neueste stabile Release“"
+ },
+ "not_verified": {
+  "KIT-GF-094": "machine contract PASS, but the Kit lists it PARTIAL/unreleased: projection v2 is dormant in 1.1.11 (EXTERNAL_PROJECTION_V2_ACTIVE = False) and becomes effective only with the next release (two-release transition, owner decision 2026-11-01)"
+ }
+}
