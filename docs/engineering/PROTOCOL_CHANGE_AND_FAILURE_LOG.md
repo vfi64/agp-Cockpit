@@ -1959,3 +1959,20 @@ repeat once.
   cover at least three substance categories, and Claude's KIT-GF-093 entry hit too few. Reworded in Kit #2702, then the
   owner's release ran through. The gate only runs at release time, so an Unreleased entry that will fail it passes
   every PR check. This is a possible Kit finding, proposed to the owner and not yet recorded.
+
+## 2026-11-01 — Release 0.3.7; chat binding proven live; cost of the successor-package refresh PRs
+
+- Release 0.3.7 ran through the Release button on 2026-10-31 (PR #422, tag v0.3.7, Kit 1.1.10). The release
+  preparation inserted `## v0.3.7` directly above the Unreleased entries, so „Unreleased“ was empty afterwards and
+  the first slice had nothing to remove.
+- AGP_CHAT_BINDING_BEFORE_CONFIRM_V1 is proven live (build r4). A read-only order (0011) listed the chats the
+  Cockpit had bound to the Kit repository. With one of them in front, „Kit übernehmen“ in the Cockpit repository
+  showed BLOCKED at once: no question, no information window, and no release request to the Kit (the status
+  line „das Kit prüft …“ never appeared).
+- Measured with the GitHub API, 2026-10-24 to 2026-10-31: of 38 merged Cockpit PRs, 19 were „Refresh successor
+  package after PR<n>“, and their runs took 78 of 208 CI minutes (37 %). In the Kit repository 45 of 90 merged PRs
+  were refreshes. All 19 Cockpit refresh commits changed only fields that git already holds: HEAD, origin/main,
+  branch at generation, short SHAs and the generation time. This was checked with a line filter, so it is a
+  heuristic, not a parse of every field. Such a commit is stale again by its own merge, which is why the Kit's
+  freshness check skips refresh-only commits (`_latest_non_refresh_commit_state`). This is a Kit finding
+  candidate; the owner chooses the direction before a Kit task is written.
