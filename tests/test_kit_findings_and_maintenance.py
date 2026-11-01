@@ -256,7 +256,8 @@ def test_the_real_register_tracks_the_kit_1_1_10_adoption_and_kit_gf_093():
     gf093 = by_id["KIT-GF-093"]
     assert gf093.status == "VERIFIED_FIXED" and gf093.fixed_in == "1.1.10" and gf093.kit["fixed_in"] == "1.1.10"
     assert gf093.effective_status("1.1.10") == kf.VERIFIED and "kit-1.1.10-adoption.json" in gf093.verified_by
-    assert not [f.id for f in by_id.values() if f.status == "OPEN"]
+    # no finding known at this adoption was left open (later findings, e.g. KIT-GF-094, are not part of it)
+    assert not [f.id for f in by_id.values() if f.status == "OPEN" and f.first_observed <= "2026-10-31"]
     register = json.loads((ROOT / kf.REGISTER).read_text(encoding="utf-8"))
     assert register["kit_repo_sync"]["latest_release"] == "1.1.10"
     assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
@@ -422,3 +423,27 @@ def test_pytest_creates_its_runs_under_the_shared_temp_root(tmp_path):
     assert [p.name for p in users] == [f"pytest-of-{getpass.getuser()}"]
     runs = [p for p in users[0].iterdir() if p.name.startswith("pytest-") and not p.is_symlink()]
     assert len(runs) <= 3                                    # pytest keeps only its newest runs
+
+
+def test_the_real_register_records_kit_gf_094_and_095_as_fixed_on_kit_main_only():
+    """KIT-GF-094 (refresh PRs restate git state) and KIT-GF-095 (no governed return after kit update), found
+    2026-11-01 (GF-E125/E126) and fixed on Kit main 334ac052 without a release: OPEN here, Kit CLOSED with
+    fixed_in "unreleased", so no installed Kit counts as containing the fix (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1)."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    for fid in ("KIT-GF-094", "KIT-GF-095"):
+        finding = by_id[fid]
+        assert finding.status == "OPEN" and finding.first_observed == "2026-11-01", fid
+        assert finding.kit["kit_state"] == "CLOSED" and finding.kit["fixed_in"] == "unreleased", fid
+        assert finding.effective_status("1.1.10") == kf.FIXED_NOT_INSTALLED, fid
+        assert finding.effective_status("9.9.9") == kf.FIXED_NOT_INSTALLED, fid
+
+
+@pytest.mark.parametrize("fixed_in", ["unreleased", "", "main", "next"])
+def test_a_fix_without_a_release_number_is_never_installed(tmp_path, fixed_in):
+    register = tmp_path / kf.REGISTER
+    register.parent.mkdir(parents=True)
+    register.write_text(json.dumps({"families": [
+        {"id": "KIT-GF-X", "title": "x", "severity": "low", "status": "OPEN", "first_observed": "2026-11-01",
+         "kit_repo_status": {"kit_state": "CLOSED", "fixed_in": fixed_in}}]}))
+    (finding,) = kf.load(tmp_path)
+    assert finding.effective_status("1.1.10") == kf.FIXED_NOT_INSTALLED

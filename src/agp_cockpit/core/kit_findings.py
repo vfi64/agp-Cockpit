@@ -53,7 +53,10 @@ class KitFinding:
         if not fixed and self.kit.get("kit_state") == "CLOSED" and not self._kit_closure_refuted():
             fixed, fixed_in = True, str(self.kit.get("fixed_in") or "")
         if fixed:
-            if installed and fixed_in and _version(installed) >= _version(fixed_in):
+            # AGP_UNRELEASED_FIX_NOT_INSTALLED_V1 (2026-11-01, KIT-GF-094/095): the Kit catalog says
+            # fixed_in "unreleased" for a fix on Kit main; "unreleased" parsed as version 0 and every
+            # installed Kit counted as containing the fix. Only a release number can be installed.
+            if installed and _is_release(fixed_in) and _version(installed) >= _version(fixed_in):
                 return FIXED_UNVERIFIED
             return FIXED_NOT_INSTALLED
         if self.kit.get("kit_state") == "PARTIAL":
@@ -106,6 +109,10 @@ def _text(value) -> str:
     if isinstance(value, dict):
         return "; ".join(f"{k}: {v}" for k, v in value.items())
     return str(value)
+
+
+def _is_release(text: str | None) -> bool:
+    return bool(re.fullmatch(r"\d+(\.\d+){1,3}(\.post\d+)?", str(text or "").strip()))
 
 
 def _version(text: str) -> tuple[int, ...]:
