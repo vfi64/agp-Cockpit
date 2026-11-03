@@ -133,7 +133,8 @@
   "KIT-GF-097": "PASS under 1.2.0",
   "KIT-GF-098": "PASS under 1.2.0"
  },
- "not_verified": {
+ "kit_open": {
   "KIT-GF-096": "open in the Kit: removal of external v1 compatibility, due no later than the second release after 1.2.0"
- }
+ },
+ "not_verified": {}
 }
