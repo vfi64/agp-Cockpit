@@ -1,0 +1,200 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-11-03",
+  "explicit_summary_lines": [
+    "\u201eChat wechseln\u201c also accepts the Kit's external handoff projection v2 (KIT-GF-094, Kit 1.2.0): the package files stay byte-identical across regenerations, and a new run of the Kit's generator \u2014 a new run_id in the ignored runtime identity with the exact HEAD and the validator PASS of the same run \u2014 is the evidence; the v1 evidence is unchanged, and an unknown projection contract is BLOCKED instead of guessed. Verified against a Kit-main wheel in a disposable copy and against Kit 1.1.10, with regression tests for every rejected case (AGP_HANDOFF_PROJECTION_V2_CONSUMER_V1). The Kit findings window no longer counts a fix marked \"unreleased\" as installed (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1); KIT-GF-094 and KIT-GF-095 are recorded; build `release-0.3.7-r1`.",
+    "Work orders whose self-test mode is `'--self-test' in sys.argv[1:]` are accepted, as the work-order rule (\u201esys.argv or argparse\u201c) allows; three correct orders of the live Kit 1.1.11 adoption were rejected for it, and the rejection now names every accepted form (AGP_SELF_TEST_ARGV_SLICE_V1). Kit 1.1.11 adopted through \u201eKit \u00fcbernehmen\u201c (signature f0a6c8f0abcb841f121017f6, #428; projection v1 kept, v2 ships dormant). Kit findings register follows Kit 1.1.11 (retest PASS 56, FAIL 0, evidence docs/validation/evidence/kit-1.1.11-adoption.json): KIT-GF-095, the governed return after `kit update`, is verified fixed; KIT-GF-094 stays open until the release that activates v2; build `release-0.3.7-r2`.",
+    "Kit 1.2.0 (release B, external handoff projection v2 active) adopted from 1.1.11 through \u201eKit \u00fcbernehmen\u201c (#432): the signed plan migrated the handoff projection (`handoff.projection_contract_min: 2`, `.gitignore`). Since then a merge is no longer followed by a \u201eRefresh successor package\u201c PR, and \u201eChat wechseln\u201c leaves no tracked change. Kit findings register follows Kit 1.2.0 (retest PASS 59, FAIL 0, evidence docs/validation/evidence/kit-1.2.0-adoption.json): KIT-GF-094 and KIT-GF-099 are verified fixed; no Kit finding is open."
+  ],
+  "from_tag": "v0.3.7",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": null,
+      "argv": [
+        "kit-ci-pin-guard"
+      ],
+      "name": "kit-ci-pin-guard",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "{\"next_action\": null, \"reasons\": [], \"result_status\": \"PASS\", \"unreadable_files\": [], \"versions\": {\"highest_pin\": \"1.2.0\", \"installed\": \"1.2.0\", \"pins\": [{\"path\": \".github/workflows/agentic-gate.yaml\", \"version\": \"1.2.0\"}, {\"path\": \".agentic/ci/agentic-gate.yaml\", \"version\": \"1.2.0\"}]}}",
+      "stdout_length": 287,
+      "stdout_sha256": "5252e3d9fb4bc5d9a0d22ae16f3157f4162fb790d335d5752b83a39f3424c007"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.4.0",
+        "--from-tag",
+        "v0.3.7",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-040-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 20129,
+      "stdout_sha256": "7e9967f0c9baf747c39c056d2f862648cf08c6447dcbc2a91845ef9d9570dac2"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.4.0",
+        "--date",
+        "2026-11-03",
+        "--summary-line",
+        "\u201eChat wechseln\u201c also accepts the Kit's external handoff projection v2 (KIT-GF-094, Kit 1.2.0): the package files stay byte-identical across regenerations, and a new run of the Kit's generator \u2014 a new run_id in the ignored runtime identity with the exact HEAD and the validator PASS of the same run \u2014 is the evidence; the v1 evidence is unchanged, and an unknown projection contract is BLOCKED instead of guessed. Verified against a Kit-main wheel in a disposable copy and against Kit 1.1.10, with regression tests for every rejected case (AGP_HANDOFF_PROJECTION_V2_CONSUMER_V1). The Kit findings window no longer counts a fix marked \"unreleased\" as installed (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1); KIT-GF-094 and KIT-GF-095 are recorded; build `release-0.3.7-r1`.",
+        "--summary-line",
+        "Work orders whose self-test mode is `'--self-test' in sys.argv[1:]` are accepted, as the work-order rule (\u201esys.argv or argparse\u201c) allows; three correct orders of the live Kit 1.1.11 adoption were rejected for it, and the rejection now names every accepted form (AGP_SELF_TEST_ARGV_SLICE_V1). Kit 1.1.11 adopted through \u201eKit \u00fcbernehmen\u201c (signature f0a6c8f0abcb841f121017f6, #428; projection v1 kept, v2 ships dormant). Kit findings register follows Kit 1.1.11 (retest PASS 56, FAIL 0, evidence docs/validation/evidence/kit-1.1.11-adoption.json): KIT-GF-095, the governed return after `kit update`, is verified fixed; KIT-GF-094 stays open until the release that activates v2; build `release-0.3.7-r2`.",
+        "--summary-line",
+        "Kit 1.2.0 (release B, external handoff projection v2 active) adopted from 1.1.11 through \u201eKit \u00fcbernehmen\u201c (#432): the signed plan migrated the handoff projection (`handoff.projection_contract_min: 2`, `.gitignore`). Since then a merge is no longer followed by a \u201eRefresh successor package\u201c PR, and \u201eChat wechseln\u201c leaves no tracked change. Kit findings register follows Kit 1.2.0 (retest PASS 59, FAIL 0, evidence docs/validation/evidence/kit-1.2.0-adoption.json): KIT-GF-094 and KIT-GF-099 are verified fixed; no Kit finding is open.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-040-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 289,
+      "stdout_sha256": "f73d2fc74f15a06e8cf36914ca4dca1d29021dd3f891c059773d04d8d602f2a5"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "2f8376c978d61203e14f841422573c2083e8be34d9b7ad3c1ca898a8a2b35ce1"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [],
+      "name": "task-selection-review-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "Skipped: Kit development projection is not applicable.",
+      "stdout_length": 54,
+      "stdout_sha256": "294dde19be118c8a1e8bcaae87e2ccf2eeb7df71ecd82f83edd4ffe91b167773"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1791,
+      "stdout_sha256": "86364dc7f95b84fabdeefd327866e861e4aa1278cf3e61d5ea29698ed34ceff6"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-040-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.4.0"
+}
