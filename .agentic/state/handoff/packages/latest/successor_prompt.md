@@ -1,187 +1,423 @@
-## Machine-readable execution contract
-
-The markdown successor prompt is a compact projection. The machine-readable files take precedence.
-
-Read first: `execution_contract.json`, `successor_context.yaml`, `validation_report.json`, and `source_manifest.json`.
-
-## Durable agentic-kit operating model
-
-- scope: `durable-agentic-kit-operating-model`
-- agentic-kit provides the operating-layer control plane for this external workspace.
-- Use the workspace manifest, external status/handoff files, registries, check/doctor, repo-status, and successor handoff package as active Kit subsystems.
-- Target-repository product behavior remains project-owned; native tests and docs stay authoritative for product correctness.
-- GC is technical retention, not semantic documentation migration.
-
-Source authorities:
-- `.agentic/config.yaml`
-- `.agentic/state/status.md`
-- `.agentic/state/handoff/README.md`
-- `.agentic/registries/documentation.yaml`
-- `.agentic/registries/rules.yaml`
-
-Critical rule IDs:
-- `local-copy-paste-protocol` (critical)
-- `strict-start-decision` (critical)
-- `bootstrap_acceptance_gate` (critical)
-- `wrapper-first-complete-development-cycle` (critical)
-- `successor-package-not-prompt-only` (critical)
-- `documentation-authority-model` (critical)
-- `repo-backed-rules-and-gates` (critical)
-- `gc-retention-not-document-migration` (critical)
-- `ns-legacy-not-active-control-plane` (critical)
-- `generated-handoff-projection-update-policy` (critical)
-- `successor-final-head-identity` (critical)
-- `patch-cycle-diagnostic-gate` (critical)
-- `copy-paste-output-discipline` (critical)
-- `protected-file-preservation` (critical)
-
-## Current continuation state
-
-- branch: `docs/post-pr430-successor-package-refresh`
-- head_matches_origin_main: `True`
-- worktree_clean: `True`
-- open_tasks_source: `docs/planning/PROJECT_DIRECTION.yaml`
-- document_registry_source: `.agentic/registries/documentation.yaml`
-- Current state is volatile continuation data, not a durable rule source.
-
-## Wrapper-first complete development cycle
-
-External workspace lifecycle: read target-repo authority files -> use a feature branch or local smoke branch -> run native tests plus `agentic-kit check --root .`, `agentic-kit doctor --root .`, and `transfer repo-status` -> inspect diffs -> refresh successor handoff package for chat switches.
-
-`transfer post-merge-check` and `rules acknowledge` are self-hosting/post-merge gates unless the external repository has explicitly adopted their required sources and branch preconditions.
-
-## Handoff package precedence
-
-- prompt_is_projection_only: `True`
-- machine_readable_files_take_precedence: `True`
-- source_of_truth: `generator_and_machine_readable_successor_package`
-- generator_command: `agentic-kit transfer prepare-successor-handoff --render-prompt`
-- Markdown handoff files and latest package files are generated projections; update generator/contract/rule sources first, then regenerate projections.
-- Forbidden update path: manual direct edits to generated handoff projections as the primary source of new rules.
-- Do not use stale copied prompt text or `NEW_CHAT_HANDOFF_PROMPT.md` as sole authority.
-
-## Patch-cycle diagnostic gate
-
-After one failed patch, exactly one direct correction is allowed. After a second failure in the same patch family, stop mutations, run bounded diagnosis, classify product bug versus test-model bug, and record `next_mutation_allowed`.
-
-## Local copy-and-paste protocol
-
-Use exactly one complete Bash block per local action. The block must start by changing into the repository root, write verbose output to `~/Downloads/*.log`, and end by printing `LOG=...` and `RC=...`.
-
-Chat output after local blocks should be only `LOG=...` and `RC=...`; large diagnostics belong in compact JSON summaries or log files.
-
-Forbidden local-command patterns: loose command fragments, manual editor instructions, naked `python`, naked `pytest`, `git add .`, `{ ... } > "$OUT" 2>&1` as the recommended logging pattern, `cat` of whole diagnostic files, and unbounded grep over reports/outbox/generated logs.
-
 # Successor Chat Prompt
 
-Du bist ein neuer LLM-/Coding-Chat für das Repo `vfi64/agp-Cockpit`.
+Repository: `vfi64/agp-Cockpit`.
 
-Arbeite nicht aus Chat-Erinnerung. Quelle der Wahrheit ist der aktuelle Remote-Stand von `main`, der lokale Repo-Zustand, repo-/log-backed Evidenz und das maschinenlesbare Successor-Paket.
+Read the machine-readable execution contract and source manifest first.
+The versioned projection describes content only. Exact repository identity and the validator result for this handoff are in `.agentic/tmp/handoff/runtime_identity.json`.
+Unknown projection versions block continuation. Stop on BLOCKED or FAIL.
 
-## Pflichtstart
-
-```bash
-cd /path/to/
-git branch --show-current
-git status -sb
-git status --short
+```text
 agentic-kit transfer repo-status
 agentic-kit check --root .
 agentic-kit doctor --root .
 ```
 
-## Zuerst lesen
-
-- `.agentic/state/handoff/packages/latest/successor_context.yaml`
-- `.agentic/state/handoff/packages/latest/source_manifest.json`
-- `.agentic/state/handoff/packages/latest/validation_report.json`
-- `.agentic/state/handoff/packages/latest/execution_contract.json`
-- `.agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md`
-- `.agentic/state/handoff/START_NEW_CHAT_PROMPT.md`
-- `.agentic/state/handoff/CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md`
-- `docs/reference/AGENTIC_KIT_COMMANDS.md`
-- `docs/reference/agentic-kit-commands.json`
-
-## Bootstrap-Akzeptanzbremse
-
-Zusätzliche Startbremse nach dem Bootstrap:
-
-Nach Ausführung des Bootstrap-Blocks darfst du nicht sofort mit neuer Arbeit beginnen. Werte zuerst ausschließlich das Bootstrap-Log aus.
-
-Prüfe:
-- `validation_report.json PASS`
-- `execution_contract.json` wurde gelesen
-- Worktree clean oder nur ausdrücklich benannte WIP-Dateien
-- `repo-status PASS`
-- `agentic-kit check --root .` PASS
-- `agentic-kit doctor --root .` Overall PASS
-- Jeder `WARN` ist als Risiko, optionaler Fremdrepo-Bestandteil oder erklärter Skip eingeordnet
-
-Gib danach genau eine kurze Statusentscheidung aus:
-
-- `Übergabe akzeptiert, keine Admin-Arbeit nötig.`
-
-oder:
-
-- `BLOCK: ...` mit konkretem Grund aus dem Log.
-
-Beginne erst nach dieser Statusentscheidung mit neuer Arbeit.
-
-In einem externen Workspace sind Kit-interne Rule-Snapshot- und Post-Merge-Main-Gates keine Pflichtstart-Gates. Nutze `transfer post-merge-check` erst nach einem tatsächlichen PR-Merge auf `main`.
-
-## Aktueller Paketstand
+## Execution contract
 
 ```json
 {
-  "open_tasks": [
-    {
-      "files": [
-        ".agentic/state/status.md",
-        ".agentic/state/handoff/README.md"
+  "command_reference": {
+    "ack": "COMMAND_MANIFEST_ACK 8ec3727bd6f1",
+    "json": "@kit/agentic-kit-commands.json",
+    "manifest_sha": "8ec3727bd6f1",
+    "must_not_reconstruct_commands_from_memory": true,
+    "source_hashes": {
+      "@kit/agentic-kit-commands.json": "8c72a09192113a19625aa7772ef5376942427ebb783c8fa78054b29d0798d3fc"
+    }
+  },
+  "current_state_contract": {
+    "document_registry_source": ".agentic/registries/documentation.yaml",
+    "next_action_rule": "Use current_state_contract only as continuation state; do not promote it to durable rules.",
+    "open_tasks": [
+      {
+        "files": [
+          ".agentic/state/status.md",
+          ".agentic/state/handoff/README.md"
+        ],
+        "id": "external-workspace-no-project-direction",
+        "status": "review",
+        "summary": "Continue from external workspace status, handoff and project authority files."
+      }
+    ],
+    "open_tasks_source": "docs/planning/PROJECT_DIRECTION.yaml",
+    "recent_lessons": [],
+    "repo": {
+      "full_name": "vfi64/agp-Cockpit"
+    },
+    "scope": "current-continuation-state"
+  },
+  "general_contract": {
+    "rule_ids": [
+      "copy-paste-output-discipline",
+      "documentation-authority-model",
+      "gc-retention-not-document-migration",
+      "generated-handoff-projection-update-policy",
+      "ns-legacy-not-active-control-plane",
+      "patch-cycle-diagnostic-gate",
+      "repo-backed-rules-and-gates",
+      "successor-final-head-identity",
+      "successor-package-not-prompt-only",
+      "wrapper-first-complete-development-cycle"
+    ],
+    "scope": "durable-agentic-kit-operating-model",
+    "source_authorities": [
+      ".agentic/config.yaml",
+      ".agentic/state/status.md",
+      ".agentic/state/handoff/README.md",
+      ".agentic/registries/documentation.yaml",
+      ".agentic/registries/rules.yaml"
+    ],
+    "summary": {
+      "agentic_kit_is_control_plane": true,
+      "complete_development_cycle_required": true,
+      "do_not_plan_from_stale_chat_memory": true,
+      "documentation_authority_model_required": true,
+      "gc_is_retention_not_document_migration": true,
+      "ns_is_legacy_not_active_control_plane": true,
+      "repo_backed_rules_and_gates_required": true,
+      "wrapper_first": true
+    }
+  },
+  "handoff_projection_contract": {
+    "allowed_update_path": [
+      "Change successor_handoff_package.py, execution contract inputs, or repo-backed rule sources.",
+      "Add or update tests and validation for new handoff content.",
+      "Run agentic-kit transfer prepare-successor-handoff --render-prompt to regenerate projections."
+    ],
+    "dedicated_update_only_paths": [],
+    "default_direct_write_paths": [
+      ".agentic/state/handoff/packages/latest/execution_contract.json",
+      ".agentic/state/handoff/packages/latest/source_manifest.json",
+      ".agentic/state/handoff/packages/latest/successor_context.yaml",
+      ".agentic/state/handoff/packages/latest/successor_prompt.md",
+      ".agentic/state/handoff/packages/latest/validation_report.json",
+      ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+      ".agentic/state/handoff/START_NEW_CHAT_PROMPT.md",
+      ".agentic/state/handoff/CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md"
+    ],
+    "do_not_use_uploaded_or_copied_prompt_text_as_sole_source": true,
+    "dpa_generated_output_contract": {
+      "acceptance_state_invalidated_without_renderer_reproducibility": true,
+      "contract_id": "DPA-GENERATED-SUCCESSOR-HANDOFF-PROJECTION-v2",
+      "current_generator_command": "agentic-kit transfer chat-switch-complete --render-prompt",
+      "current_handoff_target_byte_writer": false,
+      "dedicated_update_only_paths": [],
+      "default_direct_write_paths": [
+        ".agentic/state/handoff/packages/latest/execution_contract.json",
+        ".agentic/state/handoff/packages/latest/source_manifest.json",
+        ".agentic/state/handoff/packages/latest/successor_context.yaml",
+        ".agentic/state/handoff/packages/latest/successor_prompt.md",
+        ".agentic/state/handoff/packages/latest/validation_report.json",
+        ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+        ".agentic/state/handoff/START_NEW_CHAT_PROMPT.md",
+        ".agentic/state/handoff/CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md"
       ],
-      "id": "external-workspace-no-project-direction",
-      "status": "review",
-      "summary": "No Kit project-direction file is required for this external workspace; continue from .agentic/state/status.md and .agentic/state/handoff/README.md."
+      "exact_byte_rollback_claims_renderer_reproducibility": false,
+      "full_probe_pass_claimed": false,
+      "generated_output_class": "command_generated_successor_handoff_projection",
+      "generated_outputs_manually_patched": false,
+      "generated_projection_paths": [
+        ".agentic/state/handoff/packages/latest/execution_contract.json",
+        ".agentic/state/handoff/packages/latest/source_manifest.json",
+        ".agentic/state/handoff/packages/latest/successor_context.yaml",
+        ".agentic/state/handoff/packages/latest/successor_prompt.md",
+        ".agentic/state/handoff/packages/latest/validation_report.json",
+        ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+        ".agentic/state/handoff/START_NEW_CHAT_PROMPT.md",
+        ".agentic/state/handoff/CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md"
+      ],
+      "generator_command": "agentic-kit transfer prepare-successor-handoff --render-prompt",
+      "initial_create_if_missing_paths": [],
+      "kind": "dpa_generated_successor_handoff_projection_contract",
+      "kit_conformance_claimed": false,
+      "manual_durable_target_patches_allowed": false,
+      "production_mutation_claimed": false,
+      "schema_version": 1,
+      "source_command_contract_required": true,
+      "source_paths": [
+        "src/agentic_project_kit/successor_handoff_package.py",
+        "src/agentic_project_kit/external_handoff_projection.py",
+        "src/agentic_project_kit/cli_commands/transfer_handoff_flow.py"
+      ],
+      "target_scope": "GENERATED_SUCCESSOR_HANDOFF_PACKAGE_AND_PROMPT_PROJECTIONS",
+      "writer_id": "WRT-CH-006"
+    },
+    "final_head_identity": {
+      "content_validation": "deterministic_regeneration_and_byte_comparison",
+      "exact_runtime_identity_required": true,
+      "model": "content_projection_with_ignored_runtime_identity",
+      "runtime_identity_path": ".agentic/tmp/handoff/runtime_identity.json"
+    },
+    "forbidden_update_path": [
+      "manual direct edits to generated handoff projections",
+      "adding durable rules only to docs/handoff/*.md",
+      "editing latest handoff-package JSON/YAML/Markdown as the primary patch"
+    ],
+    "generated_projection_paths": [
+      ".agentic/state/handoff/packages/latest/execution_contract.json",
+      ".agentic/state/handoff/packages/latest/source_manifest.json",
+      ".agentic/state/handoff/packages/latest/successor_context.yaml",
+      ".agentic/state/handoff/packages/latest/successor_prompt.md",
+      ".agentic/state/handoff/packages/latest/validation_report.json",
+      ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+      ".agentic/state/handoff/START_NEW_CHAT_PROMPT.md",
+      ".agentic/state/handoff/CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md"
+    ],
+    "generator_command": "agentic-kit transfer prepare-successor-handoff --render-prompt",
+    "initial_create_if_missing_paths": [],
+    "machine_readable_files_take_precedence": true,
+    "must_read_files": [
+      ".agentic/state/handoff/packages/latest/execution_contract.json",
+      ".agentic/state/handoff/packages/latest/successor_context.yaml",
+      ".agentic/state/handoff/packages/latest/validation_report.json",
+      ".agentic/state/handoff/packages/latest/source_manifest.json",
+      ".agentic/state/handoff/packages/latest/successor_prompt.md"
+    ],
+    "prompt_is_projection_only": true,
+    "source_of_truth": "generator_and_machine_readable_successor_package",
+    "stale_local_prompt_files_are_not_authoritative": true
+  },
+  "kind": "successor_execution_contract",
+  "projection_contract_version": 2,
+  "repo": {
+    "full_name": "vfi64/agp-Cockpit"
+  },
+  "rules": [
+    {
+      "forbidden": [
+        "manual editor instructions",
+        "loose command fragments",
+        "naked python",
+        "naked pytest",
+        "git add .",
+        "{ ... } > \"$OUT\" 2>&1 as the recommended logging pattern"
+      ],
+      "must": [
+        "Use one complete copy-and-paste Bash block per local action.",
+        "Start every local block by changing into the repository root.",
+        "Write verbose output to ~/Downloads/*.log.",
+        "Print LOG=... and RC=... at the end.",
+        "Use ./.venv/bin/python and ./.venv/bin/python -m pytest."
+      ],
+      "priority": "critical",
+      "rule_id": "local-copy-paste-protocol",
+      "scope": "local-user-command-blocks"
+    },
+    {
+      "allowed_next_actions": [
+        "diagnose_dirty_state",
+        "commit_admin_refresh_after_passed_protected_plan",
+        "sync_main",
+        "start_product_slice_only_from_clean_main"
+      ],
+      "must": [
+        "Inspect validation_report.json if present.",
+        "Inspect branch, HEAD, origin/main, upstream, and dirty paths.",
+        "Interpret branch != main with head_matches_origin_main=true explicitly.",
+        "Stop product work when worktree_clean=false."
+      ],
+      "priority": "critical",
+      "rule_id": "strict-start-decision",
+      "scope": "successor-chat-start",
+      "stop_conditions": [
+        "validation_report.status is not PASS",
+        "unexpected dirty paths exist",
+        "protected files changed without protected-diff-plan",
+        "HEAD and origin/main disagree without explanation"
+      ]
+    },
+    {
+      "must": [
+        "After running the bootstrap block, evaluate the log before starting any new work.",
+        "Confirm validation_report.json PASS and execution_contract.json was read.",
+        "Confirm worktree clean or only explicitly named WIP files.",
+        "Confirm repo-status PASS, agentic-kit check --root . PASS, and agentic-kit doctor --root . Overall PASS.",
+        "Classify every WARN as a risk, optional foreign-repo component, or explained skip.",
+        "Emit exactly one status decision: Übergabe akzeptiert, keine Admin-Arbeit nötig. or BLOCK with the concrete log-backed reason."
+      ],
+      "not_required_for_external_workspace": [
+        "rules acknowledge",
+        "transfer post-merge-check on a non-main feature branch",
+        "self-hosting docs-audit",
+        "main == origin/main while continuing a feature branch"
+      ],
+      "priority": "critical",
+      "rule_id": "bootstrap_acceptance_gate",
+      "scope": "successor-chat-bootstrap"
+    },
+    {
+      "forbidden": [
+        "treating Kit self-hosting post-merge or rule-snapshot gates as mandatory external feature-branch startup gates",
+        "claiming target-repository product tests are green when only Kit overlay gates ran",
+        "planning from stale chat memory or stale copied prompt text"
+      ],
+      "must": [
+        "Use the target repository's native tests and documented quality gates as the product authority.",
+        "Use agentic-kit check, doctor, repo-status, and successor handoff package as the operating-layer health checks.",
+        "Inspect actual diffs before committing generated operating-layer files.",
+        "Regenerate the successor handoff package before a chat switch or after completing a local work slice.",
+        "Use Kit PR/post-merge wrappers only when their preconditions fit the target repository and branch state."
+      ],
+      "priority": "critical",
+      "rule_id": "wrapper-first-complete-development-cycle",
+      "scope": "external-workspace-development-handoff"
+    },
+    {
+      "forbidden": [
+        "using NEW_CHAT_HANDOFF_PROMPT.md or copied chat text as the sole start authority",
+        "starting product work before validation_report.json and execution_contract.json were inspected"
+      ],
+      "must": [
+        "Treat successor_prompt.md as a human-readable projection only.",
+        "Read execution_contract.json, successor_context.yaml, validation_report.json, and source_manifest.json before work.",
+        "Use machine-readable files over stale copied prompt text when they disagree."
+      ],
+      "priority": "critical",
+      "rule_id": "successor-package-not-prompt-only",
+      "scope": "chat-switch-handoff"
+    },
+    {
+      "forbidden": [
+        "treating missing self-hosting Kit governance documents as external product failures",
+        "adding durable target-repository rules only to generated handoff projections",
+        "deleting semantic documentation through report-retention GC"
+      ],
+      "must": [
+        "Use .agentic/state/status.md and .agentic/state/handoff/README.md as external workspace continuation state.",
+        "Use .agentic/registries/documentation.yaml for operating-layer document classification.",
+        "Treat target-repository README, architecture, changelog, and native docs as project-owned authority.",
+        "Do not require docs/planning/PROJECT_DIRECTION.yaml unless the external workspace explicitly adopts it."
+      ],
+      "priority": "critical",
+      "rule_id": "documentation-authority-model",
+      "scope": "external-workspace-documentation-authority"
+    },
+    {
+      "forbidden": [
+        "committing, pushing, creating PRs, or merging after protected-diff-plan FAIL",
+        "overwriting protected files broadly to make gates pass"
+      ],
+      "must": [
+        "Treat repo-backed rules, tests, gates, and evidence logs as authoritative.",
+        "Stop on BLOCK or FAIL and diagnose before continuing.",
+        "Run protected-diff-plan before protected/governance/status/handoff/YAML commits.",
+        "Use evidence-producing commands; do not substitute a free-text PASS."
+      ],
+      "priority": "critical",
+      "rule_id": "repo-backed-rules-and-gates",
+      "scope": "rules-tests-evidence"
+    },
+    {
+      "forbidden": [
+        "using GC as semantic documentation migration",
+        "deleting .md/.py/.yaml/.txt without explicit policy and review"
+      ],
+      "must": [
+        "Treat report-retention GC as technical artifact/report retention.",
+        "Use dry-run before execute.",
+        "Restrict automatic report-retention execution to explicitly allowed candidate types."
+      ],
+      "priority": "critical",
+      "rule_id": "gc-retention-not-document-migration",
+      "scope": "artifact-gc"
+    },
+    {
+      "forbidden": [
+        "placing new operational rules in docs/reports/ns-migration/",
+        "resurrecting removed ./ns routes as active workflow instructions"
+      ],
+      "must": [
+        "Treat ns migration documents as historical or compatibility context unless the registry says otherwise.",
+        "Classify ./ns references as historical, test fixture, compatibility implementation, or active blocker before changing them."
+      ],
+      "priority": "critical",
+      "rule_id": "ns-legacy-not-active-control-plane",
+      "scope": "legacy-ns-references"
+    },
+    {
+      "forbidden": [
+        "manual direct edits to generated handoff projection files as the primary source of a new rule",
+        "making copied prompt text the durable source of truth"
+      ],
+      "must": [
+        "Treat docs/handoff/*.md and latest successor package files as generated projections.",
+        "Change the generator, execution contract, validation, or rule source before changing projected handoff content.",
+        "Regenerate projections with agentic-kit transfer prepare-successor-handoff --render-prompt."
+      ],
+      "priority": "critical",
+      "rule_id": "generated-handoff-projection-update-policy",
+      "scope": "generated handoff projections"
+    },
+    {
+      "must": [
+        "Require deterministic regeneration and exact byte equality for the durable projection.",
+        "Require exact current commit identity and same-run validator PASS from .agentic/tmp/handoff/runtime_identity.json.",
+        "Never reuse commit-bound approvals, signed plans, CI or release gates after a commit change."
+      ],
+      "must_not": [
+        "rerender and commit successor projections only to chase the self-created commit SHA",
+        "treat stale copied prompt text as stronger authority than machine-readable package plus post-merge evidence"
+      ],
+      "priority": "critical",
+      "rule_id": "successor-final-head-identity",
+      "scope": "successor handoff final repository identity"
+    },
+    {
+      "forbidden": [
+        "starting a third mutation in the same patch family without diagnosis",
+        "continuing a micro-patch cascade after repeated red tests"
+      ],
+      "must": [
+        "After one failed patch, allow exactly one direct correction in the same patch family.",
+        "After a second failure in the same patch family, stop mutations and run a bounded diagnosis block.",
+        "Classify product bug versus test-model bug before another mutation.",
+        "Record next_mutation_allowed explicitly before continuing."
+      ],
+      "priority": "critical",
+      "rule_id": "patch-cycle-diagnostic-gate",
+      "scope": "failed patch/test cycles"
+    },
+    {
+      "forbidden": [
+        "cat whole diagnostic or summary files into chat",
+        "unbounded grep over docs/reports, .agentic/outbox, generated JSON, or logs",
+        "tail or grep excerpts as chat output for long workflows",
+        "large terminal output pasted directly into chat"
+      ],
+      "must": [
+        "After local blocks, chat output should be only LOG=... and RC=....",
+        "Write large outputs to tmp/*.log or ~/Downloads/*.log.",
+        "Use compact JSON summaries for diagnostics.",
+        "Compress or summarize large logs before discussion."
+      ],
+      "priority": "critical",
+      "rule_id": "copy-paste-output-discipline",
+      "scope": "local copy-and-paste workflows"
+    },
+    {
+      "forbidden": [
+        "broadly replacing protected files",
+        "shortening protected governance/status/handoff/YAML files for convenience",
+        "committing after a blocked protected plan"
+      ],
+      "must": [
+        "Inspect the actual git diff before commit.",
+        "Run protected-diff-plan against the actual diff.",
+        "Patch protected files minimally and additively.",
+        "Stop immediately on BLOCK or FAIL."
+      ],
+      "priority": "critical",
+      "rule_id": "protected-file-preservation",
+      "scope": "protected governance/status/handoff/YAML files"
     }
   ],
-  "recent_lessons": [
-    "The old prepare-successor-handoff mechanism is not sufficient as a standalone chat-switch source.",
-    "Successor handoff must combine repo-backed long-term context with explicit short-term local work state.",
-    "Generated prompt files must be deterministic projections, not accumulative append targets.",
-    "Stale prompt markers, literal backslash-n artifacts, and old current-state PR anchors must block handoff trust.",
-    "The copy prompt must be usable by other LLMs, not only ChatGPT.",
-    "After v0.4.9, release metadata preparation must have one supported agentic-kit route before manual-metadata gates are tightened.",
-    "release_publish_core must not remain able to execute removed ./ns release routes after the ns entrypoint removal."
-  ],
-  "repo": {
-    "branch": "docs/post-pr430-successor-package-refresh",
-    "full_name": "vfi64/agp-Cockpit",
-    "head": "78529505d491eaa4ba0dbdb3415c50b857b35137",
-    "head_matches_origin_main": true,
-    "head_short": "78529505",
-    "local_path": "cd /path/to/",
-    "origin_main": "78529505d491eaa4ba0dbdb3415c50b857b35137",
-    "origin_main_short": "78529505",
-    "worktree_clean": true
+  "schema_version": 1,
+  "source_hashes": {
+    "@kit/agentic-kit-commands.json": "8c72a09192113a19625aa7772ef5376942427ebb783c8fa78054b29d0798d3fc"
+  },
+  "validation": {
+    "path": ".agentic/successor_handoff_package/validation_report.json",
+    "status": "PASS"
   }
 }
 ```
-
-## Arbeitsregeln
-
-- Deutsch, knapp, direkt.
-- Keine langen Terminalausgaben in den Chat ziehen.
-- Große Ausgaben nach `~/Downloads/*.log` umleiten und nur `LOG=...` posten.
-- Vor Commit: tatsächlichen Diff inspizieren, Tests laufen lassen, protected-diff-plan ausführen.
-- Bei `BLOCK` oder `FAIL`: sofort stoppen, Diagnose statt Weiterarbeiten.
-- Aktive Aufgaben stammen aus `docs/planning/PROJECT_DIRECTION.yaml`; wenn diese Datei in einem externen Workspace fehlt, gelten Status- und Handoff-State als Fortsetzungsquelle.
-- Allgemeingültige Regeln stehen in `execution_contract.json.general_contract`; aktueller Fortsetzungspunkt steht in `execution_contract.json.current_state_contract` und `successor_context.yaml`.
-- `successor_prompt.md` ist nur Projektion. Maschinenlesbare Dateien haben Vorrang.
-- Komplexe `agentic-kit`-Wrapper haben Vorrang vor selbstgebauten Git-/GitHub-/Handoff-/GC-/Release-Blöcken.
-- Garbage Collector nur für technische Retention verwenden, nicht für semantische Dokumentenmigration.
-
-## Nächste sichere Entscheidung
-
-1. Wenn `validation_report.json` nicht PASS ist: Handoff-Projektion reparieren.
-2. Wenn der Arbeitsbaum dirty ist: nur explizite WIP-Dateien prüfen und abschließen oder sauber dokumentieren.
-3. Danach die nächste aktive Aufgabe aus `docs/planning/PROJECT_DIRECTION.yaml` oder dem externen Workspace-State bearbeiten.

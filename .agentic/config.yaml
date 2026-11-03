@@ -82,3 +82,5 @@ audit:
       - docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.json
       - docs/validation/AGENTIC_KIT_GREENFIELD_FINDINGS.md
       - docs/validation/evidence/*.json
+handoff:
+  projection_contract_min: 2
