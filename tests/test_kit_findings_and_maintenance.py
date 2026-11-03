@@ -276,12 +276,32 @@ def test_the_real_register_tracks_the_kit_1_1_11_adoption_and_kit_gf_095():
     gf095 = by_id["KIT-GF-095"]
     assert gf095.status == "VERIFIED_FIXED" and gf095.fixed_in == "1.1.11" and gf095.kit["fixed_in"] == "1.1.11"
     assert gf095.effective_status("1.1.11") == kf.VERIFIED and "kit-1.1.11-adoption.json" in gf095.verified_by
-    gf094 = by_id["KIT-GF-094"]
-    assert gf094.status == "OPEN" and gf094.kit["kit_state"] == "PARTIAL" and gf094.kit["fixed_in"] == "unreleased"
-    assert gf094.effective_status("1.1.11") == kf.IN_PROGRESS
-    assert "KIT-GF-094" in evidence["not_verified"]
+    # KIT-GF-094 was dormant in 1.1.11 and stayed open then; it is verified with 1.2.0 (see below)
+    assert "KIT-GF-094" in evidence["not_verified"] and by_id["KIT-GF-094"].fixed_in == "1.2.0"
+    assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
+
+
+def test_the_real_register_tracks_the_kit_1_2_0_adoption_and_kit_gf_094():
+    """Kit 1.2.0 (2026-11-03, #432, release B with projection v2 active, GF-E128/E129, evidence
+    kit-1.2.0-adoption.json): retest PASS 59, FAIL 0; KIT-GF-094 and KIT-GF-099 are verified, no family is open."""
+    by_id = {f.id: f for f in kf.load(ROOT)}
+    evidence = json.loads((ROOT / "docs/validation/evidence/kit-1.2.0-adoption.json").read_text(encoding="utf-8"))
+    assert evidence["greenfield_retest"]["counts"] == {"FAIL": 0, "NOT_RUN_LOCALLY": 41, "NO_MACHINE_CONTRACT": 0,
+                                                       "PASS": 59}
+    assert len(evidence["greenfield_retest"]["pass"]) == 59
+    assert evidence["kit_update"]["execute"]["installed_version"] == "1.2.0"
+    assert ".agentic/config.yaml" in evidence["kit_update"]["plan"]["changed_paths"]   # the v2 migration is signed
+    assert sorted(evidence["verifies"]) == ["KIT-GF-094", "KIT-GF-099"]
+    for fid in [*evidence["verifies"], *evidence["reverifies"]]:
+        assert fid in evidence["greenfield_retest"]["pass"], fid
+    for fid in evidence["verifies"]:
+        finding = by_id[fid]
+        assert finding.status == "VERIFIED_FIXED" and finding.fixed_in == "1.2.0", fid
+        assert finding.kit["fixed_in"] == "1.2.0" and finding.effective_status("1.2.0") == kf.VERIFIED, fid
+        assert "kit-1.2.0-adoption.json" in finding.verified_by, fid
+    assert not [f.id for f in by_id.values() if f.status == "OPEN"]
     register = json.loads((ROOT / kf.REGISTER).read_text(encoding="utf-8"))
-    assert register["kit_repo_sync"]["latest_release"] == "1.1.11"
+    assert register["kit_repo_sync"]["latest_release"] == "1.2.0"
     assert "/Users/" not in json.dumps(evidence) and "/home/" not in json.dumps(evidence)
 
 
@@ -447,12 +467,14 @@ def test_pytest_creates_its_runs_under_the_shared_temp_root(tmp_path):
     assert len(runs) <= 3                                    # pytest keeps only its newest runs
 
 
-def test_kit_gf_094_counts_as_in_progress_while_v2_is_dormant():
-    """KIT-GF-094 (refresh PRs restate git state), found 2026-11-01 (GF-E125/E126): until 1.1.11 the Kit said
-    CLOSED/"unreleased" and no installed Kit counted as containing it (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1);
-    with 1.1.11 the Kit says PARTIAL/"unreleased" (v2 dormant), so the window shows it in progress for any Kit."""
-    finding = {f.id: f for f in kf.load(ROOT)}["KIT-GF-094"]
-    assert finding.status == "OPEN" and finding.first_observed == "2026-11-01"
+def test_a_partial_kit_finding_counts_as_in_progress_for_any_installed_kit(tmp_path):
+    """KIT-GF-094 while v2 was dormant in 1.1.11 (Kit PARTIAL, fixed_in "unreleased"): in progress, never installed."""
+    register = tmp_path / kf.REGISTER
+    register.parent.mkdir(parents=True)
+    register.write_text(json.dumps({"families": [
+        {"id": "KIT-GF-X", "title": "x", "severity": "low", "status": "OPEN", "first_observed": "2026-11-01",
+         "kit_repo_status": {"kit_state": "PARTIAL", "fixed_in": "unreleased"}}]}))
+    (finding,) = kf.load(tmp_path)
     assert finding.effective_status("1.1.11") == kf.IN_PROGRESS
     assert finding.effective_status("9.9.9") == kf.IN_PROGRESS
 
