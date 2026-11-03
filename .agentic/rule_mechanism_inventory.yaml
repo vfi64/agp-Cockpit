@@ -1,6 +1,6 @@
 schema_version: 2
 kind: external_kit_rule_mechanism_inventory
-kit_version: 1.1.11
+kit_version: 1.2.0
 mechanisms:
 - id: workspace-contract
   status: active
@@ -41,4 +41,4 @@ mechanisms:
 excluded:
 - id: project-rule-capsules
   reason: no-project-registration-semantics-inferred-from-prose-or-empty-registry
-projection_sha256: 599344fbd4cbb83ea5c3e282e820dcfad041c23ceab6ea671aef0b7e665b3d67
+projection_sha256: e12ace89e1d8c8b3d275fad53cb5bd26bd978e3855755941c529159adbb8dde7

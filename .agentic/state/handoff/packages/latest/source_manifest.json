@@ -3,47 +3,44 @@
   "schema_version": 1,
   "sources": [
     {
-      "bytes": 3814,
+      "exists": true,
+      "path": ".agentic/DOC_LIFECYCLE.md",
+      "sha256": "f9b0efb64385107edf4916e2292647b2043649643e4f5d07fcc0977f882e22e2"
+    },
+    {
+      "exists": true,
+      "path": ".agentic/INITIAL_LLM_PROMPT.md",
+      "sha256": "98afc55d5c701cdf701b1533b463904bbbf70c311413151723bbbfb6cb96ac5a"
+    },
+    {
       "exists": true,
       "path": ".agentic/config.yaml",
-      "yaml_valid": true
+      "sha256": "b413b6061cb894dd109035d7ef862d4ccb65cb00ba3cb784de7b7e0b623aa454"
     },
     {
-      "bytes": 1535,
-      "exists": true,
-      "path": ".agentic/INITIAL_LLM_PROMPT.md"
-    },
-    {
-      "bytes": 210,
-      "exists": true,
-      "path": ".agentic/DOC_LIFECYCLE.md"
-    },
-    {
-      "bytes": 2424,
-      "exists": true,
-      "path": ".agentic/state/status.md"
-    },
-    {
-      "bytes": 61,
-      "exists": true,
-      "path": ".agentic/state/handoff/README.md"
-    },
-    {
-      "bytes": 701,
       "exists": true,
       "path": ".agentic/registries/documentation.yaml",
-      "yaml_valid": true
+      "sha256": "55598181fa47a9cf96e10fd940aefda5849f0a7d1a998b33f8d890c7b97e3d0b"
     },
     {
-      "bytes": 28,
       "exists": true,
       "path": ".agentic/registries/rules.yaml",
-      "yaml_valid": true
+      "sha256": "d9658f7d6157b01f2dda97453cdaf33a0343568cef8dbc12233317a7f758eda3"
     },
     {
-      "bytes": 60,
       "exists": true,
-      "path": ".agentic/rules/README.md"
+      "path": ".agentic/rules/README.md",
+      "sha256": "991fdf5e0a81085f13e7c867321c5b5ed71e338383cc91aec1aea90852e5b8db"
+    },
+    {
+      "exists": true,
+      "path": ".agentic/state/handoff/README.md",
+      "sha256": "74829e38164942eb6bde9cc980ce03625d06361e9546f8a4ed28c0991e28c625"
+    },
+    {
+      "exists": true,
+      "path": ".agentic/state/status.md",
+      "sha256": "6f802e227a1ffcc1c3090b6519e6b9ea7c08b08394aae0c2bfcf1c6b0dda717e"
     }
   ],
   "workspace_mode": "external"
