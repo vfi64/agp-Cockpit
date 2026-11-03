@@ -2044,3 +2044,35 @@ repeat once.
   - Now a subscript of `sys.argv` counts, and the rejection names every accepted form. An order without a
     self-test mode, or with the string compared against some other list, is still rejected.
   - The regression tests use the shapes of the three live orders; removing the subscript case fails them.
+
+## 2026-11-03 — Kit 1.2.0 (release B) adopted live; KIT-GF-094 and KIT-GF-099 verified
+
+- Order 0014 (finish the branch of PR #430) stopped twice in its preflight with „offene Änderungen“. Nothing ran
+  beyond the read-only checks. The cause was in the order, not with the owner:
+  - Under projection v1 every „Chat wechseln“ rewrites tracked handoff files. The Cockpit's Lage counts them as
+    „Kit-intern“, but `git status` does not.
+  - The order neither showed the paths nor told them apart.
+  - Order 0015 lists every open change, lets the installed Kit classify it
+    (`agentic_project_kit.volatile_paths`) and restores only known handoff files through
+    `agentic-kit transfer restore-known-volatile`; anything else stops the order. It passed (#430).
+  - Rule for further orders in this repository: always show the open paths and let the Kit classify them.
+- KIT-GF-099 was found by the consumer rehearsal of Kit PR #2723 (release B) in a disposable copy of this repository,
+  before B was released:
+  - The published 1.1.11 handed the origin URL to the B preview in quotes. B fell back to the project name.
+  - The update ended BLOCKED with B installed, no adoption evidence and so no return.
+  - A one-line parser fix in B made every other path pass. Kit #2724 fixed it, and the Kit's real-wheel contracts now
+    use an origin whose name differs from the project name.
+  - Codex's repeated rehearsal (published 1.1.11 as planner, B without patches) passed after one criterion was made
+    precise: „0 paths“ means the plan's `changed_paths`; the derived rule inventory and the 1.2.0 → 1.2.0 receipt of
+    the direct jump are expected.
+  - Why Claude's rehearsal of 2026-11-01 did not show the defect is not settled.
+- Release B (Kit 1.2.0) was published on 2026-11-03, after the second known external workspace had adopted A through
+  the Kit's route (owner decision a). „Kit übernehmen“ adopted 1.2.0 (#432):
+  - 15 planned paths plus the derived rule inventory, including the projection migration;
+  - **no** refresh PR after the merge;
+  - „Chat wechseln“ afterwards with „Änderungen: 0 offen“.
+- Retest (order 0016, owner's Mac, Kit 1.2.0): PASS 59, FAIL 0, 41 not run locally. KIT-GF-094 and KIT-GF-099 are
+  verified (GF-E128, GF-E129); KIT-GF-096 (removal of external v1) stays open in the Kit. The measurement of the next
+  10 PRs without a refresh PR starts with this one.
+- The owner limited Claude's own test runs to targeted tests (2026-11-02). Full suites and real-wheel rehearsals run
+  in CI, with Codex or locally on the owner's Mac.

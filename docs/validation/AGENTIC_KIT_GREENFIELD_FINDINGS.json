@@ -923,6 +923,20 @@
       "historical_id": "Kit 1.1.11 adoption (#428) through the standard task „Kit übernehmen“, greenfield retest",
       "canonical_family": "KIT-GF-095",
       "summary": "release A of the two-release transition adopted (projection v1 kept, refresh #429 as before, „Chat wechseln“ PASS); greenfield retest --all under the 1.1.11 wheel: PASS 56, FAIL 0; KIT-GF-095/097/098 PASS, fixed_in 1.1.11 stamped by the Kit release; KIT-GF-094 PASS but PARTIAL/unreleased (v2 dormant)"
+    },
+    {
+      "date": "2026-11-02",
+      "event_id": "GF-E128",
+      "historical_id": "consumer rehearsal of Kit PR #2723 (release B) in a disposable copy of this repository",
+      "canonical_family": "KIT-GF-099",
+      "summary": "published 1.1.11 planned 1.1.11 → B: BLOCKED after the projection step (repository_name and execution_contract differ), B installed without adoption evidence; cause: the target preview received the origin URL in quotes; a one-line parser fix in B made every path PASS (adoption, merge without refresh, chat switch without tracked change, return to 1.1.11, direct jump with completion)"
+    },
+    {
+      "date": "2026-11-03",
+      "event_id": "GF-E129",
+      "historical_id": "Kit 1.2.0 adoption (#432) through the standard task „Kit übernehmen“, greenfield retest (order 0016)",
+      "canonical_family": "KIT-GF-094",
+      "summary": "release B adopted from A (projection v2 active); no refresh PR after the adoption merge, chat switch with „Änderungen: 0 offen“; greenfield retest --all under 1.2.0: PASS 59, FAIL 0; KIT-GF-094 and 099 PASS, fixed_in 1.2.0 stamped by the Kit release"
     }
   ],
   "families": [
@@ -3684,31 +3698,34 @@
     },
     {
       "first_observed": "2026-11-01",
-      "status": "OPEN",
+      "status": "VERIFIED_FIXED",
       "severity": "medium",
       "classification": "agentic-kit-external-workspace",
       "aliases": [],
-      "fixed_in": null,
+      "fixed_in": "1.2.0",
       "id": "KIT-GF-094",
       "title": "post-merge refresh PRs only restate git state in external workspaces",
       "expected": "A content PR whose merge does not change any handoff input needs no follow-up PR; versioned handoff files carry no volatile Git state.",
       "observed": "2026-11-01, measured with the GitHub API for 2026-10-24..31: 19 of 38 merged Cockpit PRs were „Refresh successor package after PR<n>“ (78 of 208 CI minutes, 37 %); each refresh commit changed only HEAD, origin/main, branch, short SHAs and generation time. Cause: freshness meant validation_report.generated_head == HEAD, and a squash merge always creates a new HEAD.",
       "impact": "One extra PR, two CI runs and several minutes of waiting in every finish order.",
       "workaround": "None; the refresh PR ran automatically.",
-      "repair": "Kit main 334ac052 (PR #2710, unreleased): external projection contract v2 — deterministic versioned projection without Git state, regeneration plus byte comparison decides, diagnostic input digest, handoff.projection_contract_min: 2, ignored runtime identity with run_id and exact HEAD; supersedes the C4 refresh boundary for external workspaces (owner decision F1, 2026-11-01). Shipped dormant in Kit 1.1.11 (release A, EXTERNAL_PROJECTION_V2_ACTIVE = False); effective with the next release (B) after all known external workspaces adopted A (owner decision 2026-11-01, option 1).",
+      "repair": "Kit 1.2.0 (release B; #2710, two-release transition #2712, activation #2723): external projection contract v2 — deterministic versioned projection without Git state, regeneration plus byte comparison decides, diagnostic input digest, handoff.projection_contract_min: 2, ignored runtime identity with run_id and exact HEAD. Release A 1.1.11 shipped it dormant; B activated it after all known external workspaces had adopted A (owner decisions F1, option 1 and a, 2026-11-01).",
       "regression": "Kit machine contract KIT-GF-094; Cockpit tests/test_handoff_projection_v2_consumer.py (AGP_HANDOFF_PROJECTION_V2_CONSUMER_V1).",
       "evidence": [
         "docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md (2026-11-01)",
         "Kit report docs/reports/greenfield/KIT-GF-094-external-handoff-v2-2026-11-01.md",
-        "docs/validation/evidence/kit-1.1.11-adoption.json"
+        "docs/validation/evidence/kit-1.1.11-adoption.json",
+        "docs/validation/evidence/kit-1.2.0-adoption.json"
       ],
       "kit_repo_status": {
-        "date": "2026-11-01",
-        "fixed_in": "unreleased",
-        "kit_state": "PARTIAL",
-        "raw": "agentic-kit greenfield status --json (Kit 1.1.11; Kit main 6dde207e)",
-        "report": "docs/reports/greenfield/KIT-GF-094-external-handoff-v2-2026-11-01.md"
-      }
+        "date": "2026-11-03",
+        "fixed_in": "1.2.0",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.2.0; Kit main 8c96df50)",
+        "report": "docs/reports/greenfield/KIT-GF-094-release-b-activation-2026-11-01.md"
+      },
+      "verified_by": "2026-11-03 docs/validation/evidence/kit-1.2.0-adoption.json (greenfield retest KIT-GF-094 PASS, installed Kit 1.2.0; live: no refresh PR after #432)",
+      "retest": "Verified 2026-11-03 by the Kit's installed-wheel machine contract under Kit 1.2.0 after the adoption #432, and live: the adoption merge was not followed by a refresh PR and „Chat wechseln“ left no tracked change. Measurement over the next 10 PRs follows."
     },
     {
       "first_observed": "2026-11-01",
@@ -3739,6 +3756,34 @@
       },
       "verified_by": "2026-11-01 docs/validation/evidence/kit-1.1.11-adoption.json (greenfield retest KIT-GF-095 PASS, installed Kit 1.1.11)",
       "retest": "Verified 2026-11-01 by the Kit's installed-wheel machine contract under Kit 1.1.11 after the adoption #428. The adoption evidence the return needs stays local-only (.git/info/exclude); a lost checkout loses the governed return."
+    },
+    {
+      "first_observed": "2026-11-02",
+      "status": "VERIFIED_FIXED",
+      "severity": "high",
+      "classification": "agentic-kit-external-workspace",
+      "aliases": [],
+      "fixed_in": "1.2.0",
+      "id": "KIT-GF-099",
+      "title": "the target projection preview loses the repository identity (quoted origin URL)",
+      "expected": "A signed kit update planned by an installed release previews the target's projection with the same inputs the target's own check computes after installation.",
+      "observed": "2026-11-02, consumer rehearsal of Kit PR #2723 in a disposable copy of this repository: the published 1.1.11 wrote the origin URL JSON-quoted into the preview's temporary Git config; the target read it with the quotes, found no repository name and fell back to the project name. The real check then reported projection_inputs_changed (repository_name, execution_contract): BLOCKED after install, CI pins, entrypoints and projection, B installed, no adoption evidence and so no governed return; the documented completion failed the same way.",
+      "impact": "Every external workspace whose origin repository name differs from its project name (this one: origin <owner>/agp-cockpit, project agp-Cockpit) would have been left half-adopted on B without a return.",
+      "workaround": "None needed: found before release B by the consumer rehearsal.",
+      "repair": "Kit 1.2.0 (#2724): the target decodes Git-quoted config values as Git does; future planners write Git syntax; payloads of the published 1.1.11 stay readable. The real-wheel contracts use a GitHub-shaped origin whose name differs from the project name.",
+      "regression": "Kit machine contract KIT-GF-099; the real-wheel transition contracts KIT-GF-097/098 with that origin fail under the old parser (counter-probe in the Kit report).",
+      "evidence": [
+        "docs/engineering/PROTOCOL_CHANGE_AND_FAILURE_LOG.md (2026-11-03)",
+        "docs/validation/evidence/kit-1.2.0-adoption.json"
+      ],
+      "kit_repo_status": {
+        "date": "2026-11-03",
+        "fixed_in": "1.2.0",
+        "kit_state": "CLOSED",
+        "raw": "agentic-kit greenfield status --json (Kit 1.2.0; Kit main 8c96df50)"
+      },
+      "verified_by": "2026-11-03 docs/validation/evidence/kit-1.2.0-adoption.json (greenfield retest KIT-GF-099 PASS, installed Kit 1.2.0; live adoption #432 planned by the published 1.1.11 PASS)",
+      "retest": "Verified 2026-11-03 under Kit 1.2.0: machine contract PASS, and the live adoption 1.1.11 → 1.2.0 (#432) passed."
     }
   ],
   "explicit_exclusions": [
@@ -3895,9 +3940,9 @@
   "kit_repo_sync": {
     "marker": "AGP_KIT_FINDINGS_SYNC_V1",
     "source": "https://github.com/vfi64/agentic-project-kit",
-    "kit_commit": "6dde207e",
-    "latest_release": "1.1.11",
-    "synced": "2026-11-01",
-    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.1.11; Kit main 6dde207e). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both. Since Kit 1.1.9 (KIT-GF-091) the Kit stamps fixed_in at release, so the snapshot's versions no longer need a hand note."
+    "kit_commit": "8c96df50",
+    "latest_release": "1.2.0",
+    "synced": "2026-11-03",
+    "note": "Snapshot of the Kit's own adjudication, read with `agentic-kit greenfield status --json` (Kit 1.2.0; Kit main 8c96df50). kit_repo_status never changes `status`; the Cockpit's Kit findings window combines both. Since Kit 1.1.9 (KIT-GF-091) the Kit stamps fixed_in at release, so the snapshot's versions no longer need a hand note."
   }
 }

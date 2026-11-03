@@ -1,0 +1,140 @@
+{
+ "schema_version": 1,
+ "kind": "agp_kit_retest_evidence",
+ "id": "kit-1.2.0-adoption",
+ "date": "2026-11-03",
+ "kit_version": "1.2.0",
+ "source": "Adoption: the owner's Mac, Cockpit build release-0.3.7-r2, standard task „Kit übernehmen“ (AGP_KIT_ADOPT_TASK_V1) from main 17f56fa, PR #432 (merge 375c382), no successor-package refresh PR afterwards; „Chat wechseln“ afterwards finished with „Änderungen: 0 offen“. Retest: order 0016 on the owner's Mac, Cockpit main 375c382 with the installed Kit 1.2.0 (log only; the per-finding PASS list is the Kit 1.2.0 catalog's local machine contracts, which the counts match); machine paths left out here.",
+ "kit_update": {
+  "controller": "installed Kit 1.1.11 (release A) planned and executed the update to release B inside the standard task „Kit übernehmen“",
+  "plan": {
+   "result_status": "AWAITING_APPROVAL",
+   "changed_paths": [
+    ".agentic/ci/agentic-gate.yaml",
+    ".agentic/config.yaml",
+    ".agentic/state/handoff/CLOSEOUT_BEFORE_CHAT_SWITCH_PROMPT.md",
+    ".agentic/state/handoff/NEXT_CHAT_BOOTSTRAP.md",
+    ".agentic/state/handoff/START_NEW_CHAT_PROMPT.md",
+    ".agentic/state/handoff/packages/latest/execution_contract.json",
+    ".agentic/state/handoff/packages/latest/source_manifest.json",
+    ".agentic/state/handoff/packages/latest/successor_context.yaml",
+    ".agentic/state/handoff/packages/latest/successor_prompt.md",
+    ".agentic/state/handoff/packages/latest/validation_report.json",
+    ".github/workflows/agentic-gate.yaml",
+    ".gitignore",
+    "AGENTS.md",
+    "docs/reference/AGENTIC_KIT_COMMANDS.md",
+    "docs/reference/agentic-kit-commands.json"
+   ],
+   "derived_paths": [
+    ".agentic/rule_mechanism_inventory.yaml"
+   ],
+   "note": "paths read from PR #432; the projection migration (handoff.projection_contract_min: 2, .gitignore) is part of the signed plan"
+  },
+  "execute": {
+   "result_status": "PASS",
+   "installed_version": "1.2.0"
+  },
+  "adoption_evidence": {
+   "adoption_id": "c1ba90ebf8e444938a88f6a710adeb94",
+   "pr_number": 432,
+   "files": 16,
+   "location": "local-only under .agentic/kit-update (excluded from Git); it enables the governed return to 1.1.11"
+  },
+  "owner_consent": "the owner clicked „Kit übernehmen“ and released the signed `kit update --version 1.2.0 --execute` in the decision box (AGP_OWNER_DECISION_EXECUTE_V1); „Abschließen“ merged PR #432 with CI green"
+ },
+ "greenfield_retest": {
+  "command": "agentic-kit greenfield retest --all --json",
+  "result_status": "INCOMPLETE",
+  "kit_version": "1.2.0",
+  "catalog_sha256": "884eb6bcdbb61f065a17f98b0a5315a9ffa654dfffce9eb1efbb38206a054efc",
+  "counts": {
+   "FAIL": 0,
+   "NOT_RUN_LOCALLY": 41,
+   "NO_MACHINE_CONTRACT": 0,
+   "PASS": 59
+  },
+  "pass": [
+   "KIT-GF-001",
+   "KIT-GF-002",
+   "KIT-GF-004",
+   "KIT-GF-005",
+   "KIT-GF-006",
+   "KIT-GF-007",
+   "KIT-GF-008",
+   "KIT-GF-010",
+   "KIT-GF-013",
+   "KIT-GF-014",
+   "KIT-GF-015",
+   "KIT-GF-016",
+   "KIT-GF-021",
+   "KIT-GF-022",
+   "KIT-GF-023",
+   "KIT-GF-025",
+   "KIT-GF-026",
+   "KIT-GF-028",
+   "KIT-GF-032",
+   "KIT-GF-033",
+   "KIT-GF-035",
+   "KIT-GF-036",
+   "KIT-GF-037",
+   "KIT-GF-042",
+   "KIT-GF-044",
+   "KIT-GF-045",
+   "KIT-GF-053",
+   "KIT-GF-054",
+   "KIT-GF-057",
+   "KIT-GF-060",
+   "KIT-GF-063",
+   "KIT-GF-066",
+   "KIT-GF-067",
+   "KIT-GF-068",
+   "KIT-GF-070",
+   "KIT-GF-072",
+   "KIT-GF-074",
+   "KIT-GF-075",
+   "KIT-GF-076",
+   "KIT-GF-077",
+   "KIT-GF-083",
+   "KIT-GF-084",
+   "KIT-GF-085",
+   "KIT-GF-086",
+   "KIT-GF-087",
+   "KIT-GF-088",
+   "KIT-GF-089",
+   "KIT-GF-090",
+   "KIT-GF-091",
+   "KIT-GF-092",
+   "KIT-GF-093",
+   "KIT-GF-094",
+   "KIT-GF-095",
+   "KIT-GF-097",
+   "KIT-GF-098",
+   "KIT-GF-099",
+   "KIT-GF-100",
+   "KIT-GF-101",
+   "KIT-GF-RULE-REGISTRY-BOOTSTRAP"
+  ],
+  "fail": {}
+ },
+ "observed": {
+  "refresh_pr_after_merge": "none after #432 (previous merges #428 and #430 were each followed by a refresh PR, #429 and #431)",
+  "chat_switch": "„Chat wechseln“ PASS after 2 remote turns; Lage „Änderungen: 0 offen“ without Kit-internal changes",
+  "post_merge_check": "PASS"
+ },
+ "cockpit_tests": "CI of the recording PR (full suite under xvfb with Tk required); Claude ran only the targeted register tests",
+ "verifies": {
+  "KIT-GF-094": "greenfield retest KIT-GF-094 PASS with the installed Kit 1.2.0 (release B, v2 active); live: no refresh PR after the adoption merge #432 and a chat switch with no tracked change; the Kit's 1.2.0 release stamped fixed_in 1.2.0 itself",
+  "KIT-GF-099": "greenfield retest KIT-GF-099 PASS with the installed Kit 1.2.0; the adoption 1.1.11 → 1.2.0 planned by the published 1.1.11 passed live (#432), which the defect had blocked in the consumer rehearsal of 2026-11-02"
+ },
+ "reverifies": {
+  "KIT-GF-093": "PASS under 1.2.0",
+  "KIT-GF-095": "PASS under 1.2.0",
+  "KIT-GF-097": "PASS under 1.2.0",
+  "KIT-GF-098": "PASS under 1.2.0"
+ },
+ "kit_open": {
+  "KIT-GF-096": "open in the Kit: removal of external v1 compatibility, due no later than the second release after 1.2.0"
+ },
+ "not_verified": {}
+}
