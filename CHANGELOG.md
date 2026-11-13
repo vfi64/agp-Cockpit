@@ -6,6 +6,7 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Kit 1.3.0 adopted through „Kit übernehmen“ (#435): CI pins, rule inventory, handoff projections and command reference follow 1.3.0; the Cockpit itself is unchanged.
 ## v0.4.0 - 2026-11-03
 
 - „Chat wechseln“ also accepts the Kit's external handoff projection v2 (KIT-GF-094, Kit 1.2.0): the package files stay byte-identical across regenerations, and a new run of the Kit's generator — a new run_id in the ignored runtime identity with the exact HEAD and the validator PASS of the same run — is the evidence; the v1 evidence is unchanged, and an unknown projection contract is BLOCKED instead of guessed. Verified against a Kit-main wheel in a disposable copy and against Kit 1.1.10, with regression tests for every rejected case (AGP_HANDOFF_PROJECTION_V2_CONSUMER_V1). The Kit findings window no longer counts a fix marked "unreleased" as installed (AGP_UNRELEASED_FIX_NOT_INSTALLED_V1); KIT-GF-094 and KIT-GF-095 are recorded; build `release-0.3.7-r1`.
