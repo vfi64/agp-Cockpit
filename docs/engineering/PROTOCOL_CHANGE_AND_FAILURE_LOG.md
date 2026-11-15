@@ -2149,3 +2149,20 @@ repeat once.
     does the same fetch at A1 after the click.
   - The worker thread gets plain values only; the panel reads the answer on the UI thread
     (AGP_TK_GC_ON_MAIN_THREAD_V1).
+
+## 2026-11-15 — The findings window shows the Kit catalog's missing entries (C5, build release-0.4.1-r5)
+
+- Workflow-friction plan C5 (section 3): the window read only the Cockpit's register, which lists findings a
+  Cockpit slice entered; the Kit's catalog has more (KIT-GF-090, 096–098 and 100–120 at Kit 1.4.0), and the
+  register sync updates existing entries only.
+  - AGP_KIT_CATALOG_GROUP_V1: the window asks the installed Kit of the Cockpit's checkout for
+    `greenfield status --json` (K9, Kit 1.4.0) beside the UI thread; the worker gets the reader and a path only,
+    the answer is read on the UI thread (AGP_TK_GC_ON_MAIN_THREAD_V1).
+  - `kit_findings.read_catalog` reads per entry only `id`, `title`, `kit_state`, `fixed_in` and `report`;
+    retest contracts, PRs and evidence stay in the Kit. No Kit, no answer or an answer without a catalog
+    gives a reason that the window shows; nothing fails.
+  - `kit_findings.catalog_only` turns entries whose id the register does not list into a group of their own
+    („Nur im Kit-Katalog“) below the register's rows, also when the order is reversed. The register always
+    wins and is never written. The status follows the Kit's state against the installed Kit as for a synced
+    register entry; `NOT_APPLICABLE` shows as „laut Kit nicht anwendbar“.
+  - Build `release-0.4.1-r5`; CHANGELOG Unreleased line.

@@ -11,12 +11,20 @@ which the Cockpit's own retest still shows the defect. A Kit closure whose
 ``fixed_in`` is not newer than that version does not count as a fix; the
 finding stays open until a later Kit release claims (and a retest confirms)
 the fix.
+
+AGP_KIT_CATALOG_GROUP_V1 (workflow-friction plan C5): the register lists only findings a Cockpit slice
+entered; the Kit's own catalog has more (KIT-GF-090, 096-098, 100-120 at Kit 1.4.0). The installed Kit
+answers ``greenfield status --json`` (K9: id, title, Kit state and fixed in per finding). Entries whose id
+the register does not list become a group of their own in the window. The Cockpit reads only these four
+fields and the report name, judges nothing and never writes them into its register.
 """
 
 from __future__ import annotations
 
 import json
 import re
+import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -28,6 +36,11 @@ IN_PROGRESS = "im Kit in Arbeit"
 FIXED_NOT_INSTALLED = "behoben, nicht installiert"
 FIXED_UNVERIFIED = "behoben, nicht bestätigt"
 VERIFIED = "bestätigt behoben"
+NOT_APPLICABLE = "laut Kit nicht anwendbar"
+
+REGISTER_ORIGIN = "register"
+KIT_CATALOG = "kit_catalog"                     # AGP_KIT_CATALOG_GROUP_V1
+CATALOG_TIMEOUT = 120
 
 
 @dataclass(frozen=True)
@@ -44,6 +57,7 @@ class KitFinding:
     mitigations: tuple = ()
     extensions: tuple = ()
     kit: dict = field(default_factory=dict)     # AGP_KIT_FINDINGS_SYNC_V1 statement of the Kit repo
+    origin: str = REGISTER_ORIGIN               # AGP_KIT_CATALOG_GROUP_V1: register or Kit catalog
 
     def effective_status(self, installed: str | None) -> str:
         if self.status == "VERIFIED_FIXED":
@@ -61,6 +75,8 @@ class KitFinding:
             return FIXED_NOT_INSTALLED
         if self.kit.get("kit_state") == "PARTIAL":
             return IN_PROGRESS
+        if self.kit.get("kit_state") == "NOT_APPLICABLE":
+            return NOT_APPLICABLE
         return OPEN
 
     def _kit_closure_refuted(self) -> bool:
@@ -71,6 +87,8 @@ class KitFinding:
         return not kit_fixed or _version(kit_fixed) <= _version(self.reproduced_in)
 
     def detail_text(self, installed: str | None) -> str:
+        if self.origin == KIT_CATALOG:
+            return self._catalog_text(installed)
         lines = [f"{self.id} — {self.title}", "",
                  f"Status: {self.effective_status(installed)} (Register: {self.status}"
                  + (f", behoben in {self.fixed_in}" if self.fixed_in else "") + ")",
@@ -101,6 +119,84 @@ class KitFinding:
         if evidence:
             lines += ["", "Nachweise:"] + [f"  · {e}" for e in (evidence if isinstance(evidence, list) else [evidence])]
         return "\n".join(lines)
+
+    def _catalog_text(self, installed: str | None) -> str:
+        fixed_in = str(self.kit.get("fixed_in") or "")
+        lines = [f"{self.id} — {self.title or '(ohne Titel)'}", "",
+                 f"Status: {self.effective_status(installed)} (Kit-Katalog: {self.kit.get('kit_state') or '?'}"
+                 + (f", behoben in {fixed_in}" if fixed_in else "") + ")",
+                 "", ("Nur im Kit-Katalog: Das Register des Cockpits führt diesen Befund nicht. Kennung, Titel, "
+                      "Zustand und „behoben in“ sind die Angaben des installierten Kits (agentic-kit greenfield "
+                      "status); das Cockpit bewertet sie nicht und trägt sie nicht ins Register ein.")]
+        if self.kit.get("report"):
+            lines += ["", f"Bericht im Kit-Repo: {self.kit['report']}"]
+        return "\n".join(lines)
+
+
+@dataclass(frozen=True)
+class KitCatalog:
+    """The installed Kit's answer to ``greenfield status --json``, reduced to what the window shows."""
+    entries: tuple[dict, ...] = ()
+    reason: str = ""                            # why there is no catalog (no Kit, no answer)
+
+
+def catalog_argv(binary: Path | str) -> list[str]:
+    return [str(binary), "greenfield", "status", "--json"]
+
+
+def read_catalog(root: Path, runner: Callable = subprocess.run) -> KitCatalog:
+    """Ask the repository's installed Kit for its finding catalog; never fails, a reason instead."""
+    from agp_cockpit.core.kit_installation import discover
+    root = Path(root)
+    kit = discover(root)
+    if kit is None:
+        return KitCatalog(reason="kein Kit installiert")
+    try:
+        done = runner(catalog_argv(kit.binary), cwd=str(root), capture_output=True, text=True,
+                      timeout=CATALOG_TIMEOUT, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return KitCatalog(reason=f"das Kit antwortet nicht ({type(exc).__name__})")
+    text = f"{getattr(done, 'stdout', '') or ''}"
+    try:
+        data = json.loads(text[text.index("{"):])
+    except ValueError:
+        data = None
+    findings = data.get("findings") if isinstance(data, dict) else None
+    if not isinstance(findings, list):
+        detail = str(data.get("error") or "") if isinstance(data, dict) else ""
+        detail = detail or next((line.strip() for line in f"{getattr(done, 'stderr', '') or ''}".splitlines()
+                                 if line.strip()), "")
+        return KitCatalog(reason="greenfield status lieferte keinen Katalog" + (f": {detail}" if detail else ""))
+    entries, seen = [], set()
+    for item in findings:
+        finding_id = str(item.get("id") or "").strip() if isinstance(item, dict) else ""
+        if not finding_id or finding_id in seen:
+            continue
+        seen.add(finding_id)
+        entries.append({"id": finding_id, "title": str(item.get("title") or ""),
+                        "kit_state": str(item.get("kit_state") or ""), "fixed_in": str(item.get("fixed_in") or ""),
+                        "report": str(item.get("report") or "")})
+    return KitCatalog(entries=tuple(entries))
+
+
+def catalog_only(register: list[KitFinding], catalog: KitCatalog | None) -> list[KitFinding]:
+    """Catalog entries whose id the register does not list; the register always wins."""
+    known = {finding.id for finding in register}
+    return [KitFinding(id=entry["id"], title=entry["title"], severity="", status="", first_observed="",
+                       kit={"kit_state": entry["kit_state"], "fixed_in": entry["fixed_in"], "report": entry["report"]},
+                       origin=KIT_CATALOG)
+            for entry in (catalog.entries if catalog else ()) if entry["id"] not in known]
+
+
+def catalog_summary(extra: list[KitFinding], catalog: KitCatalog | None) -> str:
+    if catalog is None:
+        return "Kit-Katalog wird gelesen …"
+    if catalog.reason:
+        return f"Kit-Katalog nicht gelesen: {catalog.reason}"
+    if not extra:
+        return f"Kit-Katalog: {len(catalog.entries)} Einträge, alle auch im Register"
+    return (f"Kit-Katalog: {len(extra)} von {len(catalog.entries)} Einträgen fehlen im Register "
+            "(eigene Gruppe „Nur im Kit-Katalog“)")
 
 
 def _text(value) -> str:
