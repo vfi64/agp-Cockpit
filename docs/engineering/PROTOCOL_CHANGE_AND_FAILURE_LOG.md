@@ -2111,3 +2111,21 @@ repeat once.
     still rejected), and `forbidden_execute_violations` (workspace ci-update) still treats `--execute` anywhere as a
     hidden flag when the call has a computed argument. The Cockpit's invocation guard checks every real call at run
     time as before.
+
+## 2026-11-15 — „Abschließen“ publishes committed work (C3, build release-0.4.1-r3)
+
+- Workflow-friction plan C3 (V8, live 2026-11-13): the change was already committed, so the work branch was clean
+  when „Abschließen“ started. The Kit's finish orchestrator still required a path selection and the finish guard
+  (AGP_FINISH_PUBLISHES_ONLY_V1) forbade a new commit, so there was no way out. Kit 1.4.0 publishes the existing
+  commits when its finish orchestrator gets no path selection (K1).
+  - AGP_FINISH_PUBLISH_EXISTING_V1: `finish_guard.existing_commits` reads the state (clean apart from Download/,
+    commits that origin/main lacks, origin/<branch> missing, at HEAD or older). The finish prompt states it and
+    says that the Kit publishes existing commits without a path selection; it names no Kit command (T5), the
+    remote side still chooses from the digest. With an installed Kit older than 1.4.0 the prompt asks for
+    NEEDS_HUMAN and „Kit übernehmen“ instead of promising K1.
+  - The finish guard stays. On a clean start it still rejects a commit, and now also a finish call that selects
+    paths: the call writes `--path` itself or `--path` stands free in the code (as for the execute flags of C1);
+    the rejection names the call, its line and the way out. With uncommitted work from „Arbeiten“ paths stay
+    allowed. `free_execute_flags` takes the flags to look for (default unchanged).
+  - The Lage of a clean work branch with own commits says whether they are not published yet, published, or
+    newer locally than origin.

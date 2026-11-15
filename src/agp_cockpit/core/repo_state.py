@@ -447,7 +447,12 @@ def classify(facts: RepoFacts) -> RepoState:
                       None, (), facts)
     if facts.own_commits and not facts.changes:
         recommended = ABSCHLIESSEN
-        summary = f"Arbeit auf {facts.branch}: {facts.own_commits} Commit(s), sauber; bereit zum Abschließen."
+        # AGP_FINISH_PUBLISH_EXISTING_V1 (plan C3): the Lage names whether the commits are on GitHub.
+        remote = facts.published_remote          # origin/<branch> as last read (ls-remote with network)
+        where = ("noch nicht veröffentlicht" if not remote
+                 else "veröffentlicht" if remote == facts.head else "lokal neuer als origin")
+        summary = (f"Arbeit auf {facts.branch}: {facts.own_commits} Commit(s), sauber, {where}; "
+                   "bereit zum Abschließen.")
     else:
         recommended = ARBEITEN
         summary = f"Arbeit auf {facts.branch} läuft."
