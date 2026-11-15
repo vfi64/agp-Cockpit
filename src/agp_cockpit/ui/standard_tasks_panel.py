@@ -669,6 +669,9 @@ class StandardTasksPanel(ttk.Frame):
             if inputs is None:
                 self.status_var.set(f"{task.label} abgebrochen.")
                 return
+        if task.key == "release":
+            self.run_release_check(task, inputs)   # AGP_RELEASE_READ_CHECK_V1: the Kit checks before the question
+            return
         if task.confirm and not self.confirm(task):
             self.status_var.set(f"{task.label} nicht gestartet.")
             return
@@ -685,6 +688,61 @@ class StandardTasksPanel(ttk.Frame):
         except Exception:  # noqa: BLE001 - undetermined here; the start reports it
             return ""
         return chat_binding_hint(reason, label) if reason else ""
+
+    def run_release_check(self, task: StandardTask, inputs: dict | None) -> None:
+        """AGP_RELEASE_READ_CHECK_V1 (plan C4): the Kit's read check of the release (step A2 of its release
+        run) runs beside the UI thread before the question; a resumed release skips it."""
+        import queue
+        import threading
+
+        from agp_cockpit.core import release_read_check
+        version = str((inputs or {}).get("version") or "").strip()
+        if not release_read_check.needed(self.repository_root, version):
+            self.release_check_answer(task, inputs, None)
+            return
+        if getattr(self, "_release_check_pending", False):
+            return
+        self._release_check_pending = True
+        self.status_var.set(f"Release {version}: das Kit prüft die Release-Bereitschaft (release ready) …")
+        answers: queue.Queue = queue.Queue(maxsize=1)
+        root = self.repository_root
+
+        def ask() -> None:
+            try:
+                answers.put(release_read_check.read(root, version))
+            except Exception as exc:  # noqa: BLE001 - reported in the window, never raised
+                answers.put(release_read_check.ReadCheck(release_read_check.NO_ANSWER,
+                                                         reason=f"{type(exc).__name__}: {exc}"))
+
+        threading.Thread(target=ask, name="agp-release-read-check", daemon=True).start()
+
+        def poll() -> None:
+            try:
+                check = answers.get_nowait()
+            except queue.Empty:
+                self.after(250, poll)
+                return
+            self._release_check_pending = False
+            self.release_check_answer(task, inputs, check)
+
+        self.after(250, poll)
+
+    def release_check_answer(self, task: StandardTask, inputs: dict | None, check) -> bool:
+        """Ask only after the Kit's PASS (or for a resumed release, ``check`` None); otherwise show the Kit's
+        stop with its resolving command and start nothing."""
+        from agp_cockpit.core import release_read_check
+        version = str((inputs or {}).get("version") or "").strip()
+        if check is not None and not check.passed:
+            text = release_read_check.stop_text(check, version)
+            self.status_var.set(text.split("\n", 1)[0])
+            self._show_info(task.label, text)
+            return False
+        if check is not None:
+            self.status_var.set(f"Release {version}: Lese-Prüfung des Kits PASS (release ready).")
+        if task.confirm and not self.confirm(task):
+            self.status_var.set(f"{task.label} nicht gestartet.")
+            return False
+        return self.start_standard_task(task, inputs)
 
     def run_kit_adopt(self, task: StandardTask) -> None:
         """AGP_KIT_ADOPT_TASK_V1: ask the repository's Kit for its release answer beside the UI thread

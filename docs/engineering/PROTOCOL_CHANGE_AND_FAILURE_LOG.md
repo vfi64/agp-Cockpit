@@ -2129,3 +2129,23 @@ repeat once.
     allowed. `free_execute_flags` takes the flags to look for (default unchanged).
   - The Lage of a clean work branch with own commits says whether they are not published yet, published, or
     newer locally than origin.
+
+## 2026-11-15 — „Release“ runs the Kit's read check before it asks (C4, build release-0.4.1-r4)
+
+- Workflow-friction plan C4 (V11, live 2026-11-13): the owner approved Release 0.4.1, and only step A2 of the
+  Kit's release run found that its changelog gate rejected the Unreleased entry, after the approval.
+  - AGP_RELEASE_READ_CHECK_V1: after the version dialog and the local precheck the Release task runs the
+    repository's own Kit with `release ready --version <v> --json` beside the UI thread (step A2 of
+    `release run`, without summary lines: the Unreleased entries of a curated workspace are the summary, as in
+    the run). Only PASS leads to the question. Any other status, no answer or no Kit shows a window with the
+    Kit's stopped steps, check id and resolving command with its consent flag (G3), or the Kit's reason, and
+    nothing starts or is asked.
+  - The Cockpit judges nothing itself: `release_read_check.read` reads `result_status`, `blockers`, `check_id`
+    and the four route fields and never looks into the steps. Every status but PASS stops.
+  - A resumed release (main already names the version) skips the check; the Kit's run continues from its own
+    state.
+  - `release ready` starts with the Kit's `transfer sync-main` (a fetch); the Kit's manifest declares the
+    command without remote effect and the Cockpit's catalog lists it as a local orchestrator. The release run
+    does the same fetch at A1 after the click.
+  - The worker thread gets plain values only; the panel reads the answer on the UI thread
+    (AGP_TK_GC_ON_MAIN_THREAD_V1).
