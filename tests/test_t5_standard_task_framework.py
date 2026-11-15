@@ -3,6 +3,7 @@ Wiederherstellen as the R6 fallback, start-click approval, local verifiers."""
 
 import json
 import subprocess
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -615,7 +616,7 @@ def test_assistant_timeout_after_a_merged_finish_is_confirmed_locally(panel, mon
     assert widget._late_check is False
 
 
-def test_release_asks_its_version_then_approves_only_the_branch_lifecycle(panel):
+def test_release_asks_its_version_then_approves_only_the_branch_lifecycle(panel, monkeypatch):
     """P11 (owner 2026-10-04): the start click approves branch and merge; the tag
     push is outside the scope and always asks."""
     _root, widget, created, answers, repo, runtime = panel
@@ -626,7 +627,14 @@ def test_release_asks_its_version_then_approves_only_the_branch_lifecycle(panel)
     git(repo, "update-ref", "refs/remotes/origin/main", "main")
     widget.apply_state(_offered(rs.RELEASE))
     answers["inputs"] = {"version": "0.1.1"}
+    # AGP_RELEASE_READ_CHECK_V1: the Kit's read check says PASS, so the question follows.
+    from agp_cockpit.core import release_read_check as rc
+    monkeypatch.setattr(rc, "read", lambda _root, _version: rc.ReadCheck(rc.PASS, status="PASS"))
     widget.run_verb(VERBS[rs.RELEASE])
+    deadline = time.monotonic() + 5
+    while not created and time.monotonic() < deadline:
+        _root.update()
+        time.sleep(0.02)
     assert created and created[0]["title"] == "Standard · Release"
     assert "RELEASE 0.1.1" in created[0]["mission_text"]
     record = json.loads((runtime / "human-decision.json").read_text())

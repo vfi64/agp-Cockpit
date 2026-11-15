@@ -1060,7 +1060,8 @@ STANDARD_TASKS: tuple[StandardTask, ...] = (
         label="Release",
         description=("Release über das Kit: Release-Branch, Merge, Tag und GitHub-Release-Eintrag; mit "
                      "release.approval: upfront in einem Lauf (agentic-kit release run), sonst fragt der "
-                     "Tag-Push noch einmal."),
+                     "Tag-Push noch einmal. Vor der Rückfrage prüft das Kit die Release-Bereitschaft (release "
+                     "ready); ein Stopp zeigt sich mit dem behebenden Befehl des Kits, gefragt wird nur nach PASS."),
         contract_factory=_release_contract,
         prompt_factory=_release_prompt,
         effect="github",
