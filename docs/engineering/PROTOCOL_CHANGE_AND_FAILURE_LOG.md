@@ -2076,3 +2076,18 @@ repeat once.
   10 PRs without a refresh PR starts with this one.
 - The owner limited Claude's own test runs to targeted tests (2026-11-02). Full suites and real-wheel rehearsals run
   in CI, with Codex or locally on the owner's Mac.
+
+## 2026-11-15 — Kit 1.4.0 adopted by order 2297; „Kit übernehmen“ raises the build revision (C2, build release-0.4.1-r1)
+
+- Workflow-friction plan C2 (V7, PR #436): since Kit 1.4.0 the Kit's update writes the adoption line into
+  Unreleased in a curated workspace (Kit K4). The build-id rule (AGP_BUILD_ID_DERIVED_V1) then wants
+  `release-<version>-r<N>`, which only a follow-up PR set after the 1.3.0 adoption.
+  - AGP_KIT_ADOPT_BUILD_REVISION_V1: once the local verifier of „Kit übernehmen“ passed, the Cockpit raises its own
+    revision to (APP_VERSION, 1) in `version.py` and `build_identity.js` (`core/build_revision.py`). It acts only
+    with a pending Unreleased entry, only in the Cockpit's own checkout, and leaves a revision of the current
+    version alone; inconsistent identity files block the DONE instead of being guessed.
+  - The stale-app guard would have locked „Abschließen“ for that newer revision. On `chore/kit-<version>` a rebuild
+    id of the running app's own version is now a yellow note; after the merge main asks for the rebuild as before.
+- Kit 1.4.0 was adopted by order 2297 (owner decision 2026-11-15, option a: adoption and C2 in one PR), not by the
+  button. The installed Kit 1.3.0 plans the update and has no K4, so the order wrote the adoption line in K4's
+  wording; from 1.4.0 on the Kit writes it itself. C2 runs live first at the next adoption through the button.

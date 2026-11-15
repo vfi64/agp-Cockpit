@@ -5,7 +5,8 @@ KIND`` is only a request: the bridge runs the named verifier against the
 local repository and accepts DONE only when it passes; otherwise the task
 continues with the finding (bounded by MAX_CHECKS, then NEEDS_HUMAN).
 Verifiers read local git state (and, for "recovered", the Cockpit's own
-Lagebericht); they never call the remote side.
+Lagebericht); they never call the remote side. The one write: a passing
+"kit-adopted" raises the Cockpit's own build revision (AGP_KIT_ADOPT_BUILD_REVISION_V1).
 """
 
 from __future__ import annotations
@@ -169,6 +170,23 @@ def verify_kit_adopted(root: Path, *, branch: str, version: str, runner=subproce
     return True, f"Kit {version} installed and pinned on {branch}; finish with Abschließen"
 
 
+def complete_kit_adoption(root: Path, verified: bool, finding: str) -> tuple[bool, str]:
+    """AGP_KIT_ADOPT_BUILD_REVISION_V1 (plan C2): after a passing adoption check the Cockpit raises its
+    own build revision when the adoption left an Unreleased line (Kit K4), so the branch that
+    „Abschließen“ publishes passes the build-id rule without a follow-up PR. The one local write of a
+    verifier; it touches only the Cockpit's own build identity files and is idempotent."""
+    if not verified:
+        return verified, finding
+    from agp_cockpit.core import build_revision
+    try:
+        changed = build_revision.align(root)
+    except (OSError, build_revision.RevisionError) as exc:
+        return False, f"the build revision could not follow the adoption: {exc}"
+    if changed:
+        finding += f"; build revision raised for the Unreleased entry ({', '.join(changed)})"
+    return True, finding
+
+
 def verify(root: Path, contract: dict, **kw) -> tuple[bool, str]:
     name = str(contract.get("verifier") or "")
     params = dict(contract.get("params") or {})
@@ -182,8 +200,10 @@ def verify(root: Path, contract: dict, **kw) -> tuple[bool, str]:
         return verify_maintained(Path(root), branch=str(params.get("branch") or ""),
                                  runner=kw.get("runner", subprocess.run))
     if name == "kit-adopted":
-        return verify_kit_adopted(Path(root), branch=str(params.get("branch") or ""),
-                                  version=str(params.get("version") or ""), runner=kw.get("runner", subprocess.run))
+        verified, finding = verify_kit_adopted(Path(root), branch=str(params.get("branch") or ""),
+                                               version=str(params.get("version") or ""),
+                                               runner=kw.get("runner", subprocess.run))
+        return complete_kit_adoption(Path(root), verified, finding)
     if name == "recovered":
         return verify_recovered(Path(root), lagebericht=kw.get("lagebericht"))
     return False, f"unknown standard verifier {name!r}"

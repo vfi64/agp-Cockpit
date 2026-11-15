@@ -85,6 +85,22 @@ def _release_in_progress(root: Path, source: str, running: str) -> str:
     return version
 
 
+def _kit_adoption_in_progress(root: Path, source: str, running: str) -> str:
+    """AGP_KIT_ADOPT_BUILD_REVISION_V1 (plan C2): after „Kit übernehmen“ the Cockpit raises its own
+    build revision on chore/kit-<v> (release-<app>-r<N>); the adoption changes no app code, so the
+    newer revision of the running app's own version is no reason to lock „Abschließen“. The Kit
+    version <v>, else ""."""
+    branch = current_branch(root)
+    if not branch.startswith("chore/kit-"):
+        return ""
+    found, now = _BUILD.match(source), _BUILD.match(str(running or ""))
+    if not found or not now or found.group(1) != now.group(1) or not found.group(2):
+        return ""
+    if build_order(source, running) != 1:
+        return ""
+    return branch[len("chore/kit-"):]
+
+
 def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
           frozen: bool | None = None) -> BuildFreshness:
     root = Path(repository_root)
@@ -103,6 +119,11 @@ def check(repository_root: Path, running: str = BRIDGE_BUILD_ID, *,
         return BuildFreshness(running, bundle, source, False, "",
                               note=f"Release {releasing} läuft — die neue Version gilt nach dem Release; "
                                    "erst dann neu bauen.")
+    adopting = _kit_adoption_in_progress(root, source, running) if source else ""
+    if adopting:
+        return BuildFreshness(running, bundle, source, False, "",
+                              note=f"Kit {adopting} wird übernommen — der neue Build ({source}) gilt nach dem "
+                                   "Merge; erst dann neu bauen.")
     if source and source != running and order == 1 and source == _release_id(source):
         return BuildFreshness(running, bundle, source, True,
                               f"Release {_BUILD.match(source).group(1)} ist im Quellstand, die App läuft noch "

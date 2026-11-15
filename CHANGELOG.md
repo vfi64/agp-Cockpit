@@ -6,6 +6,9 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Adopt Agentic Project Kit 1.4.0 (previously 1.3.0).
+- „Kit übernehmen“ raises the Cockpit’s own build revision once its local check passed, so an adoption that leaves an Unreleased line (Kit 1.4.0, K4) needs no follow-up PR; on chore/kit-<version> the stale-app guard shows that revision as a note instead of locking „Abschließen“ (plan C2).
+
 ## v0.4.1 - 2026-11-13
 
 - Kit 1.3.0 adopted through „Kit übernehmen“ (#435): CI pins, rule inventory, handoff projections and command reference follow 1.3.0; the Cockpit itself is unchanged.
