@@ -2091,3 +2091,23 @@ repeat once.
 - Kit 1.4.0 was adopted by order 2297 (owner decision 2026-11-15, option a: adoption and C2 in one PR), not by the
   button. The installed Kit 1.3.0 plans the update and has no K4, so the order wrote the adoption line in K4's
   wording; from 1.4.0 on the Kit writes it itself. C2 runs live first at the next adoption through the button.
+
+## 2026-11-15 — The release rule reads calls, not text (C1, build release-0.4.1-r2)
+
+- Workflow-friction plan C1 (V10): the release rule (`core/release_policy.py`) and the dry-run exemption of the
+  remote-effect check (`core/kit_command_catalog.py`, AGP_RELEASE_DRY_RUN_FREE_V1) looked for `--execute` and the
+  other execute flags anywhere in the work order's text. A docstring that described the later live run turned the
+  dry run into a live run: the order was rejected for a missing signature or asked for an approval it did not need,
+  and the rejection named neither the call nor the line.
+  - AGP_RELEASE_RULE_CALLS_V1: both checks read the calls in the syntax tree, as `destructive_execute_commands`
+    does. A call counts as live when it writes an execute flag itself, or when an execute flag stands free in the
+    code — a string that begins with an option outside every recognised call (`ARGV += ["--execute"]`,
+    `run(*ARGS, "--execute")`), because it can be appended at run time. Docstrings, prose strings (a pull-request
+    body) and the flags of other recognised calls do not count. The marker-file check reads code strings only.
+  - Every rejection of the release rule names the call and its line (`line N: agentic-kit release-publish …`); a
+    call that counts as live only through a free flag also names that flag's line. `gh release …` and forbidden
+    Kit calls name their lines as well.
+  - Unchanged on purpose: the forbidden-host check still reads every string (a docstring that names zenodo.org is
+    still rejected), and `forbidden_execute_violations` (workspace ci-update) still treats `--execute` anywhere as a
+    hidden flag when the call has a computed argument. The Cockpit's invocation guard checks every real call at run
+    time as before.
