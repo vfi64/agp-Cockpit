@@ -901,6 +901,9 @@ equal to origin/main, or {branch} is checked out, contains origin/main and carri
 # The task adopts exactly the version the owner confirmed: work start on chore/kit-<version>, the Kit's
 # `kit update --version <version>` as a plan, the owner approves its signed execute (gated in code:
 # AGP_OWNER_DECISION_EXECUTE_V1 lists `kit update`), the changes stay on the branch for „Abschließen“.
+# AGP_KIT_ADOPT_BUILD_REVISION_V1 (plan C2): since Kit 1.4.0 the update writes the adoption line into
+# Unreleased (K4); the passing verifier then raises the Cockpit's own build revision on the same branch
+# (core/build_revision.py), so the PR passes the build-id rule without a follow-up (V7, PR #436).
 _KIT_VERSION = __import__("re").compile(r"^\d+\.\d+\.\d+(?:\.post\d+)?$")
 
 
@@ -943,6 +946,8 @@ def _kit_adopt_contract(root: Path, inputs: dict) -> dict:
         "acceptance_criteria": [
             (f"{branch} contains origin/main, carries the update's changes, the installed Kit is {version} and "
              f"every CI pin names {version}."),
+            ("After the local check passed the Cockpit raises its own build revision when the update left an "
+             "Unreleased line (AGP_KIT_ADOPT_BUILD_REVISION_V1)."),
         ],
         "constraints": ["The signed execute of the update only after the human approved exactly it.",
                         "No pull request (Abschließen publishes).",
@@ -978,7 +983,8 @@ through the Kit's work-start route. The signed execute of the update and every r
 decision.
 {{common}}
 Completion is verified locally: DONE is accepted only when {branch} is checked out, contains origin/main,
-carries changes, the installed Kit is {version} and every CI pin names {version}.
+carries changes, the installed Kit is {version} and every CI pin names {version}. When the update left an
+Unreleased line, the Cockpit then raises its own build revision on {branch} itself (do not edit any file).
 """.replace("{common}", _COMMON)
 
 

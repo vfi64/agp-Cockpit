@@ -1,6 +1,6 @@
 schema_version: 2
 kind: external_kit_rule_mechanism_inventory
-kit_version: 1.3.0
+kit_version: 1.4.0
 mechanisms:
 - id: workspace-contract
   status: active
@@ -33,7 +33,7 @@ mechanisms:
     package: agentic_project_kit
     module: command_manifest.py
     symbol: evaluate_command_manifest
-    sha256: c64dca1b311a7e36ea7ab487300e9e8d75d43572194bf4167f24ac5bd6d2dc5d
+    sha256: a5128dd4581df77682d8746bc8efaad7b7deba36f757cf593d03108d10f7b63a
   surface:
     path: docs/reference/agentic-kit-commands.json
     required_anchor: agentic_kit_command_reference
@@ -41,4 +41,4 @@ mechanisms:
 excluded:
 - id: project-rule-capsules
   reason: no-project-registration-semantics-inferred-from-prose-or-empty-registry
-projection_sha256: c24bb8847358058ae09ed3fd17db910f2df4a61a9a00f7ae2108cd19910bb6bc
+projection_sha256: 67a77c41090f41ee2a1bacafff86a535d06513ce007b8efa16424ea24f676db2

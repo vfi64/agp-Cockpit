@@ -1,6 +1,6 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: c50035614231
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 236cd9a4df4b
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
@@ -1502,7 +1502,7 @@ Run a governed planner intent through Kit-owned execution surfaces.
 - Surface: `orchestrator`
 - When to use: Create and push a GitHub repository for an initialized project.
 - Dry-run available: `False`
-- Remote effects: `release_publish`
+- Remote effects: `push`, `release_publish`
 
 Create and push a GitHub repository for an initialized project.
 
@@ -1511,6 +1511,8 @@ Create and push a GitHub repository for an initialized project.
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `owner` | `TyperOption` | --owner | `False` |  |  |
 | `visibility` | `TyperOption` | --visibility | `False` | `private` |  |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print one JSON result; never ask. |
+| `confirm_public` | `TyperOption` | --confirm-public | `False` | `False` | Approve a public repository without the interactive question (required with --json). |
 
 ### `agentic-kit governance check`
 
@@ -1598,7 +1600,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.3.0` |  |
+| `version` | `TyperOption` | --version | `False` | `1.4.0` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -1667,7 +1669,7 @@ _No parameters._
 - Surface: `orchestrator`
 - When to use: Create a governed project skeleton with selected profiles and policy packs.
 - Dry-run available: `False`
-- Remote effects: `none`
+- Remote effects: `push`, `release_publish`
 
 Create a governed project skeleton with selected profiles and policy packs.
 
@@ -1687,6 +1689,8 @@ Create a governed project skeleton with selected profiles and policy packs.
 | `github_owner` | `TyperOption` | --owner | `False` |  |  |
 | `visibility` | `TyperOption` | --visibility | `False` | `private` | private or public |
 | `kit_source` | `TyperOption` | --kit-source | `False` | `pypi` | agentic-kit install source for generated CI: pypi, testpypi, or none |
+| `json_output` | `TyperOption` | --json | `False` | `False` | Print one JSON result; never ask. |
+| `confirm_public` | `TyperOption` | --confirm-public | `False` | `False` | Approve a public GitHub repository without the interactive question (required with --json). |
 
 ### `agentic-kit instruction lint`
 
@@ -2204,7 +2208,8 @@ Generate deterministic evidence-backed release notes from a local git tag diff.
 |---|---:|---|---:|---|---|
 | `project_root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
 | `version` | `TyperOption` | --version | `True` |  | Target release version without leading v. |
-| `from_tag` | `TyperOption` | --from-tag | `True` |  | Previous release tag used as the lower diff bound. |
+| `from_tag` | `TyperOption` | --from-tag | `False` | `` | Previous release tag used as the lower diff bound. |
+| `first_release` | `TyperOption` | --first-release | `False` | `False` | First release without a previous v* tag: notes start at the root commit and list commits without a PR number as direct (KIT-GF-118). |
 | `to_ref` | `TyperOption` | --to-ref | `False` | `HEAD` | Upper git ref used for release-note evidence. |
 | `json_out` | `TyperOption` | --json-out | `False` |  | Write generated JSON release notes here. |
 | `out` | `TyperOption` | --out | `False` |  | Write generated Markdown release notes here. |
@@ -2278,7 +2283,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.3.0` |  |
+| `version` | `TyperOption` | --version | `False` | `1.4.0` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2605,7 +2610,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.3.0` |  |
+| `version` | `TyperOption` | --version | `False` | `1.4.0` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -3767,7 +3772,8 @@ Run a bounded scan for known workflow standard errors before patch/transfer/rele
 |---|---:|---|---:|---|---|
 | `before_release` | `TyperOption` | --before-release | `False` | `False` | Run the release-oriented standard-error scan bundle. |
 | `version` | `TyperOption` | --version | `False` | `` | Release version for before-release checks. Required with --before-release. |
-| `from_tag` | `TyperOption` | --from-tag | `False` | `` | Previous release tag for release notes checks. Defaults to the latest local v* git tag. |
+| `from_tag` | `TyperOption` | --from-tag | `False` | `` | Previous release tag for release notes checks. Defaults to the latest local v* git tag; without one the scan checks the first release (KIT-GF-118). |
+| `first_release` | `TyperOption` | --first-release | `False` | `False` | Check the first release: release notes from the root commit (KIT-GF-118). |
 | `to_ref` | `TyperOption` | --to-ref | `False` | `main` | Target ref for release notes checks. |
 | `date` | `TyperOption` | --date | `False` | `` | Release date for release-prep dry-run. Defaults to today. |
 | `summary_lines` | `TyperOption` | --summary-line | `False` |  | Additional release changelog summary line for the release-prep dry-run (KIT-GF-045). Repeatable. |
@@ -4412,6 +4418,7 @@ Plan or create a bounded operating-layer workspace.
 | `expected_signature` | `TyperOption` | --expected-signature | `False` | `` | Reviewed recovery plan signature. |
 | `approved_by` | `TyperOption` | --approved-by | `False` | `` | Maintainer approving recovery. |
 | `consent_source` | `TyperOption` | --consent-source | `False` | `` | Source of explicit recovery consent. |
+| `publication` | `TyperOption` | --publication | `False` |  | Publication policy for the manifest: none, github, github+pypi, or github+pypi+zenodo (default). |
 
 ### `agentic-kit workspace remove`
 
