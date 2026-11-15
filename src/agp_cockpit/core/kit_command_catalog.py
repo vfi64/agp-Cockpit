@@ -312,9 +312,9 @@ def _literal(element: ast.AST, constants: dict[str, str]) -> str | None:
     return None
 
 
-def _invocations(tree: ast.AST) -> list[list[str]]:
-    """argv-like invocations written as string lists/tuples or command strings."""
-    found: list[list[str]] = []
+def _invocation_nodes(tree: ast.AST) -> list[tuple[ast.AST, list[str]]]:
+    """The syntax-tree node of every argv-like invocation, with its argv (see ``_invocations``)."""
+    found: list[tuple[ast.AST, list[str]]] = []
     constants = module_string_constants(tree)
     for node in ast.walk(tree):
         if isinstance(node, (ast.List, ast.Tuple)) and node.elts:
@@ -323,17 +323,28 @@ def _invocations(tree: ast.AST) -> list[list[str]]:
             if values and len(values) == len(node.elts) and _is_tool_list(values):
                 continue
             if values and len(values) == len(node.elts):
-                found.append(values)
+                found.append((node, values))
             elif node.elts and literal[0] is not None:
-                found.append([v if v is not None else "<expr>" for v in literal])
+                found.append((node, [v if v is not None else "<expr>" for v in literal]))
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             text = node.value.strip()
             if text.startswith(("agentic-kit ", "git ", "gh ")):
                 try:
-                    found.append(shlex.split(text))
+                    found.append((node, shlex.split(text)))
                 except ValueError:
-                    found.append(text.split())
+                    found.append((node, text.split()))
     return found
+
+
+def _invocations(tree: ast.AST) -> list[list[str]]:
+    """argv-like invocations written as string lists/tuples or command strings."""
+    return [argv for _, argv in _invocation_nodes(tree)]
+
+
+def _located_invocations(tree: ast.AST) -> list[tuple[list[str], int]]:
+    """AGP_RELEASE_RULE_CALLS_V1: every invocation with the line it starts on, so a rejection can
+    name the call and its line."""
+    return [(argv, getattr(node, "lineno", 0)) for node, argv in _invocation_nodes(tree)]
 
 
 def _program(token: str) -> str:
@@ -359,25 +370,79 @@ def kit_commands_used(source: str, catalog: KitCommandCatalog | None) -> list[di
     return [found[name] for name in sorted(found)]
 
 
-def _may_execute(source: str) -> bool:
-    """Any execute-related flag anywhere in the work order counts (the Kit itself
-    executes only with --execute, --allow-execute and a matching signature)."""
-    return any(flag in source for flag in EXECUTE_FLAGS)
+def _subcommands(argv: list[str]) -> list[str]:
+    """The subcommand words of an agentic-kit call: everything before its first option or computed value."""
+    words = []
+    for token in argv[1:]:
+        if token.startswith("-") or token == "<expr>":
+            break
+        words.append(token)
+    return words
+
+
+def call_flags(argv: list[str]) -> set[str]:
+    """The option names a call writes literally (``--flag`` and ``--flag=value``)."""
+    return {token.split("=", 1)[0] for token in argv[1:] if token.startswith("-")}
+
+
+def render_call(argv: list[str], limit: int = 160) -> str:
+    text = " ".join(argv)
+    return text if len(text) <= limit else text[:limit - 3] + "..."
+
+
+def free_execute_flags(tree: ast.AST) -> list[tuple[str, int]]:
+    """AGP_RELEASE_RULE_CALLS_V1 (workflow-friction plan C1, V10): execute flags that stand on their own
+    in the code, with their line.
+
+    Before, any execute flag anywhere in the work order counted, a docstring or a pull-request body
+    included, so a dry run next to a text that explained the live run was rejected or asked for an
+    approval. Now a flag counts for a call when the call writes it, or when it stands outside every
+    recognised call as a string that begins with an option (``ARGV += ["--execute"]``,
+    ``run(*ARGS, "--execute")``): such a string can reach any call at run time. Docstrings and prose
+    (a string that does not begin with ``-``) do not count; the Cockpit's invocation guard still checks
+    every real call when it runs."""
+    skip = {id(node.value) for node in ast.walk(tree)
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)}
+    for node, argv in _invocation_nodes(tree):
+        if isinstance(node, ast.Constant):
+            skip.add(id(node))
+        elif _program(argv[0]) in TOOL_NAMES:
+            skip.update(id(element) for element in node.elts)
+    found = []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Constant) and isinstance(node.value, str)) or id(node) in skip:
+            continue
+        text = node.value.strip()
+        if text.startswith("-"):
+            found += [(flag, node.lineno) for flag in sorted(call_flags(["", *text.split()]) & set(EXECUTE_FLAGS))]
+    return found
+
+
+def call_may_execute(argv: list[str], free: list[tuple[str, int]], flags: tuple[str, ...] = EXECUTE_FLAGS) -> bool:
+    """A call may run live when it writes one of ``flags`` itself or one stands free in the code."""
+    return bool(call_flags(argv) & set(flags)) or any(flag in flags for flag, _ in free)
 
 
 def remote_effect_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
     """Qualified names of remote-effect Kit commands used by a work order."""
     if catalog is None:
         return []
-    found = []
-    for command in kit_commands_used(source, catalog):
-        if not catalog.has_remote_effect(command):
+    tree = ast.parse(source)
+    free = free_execute_flags(tree)
+    found = set()
+    for argv in _invocations(tree):
+        if _program(argv[0]) != "agentic-kit":
+            continue
+        words = _subcommands(argv)
+        command = catalog.resolve(words) if words else None
+        if command is None or not catalog.has_remote_effect(command):
             continue
         path = " ".join(str(p) for p in command["path"])
-        if path in EXECUTE_GATED_REMOTE_COMMANDS and not _may_execute(source):
-            continue   # AGP_RELEASE_DRY_RUN_FREE_V1
-        found.append(command["qualified_name"])
-    return found
+        if path in EXECUTE_GATED_REMOTE_COMMANDS and not call_may_execute(argv, free):
+            continue   # AGP_RELEASE_DRY_RUN_FREE_V1; AGP_RELEASE_RULE_CALLS_V1: per call
+        found.add(command["qualified_name"])
+    return sorted(found)
 
 
 def destructive_execute_commands(source: str, catalog: KitCommandCatalog | None) -> list[str]:
