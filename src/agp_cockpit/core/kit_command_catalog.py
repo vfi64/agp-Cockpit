@@ -390,7 +390,7 @@ def render_call(argv: list[str], limit: int = 160) -> str:
     return text if len(text) <= limit else text[:limit - 3] + "..."
 
 
-def free_execute_flags(tree: ast.AST) -> list[tuple[str, int]]:
+def free_execute_flags(tree: ast.AST, flags: tuple[str, ...] = EXECUTE_FLAGS) -> list[tuple[str, int]]:
     """AGP_RELEASE_RULE_CALLS_V1 (workflow-friction plan C1, V10): execute flags that stand on their own
     in the code, with their line.
 
@@ -400,7 +400,7 @@ def free_execute_flags(tree: ast.AST) -> list[tuple[str, int]]:
     recognised call as a string that begins with an option (``ARGV += ["--execute"]``,
     ``run(*ARGS, "--execute")``): such a string can reach any call at run time. Docstrings and prose
     (a string that does not begin with ``-``) do not count; the Cockpit's invocation guard still checks
-    every real call when it runs."""
+    every real call when it runs. AGP_FINISH_PUBLISH_EXISTING_V1 (plan C3) asks the same for ``--path``."""
     skip = {id(node.value) for node in ast.walk(tree)
             if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
             and isinstance(node.value.value, str)}
@@ -415,7 +415,7 @@ def free_execute_flags(tree: ast.AST) -> list[tuple[str, int]]:
             continue
         text = node.value.strip()
         if text.startswith("-"):
-            found += [(flag, node.lineno) for flag in sorted(call_flags(["", *text.split()]) & set(EXECUTE_FLAGS))]
+            found += [(flag, node.lineno) for flag in sorted(call_flags(["", *text.split()]) & set(flags))]
     return found
 
 

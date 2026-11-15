@@ -236,12 +236,39 @@ Kit's gates and complete the Kit's post-merge lifecycle, so that local main equa
 The human approved exactly these effects by starting this standard task (publishing, pull
 request, merge, post-merge closeout, main synchronization): do not ask NEEDS_HUMAN for them.
 Any other remote effect still needs a decision. Never force-push; never merge red CI.
-{_pr_category_rule(root)}{_COMMON}
+{_existing_commits_rule(root)}{_pr_category_rule(root)}{_COMMON}
 Completion is verified locally: DONE is accepted only after the Cockpit checked that the pull
 request is merged with green CI, the post-merge check passes and main is green. Name the pull
 request as "pr" in the DONE file. Run the lifecycle once; do not open another pull request for a
 branch the facts report as already merged.
 """
+
+
+_PUBLISHED = {"none": "not published yet", "head": "published; origin is at HEAD",
+              "older": "published; origin has an older commit of the branch"}
+
+
+def _existing_commits_rule(root: Path) -> str:
+    """AGP_FINISH_PUBLISH_EXISTING_V1 (workflow-friction plan C3, V8): the work is committed and
+    the branch is clean. The prompt states this verified fact and what the installed Kit can do with
+    it (K1, Kit 1.4.0); it names no Kit command, the remote side chooses from the digest (T5)."""
+    from agp_cockpit.core import finish_guard
+    found = finish_guard.existing_commits(root)
+    if found is None:
+        return ""
+    head = (f"Situation (Cockpit-verified, AGP_FINISH_PUBLISH_EXISTING_V1): the work branch is clean and "
+            f"carries {found['commits']} commit(s) that origin/main lacks ({_PUBLISHED[found['published']]}). "
+            "Nothing is to be committed.\n")
+    from agp_cockpit.core.kit_installation import discover
+    kit = discover(Path(root))
+    version = kit.version if kit is not None else ""
+    if finish_guard.kit_publishes_existing(version) is False:
+        return head + (f"The installed Kit {version} cannot publish existing commits without a path selection "
+                       "(K1 needs Kit 1.4.0): stop with NEEDS_HUMAN and name „Kit übernehmen“.\n")
+    return head + ("The Kit's finish orchestrator publishes existing commits when it gets no path option (K1, "
+                   "Kit 1.4.0): it pushes the branch, opens its pull request or continues the open one, waits "
+                   "for green CI and merges. Give it no path and run no commit primitive; a work order that "
+                   "does either is rejected before it runs.\n")
 
 
 def _finish_followup_prompt(root: Path) -> str:
