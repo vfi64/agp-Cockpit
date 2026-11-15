@@ -58,11 +58,21 @@ def test_facts_are_derived_from_the_repository(repo):
     assert facts["kit_findings_latest"] == "KIT-GF-043"
 
 
+def _clone(source, target, *extra):
+    subprocess.run(["git", "clone", "-q", *extra, source.as_uri(), str(target)], check=True, capture_output=True)
+    return target
+
+
 def test_write_then_check_is_clean_and_carries_the_start_rules(repo, capsys):
-    assert handoff.main(["--root", str(repo), "write", "--host-root", "/Users/x/GitHub/agp-Cockpit"]) == 0
+    """AGP_CLAUDE_HANDOFF_CLONES_V1: the start rules name clones and no folder of the owner's computer."""
+    assert handoff.main(["--root", str(repo), "write"]) == 0
     written = Path(capsys.readouterr().out.strip())
     text = written.read_text(encoding="utf-8")
-    assert "/Users/x/GitHub/agentic-project-kit" in text
+    assert "Fordere keinen Ordnerzugriff an." in text
+    assert "Klone vfi64/agp-cockpit und vfi64/agentic-project-kit anonym und vollständig (ohne --depth)" in text
+    assert "`python3 scripts/claude_handoff.py check <Pfad der Übergabe>`" in text
+    assert "Zugriff auf" not in text and "anfordern" not in text
+    assert str(repo) not in text
     assert "Session-ID für Commit-Trailer kommt aus der eigenen Umgebung" in text
     assert handoff.main(["--root", str(repo), "check"]) == 0
     assert "Fakten unverändert." in capsys.readouterr().out
@@ -100,3 +110,34 @@ def test_tagged_notes_are_kept(repo, tmp_path):
 def test_a_file_without_facts_block_is_an_error():
     with pytest.raises(handoff.HandoffError):
         handoff.parse_facts("# hand-written handoff\n")
+
+
+def test_the_host_root_option_is_gone(repo):
+    with pytest.raises(SystemExit) as stopped:
+        handoff.main(["--root", str(repo), "write", "--host-root", "/Users/x/GitHub/agp-Cockpit"])
+    assert stopped.value.code == 2
+
+
+def test_a_handoff_written_in_one_clone_checks_clean_in_a_fresh_clone(repo, tmp_path, capsys):
+    """Premise of C6: the facts of a full clone match between two chats when the repository did not change."""
+    first, second = _clone(repo, tmp_path / "first"), _clone(repo, tmp_path / "second")
+    out = tmp_path / "handoff.md"
+    assert handoff.main(["--root", str(first), "write", "--output", str(out)]) == 0
+    facts = handoff.parse_facts(out.read_text(encoding="utf-8"))
+    assert facts["origin_main"] == facts["head"] and facts["worktree_clean"] is True
+    capsys.readouterr()
+    assert handoff.main(["--root", str(second), "check", str(out)]) == 0
+    assert "Fakten unverändert." in capsys.readouterr().out
+
+
+def test_check_in_a_clone_without_a_file_asks_for_the_attachment(repo, tmp_path, capsys):
+    clone = _clone(repo, tmp_path / "clone")
+    assert handoff.main(["--root", str(clone), "check"]) == 2
+    assert "in a clone pass the handoff file (attachment or project file) as argument" in capsys.readouterr().err
+
+
+def test_a_shallow_clone_is_refused(repo, tmp_path, capsys):
+    clone = _clone(repo, tmp_path / "shallow", "--depth", "1")
+    assert handoff.main(["--root", str(clone), "write", "--output", str(tmp_path / "h.md")]) == 2
+    assert "shallow clone; clone without --depth" in capsys.readouterr().err
+    assert not (tmp_path / "h.md").exists()

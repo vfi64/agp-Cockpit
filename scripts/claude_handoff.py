@@ -7,6 +7,12 @@ trailers and stated a guess as a fact. The facts block is therefore generated
 from the repository, the next chat re-checks it, and free-text notes must carry
 an explicit tag.
 
+AGP_CLAUDE_HANDOFF_CLONES_V1 (2026-11-15, plan C6, V12): the owner grants no
+folder access. Both chats work in anonymous full clones of the Cockpit and the
+Kit; the handoff file travels as an attachment or project file and is passed to
+`check` by path. A shallow clone is refused, because its tag and history facts
+would differ without any change in the repository.
+
   write  collect the facts, merge tagged notes, write the handoff file
   check  recompute the facts and report every difference to a handoff file
 
@@ -27,7 +33,8 @@ from pathlib import Path
 HANDOFF_DIR = Path(".local/agp-cockpit/handoff")
 FACTS_BEGIN = "<!-- AGP_CLAUDE_HANDOFF_FACTS_V1 -->"
 NOTE_TAGS = ("[belegt: ", "[Vermutung]", "[Nächster Schritt]", "[Owner]")
-KIT_FOLDER_NAME = "agentic-project-kit"
+COCKPIT_REPO = "vfi64/agp-cockpit"
+KIT_REPO = "vfi64/agentic-project-kit"
 
 
 class HandoffError(Exception):
@@ -62,6 +69,8 @@ def _build_id(path: Path, label: str) -> str:
 
 def collect_facts(root: Path) -> dict:
     """Facts the next chat can re-derive from the repository alone."""
+    if _git(root, "rev-parse", "--is-shallow-repository") == "true":
+        raise HandoffError(f"{root} is a shallow clone; clone without --depth so tags and history match")
     status = _git(root, "status", "--porcelain")
     version = root / "src/agp_cockpit/version.py"
     protocol = (root / "docs/planning/COMMUNICATION_PROTOCOL.md").read_text(encoding="utf-8")
@@ -111,13 +120,13 @@ def _facts_json(facts: dict) -> str:
     return "{\n" + body + "\n}"
 
 
-def render(facts: dict, notes: list[str], host_root: str, created: str) -> str:
-    kit_root = str(Path(host_root).parent / KIT_FOLDER_NAME)
+def render(facts: dict, notes: list[str], created: str) -> str:
     start = (
-        f"Neuer Claude-Chat für AGP Cockpit. Fordere zuerst Zugriff auf `{host_root}` und "
-        f"`{kit_root}` an. Führe dann `python3 scripts/claude_handoff.py check` im Repository aus, "
-        "lies die neueste `.local/agp-cockpit/handoff/CLAUDE_HANDOFF_*.md` vollständig und bestätige "
-        "den Stand samt jeder Abweichung des Checks, bevor du etwas änderst."
+        f"Neuer Claude-Chat für AGP Cockpit. Fordere keinen Ordnerzugriff an. Klone {COCKPIT_REPO} und "
+        f"{KIT_REPO} anonym und vollständig (ohne --depth) und nenne beide Commits. Lege diese Übergabe "
+        "(Anhang oder Projektdatei) als Datei ab, führe im Cockpit-Klon "
+        "`python3 scripts/claude_handoff.py check <Pfad der Übergabe>` aus, lies die Übergabe vollständig "
+        "und bestätige den Stand samt jeder Abweichung des Checks, bevor du etwas änderst."
     )
     lines = [
         f"# Claude-Übergabe AGP Cockpit — {created}",
@@ -131,7 +140,8 @@ def render(facts: dict, notes: list[str], host_root: str, created: str) -> str:
         "",
         "## Feste Regeln für den Start",
         "",
-        f"- Verbundene Ordner sind in einer neuen Cowork-Sitzung nicht vorhanden: `{host_root}` und `{kit_root}` zuerst anfordern.",
+        "- Kein Ordnerzugriff: Autorität ist der eigene Klon beim genannten Commit; der Rechner des Owners wird nicht gelesen.",
+        "- Die Übergabe liegt nicht im Repository (`.local/` ist ignoriert); sie kommt als Anhang oder Projektdatei.",
         "- Die Session-ID für Commit-Trailer kommt aus der eigenen Umgebung (Systemhinweis), nie aus dieser Datei.",
         "- Was unter „Notizen“ nicht [belegt: …] ist, ist eine Vermutung und wird vor Gebrauch geprüft.",
         "",
@@ -166,7 +176,8 @@ def compare(recorded: dict, current: dict) -> list[str]:
 def newest_handoff(root: Path) -> Path:
     files = sorted((root / HANDOFF_DIR).glob("CLAUDE_HANDOFF_*.md"))
     if not files:
-        raise HandoffError(f"no CLAUDE_HANDOFF_*.md in {root / HANDOFF_DIR}")
+        raise HandoffError(f"no CLAUDE_HANDOFF_*.md in {root / HANDOFF_DIR}; in a clone pass the handoff "
+                           "file (attachment or project file) as argument")
     return files[-1]
 
 
@@ -176,7 +187,6 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     write = sub.add_parser("write")
     write.add_argument("--notes", help="markdown file with tagged bullet notes")
-    write.add_argument("--host-root", help="repository path on the owner's computer (default: --root)")
     write.add_argument("--output", help="handoff file (default: .local/agp-cockpit/handoff/CLAUDE_HANDOFF_<UTC time>.md)")
     check = sub.add_parser("check")
     check.add_argument("handoff", nargs="?", help="handoff file (default: newest)")
@@ -189,7 +199,7 @@ def main(argv: list[str] | None = None) -> int:
             created = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H%MZ")
             output = Path(args.output) if args.output else root / HANDOFF_DIR / f"CLAUDE_HANDOFF_{created}.md"
             output.parent.mkdir(parents=True, exist_ok=True)
-            output.write_text(render(facts, notes, args.host_root or str(root), created), encoding="utf-8")
+            output.write_text(render(facts, notes, created), encoding="utf-8")
             print(output)
             return 0
         target = Path(args.handoff) if args.handoff else newest_handoff(root)

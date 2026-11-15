@@ -148,14 +148,18 @@ Live 2026-10-05: a hand-written Claude handoff claimed connected folders the new
 Cowork session did not have, carried the old session id for commit trailers and
 stated a guess as a fact. Therefore:
 
-- Before a chat switch, write the handoff with
-  `python3 scripts/claude_handoff.py write --host-root <repository path on the owner's computer> --notes <notes.md>`.
-  It writes `.local/agp-cockpit/handoff/CLAUDE_HANDOFF_<UTC>.md` (local, not committed): a start
+- AGP_CLAUDE_HANDOFF_CLONES_V1 (plan C6): the owner grants no folder access. Claude works in
+  anonymous full clones (no `--depth`) of `vfi64/agp-cockpit` and `vfi64/agentic-project-kit` and
+  names both commits; the owner's computer is not read.
+- Before a chat switch, write the handoff in the Cockpit clone with
+  `python3 scripts/claude_handoff.py write --notes <notes.md> --output <file>`.
+  It writes (default `.local/agp-cockpit/handoff/CLAUDE_HANDOFF_<UTC>.md`, local, not committed): a start
   sentence for the owner, fixed start rules and a facts block derived from the repository
   (branch, HEAD, origin/main, build ids, Kit CI pin, command manifest SHA, last protocol rule,
   last failure-log entry, Kit findings status). Every note bullet must be tagged
   `[belegt: <ref>]`, `[Vermutung]`, `[Nächster Schritt]` or `[Owner]`; untagged notes are refused.
-- A new chat first requests access to the Cockpit and Kit folders, then runs
-  `python3 scripts/claude_handoff.py check` (newest handoff by default; exit 1 lists every fact
+  A shallow clone is refused. The file reaches the next chat as an attachment or project file.
+- A new chat clones both repositories, stores the handoff as a file and runs
+  `python3 scripts/claude_handoff.py check <handoff file>` in the Cockpit clone (exit 1 lists every fact
   that differs) and confirms the state including each difference before changing anything.
 - The commit-trailer session id always comes from the current session, never from a handoff.
