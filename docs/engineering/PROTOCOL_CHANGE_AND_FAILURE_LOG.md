@@ -2166,3 +2166,17 @@ repeat once.
     wins and is never written. The status follows the Kit's state against the installed Kit as for a synced
     register entry; `NOT_APPLICABLE` shows as „laut Kit nicht anwendbar“.
   - Build `release-0.4.1-r5`; CHANGELOG Unreleased line.
+
+## 2026-11-15 — The Claude chat handoff works with clones (C6, build stays release-0.4.1-r5)
+
+- Workflow-friction plan C6 (V12): the handoff's start sentence and rules asked the next chat for access to
+  the Cockpit and Kit folders on the owner's computer; the owner grants none. The facts themselves were
+  already derivable from a clone.
+  - AGP_CLAUDE_HANDOFF_CLONES_V1: `write` drops `--host-root`; the start sentence asks for anonymous full
+    clones of `vfi64/agp-cockpit` and `vfi64/agentic-project-kit`, both commits, the handoff stored as a file
+    (attachment or project file) and `check <file>` in the Cockpit clone. The rules say that no folder is
+    requested and that the handoff is not in the repository (`.local/` is ignored).
+  - `collect_facts` refuses a shallow clone, whose tag and history facts would differ without a change in
+    the repository. `check` without a file in a clone names the missing attachment.
+  - CLAUDE.md „Switching to a new Claude chat“ follows. No app or extension code changed; build id stays
+    `release-0.4.1-r5`.
