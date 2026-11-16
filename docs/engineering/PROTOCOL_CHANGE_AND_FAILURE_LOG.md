@@ -2276,5 +2276,7 @@ repeat once.
   - Tests: `tests/test_tk_first_root.py` — the fixture calls the function before `wrap`; the function needs
     neither tkinter nor a display; on macOS a prewarmed process survives the stale sequence (skipped
     elsewhere with „macOS only“, which AGP_REQUIRE_TK does not turn into a failure).
+    `tests/test_tk_required_in_ci.py` runs a copy of tests/conftest.py and now copies its helper
+    `tk_first_root.py` beside it (the first CI run of PR #447 failed on the missing module).
   - Open: a full Tk run of the suite on the Mac without SIGTRAP (separate read-only order after the merge).
     Not included: a report to Tk upstream. Tests and documentation only; build stays `release-0.4.1-r7`.
