@@ -15,6 +15,7 @@ from agp_cockpit.core.mission_http_client import status as bridge_status
 from agp_cockpit.core.repo_state import ARBEITEN, BEREIT, LAEUFT, WIEDERHERSTELLEN
 from agp_cockpit.core.standard_task_progress import (
     clip,
+    decision_overtaken,
     describe_standard_task_progress,
     late_completion_verdict,
     stopped_by_lost_reply,
@@ -359,6 +360,7 @@ class StandardTasksPanel(ttk.Frame):
         self._tracked_task_id = task_id
         self._tracked_inputs = inputs
         self._tracked_head = self._head_sha()   # AGP_LATE_COMPLETION_CHECK_V1
+        self._remember_start_head(task, task_id)   # AGP_DECISION_OVERTAKEN_V1
         self._late_check = False
         self._hide_decision()
         self.status_var.set(
@@ -386,10 +388,52 @@ class StandardTasksPanel(ttk.Frame):
         task_id = str(resolve_task_binding(self.runtime_root(), mission_id).get("task_id") or "")
         if not task_id:
             return
+        if self._rejected_already(mission_id, task_id):
+            return   # AGP_DECISION_OVERTAKEN_V1: a rejected question does not come back
         self._tracked_task, self._tracked_task_id, self._tracked_inputs = task, task_id, None
         self._tracked_mission_id = mission_id
+        self._tracked_head = self._stored_start_head(task, task_id)   # AGP_DECISION_OVERTAKEN_V1
         self._show_decision(mission_id, str(mission.get("last_summary") or ""))
         self.status_var.set(f"{task.label} wartet auf deine Entscheidung (nach einem Neustart übernommen).")
+        if self._tracked_head:
+            self.refresh_lage()   # the Lage decides whether the question is overtaken
+
+    # --- AGP_DECISION_OVERTAKEN_V1 (workflow-friction plan C7) --------------------------
+
+    def _remember_start_head(self, task: StandardTask, task_id: str) -> None:
+        """Store the start commit per task id so that it survives a restart."""
+        from agp_cockpit.core.task_start_head import TaskStartHeadStore
+        try:
+            TaskStartHeadStore(self.runtime_root()).record(task_id, task_key=task.key, head=self._tracked_head)
+        except OSError:
+            pass   # without a stored start commit an adopted question simply stays open
+
+    def _stored_start_head(self, task: StandardTask, task_id: str) -> str:
+        from agp_cockpit.core.task_start_head import TaskStartHeadStore
+        return TaskStartHeadStore(self.runtime_root()).head(task_id, task_key=task.key)
+
+    def _rejected_already(self, mission_id: str, task_id: str) -> bool:
+        """The question of ``mission_id`` was rejected (``_reject`` leaves the mission NEEDS_HUMAN)."""
+        from agp_cockpit.core.human_decision import HumanDecisionStore
+        try:
+            record = HumanDecisionStore(self.runtime_root()).current()
+        except (OSError, ValueError):
+            return False
+        return (record.get("mission_id") == mission_id and record.get("task_id") == task_id
+                and record.get("decision") == "REJECT")
+
+    def _close_overtaken_decision(self, state) -> None:
+        """An open question of „Abschließen“ closes once the Lage shows its work published."""
+        task = self._tracked_task
+        if not self._decision_mission_id or task is None or task.key != "finish":
+            return
+        overtaken, text = decision_overtaken(task.key, self._tracked_head, state, self.repository_root)
+        if not overtaken:
+            return
+        self.recover_offered = False   # nothing to recover: the work is merged
+        self._last_outcome = "DONE"
+        self._hide_decision()          # recomputes the light
+        self.status_var.set(f"{task.label} · {text}")
 
     def _release_version(self) -> str:
         """AGP_RELEASE_PHASE2_APPROVAL_V1: the version of a tracked release task."""
@@ -893,6 +937,7 @@ class StandardTasksPanel(ttk.Frame):
                 self.recover_offered = False   # nothing to recover: the work is merged
                 self._last_outcome = "DONE"
             self.status_var.set(self.status_var.get() + "\n" + verdict)
+        self._close_overtaken_decision(result)   # AGP_DECISION_OVERTAKEN_V1
         self.apply_state(result)
         self._retract_recover_hint()
         self._maybe_auto_finish(result)

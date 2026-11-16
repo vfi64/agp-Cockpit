@@ -178,33 +178,59 @@ def stopped_by_lost_reply(mission: dict | None) -> str:
     return "nach der nicht ladbaren Abschlussdatei" if any(m in text for m in LOST_REPLY_MARKERS) else ""
 
 
-def late_completion_verdict(task_key: str, start_head: str, state, root,
-                            *, runner=None, cause: str = "nach der Zeitüberschreitung") -> tuple[bool, str]:
-    """AGP_LATE_COMPLETION_CHECK_V1 (live 2026-10-04, step 1689): after an assistant
-    timeout the Cockpit checks the repository itself. Only „Abschließen“ can be
-    confirmed this way: its work (the commit the task started on) is contained in
-    origin/main, main is synchronized and clean and the Kit's post-merge check
-    passes. Read-only; it never changes the durable task state."""
+def finish_merged(start_head: str, state, root, *, runner=None) -> tuple[bool, list[str]]:
+    """The one criterion that the work of an „Abschließen“ is published: the commit the
+    task started on is contained in origin/main, the Lage is BEREIT (main synchronized and
+    clean) and the Kit's post-merge check passes. Returns (met, what is missing).
+
+    Shared by AGP_LATE_COMPLETION_CHECK_V1 and AGP_DECISION_OVERTAKEN_V1. Read-only."""
     import subprocess
     from pathlib import Path
 
     from agp_cockpit.core import merged_branch_guard as guard
     from agp_cockpit.core import repo_state as rs
-    lage = f"Lage {state.state}: {state.summary}"
-    if task_key != "finish" or not start_head:
-        return False, f"Lokale Prüfung {cause}: {lage}. Bitte den Stand prüfen."
     facts = state.facts
     found = guard.relation(Path(root), start_head, "origin/main", runner=runner or subprocess.run)
     contained = found in (guard.MERGED, guard.NO_COMMITS)
-    if state.state == rs.BEREIT and facts.post_merge == "PASS" and contained:
-        late = "kam zu spät" if cause == "nach der Zeitüberschreitung" else "ging verloren"
-        return True, (f"Fertig ✓ — vom Cockpit geprüft {cause}: die Arbeit (Stand "
-                      f"{start_head[:12]}) ist in origin/main, main ist synchron und sauber, "
-                      f"post-merge-check PASS; nur die Abschlussmeldung der Remote-Seite {late}.")
     missing = [text for ok, text in (
         (state.state == rs.BEREIT, f"Lage {state.state}"),
         (facts.post_merge == "PASS", f"post-merge-check {facts.post_merge or 'nicht geprüft'}"),
         (contained, f"Stand {start_head[:12]} {found or 'nicht vergleichbar'}"),
     ) if not ok]
+    return not missing, missing
+
+
+def late_completion_verdict(task_key: str, start_head: str, state, root,
+                            *, runner=None, cause: str = "nach der Zeitüberschreitung") -> tuple[bool, str]:
+    """AGP_LATE_COMPLETION_CHECK_V1 (live 2026-10-04, step 1689): after an assistant
+    timeout the Cockpit checks the repository itself. Only „Abschließen“ can be
+    confirmed this way (``finish_merged``). Read-only; it never changes the durable
+    task state."""
+    lage = f"Lage {state.state}: {state.summary}"
+    if task_key != "finish" or not start_head:
+        return False, f"Lokale Prüfung {cause}: {lage}. Bitte den Stand prüfen."
+    done, missing = finish_merged(start_head, state, root, runner=runner)
+    if done:
+        late = "kam zu spät" if cause == "nach der Zeitüberschreitung" else "ging verloren"
+        return True, (f"Fertig ✓ — vom Cockpit geprüft {cause}: die Arbeit (Stand "
+                      f"{start_head[:12]}) ist in origin/main, main ist synchron und sauber, "
+                      f"post-merge-check PASS; nur die Abschlussmeldung der Remote-Seite {late}.")
     return False, (f"Lokale Prüfung {cause}: nicht abgeschlossen ("
                    + "; ".join(missing) + "). Bitte den Stand prüfen.")
+
+
+def decision_overtaken(task_key: str, start_head: str, state, root, *, runner=None) -> tuple[bool, str]:
+    """AGP_DECISION_OVERTAKEN_V1 (workflow-friction plan C7, section 2.4): an „Abschließen“
+    stopped with a question (NEEDS_HUMAN), and the owner published the work outside the
+    mission; the question box and the yellow light stayed. The question is overtaken when
+    ``finish_merged`` holds for the commit the task started on. Only „Abschließen“; without
+    a known start commit or a Lage the answer is always False (the box stays). Read-only:
+    it records no decision and does not touch the mission."""
+    if task_key != "finish" or not start_head or state is None:
+        return False, ""
+    done, _missing = finish_merged(start_head, state, root, runner=runner)
+    if not done:
+        return False, ""
+    return True, (f"Rückfrage überholt — die Arbeit (Stand {start_head[:12]}) ist bereits in "
+                  "origin/main, main ist synchron und sauber, post-merge-check PASS. Die Rückfrage "
+                  "ist geschlossen; nichts wurde ausgeführt.")
