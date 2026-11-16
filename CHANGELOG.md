@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+## v0.4.2 - 2026-11-16
+
 - Adopt Agentic Project Kit 1.4.0 (previously 1.3.0).
 - „Kit übernehmen“ raises the Cockpit’s own build revision once its local check passed, so an adoption that leaves an Unreleased line (Kit 1.4.0, K4) needs no follow-up PR; on chore/kit-<version> the stale-app guard shows that revision as a note instead of locking „Abschließen“ (plan C2).
 - The release rule reads the work order's calls, not its text: an execute flag in a docstring or a pull-request body no longer turns a dry run of release-publish or release run into a live run (no rejection, no approval question), a live call is judged by its own flags or by an execute flag standing free in the code, and every rejection names the call and its line (AGP_RELEASE_RULE_CALLS_V1, plan C1); build `release-0.4.1-r2`.

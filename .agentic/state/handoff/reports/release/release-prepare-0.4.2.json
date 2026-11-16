@@ -1,0 +1,223 @@
+{
+  "authorized_route": "agentic-kit release-prep",
+  "base_ref": "origin/main",
+  "changed_paths_against_base": [
+    "CHANGELOG.md",
+    "chrome_extension/build_identity.js",
+    "docs/releases/versions.json",
+    "pyproject.toml",
+    "src/agp_cockpit/version.py"
+  ],
+  "date": "2026-11-16",
+  "explicit_summary_lines": [
+    "Adopt Agentic Project Kit 1.4.0 (previously 1.3.0).",
+    "\u201eKit \u00fcbernehmen\u201c raises the Cockpit\u2019s own build revision once its local check passed, so an adoption that leaves an Unreleased line (Kit 1.4.0, K4) needs no follow-up PR; on chore/kit-<version> the stale-app guard shows that revision as a note instead of locking \u201eAbschlie\u00dfen\u201c (plan C2).",
+    "The release rule reads the work order's calls, not its text: an execute flag in a docstring or a pull-request body no longer turns a dry run of release-publish or release run into a live run (no rejection, no approval question), a live call is judged by its own flags or by an execute flag standing free in the code, and every rejection names the call and its line (AGP_RELEASE_RULE_CALLS_V1, plan C1); build `release-0.4.1-r2`.",
+    "\u201eAbschlie\u00dfen\u201c knows committed, unpublished work: on a clean work branch with own commits the Lage says whether they are on GitHub, the finish prompt states that the Kit publishes existing commits without a path selection (Kit 1.4.0, K1) and names no Kit command, and the finish guard, which still forbids a new commit there, also rejects a finish call that selects paths and names the call and its line (AGP_FINISH_PUBLISH_EXISTING_V1, plan C3); build `release-0.4.1-r3`.",
+    "\u201eRelease\u201c runs the Kit's read check before it asks: the repository's Kit answers `release ready` for the version (step A2 of its release run), and only its PASS leads to the question; any other answer shows the Kit's stopped steps, check id and resolving command with its consent flag, or its reason, and nothing starts. The Cockpit judges nothing itself; a resumed release skips the check (AGP_RELEASE_READ_CHECK_V1, plan C4); build `release-0.4.1-r4`.",
+    "The Kit findings window shows the installed Kit's catalog entries that the Cockpit's register does not list (KIT-GF-090, 096\u2013098 and 100\u2013120 at Kit 1.4.0) as a group of their own below the register: the Kit answers `greenfield status --json` beside the UI thread, the Cockpit reads only id, title, Kit state, fixed in and the report name, judges nothing and never writes them into its register; without a Kit or an answer the window names the reason (AGP_KIT_CATALOG_GROUP_V1, plan C5); build `release-0.4.1-r5`.",
+    "The Claude chat handoff works with clones instead of folder access: `scripts/claude_handoff.py write` no longer takes `--host-root`, its start sentence asks for anonymous full clones of the Cockpit and the Kit and for `check <handoff file>` with the handoff from an attachment or project file, `check` refuses a shallow clone and, without a file in a clone, asks for the attachment; no app or extension code changed, build stays `release-0.4.1-r5` (AGP_CLAUDE_HANDOFF_CLONES_V1, plan C6).",
+    "An open question of \u201eAbschlie\u00dfen\u201c closes when the work was published outside the task: once the Lage is BEREIT, the Kit's post-merge check passes and the commit the task started on is in origin/main (the criterion of the late-completion check), the question box closes, the light follows the Lage and the status line says that the question is overtaken and nothing was executed; no decision is recorded and the mission is not touched. The start commit is stored per task in the runtime folder, so this also holds for a question adopted after a restart, and a question rejected before a restart is no longer shown again; other tasks keep asking (AGP_DECISION_OVERTAKEN_V1, plan C7); build `release-0.4.1-r6`.",
+    "A background worker of the UI no longer holds its window: the Lage, \u201eBranch wechseln\u201c, the Systemcheck and the Kit findings sync give their worker threads plain values only (path, flag, binary). A worker that outlived its window kept it alive, and the window was later freed on a foreign thread: with Python 3.12 (CI) Tcl aborts the process, with Python 3.14 (the owner's Mac) the Tcl interpreter is leaked with a warning. The SIGTRAP of long Tk test runs on the Mac is not explained by this (corrected after order 2309). A test guards every worker of a Tk module, and a probe process shows the abort or the leak on the previous code (AGP_TK_WORKER_PLAIN_VALUES_V1); build `release-0.4.1-r7`.",
+    "Long Tk test runs on the Mac no longer abort with SIGTRAP: Tk 9 on macOS schedules a one-time idle task for the first root window of a process, so a first test window destroyed before an idle pass left the task pointing at a freed window, and the next test's `update()` or `update_idletasks()` crashed in `showRootWindow` (Mac crash reports of 2026-11-15; freeing the first Tk object does not prevent it). The test session now runs that task on a throwaway root before any test window exists; a macOS test and a probe process cover it (AGP_TK_FIRST_ROOT_IDLE_V1). Tests only."
+  ],
+  "from_tag": "v0.4.1",
+  "kind": "release_prepare_evidence",
+  "release_metadata_anchor_paths": [
+    "CHANGELOG.md",
+    "docs/releases/versions.json",
+    "pyproject.toml"
+  ],
+  "schema_version": 1,
+  "steps": [
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "kit-ci-pin-guard"
+      ],
+      "name": "kit-ci-pin-guard",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "{\"next_action\": null, \"reasons\": [], \"result_status\": \"PASS\", \"unreadable_files\": [], \"versions\": {\"highest_pin\": \"1.4.0\", \"installed\": \"1.4.0\", \"pins\": [{\"path\": \".github/workflows/agentic-gate.yaml\", \"version\": \"1.4.0\"}, {\"path\": \".agentic/ci/agentic-gate.yaml\", \"version\": \"1.4.0\"}]}}",
+      "stdout_length": 287,
+      "stdout_sha256": "629201222064795ce418f5411ba52243b46f75765c4e4ecc9c5d47d6af1edae5"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-notes-generate",
+        "--version",
+        "0.4.2",
+        "--from-tag",
+        "v0.4.1",
+        "--to-ref",
+        "main",
+        "--include-github-metadata",
+        "--summary-lines-json",
+        ".agentic/tmp/release-042-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-notes-generate",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 38834,
+      "stdout_sha256": "619e198ed5a9d589e48d6211f43fd1032c4f18ba2b1f7ad842033c1be01a5914"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "release-prep",
+        "--version",
+        "0.4.2",
+        "--date",
+        "2026-11-16",
+        "--summary-line",
+        "Adopt Agentic Project Kit 1.4.0 (previously 1.3.0).",
+        "--summary-line",
+        "\u201eKit \u00fcbernehmen\u201c raises the Cockpit\u2019s own build revision once its local check passed, so an adoption that leaves an Unreleased line (Kit 1.4.0, K4) needs no follow-up PR; on chore/kit-<version> the stale-app guard shows that revision as a note instead of locking \u201eAbschlie\u00dfen\u201c (plan C2).",
+        "--summary-line",
+        "The release rule reads the work order's calls, not its text: an execute flag in a docstring or a pull-request body no longer turns a dry run of release-publish or release run into a live run (no rejection, no approval question), a live call is judged by its own flags or by an execute flag standing free in the code, and every rejection names the call and its line (AGP_RELEASE_RULE_CALLS_V1, plan C1); build `release-0.4.1-r2`.",
+        "--summary-line",
+        "\u201eAbschlie\u00dfen\u201c knows committed, unpublished work: on a clean work branch with own commits the Lage says whether they are on GitHub, the finish prompt states that the Kit publishes existing commits without a path selection (Kit 1.4.0, K1) and names no Kit command, and the finish guard, which still forbids a new commit there, also rejects a finish call that selects paths and names the call and its line (AGP_FINISH_PUBLISH_EXISTING_V1, plan C3); build `release-0.4.1-r3`.",
+        "--summary-line",
+        "\u201eRelease\u201c runs the Kit's read check before it asks: the repository's Kit answers `release ready` for the version (step A2 of its release run), and only its PASS leads to the question; any other answer shows the Kit's stopped steps, check id and resolving command with its consent flag, or its reason, and nothing starts. The Cockpit judges nothing itself; a resumed release skips the check (AGP_RELEASE_READ_CHECK_V1, plan C4); build `release-0.4.1-r4`.",
+        "--summary-line",
+        "The Kit findings window shows the installed Kit's catalog entries that the Cockpit's register does not list (KIT-GF-090, 096\u2013098 and 100\u2013120 at Kit 1.4.0) as a group of their own below the register: the Kit answers `greenfield status --json` beside the UI thread, the Cockpit reads only id, title, Kit state, fixed in and the report name, judges nothing and never writes them into its register; without a Kit or an answer the window names the reason (AGP_KIT_CATALOG_GROUP_V1, plan C5); build `release-0.4.1-r5`.",
+        "--summary-line",
+        "The Claude chat handoff works with clones instead of folder access: `scripts/claude_handoff.py write` no longer takes `--host-root`, its start sentence asks for anonymous full clones of the Cockpit and the Kit and for `check <handoff file>` with the handoff from an attachment or project file, `check` refuses a shallow clone and, without a file in a clone, asks for the attachment; no app or extension code changed, build stays `release-0.4.1-r5` (AGP_CLAUDE_HANDOFF_CLONES_V1, plan C6).",
+        "--summary-line",
+        "An open question of \u201eAbschlie\u00dfen\u201c closes when the work was published outside the task: once the Lage is BEREIT, the Kit's post-merge check passes and the commit the task started on is in origin/main (the criterion of the late-completion check), the question box closes, the light follows the Lage and the status line says that the question is overtaken and nothing was executed; no decision is recorded and the mission is not touched. The start commit is stored per task in the runtime folder, so this also holds for a question adopted after a restart, and a question rejected before a restart is no longer shown again; other tasks keep asking (AGP_DECISION_OVERTAKEN_V1, plan C7); build `release-0.4.1-r6`.",
+        "--summary-line",
+        "A background worker of the UI no longer holds its window: the Lage, \u201eBranch wechseln\u201c, the Systemcheck and the Kit findings sync give their worker threads plain values only (path, flag, binary). A worker that outlived its window kept it alive, and the window was later freed on a foreign thread: with Python 3.12 (CI) Tcl aborts the process, with Python 3.14 (the owner's Mac) the Tcl interpreter is leaked with a warning. The SIGTRAP of long Tk test runs on the Mac is not explained by this (corrected after order 2309). A test guards every worker of a Tk module, and a probe process shows the abort or the leak on the previous code (AGP_TK_WORKER_PLAIN_VALUES_V1); build `release-0.4.1-r7`.",
+        "--summary-line",
+        "Long Tk test runs on the Mac no longer abort with SIGTRAP: Tk 9 on macOS schedules a one-time idle task for the first root window of a process, so a first test window destroyed before an idle pass left the task pointing at a freed window, and the next test's `update()` or `update_idletasks()` crashed in `showRootWindow` (Mac crash reports of 2026-11-15; freeing the first Tk object does not prevent it). The test session now runs that task on a throwaway root before any test window exists; a macOS test and a probe process cover it (AGP_TK_FIRST_ROOT_IDLE_V1). Tests only.",
+        "--summary-lines-from",
+        ".agentic/tmp/release-042-summary-lines.json",
+        "--json"
+      ],
+      "name": "release-prep",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 316,
+      "stdout_sha256": "65662444e53e6a32429e00012256e4be1ee100076afa1678d124e174b540aa7a"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "commands",
+        "sync-entrypoints",
+        "--execute",
+        "--json"
+      ],
+      "name": "commands-sync-entrypoints",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 195,
+      "stdout_sha256": "8f755bbf2f20cfa613c4fa79af889443bc3f394a449d1fcdc86bc8d379e89830"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [],
+      "name": "task-selection-review-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "Skipped: Kit development projection is not applicable.",
+      "stdout_length": 54,
+      "stdout_sha256": "294dde19be118c8a1e8bcaae87e2ccf2eeb7df71ecd82f83edd4ffe91b167773"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "agentic-kit",
+        "release",
+        "prepare",
+        "--internal-dpa-readiness-ack-refresh"
+      ],
+      "name": "dpa-readiness-ack-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 237,
+      "stdout_sha256": "3552b247e67e3c63691215e89ea16da97055a65ce5e4d30c71011ca1f9f88158"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/agentic-kit",
+        "transfer",
+        "chat-switch-complete",
+        "--json"
+      ],
+      "name": "successor-handoff-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "}",
+      "stdout_length": 1791,
+      "stdout_sha256": "7c7dbf942d9335148b09055459c1986ad537098dd85e7d4eb7f9cec63498a4ba"
+    },
+    {
+      "allowed_returncodes": [
+        0
+      ],
+      "argv": [
+        "./.venv/bin/python",
+        "site/scripts/build.py",
+        "--docs-pages-fallback",
+        "--json"
+      ],
+      "name": "docs-pages-fallback-refresh",
+      "ok": true,
+      "returncode": 0,
+      "stderr_last_line": "",
+      "stderr_length": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_last_line": "SKIPPED: no site/scripts/build.py in this workspace; the docs-pages fallback site is a Kit self-hosting artifact (KIT-GF-032).",
+      "stdout_length": 126,
+      "stdout_sha256": "bb8f99c8abf1cc112afe078993660d183d1ea44f4bfe730f0652e0885e6e9749"
+    }
+  ],
+  "summary_lines_path": ".agentic/tmp/release-042-summary-lines.json",
+  "to_ref": "main",
+  "version": "0.4.2"
+}
