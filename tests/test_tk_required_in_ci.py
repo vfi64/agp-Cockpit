@@ -20,8 +20,8 @@ def test_ci_runs_the_suite_under_xvfb_and_requires_tk():
 
 
 def test_a_tk_skip_fails_when_tk_is_required(tmp_path):
-    (tmp_path / "conftest.py").write_text((ROOT / "tests/conftest.py").read_text(encoding="utf-8"),
-                                          encoding="utf-8")
+    for name in ("conftest.py", "tk_first_root.py"):   # the conftest imports its helper (AGP_TK_FIRST_ROOT_IDLE_V1)
+        (tmp_path / name).write_text((ROOT / "tests" / name).read_text(encoding="utf-8"), encoding="utf-8")
     (tmp_path / "test_probe.py").write_text(textwrap.dedent("""
         import pytest
 
