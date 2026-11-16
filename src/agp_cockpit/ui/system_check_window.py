@@ -42,7 +42,11 @@ class SystemCheckWindow(tk.Toplevel):
         self.again_button.configure(state="disabled")
         self.summary_var.set("Systemcheck läuft …")
         holder: list = []
-        threading.Thread(target=lambda: holder.append(self._run(self._root_path)), daemon=True).start()
+        run, root = self._run, self._root_path
+
+        def work() -> None:          # plain values only (AGP_TK_WORKER_PLAIN_VALUES_V1)
+            holder.append(run(root))
+        threading.Thread(target=work, daemon=True).start()
 
         def poll() -> None:
             if not self.winfo_exists():

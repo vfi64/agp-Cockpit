@@ -2205,3 +2205,27 @@ repeat once.
   - Not included: other tasks (Release and the rest keep asking), the „Arbeiten“ tab, the bridge state, reading
     the question's text.
   - Build `release-0.4.1-r6`; CHANGELOG Unreleased line; tests `tests/test_decision_overtaken.py`.
+
+## 2026-11-16 — UI workers hold plain values only (Tk/SIGTRAP on the Mac, build release-0.4.1-r7)
+
+- Finding of orders 2299–2303: long pytest runs with the Tk tests aborted on the owner's Mac with SIGTRAP
+  (rc -5), in changing Tk tests depending on what ran before (test_standard_task_verbs, test_repo_state,
+  test_t3), also on main without a patch. The CI (Linux, xvfb) never showed it.
+  - Cause, reproduced in Claude's Linux workspace under xvfb: four worker threads held `self`, a Tk window or
+    panel — the Lage worker of `StandardTasksPanel.refresh_lage`, „Branch wechseln“ in `MainWindow`, the
+    Systemcheck and the Kit findings sync. A worker that outlives its test keeps the window past the teardown,
+    so the collection on the main thread (AGP_TK_GC_ON_MAIN_THREAD_V1) cannot free it. When the worker ends,
+    the window is cyclic garbage that the next collection frees on whatever thread runs it; on a foreign thread
+    Tcl aborts („Tcl_AsyncDelete: async handler deleted by the wrong thread“, SIGABRT on Linux). The Lage
+    worker waits for `git ls-remote origin`, which is slow on the Mac and fast on the CI runner.
+  - Evidence: `tests/tk_worker_probe.py` (panel, Lage of 0.6 s, teardown as in the suite, then a collection on
+    another thread) aborts 5 of 5 times on the previous code (rc 134) and survives 5 of 5 times with the fix.
+    The Mac's signal for the same probe is part of order 2309 (run on the previous code before the patch).
+  - AGP_TK_WORKER_PLAIN_VALUES_V1: the four workers get plain values (repository path, Kit binary, the check
+    function, flags); their answer is read on the UI thread as before. `tests/test_tk_worker_plain_values.py`
+    scans every module that imports tkinter: each Thread target is a nested function or lambda of the same
+    scope and never names `self` (a bound method as target fails as well); a second test shows the guard
+    finds such workers; the probe runs as a process in the Tk run.
+  - Not included: a conftest safety net that waits for a test's threads (it would hide such workers in tests);
+    the bridge's mission state.
+  - Build `release-0.4.1-r7`; CHANGELOG Unreleased line.

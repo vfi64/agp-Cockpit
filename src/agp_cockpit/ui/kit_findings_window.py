@@ -139,10 +139,11 @@ class KitFindingsWindow(tk.Toplevel):
         self.sync_button.configure(state="disabled")
         self.sync_var.set("Abgleich läuft …")
         holder: list = []
+        root = self.repository_root
 
-        def work() -> None:
+        def work() -> None:          # plain values only (AGP_TK_WORKER_PLAIN_VALUES_V1)
             try:
-                holder.append(sync(self.repository_root))
+                holder.append(sync(root))
             except Exception as exc:  # noqa: BLE001 - shown in the window
                 holder.append(exc)
 

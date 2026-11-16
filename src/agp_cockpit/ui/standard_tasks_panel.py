@@ -905,10 +905,11 @@ class StandardTasksPanel(ttk.Frame):
         running = self._task_running()
         holder: list = []
         self._lage_result = None
+        root = self.repository_root
 
-        def work() -> None:
+        def work() -> None:          # plain values only (AGP_TK_WORKER_PLAIN_VALUES_V1)
             try:
-                holder.append(lagebericht(self.repository_root, task_running=running))
+                holder.append(lagebericht(root, task_running=running))
             except Exception as exc:  # noqa: BLE001 - shown to the operator
                 holder.append(exc)
 

@@ -212,10 +212,10 @@ class MainWindow(ttk.Frame):
         self._branch_button.configure(state="disabled")
         panel.status_var.set(f"Branch wechseln — {name} wird über das Kit aktiviert …")
         holder: list = []
+        root, binary = self.repository_root, kit.binary
 
-        def work() -> None:
-            holder.append(branch_switch.switch(self.repository_root, kit.binary, name,
-                                               env=tool_env(self.repository_root)))
+        def work() -> None:          # plain values only (AGP_TK_WORKER_PLAIN_VALUES_V1)
+            holder.append(branch_switch.switch(root, binary, name, env=tool_env(root)))
 
         def poll() -> None:
             if not holder:
