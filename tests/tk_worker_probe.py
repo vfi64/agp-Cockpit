@@ -3,9 +3,11 @@
 A test-like sequence: a Standard-Tasks panel starts its Lage worker, the Lage takes a while (like
 `git ls-remote origin` on a slow network), the test destroys its window and collects on the main
 thread; afterwards another thread runs the garbage collection (in the suite: a bridge server thread or
-the next panel's worker). If the worker held the panel, the old window is freed on that foreign thread
-and Tcl aborts the process („Tcl_AsyncDelete: async handler deleted by the wrong thread“; SIGTRAP on
-the owner's Mac). Exit 0 with „survived“ when the worker held plain values only.
+the next panel's worker). If the worker held the panel, the old window is freed on that foreign thread:
+Python 3.12 aborts („Tcl_AsyncDelete: async handler deleted by the wrong thread“), Python 3.14 survives
+and warns „the Tcl interpreter is leaked“ (gh-83274). With plain values the probe prints „survived“,
+exits 0 and warns nothing. Order 2309 showed on the owner's Mac (Python 3.14, Tk 9.0) that this is not
+the cause of the SIGTRAP of long Tk test runs there.
 
 Usage: PYTHONPATH=src python tests/tk_worker_probe.py <empty folder>
 """

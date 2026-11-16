@@ -2229,3 +2229,20 @@ repeat once.
   - Not included: a conftest safety net that waits for a test's threads (it would hide such workers in tests);
     the bridge's mission state.
   - Build `release-0.4.1-r7`; CHANGELOG Unreleased line.
+
+## 2026-11-16 — Correction: the Mac's SIGTRAP is not explained by AGP_TK_WORKER_PLAIN_VALUES_V1 (no rebuild)
+
+- The entry above and the CHANGELOG line of order 2309 called the foreign-thread release the cause of the
+  SIGTRAP of long Tk test runs on the owner's Mac. Order 2309 refuted that on the Mac itself: before the
+  patch the probe ran on the previous code and survived (rc 0). The Mac runs Python 3.14.7 (Homebrew) with
+  Tk 9.0; since gh-83274 `_tkinter` leaks a Tcl interpreter that is deallocated on a foreign thread
+  („RuntimeWarning: the Tcl interpreter is leaked …“) instead of deleting it, so `Tcl_AsyncDelete` cannot
+  abort there. Reproduced in Claude's workspace with Python 3.14.10 / Tk 9.0 under xvfb: previous code rc 0
+  with the warning, new code rc 0 without it. Python 3.12 (CI) still aborts on the previous code.
+  - The fix stays: the foreign-thread release is a real defect (abort on 3.12, leaked interpreter on 3.14).
+  - `test_a_slow_lage_worker_does_not_abort_a_later_collection` also fails on the leak warning, so the probe
+    fails on the previous code under both versions. Docstrings of the test and the probe corrected; the
+    CHANGELOG line now names both outcomes and says that the Mac's SIGTRAP stays open.
+  - Open: the SIGTRAP itself. Next step: read the crash reports of Python on the Mac (crashed thread and its
+    frames). Whether leaked interpreters of long runs on 3.14 play a part is unverified.
+  - Tests and documentation only; build stays `release-0.4.1-r7`.
