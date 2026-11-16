@@ -2,9 +2,9 @@
 
 A worker that holds `self` (a window or panel) keeps it alive past the end of its owner. When the
 worker ends, the old window is cyclic garbage that the next automatic collection frees on whatever
-thread runs it; Tcl then aborts the process (the SIGTRAP of the Mac test runs 2299–2303, where the
-Lage worker waits for `git ls-remote origin`). Workers get plain values; the UI thread reads their
-answer (AGP_TK_GC_ON_MAIN_THREAD_V1).
+thread runs it: Python 3.12 aborts the process, Python 3.14 leaks the Tcl interpreter with a warning
+(gh-83274). Workers get plain values; the UI thread reads their answer (AGP_TK_GC_ON_MAIN_THREAD_V1).
+Not the cause of the Mac's SIGTRAP in long Tk runs (order 2309, Python 3.14 there; still open).
 """
 from __future__ import annotations
 
@@ -123,7 +123,8 @@ def test_the_four_workers_get_plain_values():
 
 
 def test_a_slow_lage_worker_does_not_abort_a_later_collection(tmp_path):
-    """The probe as a process: on the previous code Tcl aborts it (rc 134 on Linux, SIGTRAP on the Mac)."""
+    """The probe as a process: on the previous code Python 3.12 aborts (rc 134), Python 3.14 warns of a
+    leaked Tcl interpreter; both fail here."""
     tk = pytest.importorskip("tkinter")
     try:
         root = tk.Tk()
@@ -137,5 +138,6 @@ def test_a_slow_lage_worker_does_not_abort_a_later_collection(tmp_path):
     env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(ROOT / "src"), env.get("PYTHONPATH", "")]))
     done = subprocess.run([sys.executable, str(PROBE), str(repository)], cwd=ROOT, env=env,
                           text=True, capture_output=True, timeout=120, check=False)
-    assert done.returncode == 0 and "survived" in done.stdout, (
+    leaked = "interpreter is leaked" in done.stderr
+    assert done.returncode == 0 and "survived" in done.stdout and not leaked, (
         f"rc={done.returncode}\n{done.stdout[-1500:]}\n{done.stderr[-3000:]}")
