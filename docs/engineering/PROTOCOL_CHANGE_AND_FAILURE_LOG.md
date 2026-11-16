@@ -2180,3 +2180,28 @@ repeat once.
     the repository. `check` without a file in a clone names the missing attachment.
   - CLAUDE.md „Switching to a new Claude chat“ follows. No app or extension code changed; build id stays
     `release-0.4.1-r5`.
+
+## 2026-11-16 — An overtaken question of „Abschließen“ closes (C7, build release-0.4.1-r6)
+
+- Workflow-friction plan C7 (section 2.4): an „Abschließen“ stopped with a question (NEEDS_HUMAN); the owner
+  published the work outside the mission. The question box and the yellow light („deine Entscheidung ist
+  gefragt“) stayed, because NEEDS_HUMAN is a resting state without transitions and nothing compared the
+  question with the repository.
+  - AGP_DECISION_OVERTAKEN_V1: `standard_task_progress.finish_merged` is the one criterion that the work of an
+    „Abschließen“ is published (Lage BEREIT, post-merge check PASS, start commit MERGED or NO_COMMITS against
+    origin/main). `late_completion_verdict` (AGP_LATE_COMPLETION_CHECK_V1) uses it unchanged in its texts;
+    `decision_overtaken` uses it for an open question. Only „Abschließen“; without a start commit or a Lage the
+    answer is always no and the box stays (safe failure).
+  - The panel checks after every Lagebericht: open box, tracked task „Abschließen“, criterion met → box closed,
+    `recover_offered` off, outcome DONE, light recomputed, status line „Rückfrage überholt — … nichts wurde
+    ausgeführt.“ No decision is recorded (the bridge would replace the decision record and its grant) and the
+    bridge mission stays NEEDS_HUMAN until the next mission (owner 2026-11-16, variant B).
+  - `core/task_start_head.TaskStartHeadStore`: the start commit per task id in `task-start-heads.json` in the
+    runtime folder (temporary file, then replace; the last 20 tasks). Written at the start of a standard task,
+    read by `adopt_pending_decision`, which then refreshes the Lage so that an adopted question is checked too.
+  - `adopt_pending_decision` no longer re-shows a question that the decision record names as rejected for the
+    same mission and task: `_reject` leaves the mission NEEDS_HUMAN, and a restart showed the rejected
+    question again.
+  - Not included: other tasks (Release and the rest keep asking), the „Arbeiten“ tab, the bridge state, reading
+    the question's text.
+  - Build `release-0.4.1-r6`; CHANGELOG Unreleased line; tests `tests/test_decision_overtaken.py`.
