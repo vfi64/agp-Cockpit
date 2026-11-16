@@ -81,6 +81,10 @@ def _invisible_test_windows():
     except ImportError:
         yield
         return
+    # AGP_TK_FIRST_ROOT_IDLE_V1: run Tk's one-time showRootWindow idle task on a throwaway root before any
+    # test window exists (macOS SIGTRAP of long Tk runs, see tests/tk_first_root.py).
+    from tk_first_root import consume_first_root_idle
+    consume_first_root_idle()
     show = os.environ.get("AGP_TEST_SHOW_WINDOWS") == "1"
     originals = {cls: cls.__init__ for cls in (tkinter.Tk, tkinter.Toplevel)}
 

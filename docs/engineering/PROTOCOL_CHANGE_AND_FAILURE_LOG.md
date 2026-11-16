@@ -2246,3 +2246,35 @@ repeat once.
   - Open: the SIGTRAP itself. Next step: read the crash reports of Python on the Mac (crashed thread and its
     frames). Whether leaked interpreters of long runs on 3.14 play a part is unverified.
   - Tests and documentation only; build stays `release-0.4.1-r7`.
+
+## 2026-11-16 — The Mac's SIGTRAP: Tk's one-time showRootWindow task of the first root (tests only)
+
+- Order 2311 read the seven Python crash reports of 2026-11-15 (20:08–20:54, Python 3.14.7, Tk 9.0, macOS
+  27.2). All seven: EXC_BREAKPOINT/SIGTRAP on the main thread in `Tkapp_Call → Tk_UpdateObjCmd →
+  Tcl_DoOneEvent → TclServiceIdle → showRootWindow → Tk_MacOSXGetTkWindow → objc_opt_respondsToSelector`;
+  no worker thread involved.
+  - Tk source (tcltk/tk core-9-0-branch @ 14c69d6, macosx/tkMacOSXInit.c): `TkpInit` schedules
+    `showRootWindow` with the first root's NSWindow as an idle task once per process (`if (!initialized)`);
+    the idle queue belongs to the thread, so the next `update()` or `update_idletasks()` of any interpreter
+    runs it. `InterpDeleteProc` of the first interpreter is meant to cancel it.
+  - Evidence on the Mac, one process per sequence (orders 2312 and 2313, before the patch): first root
+    hidden with alpha 0 and destroyed without an idle pass, then a second root `update()` → SIGTRAP with the
+    stack above (`stale`); the same after freeing the first Python Tk object (`deleted`, so the delete proc
+    does not save it here; why is open), after a 1 s pause, and as SIGSEGV in `showRootWindow` with
+    `update_idletasks()`. It survives when the first root had an idle pass before its destroy
+    (`update_idletasks()` or `update()`), when the second root runs no idle pass, when the first root was
+    withdrawn instead of made transparent (why is open), and when a throwaway root ran its idle tasks first
+    (`prewarmed`). This fits the changing tests, main without a patch, and a green CI (the Aqua port only).
+  - AGP_TK_FIRST_ROOT_IDLE_V1: the session fixture of tests/conftest.py calls
+    `tests/tk_first_root.consume_first_root_idle()` before it wraps Tk: a withdrawn throwaway root runs
+    `update_idletasks()` and is destroyed on the main thread, so the task is gone before any test window
+    exists. Hiding test windows by withdraw instead was not chosen (tests would get unmapped windows). The
+    app is not affected (its first root lives to the end).
+  - Evidence in order 2314 before any effect: `tests/tk_first_root_probe.py stale` must abort with a signal
+    and `prewarmed` must survive three times, else the order stops. Under Linux both modes survive (no
+    showRootWindow).
+  - Tests: `tests/test_tk_first_root.py` — the fixture calls the function before `wrap`; the function needs
+    neither tkinter nor a display; on macOS a prewarmed process survives the stale sequence (skipped
+    elsewhere with „macOS only“, which AGP_REQUIRE_TK does not turn into a failure).
+  - Open: a full Tk run of the suite on the Mac without SIGTRAP (separate read-only order after the merge).
+    Not included: a report to Tk upstream. Tests and documentation only; build stays `release-0.4.1-r7`.
