@@ -1,9 +1,9 @@
 {
   "findings": [],
   "generator_version": 2,
-  "input_digest": "d978f6a07ee2ac51edf3120f01b74ad3136bde7d77f83d1a9e272d64560c59b4",
+  "input_digest": "24a9e5c6c258383df15a345dfa6d1e7c6ba5c91779e11b553c0d19fb59faa8a5",
   "input_hashes": {
-    "execution_contract": "462a3db4142e19a6c0815557554f16bbb2a45061c4733abde77c29e350e06ba7",
+    "execution_contract": "ab3a8707576d552db51921f04c91a2d6beff13c683e9c164ad9d0cbb1817ebbf",
     "file:.agentic/DOC_LIFECYCLE.md": "f9b0efb64385107edf4916e2292647b2043649643e4f5d07fcc0977f882e22e2",
     "file:.agentic/INITIAL_LLM_PROMPT.md": "98afc55d5c701cdf701b1533b463904bbbf70c311413151723bbbfb6cb96ac5a",
     "file:.agentic/config.yaml": "b413b6061cb894dd109035d7ef862d4ccb65cb00ba3cb784de7b7e0b623aa454",
@@ -12,13 +12,13 @@
     "file:.agentic/rules/README.md": "991fdf5e0a81085f13e7c867321c5b5ed71e338383cc91aec1aea90852e5b8db",
     "file:.agentic/state/handoff/README.md": "74829e38164942eb6bde9cc980ce03625d06361e9546f8a4ed28c0991e28c625",
     "file:.agentic/state/status.md": "6f802e227a1ffcc1c3090b6519e6b9ea7c08b08394aae0c2bfcf1c6b0dda717e",
-    "file:@kit/agentic-kit-commands.json": "414b66d3ec9a011462c047c0e1151291bead5ade3c11bcaf95601c3412b050f3",
+    "file:@kit/agentic-kit-commands.json": "0fc0b3e5ff7a52eec69f1225bb0c2a1a99f7bca86046ace3239af670065448da",
     "file:docs/planning/PROJECT_DIRECTION.yaml": null,
     "generator_version": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
     "handoff_root": "aaea53ce9093d931d70505f4fb5fc838f5a273826b5cc41ee047da42456c828d",
     "mandatory_source_paths": "d1db30ded53256972bf2dd615d932753d04b02abcb560964d1e46c61d22849ec",
     "package_root": "b3ff216fc999cd89443380da7a309b611805d00ec739182eae0925b25c0ba194",
-    "package_version": "7ecfa77218b20a0375427c96abd38dc51769ef1978a2f7d2f927d96b4f9c9d81",
+    "package_version": "e22d3ac5668a6700d50feb14ab2a9b1d468778d55000955c27929b9af5429f96",
     "repository_name": "7e328d7afb11e35c757a91348939acaa09f5775f199fe18e3bfab3c37ce17877"
   },
   "kind": "successor_handoff_validation_report",

@@ -19,7 +19,7 @@
   },
   "projection_contract_version": 2,
   "release": {
-    "package_version": "1.4.0"
+    "package_version": "1.4.1"
   },
   "repo": {
     "full_name": "vfi64/agp-Cockpit"
