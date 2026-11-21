@@ -6,6 +6,8 @@ release is a tag and a GitHub Release entry made by the Kit's signed release run
 
 ## Unreleased
 
+- Adopt Agentic Project Kit 1.4.1 (previously 1.4.0).
+
 ## v0.4.2 - 2026-11-16
 
 - Adopt Agentic Project Kit 1.4.0 (previously 1.3.0).

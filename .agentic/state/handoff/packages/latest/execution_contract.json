@@ -1,11 +1,11 @@
 {
   "command_reference": {
-    "ack": "COMMAND_MANIFEST_ACK 236cd9a4df4b",
+    "ack": "COMMAND_MANIFEST_ACK 6e810d7d8fe3",
     "json": "@kit/agentic-kit-commands.json",
-    "manifest_sha": "236cd9a4df4b",
+    "manifest_sha": "6e810d7d8fe3",
     "must_not_reconstruct_commands_from_memory": true,
     "source_hashes": {
-      "@kit/agentic-kit-commands.json": "414b66d3ec9a011462c047c0e1151291bead5ade3c11bcaf95601c3412b050f3"
+      "@kit/agentic-kit-commands.json": "0fc0b3e5ff7a52eec69f1225bb0c2a1a99f7bca86046ace3239af670065448da"
     }
   },
   "current_state_contract": {
@@ -396,7 +396,7 @@
   ],
   "schema_version": 1,
   "source_hashes": {
-    "@kit/agentic-kit-commands.json": "414b66d3ec9a011462c047c0e1151291bead5ade3c11bcaf95601c3412b050f3"
+    "@kit/agentic-kit-commands.json": "0fc0b3e5ff7a52eec69f1225bb0c2a1a99f7bca86046ace3239af670065448da"
   },
   "validation": {
     "path": ".agentic/successor_handoff_package/validation_report.json",

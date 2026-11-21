@@ -1,6 +1,6 @@
 # Agentic-kit command reference
 
-GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 236cd9a4df4b
+GENERATED FROM agentic-kit-commands.json — do not edit; manifest_sha: 6e810d7d8fe3
 
 > Successor handoff contract note: the machine-readable successor execution contract is written to `docs/reports/handoff-packages/latest/execution_contract.json`. This generated command reference points to the contract instead of duplicating local-command rules.
 
@@ -451,9 +451,11 @@ Report the CI verdict for a commit or branch without requiring a pull request.
 
 - Safety: `BOUNDED`
 - Surface: `primitive`
-- When to use: Run agentic-kit cockpit run.
+- When to use: Run a selected cockpit action subject to safety and dirty-state checks.
 - Dry-run available: `False`
 - Remote effects: `none`
+
+Run a selected cockpit action subject to safety and dirty-state checks.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
@@ -466,9 +468,11 @@ Report the CI verdict for a commit or branch without requiring a pull request.
 
 - Safety: `BOUNDED`
 - Surface: `primitive`
-- When to use: Run agentic-kit cockpit select.
+- When to use: List cockpit actions with their IDs for a bounded selection.
 - Dry-run available: `False`
 - Remote effects: `none`
+
+List cockpit actions with their IDs for a bounded selection.
 
 _No parameters._
 
@@ -1600,7 +1604,7 @@ Run the pre-GUI readiness gate.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.4.0` |  |
+| `version` | `TyperOption` | --version | `False` | `1.4.1` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit handoff check`
@@ -2283,7 +2287,7 @@ Plan release publishing without live tag/release side effects.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
-| `version` | `TyperOption` | --version | `False` | `1.4.0` |  |
+| `version` | `TyperOption` | --version | `False` | `1.4.1` |  |
 | `dry_run` | `TyperOption` | --dry-run, --no-dry-run | `False` | `True` |  |
 | `execute` | `TyperOption` | --execute | `False` | `False` |  |
 | `allow_execute` | `TyperOption` | --allow-execute | `False` | `False` |  |
@@ -2610,7 +2614,7 @@ Run the audit suite required by standard project gates.
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
 | `root` | `TyperOption` | --root | `False` | `PosixPath('.')` |  |
-| `version` | `TyperOption` | --version | `False` | `1.4.0` |  |
+| `version` | `TyperOption` | --version | `False` | `1.4.1` |  |
 | `json_output` | `TyperOption` | --json | `False` | `False` |  |
 
 ### `agentic-kit state freshness-check`
@@ -3565,9 +3569,11 @@ Write the current diff to the OS temp directory and run the Python protected cha
 
 - Safety: `BOUNDED`
 - Surface: `primitive`
-- When to use: Run agentic-kit transfer read-user-task.
+- When to use: Read the current GUI file-transfer task and report its next action.
 - Dry-run available: `False`
 - Remote effects: `none`
+
+Read the current GUI file-transfer task and report its next action.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
@@ -3809,9 +3815,11 @@ Run a bounded scan for known workflow standard errors before patch/transfer/rele
 
 - Safety: `BOUNDED`
 - Surface: `primitive`
-- When to use: Run agentic-kit transfer submit-user-task.
+- When to use: Submit a GUI file-transfer task from a UTF-8 file to the canonical task carrier.
 - Dry-run available: `False`
 - Remote effects: `none`
+
+Submit a GUI file-transfer task from a UTF-8 file to the canonical task carrier.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
@@ -4378,11 +4386,11 @@ Plan or update the managed workspace CI template.
 
 - Safety: `BOUNDED`
 - Surface: `orchestrator`
-- When to use: Run the deterministic DPA repository-intake orchestration.
+- When to use: Run the deterministic Document Projection Architecture repository-intake orchestration.
 - Dry-run available: `True`
 - Remote effects: `none`
 
-Run the deterministic DPA repository-intake orchestration.
+Run the deterministic Document Projection Architecture repository-intake orchestration.
 
 | Parameter | Type | Options | Required | Default | Help |
 |---|---:|---|---:|---|---|
